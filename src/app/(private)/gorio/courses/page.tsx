@@ -3,10 +3,8 @@
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { DataTable } from "@/components/data-table/data-table"
 import { DataTableActionBar, DataTableActionBarAction, DataTableActionBarSelection } from '@/components/data-table/data-table-action-bar'
-import { DataTableAdvancedToolbar } from "@/components/data-table/data-table-advanced-toolbar"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
-import { DataTableFilterList } from "@/components/data-table/data-table-filter-list"
-import { DataTableSortList } from "@/components/data-table/data-table-sort-list"
+import { DataTableToolbar } from "@/components/data-table/data-table-toolbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -16,9 +14,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useDataTable } from "@/hooks/use-data-table"
 
-import type { Column, ColumnDef } from "@tanstack/react-table"
+import {
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type Column,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type PaginationState,
+  type SortingState,
+} from "@tanstack/react-table"
 import {
   AlertCircle,
   BookOpen,
@@ -33,7 +41,6 @@ import {
   Users,
   XCircle,
 } from "lucide-react"
-import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import * as React from "react"
 
 interface Course {
@@ -55,7 +62,7 @@ const data: Course[] = [
     duration: 40,
     vacancies: 25,
     status: "active",
-    created_at: "2024-01-15T10:00:00Z",
+    created_at: "2025-07-30T10:00:00Z",
   },
   {
     id: "2",
@@ -64,7 +71,7 @@ const data: Course[] = [
     duration: 60,
     vacancies: 15,
     status: "active",
-    created_at: "2024-01-10T14:30:00Z",
+    created_at: "2025-02-10T14:30:00Z",
   },
   {
     id: "3",
@@ -73,7 +80,7 @@ const data: Course[] = [
     duration: 80,
     vacancies: 10,
     status: "inactive",
-    created_at: "2024-01-05T09:15:00Z",
+    created_at: "2025-06-05T09:15:00Z",
   },
   {
     id: "4",
@@ -82,7 +89,7 @@ const data: Course[] = [
     duration: 50,
     vacancies: 20,
     status: "draft",
-    created_at: "2024-01-20T16:45:00Z",
+    created_at: "2025-06-20T16:45:00Z",
   },
   {
     id: "5",
@@ -91,7 +98,7 @@ const data: Course[] = [
     duration: 70,
     vacancies: 12,
     status: "completed",
-    created_at: "2023-12-20T11:00:00Z",
+    created_at: "2025-07-30T11:00:00Z",
   },
   {
     id: "6",
@@ -100,7 +107,7 @@ const data: Course[] = [
     duration: 45,
     vacancies: 30,
     status: "active",
-    created_at: "2024-01-12T08:30:00Z",
+    created_at: "2025-01-12T08:30:00Z",
   },
   {
     id: "7",
@@ -109,7 +116,7 @@ const data: Course[] = [
     duration: 35,
     vacancies: 18,
     status: "active",
-    created_at: "2024-01-18T13:20:00Z",
+    created_at: "2025-01-18T13:20:00Z",
   },
   {
     id: "8",
@@ -118,7 +125,7 @@ const data: Course[] = [
     duration: 55,
     vacancies: 22,
     status: "inactive",
-    created_at: "2024-01-08T15:10:00Z",
+    created_at: "2025-01-08T15:10:00Z",
   },
   {
     id: "9",
@@ -127,7 +134,7 @@ const data: Course[] = [
     duration: 40,
     vacancies: 25,
     status: "active",
-    created_at: "2024-01-15T10:00:00Z",
+    created_at: "2025-01-15T10:00:00Z",
   },
   {
     id: "10",
@@ -136,7 +143,7 @@ const data: Course[] = [
     duration: 40,
     vacancies: 25,
     status: "active",
-    created_at: "2024-01-15T10:00:00Z",
+    created_at: "2025-01-15T10:00:00Z",
   },
   {
     id: "11",
@@ -145,7 +152,7 @@ const data: Course[] = [
     duration: 40,
     vacancies: 25,
     status: "active",
-    created_at: "2024-01-15T10:00:00Z",
+    created_at: "2025-01-15T10:00:00Z",
   },
   {
     id: "12",
@@ -168,29 +175,15 @@ const data: Course[] = [
 ]
 
 export default function Courses() {
-  const [title] = useQueryState("title", parseAsString.withDefault(""))
-  const [provider] = useQueryState("provider", parseAsString.withDefault(""))
-  const [status] = useQueryState(
-    "status",
-    parseAsArrayOf(parseAsString).withDefault([]),
-  )
-
-  // Client-side filtering for demo purposes
-  const filteredData = React.useMemo(() => {
-    return data.filter((course) => {
-      const matchesTitle =
-        title === "" ||
-        course.title.toLowerCase().includes(title.toLowerCase())
-      const matchesProvider =
-        provider === "" ||
-        course.provider.toLowerCase().includes(provider.toLowerCase())
-      const matchesStatus =
-        status.length === 0 || status.includes(course.status)
-
-      return matchesTitle && matchesProvider && matchesStatus
-    })
-  }, [title, provider, status])
-
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: "created_at", desc: true }
+  ])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [pagination, setPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+  
   const columns = React.useMemo<ColumnDef<Course>[]>(
     () => [
       {
@@ -259,6 +252,31 @@ export default function Courses() {
         enableColumnFilter: true,
       },
       {
+        id: "vacancies",
+        accessorKey: "vacancies",
+        accessorFn: (row) => Number(row.vacancies),
+        header: ({ column }: { column: Column<Course, unknown> }) => (
+          <DataTableColumnHeader column={column} title="Vagas" />
+        ),
+        cell: ({ cell }) => {
+          const vacancies = cell.getValue<Course["vacancies"]>()
+          return (
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span>{vacancies}</span>
+            </div>
+          )
+        },
+        meta: {
+          label: "Vagas",
+          variant: "range",
+          range: [5, 50],
+          unit: "vagas",
+          icon: Users,
+        },
+        enableColumnFilter: true,
+      },
+      {
         id: "duration",
         accessorKey: "duration",
         header: ({ column }: { column: Column<Course, unknown> }) => (
@@ -279,28 +297,6 @@ export default function Courses() {
           range: [20, 100],
           unit: "h",
           icon: Clock,
-        },
-        enableColumnFilter: true,
-      },
-      {
-        id: "vacancies",
-        accessorKey: "vacancies",
-        header: ({ column }: { column: Column<Course, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Vagas" />
-        ),
-        cell: ({ cell }) => {
-          const vacancies = cell.getValue<Course["vacancies"]>()
-          return (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span>{vacancies}</span>
-            </div>
-          )
-        },
-        meta: {
-          label: "Vagas",
-          variant: "number",
-          icon: Users,
         },
         enableColumnFilter: true,
       },
@@ -364,11 +360,18 @@ export default function Courses() {
       {
         id: "created_at",
         accessorKey: "created_at",
+        accessorFn: (row) => {
+          const date = new Date(row.created_at)
+          // Normalize to start of day (midnight) for proper date filtering
+          date.setHours(0, 0, 0, 0)
+          return date.getTime()
+        },
         header: ({ column }: { column: Column<Course, unknown> }) => (
           <DataTableColumnHeader column={column} title="Data de Criação" />
         ),
         cell: ({ cell }) => {
-          const date = new Date(cell.getValue<Course["created_at"]>())
+          const timestamp = cell.getValue<number>()
+          const date = new Date(timestamp)
           return (
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -378,7 +381,7 @@ export default function Courses() {
         },
         meta: {
           label: "Data de Criação",
-          variant: "date",
+          variant: "dateRange",
           icon: Calendar,
         },
         enableColumnFilter: true,
@@ -412,16 +415,22 @@ export default function Courses() {
     [],
   )
 
-  const { table } = useDataTable({
-    data: filteredData,
+  const table = useReactTable({
+    data: data, // Use the full mock data
     columns,
-    pageCount: -1,
-    initialState: {
-      sorting: [{ id: "created_at", desc: true }],
-      columnPinning: { right: ["actions"] },
-    },
     getRowId: (row) => row.id,
-    enableAdvancedFilter: true,
+    state: {
+      sorting,
+      columnFilters,
+      pagination,
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   })
 
   return (
@@ -441,10 +450,7 @@ export default function Courses() {
         </div>
 
         <DataTable table={table}>
-          <DataTableAdvancedToolbar table={table}>
-            <DataTableFilterList table={table} />
-            <DataTableSortList table={table} />
-          </DataTableAdvancedToolbar>
+          <DataTableToolbar table={table} />
           
           <DataTableActionBar table={table}>
             <DataTableActionBarSelection table={table} />
