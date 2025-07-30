@@ -2,25 +2,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app
+  name: portal-interno
   annotations:
     reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: app
+      app: portal-interno
   template:
     metadata:
       labels:
-        app: app
+        app: portal-interno
     spec:
       containers:
-        - name: app
+        - name: portal-interno
           image: ghcr.io/prefeitura-rio/portal-interno:latest
           envFrom:
             - secretRef:
-                name: app-secrets
+                name: portal-interno-secrets
       restartPolicy: Always
 
 ---
@@ -28,12 +28,12 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: app
-  name: app
+    app: portal-interno
+  name: portal-interno
 spec:
   ports:
     - name: "80"
       port: 80
       targetPort: 3000
   selector:
-    app: app
+    app: portal-interno
