@@ -21,9 +21,28 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useLogout } from '@/hooks/use-logout'
+import type { UserInfo } from '@/lib/user-info'
 
-export function UserNav() {
+interface UserNavProps {
+  userInfo: UserInfo
+}
+
+export function UserNav({ userInfo }: UserNavProps) {
   const { isLoading, handleLogout } = useLogout()
+
+  // Generate initials from the user's name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  const initials = userInfo.name ? getInitials(userInfo.name) : 'U'
+  const displayName = userInfo.name || 'Usuário'
+  const displayCpf = userInfo.cpf || 'CPF não disponível'
 
   return (
     <DropdownMenu>
@@ -37,7 +56,9 @@ export function UserNav() {
               >
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="#" alt="Avatar" />
-                  <AvatarFallback className="bg-transparent">JD</AvatarFallback>
+                  <AvatarFallback className="bg-transparent">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
@@ -46,12 +67,12 @@ export function UserNav() {
         </Tooltip>
       </TooltipProvider>
 
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-44" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">John Doe</p>
+            <p className="text-sm font-medium leading-none">{displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              johndoe@example.com
+              {displayCpf}
             </p>
           </div>
         </DropdownMenuLabel>

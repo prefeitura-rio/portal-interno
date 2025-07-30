@@ -129,7 +129,7 @@ export function Menu({ isOpen }: MenuProps) {
                     className="w-full justify-center h-10 mt-5"
                     disabled={isLoading}
                   >
-                    <span className={cn(isOpen === false ? '' : 'mr-4')}>
+                    <span className={cn(isOpen === false ? '' : '')}>
                       <LogOut size={18} />
                     </span>
                     <p
