@@ -1,10 +1,23 @@
 //layout.tsx
-import AdminPanelLayout from '@/components/admin-panel/admin-panel-layout'
+import AdminPanelLayout from '@/components/admin-panel/admin-panel-layout';
+import { UserProvider } from '@/components/providers/user-provider';
+import { getUserInfoFromToken } from '@/lib/user-info';
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 export default async function Layout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return <AdminPanelLayout>{children}</AdminPanelLayout>
+  const userInfo = await getUserInfoFromToken();
+  
+  return (
+    <UserProvider userInfo={userInfo}>
+      <AdminPanelLayout>
+        <NuqsAdapter>
+          {children}
+        </NuqsAdapter>
+      </AdminPanelLayout>
+    </UserProvider>
+  );
 }
