@@ -42,6 +42,7 @@ import {
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { CalendarIcon, Plus, Trash2 } from 'lucide-react'
+import { type CustomField, FieldsCreator } from './fields-creator'
 
 // Define the schema for location/class information
 const locationClassSchema = z.object({
@@ -187,6 +188,15 @@ const formSchema = z
       resourcesUsed: z.string().optional(),
       materialUsed: z.string().optional(),
       teachingMaterial: z.string().optional(),
+      customFields: z
+        .array(
+          z.object({
+            id: z.string(),
+            title: z.string(),
+            required: z.boolean(),
+          })
+        )
+        .optional(),
       remoteClass: remoteClassSchema,
     }),
     z.object({
@@ -238,6 +248,15 @@ const formSchema = z
       resourcesUsed: z.string().optional(),
       materialUsed: z.string().optional(),
       teachingMaterial: z.string().optional(),
+      customFields: z
+        .array(
+          z.object({
+            id: z.string(),
+            title: z.string(),
+            required: z.boolean(),
+          })
+        )
+        .optional(),
       locations: z.array(locationClassSchema).min(1, {
         message: 'Pelo menos uma unidade deve ser informada.',
       }),
@@ -287,6 +306,7 @@ type PartialFormData = Omit<
   teachingMaterial?: string
   institutionalLogo?: File | null
   coverImage?: File | null
+  customFields?: CustomField[]
 }
 
 export function NewCourseForm() {
@@ -315,6 +335,7 @@ export function NewCourseForm() {
       teachingMaterial: '',
       institutionalLogo: undefined,
       coverImage: undefined,
+      customFields: [],
     },
     mode: 'onChange', // Enable real-time validation
   })
@@ -1179,6 +1200,22 @@ export function NewCourseForm() {
                       label="Imagem de capa*"
                       maxSize={1000000} // 1MB
                       previewClassName="max-h-[300px] max-w-full rounded-lg object-contain"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="customFields"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <FieldsCreator
+                      fields={field.value || []}
+                      onFieldsChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />

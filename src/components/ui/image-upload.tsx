@@ -72,7 +72,7 @@ export function ImageUpload({
       `A imagem deve ter menos de ${Math.round(maxSize / 1000000)}MB e ser do tipo PNG, JPG, JPEG ou SVG`)
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('space-y-4 bg-card', className)}>
       <label
         htmlFor={id}
         className={cn(
@@ -86,7 +86,7 @@ export function ImageUpload({
       <div
         {...getRootProps()}
         className={cn(
-          'flex cursor-pointer flex-col items-center justify-center gap-y-2 rounded-lg border p-6 shadow-sm hover:bg-muted/50 transition-colors',
+          'flex cursor-pointer flex-col items-center justify-center gap-y-2 rounded-lg border p-6 shadow-sm! hover:bg-muted/50 transition-colors',
           hasError ? 'border-destructive' : 'border-muted-foreground/25',
           preview && 'relative'
         )}
