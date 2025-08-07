@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -49,22 +49,18 @@ const locationClassSchema = z.object({
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
     .max(1000, { message: 'Número de vagas não pode exceder 1000.' }),
-  classStartDate: z
-    .date({
-      required_error: 'Data de início das aulas é obrigatória.',
-    })
-    .optional(),
-  classEndDate: z
-    .date({
-      required_error: 'Data de fim das aulas é obrigatória.',
-    })
-    .optional(),
+  classStartDate: z.date({
+    required_error: 'Data de início das aulas é obrigatória.',
+  }),
+  classEndDate: z.date({
+    required_error: 'Data de fim das aulas é obrigatória.',
+  }),
   classTime: z
     .string()
     .min(1, { message: 'Horário das aulas é obrigatório.' })
     .refine(
       value => {
-        if (!value || value.trim() === '') return true
+        if (!value || value.trim() === '') return false
         return /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](\s*[-à]\s*([0-1]?[0-9]|2[0-3]):[0-5][0-9])?$/.test(
           value
         )
@@ -78,7 +74,7 @@ const locationClassSchema = z.object({
     .min(1, { message: 'Dias de aula é obrigatório.' })
     .refine(
       value => {
-        if (!value || value.trim() === '') return true
+        if (!value || value.trim() === '') return false
         return /^(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)(\s*,\s*(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo))*$/.test(
           value
         )
@@ -95,22 +91,18 @@ const remoteClassSchema = z.object({
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
     .max(1000, { message: 'Número de vagas não pode exceder 1000.' }),
-  classStartDate: z
-    .date({
-      required_error: 'Data de início das aulas é obrigatória.',
-    })
-    .optional(),
-  classEndDate: z
-    .date({
-      required_error: 'Data de fim das aulas é obrigatória.',
-    })
-    .optional(),
+  classStartDate: z.date({
+    required_error: 'Data de início das aulas é obrigatória.',
+  }),
+  classEndDate: z.date({
+    required_error: 'Data de fim das aulas é obrigatória.',
+  }),
   classTime: z
     .string()
     .min(1, { message: 'Horário das aulas é obrigatório.' })
     .refine(
       value => {
-        if (!value || value.trim() === '') return true
+        if (!value || value.trim() === '') return false
         return /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](\s*[-à]\s*([0-1]?[0-9]|2[0-3]):[0-5][0-9])?$/.test(
           value
         )
@@ -124,7 +116,7 @@ const remoteClassSchema = z.object({
     .min(1, { message: 'Dias de aula é obrigatório.' })
     .refine(
       value => {
-        if (!value || value.trim() === '') return true
+        if (!value || value.trim() === '') return false
         return /^(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)(\s*,\s*(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo))*$/.test(
           value
         )
@@ -135,34 +127,58 @@ const remoteClassSchema = z.object({
     ),
 })
 
-// Update the formSchema to include modalidade and conditional fields
+// Create a discriminated union for better type safety
 const formSchema = z
-  .object({
-    title: z
-      .string()
-      .min(1, { message: 'Título é obrigatório.' })
-      .min(5, { message: 'Título deve ter pelo menos 5 caracteres.' })
-      .max(100, { message: 'Título não pode exceder 100 caracteres.' }),
-    description: z
-      .string()
-      .min(1, { message: 'Descrição é obrigatória.' })
-      .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
-      .max(500, { message: 'Descrição não pode exceder 500 caracteres.' }),
-    enrollmentStartDate: z.date({
-      required_error: 'Data de início é obrigatória.',
+  .discriminatedUnion('modalidade', [
+    z.object({
+      title: z
+        .string()
+        .min(1, { message: 'Título é obrigatório.' })
+        .min(5, { message: 'Título deve ter pelo menos 5 caracteres.' })
+        .max(100, { message: 'Título não pode exceder 100 caracteres.' }),
+      description: z
+        .string()
+        .min(1, { message: 'Descrição é obrigatória.' })
+        .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
+        .max(500, { message: 'Descrição não pode exceder 500 caracteres.' }),
+      enrollmentStartDate: z.date({
+        required_error: 'Data de início é obrigatória.',
+      }),
+      enrollmentEndDate: z.date({
+        required_error: 'Data de término é obrigatória.',
+      }),
+      organization: z.string().min(1, {
+        message: 'Órgão é obrigatório.',
+      }),
+      modalidade: z.literal('Remoto'),
+      remoteClass: remoteClassSchema,
     }),
-    enrollmentEndDate: z.date({
-      required_error: 'Data de término é obrigatória.',
+    z.object({
+      title: z
+        .string()
+        .min(1, { message: 'Título é obrigatório.' })
+        .min(5, { message: 'Título deve ter pelo menos 5 caracteres.' })
+        .max(100, { message: 'Título não pode exceder 100 caracteres.' }),
+      description: z
+        .string()
+        .min(1, { message: 'Descrição é obrigatória.' })
+        .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
+        .max(500, { message: 'Descrição não pode exceder 500 caracteres.' }),
+      enrollmentStartDate: z.date({
+        required_error: 'Data de início é obrigatória.',
+      }),
+      enrollmentEndDate: z.date({
+        required_error: 'Data de término é obrigatória.',
+      }),
+      organization: z.string().min(1, {
+        message: 'Órgão é obrigatório.',
+      }),
+      modalidade: z.enum(['Presencial', 'Semipresencial']),
+      locations: z.array(locationClassSchema).min(1, {
+        message: 'Pelo menos uma unidade deve ser informada.',
+      }),
     }),
-    organization: z.string().min(1, {
-      message: 'Órgão é obrigatório.',
-    }),
-    modalidade: z.enum(['Presencial', 'Semipresencial', 'Remoto'], {
-      required_error: 'Modalidade é obrigatória.',
-    }),
-    locations: z.array(locationClassSchema).optional(),
-    remoteClass: remoteClassSchema.optional(),
-  })
+  ])
   .refine(data => data.enrollmentEndDate >= data.enrollmentStartDate, {
     message: 'A data final deve ser igual ou posterior à data inicial.',
     path: ['enrollmentEndDate'],
@@ -170,78 +186,34 @@ const formSchema = z
   .refine(
     data => {
       if (data.modalidade === 'Remoto') {
-        return (
-          data.remoteClass !== undefined &&
-          data.remoteClass.vacancies > 0 &&
-          data.remoteClass.classTime.trim() !== '' &&
-          data.remoteClass.classDays.trim() !== '' &&
-          data.remoteClass.classStartDate !== undefined &&
-          data.remoteClass.classEndDate !== undefined
-        )
-      }
-      if (
-        data.modalidade === 'Presencial' ||
-        data.modalidade === 'Semipresencial'
-      ) {
-        return (
-          data.locations &&
-          data.locations.length > 0 &&
-          data.locations.every(
-            location =>
-              location.address.trim() !== '' &&
-              location.neighborhood.trim() !== '' &&
-              location.vacancies > 0 &&
-              location.classTime.trim() !== '' &&
-              location.classDays.trim() !== '' &&
-              location.classStartDate !== undefined &&
-              location.classEndDate !== undefined
-          )
-        )
-      }
-      return true
-    },
-    {
-      message: 'Informações de localização/aulas são obrigatórias.',
-      path: ['modalidade'],
-    }
-  )
-  .refine(
-    data => {
-      if (data.locations) {
-        return data.locations.every(location => {
-          if (!location.classStartDate || !location.classEndDate) return true
-          return location.classEndDate >= location.classStartDate
-        })
-      }
-      return true
-    },
-    {
-      message:
-        'A data final das aulas deve ser igual ou posterior à data inicial.',
-      path: ['locations'],
-    }
-  )
-  .refine(
-    data => {
-      if (data.remoteClass) {
-        if (!data.remoteClass.classStartDate || !data.remoteClass.classEndDate)
-          return true
         return data.remoteClass.classEndDate >= data.remoteClass.classStartDate
       }
-      return true
+      return data.locations.every(
+        location => location.classEndDate >= location.classStartDate
+      )
     },
     {
       message:
         'A data final das aulas deve ser igual ou posterior à data inicial.',
-      path: ['remoteClass'],
+      path: ['modalidade'],
     }
   )
 
 type FormData = z.infer<typeof formSchema>
 
+// Helper type for form state before modalidade is selected
+type PartialFormData = Omit<
+  FormData,
+  'modalidade' | 'locations' | 'remoteClass'
+> & {
+  modalidade?: 'Presencial' | 'Semipresencial' | 'Remoto'
+  locations?: z.infer<typeof locationClassSchema>[]
+  remoteClass?: z.infer<typeof remoteClassSchema>
+}
+
 export function NewCourseForm() {
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<PartialFormData>({
+    resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
     defaultValues: {
       title: '',
       description: '',
@@ -252,27 +224,29 @@ export function NewCourseForm() {
       locations: [],
       remoteClass: undefined,
     },
+    mode: 'onChange', // Enable real-time validation
   })
 
   const modalidade = form.watch('modalidade')
-  const locations = form.watch('locations') || []
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'locations',
+  })
 
   // Handle modalidade change to properly initialize fields
-  const handleModalidadeChange = (value: string) => {
+  const handleModalidadeChange = (
+    value: 'Presencial' | 'Semipresencial' | 'Remoto'
+  ) => {
     if (value === 'Remoto') {
       // Clear locations array and initialize remote class fields
       form.setValue('locations', [])
-
-      const currentRemoteClass = form.getValues('remoteClass')
-      if (!currentRemoteClass) {
-        form.setValue('remoteClass', {
-          vacancies: 1,
-          classStartDate: new Date(),
-          classEndDate: new Date(),
-          classTime: '',
-          classDays: '',
-        })
-      }
+      form.setValue('remoteClass', {
+        vacancies: 1,
+        classStartDate: new Date(),
+        classEndDate: new Date(),
+        classTime: '',
+        classDays: '',
+      })
     } else if (value === 'Presencial' || value === 'Semipresencial') {
       // Clear remote class and initialize locations if not already set
       form.setValue('remoteClass', undefined)
@@ -295,47 +269,49 @@ export function NewCourseForm() {
   }
 
   const addLocation = () => {
-    const currentLocations = form.getValues('locations') || []
-    form.setValue('locations', [
-      ...currentLocations,
-      {
-        address: '',
-        neighborhood: '',
-        vacancies: 1,
-        classStartDate: new Date(),
-        classEndDate: new Date(),
-        classTime: '',
-        classDays: '',
-      },
-    ])
+    append({
+      address: '',
+      neighborhood: '',
+      vacancies: 1,
+      classStartDate: new Date(),
+      classEndDate: new Date(),
+      classTime: '',
+      classDays: '',
+    })
   }
 
   const removeLocation = (index: number) => {
-    const currentLocations = form.getValues('locations') || []
-    form.setValue(
-      'locations',
-      currentLocations.filter((_, i) => i !== index)
-    )
+    remove(index)
   }
 
-  function onSubmit(values: FormData) {
-    console.log('Form submitted successfully!')
-    console.log('Form values:', values)
-    toast('Formulário enviado com sucesso!', {
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-neutral-950 p-4">
-          <code className="text-white">{JSON.stringify(values, null, 2)}</code>
-        </pre>
-      ),
-    })
+  async function onSubmit(values: PartialFormData) {
+    try {
+      // Validate the complete form data
+      const validatedData = formSchema.parse(values)
+
+      console.log('Form submitted successfully!')
+      console.log('Form values:', validatedData)
+
+      toast.success('Formulário enviado com sucesso!')
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.error('Validation errors:', error.errors)
+        toast.error('Erro de validação', {
+          description: 'Por favor, verifique os campos destacados.',
+        })
+      } else {
+        console.error('Unexpected error:', error)
+        toast.error('Erro inesperado', {
+          description: 'Ocorreu um erro ao processar o formulário.',
+        })
+      }
+    }
   }
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit, errors => {
-          console.log('Form validation errors:', errors)
-        })}
+        onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-6 max-w-2xl"
       >
         <FormField
@@ -479,8 +455,12 @@ export function NewCourseForm() {
               <FormLabel>Modalidade*</FormLabel>
               <Select
                 onValueChange={value => {
-                  field.onChange(value)
-                  handleModalidadeChange(value)
+                  const modalidadeValue = value as
+                    | 'Presencial'
+                    | 'Semipresencial'
+                    | 'Remoto'
+                  field.onChange(modalidadeValue)
+                  handleModalidadeChange(modalidadeValue)
                 }}
                 defaultValue={field.value}
               >
@@ -639,8 +619,8 @@ export function NewCourseForm() {
 
         {(modalidade === 'Presencial' || modalidade === 'Semipresencial') && (
           <div className="space-y-4">
-            {locations.map((_, index) => (
-              <Card key={index}>
+            {fields.map((field, index) => (
+              <Card key={field.id}>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>
                     {index === 0
@@ -836,7 +816,13 @@ export function NewCourseForm() {
           </div>
         )}
 
-        <Button type="submit">Criar Curso</Button>
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting}
+          className="w-full"
+        >
+          {form.formState.isSubmitting ? 'Enviando...' : 'Criar Curso'}
+        </Button>
       </form>
     </Form>
   )
