@@ -5,6 +5,7 @@ import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -161,6 +162,17 @@ const formSchema = z
         .min(1, { message: 'Público-alvo é obrigatório.' })
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
         .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
+      // Optional fields
+      prerequisites: z.string().optional(),
+      hasCertificate: z.boolean().optional(),
+      facilitator: z.string().optional(),
+      objectives: z.string().optional(),
+      expectedResults: z.string().optional(),
+      programContent: z.string().optional(),
+      methodology: z.string().optional(),
+      resourcesUsed: z.string().optional(),
+      materialUsed: z.string().optional(),
+      teachingMaterial: z.string().optional(),
       remoteClass: remoteClassSchema,
     }),
     z.object({
@@ -194,6 +206,17 @@ const formSchema = z
         .min(1, { message: 'Público-alvo é obrigatório.' })
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
         .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
+      // Optional fields
+      prerequisites: z.string().optional(),
+      hasCertificate: z.boolean().optional(),
+      facilitator: z.string().optional(),
+      objectives: z.string().optional(),
+      expectedResults: z.string().optional(),
+      programContent: z.string().optional(),
+      methodology: z.string().optional(),
+      resourcesUsed: z.string().optional(),
+      materialUsed: z.string().optional(),
+      teachingMaterial: z.string().optional(),
       locations: z.array(locationClassSchema).min(1, {
         message: 'Pelo menos uma unidade deve ser informada.',
       }),
@@ -231,6 +254,16 @@ type PartialFormData = Omit<
   remoteClass?: z.infer<typeof remoteClassSchema>
   workload?: string
   targetAudience?: string
+  prerequisites?: string
+  hasCertificate?: boolean
+  facilitator?: string
+  objectives?: string
+  expectedResults?: string
+  programContent?: string
+  methodology?: string
+  resourcesUsed?: string
+  materialUsed?: string
+  teachingMaterial?: string
 }
 
 export function NewCourseForm() {
@@ -247,6 +280,16 @@ export function NewCourseForm() {
       remoteClass: undefined,
       workload: '',
       targetAudience: '',
+      prerequisites: '',
+      hasCertificate: false,
+      facilitator: '',
+      objectives: '',
+      expectedResults: '',
+      programContent: '',
+      methodology: '',
+      resourcesUsed: '',
+      materialUsed: '',
+      teachingMaterial: '',
     },
     mode: 'onChange', // Enable real-time validation
   })
@@ -871,6 +914,192 @@ export function NewCourseForm() {
             </FormItem>
           )}
         />
+
+        {/* Optional Fields Section */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-muted-foreground">
+            Informações Adicionais (Opcionais)
+          </h3>
+
+          <FormField
+            control={form.control}
+            name="prerequisites"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Pré-requisitos para a capacitação</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
+                    className="min-h-[80px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="hasCertificate"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Terá certificado</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="facilitator"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Facilitador</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Nome do facilitador ou instrutor"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="objectives"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Objetivos da capacitação</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Ex: Desenvolver habilidades em gestão de projetos, capacitar para uso de ferramentas específicas..."
+                    className="min-h-[80px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="expectedResults"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Resultados esperados</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Ex: Ao final do curso, os participantes estarão aptos a..."
+                    className="min-h-[80px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="programContent"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Conteúdo programático</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Ex: Módulo 1: Introdução, Módulo 2: Conceitos básicos..."
+                    className="min-h-[120px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="methodology"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Metodologia</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Ex: Aulas expositivas, exercícios práticos, estudos de caso..."
+                    className="min-h-[80px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="resourcesUsed"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Recursos Utilizados</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Ex: Computadores, projetor, software específico..."
+                    className="min-h-[80px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="materialUsed"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Material utilizado</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Ex: Apostilas, slides, vídeos..."
+                    className="min-h-[80px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="teachingMaterial"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Material didático</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Ex: Livros, artigos, exercícios práticos..."
+                    className="min-h-[80px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <Button
           type="submit"
