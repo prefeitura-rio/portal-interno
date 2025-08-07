@@ -151,6 +151,16 @@ const formSchema = z
         message: 'Órgão é obrigatório.',
       }),
       modalidade: z.literal('Remoto'),
+      workload: z
+        .string()
+        .min(1, { message: 'Carga horária é obrigatória.' })
+        .min(3, { message: 'Carga horária deve ter pelo menos 3 caracteres.' })
+        .max(50, { message: 'Carga horária não pode exceder 50 caracteres.' }),
+      targetAudience: z
+        .string()
+        .min(1, { message: 'Público-alvo é obrigatório.' })
+        .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
+        .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
       remoteClass: remoteClassSchema,
     }),
     z.object({
@@ -174,6 +184,16 @@ const formSchema = z
         message: 'Órgão é obrigatório.',
       }),
       modalidade: z.enum(['Presencial', 'Semipresencial']),
+      workload: z
+        .string()
+        .min(1, { message: 'Carga horária é obrigatória.' })
+        .min(3, { message: 'Carga horária deve ter pelo menos 3 caracteres.' })
+        .max(50, { message: 'Carga horária não pode exceder 50 caracteres.' }),
+      targetAudience: z
+        .string()
+        .min(1, { message: 'Público-alvo é obrigatório.' })
+        .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
+        .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
       locations: z.array(locationClassSchema).min(1, {
         message: 'Pelo menos uma unidade deve ser informada.',
       }),
@@ -209,6 +229,8 @@ type PartialFormData = Omit<
   modalidade?: 'Presencial' | 'Semipresencial' | 'Remoto'
   locations?: z.infer<typeof locationClassSchema>[]
   remoteClass?: z.infer<typeof remoteClassSchema>
+  workload?: string
+  targetAudience?: string
 }
 
 export function NewCourseForm() {
@@ -223,6 +245,8 @@ export function NewCourseForm() {
       modalidade: undefined,
       locations: [],
       remoteClass: undefined,
+      workload: '',
+      targetAudience: '',
     },
     mode: 'onChange', // Enable real-time validation
   })
@@ -625,7 +649,7 @@ export function NewCourseForm() {
                   <CardTitle>
                     {index === 0
                       ? 'Informações da Unidade'
-                      : `Unidade ${index + 1}`}
+                      : `Informações da Unidade ${index + 1}`}
                   </CardTitle>
                   {index > 0 && (
                     <Button
@@ -815,6 +839,38 @@ export function NewCourseForm() {
             </Button>
           </div>
         )}
+
+        <FormField
+          control={form.control}
+          name="workload"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Carga Horária*</FormLabel>
+              <FormControl>
+                <Input placeholder="Ex: 40 horas" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="targetAudience"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Público-alvo*</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Ex: Servidores públicos, estudantes, profissionais da área de tecnologia..."
+                  className="min-h-[80px]"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button
           type="submit"
