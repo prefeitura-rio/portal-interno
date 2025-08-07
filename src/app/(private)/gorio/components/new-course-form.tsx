@@ -618,7 +618,7 @@ export function NewCourseForm() {
         )}
 
         {(modalidade === 'Presencial' || modalidade === 'Semipresencial') && (
-          <div className="space-y-4">
+          <div className="space-y-4 -mt-2">
             {fields.map((field, index) => (
               <Card key={field.id}>
                 <CardHeader className="flex flex-row items-center justify-between">
