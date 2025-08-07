@@ -502,7 +502,7 @@ export function NewCourseForm() {
 
         {/* Conditional rendering based on modalidade */}
         {modalidade === 'Remoto' && (
-          <Card>
+          <Card className="-mt-2">
             <CardHeader>
               <CardTitle>Informações das Aulas Remotas</CardTitle>
             </CardHeader>
