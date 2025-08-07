@@ -957,7 +957,7 @@ export function NewCourseForm() {
             {/* Optional Fields Section */}
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="optional-fields">
-                <AccordionTrigger className="text-lg font-semibold text-muted-foreground hover:no-underline">
+                <AccordionTrigger className="text-lg font-semibold text-foreground hover:no-underline">
                   Informações Adicionais (Opcionais)
                 </AccordionTrigger>
                 <AccordionContent>
