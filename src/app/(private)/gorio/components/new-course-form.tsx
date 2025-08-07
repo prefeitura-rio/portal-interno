@@ -383,222 +383,102 @@ export function NewCourseForm() {
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6 max-w-2xl"
-      >
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Título*</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16">
+          <div className="space-y-6">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Título*</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição*</FormLabel>
-              <FormControl>
-                <Textarea className="min-h-[120px]" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição*</FormLabel>
+                  <FormControl>
+                    <Textarea className="min-h-[120px]" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="flex items-center justify-between gap-4">
-          <FormField
-            control={form.control}
-            name="enrollmentStartDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col flex-1">
-                <FormLabel>Período de inscrições*</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, 'dd/MM/yyyy')
-                        ) : (
-                          <span>DD/MM/AAAA</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="flex mt-4 items-center justify-center">à</div>
-          <FormField
-            control={form.control}
-            name="enrollmentEndDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col flex-1">
-                <FormLabel className="opacity-0 pointer-events-none select-none">
-                  Data de término*
-                </FormLabel>
-                <FormControl>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, 'dd/MM/yyyy')
-                        ) : (
-                          <span>DD/MM/AAAA</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="organization"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Órgão (Quem oferece o curso)*</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um órgão" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="org1">Organização A</SelectItem>
-                  <SelectItem value="org2">Organização B</SelectItem>
-                  <SelectItem value="org3">Organização C</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="modalidade"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Modalidade*</FormLabel>
-              <Select
-                onValueChange={value => {
-                  const modalidadeValue = value as
-                    | 'Presencial'
-                    | 'Semipresencial'
-                    | 'Remoto'
-                  field.onChange(modalidadeValue)
-                  handleModalidadeChange(modalidadeValue)
-                }}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a modalidade" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Presencial">Presencial</SelectItem>
-                  <SelectItem value="Semipresencial">Semipresencial</SelectItem>
-                  <SelectItem value="Remoto">Remoto</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Conditional rendering based on modalidade */}
-        {modalidade === 'Remoto' && (
-          <Card className="-mt-2">
-            <CardHeader>
-              <CardTitle>Informações das Aulas Remotas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
               <FormField
                 control={form.control}
-                name="remoteClass.vacancies"
+                name="enrollmentStartDate"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Número de vagas*</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" {...field} />
-                    </FormControl>
+                  <FormItem className="flex flex-col flex-1">
+                    <FormLabel>Período de inscrições*</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'dd/MM/yyyy')
+                            ) : (
+                              <span>DD/MM/AAAA</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              <div className="flex items-center gap-4">
-                <FormField
-                  control={form.control}
-                  name="remoteClass.classStartDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col flex-1">
-                      <FormLabel>Período das aulas*</FormLabel>
+              <div className="flex mt-4 items-center justify-center">à</div>
+              <FormField
+                control={form.control}
+                name="enrollmentEndDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col flex-1">
+                    <FormLabel className="opacity-0 pointer-events-none select-none">
+                      Data de término*
+                    </FormLabel>
+                    <FormControl>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={'outline'}
-                              className={cn(
-                                'w-full pl-3 text-left font-normal',
-                                !field.value && 'text-muted-foreground'
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, 'dd/MM/yyyy')
-                              ) : (
-                                <span>DD/MM/AAAA</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'dd/MM/yyyy')
+                            ) : (
+                              <span>DD/MM/AAAA</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
@@ -609,156 +489,99 @@ export function NewCourseForm() {
                           />
                         </PopoverContent>
                       </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <span className="mt-4">à</span>
-                <FormField
-                  control={form.control}
-                  name="remoteClass.classEndDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col flex-1">
-                      <FormLabel className="opacity-0 pointer-events-none select-none">
-                        Data de fim*
-                      </FormLabel>
-                      <FormControl>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant={'outline'}
-                              className={cn(
-                                'w-full pl-3 text-left font-normal',
-                                !field.value && 'text-muted-foreground'
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, 'dd/MM/yyyy')
-                              ) : (
-                                <span>DD/MM/AAAA</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="remoteClass.classTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Horário das aulas*</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: 19:00 - 22:00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="remoteClass.classDays"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dias de aula*</FormLabel>
+            <FormField
+              control={form.control}
+              name="organization"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Órgão (Quem oferece o curso)*</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
-                      <Input
-                        placeholder="Ex: Segunda, Quarta e Sexta"
-                        {...field}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um órgão" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-        )}
+                    <SelectContent>
+                      <SelectItem value="org1">Organização A</SelectItem>
+                      <SelectItem value="org2">Organização B</SelectItem>
+                      <SelectItem value="org3">Organização C</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        {(modalidade === 'Presencial' || modalidade === 'Semipresencial') && (
-          <div className="space-y-4 -mt-2">
-            {fields.map((field, index) => (
-              <Card key={field.id}>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>
-                    {index === 0
-                      ? 'Informações da Unidade'
-                      : `Informações da Unidade ${index + 1}`}
-                  </CardTitle>
-                  {index > 0 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeLocation(index)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+            <FormField
+              control={form.control}
+              name="modalidade"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Modalidade*</FormLabel>
+                  <Select
+                    onValueChange={value => {
+                      const modalidadeValue = value as
+                        | 'Presencial'
+                        | 'Semipresencial'
+                        | 'Remoto'
+                      field.onChange(modalidadeValue)
+                      handleModalidadeChange(modalidadeValue)
+                    }}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a modalidade" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Presencial">Presencial</SelectItem>
+                      <SelectItem value="Semipresencial">
+                        Semipresencial
+                      </SelectItem>
+                      <SelectItem value="Remoto">Remoto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Conditional rendering based on modalidade */}
+            {modalidade === 'Remoto' && (
+              <Card className="-mt-2">
+                <CardHeader>
+                  <CardTitle>Informações das Aulas Remotas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
                     control={form.control}
-                    name={`locations.${index}.address`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Endereço da unidade*</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`locations.${index}.neighborhood`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bairro*</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`locations.${index}.vacancies`}
+                    name="remoteClass.vacancies"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Número de vagas*</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="number" min="1" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <div className="flex items-end gap-4">
+                  <div className="flex items-center gap-4">
                     <FormField
                       control={form.control}
-                      name={`locations.${index}.classStartDate`}
+                      name="remoteClass.classStartDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col flex-1">
                           <FormLabel>Período das aulas*</FormLabel>
@@ -797,10 +620,10 @@ export function NewCourseForm() {
                         </FormItem>
                       )}
                     />
-                    <span className="pb-2">à</span>
+                    <span className="mt-4">à</span>
                     <FormField
                       control={form.control}
-                      name={`locations.${index}.classEndDate`}
+                      name="remoteClass.classEndDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col flex-1">
                           <FormLabel className="opacity-0 pointer-events-none select-none">
@@ -845,7 +668,7 @@ export function NewCourseForm() {
 
                   <FormField
                     control={form.control}
-                    name={`locations.${index}.classTime`}
+                    name="remoteClass.classTime"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Horário das aulas*</FormLabel>
@@ -859,7 +682,7 @@ export function NewCourseForm() {
 
                   <FormField
                     control={form.control}
-                    name={`locations.${index}.classDays`}
+                    name="remoteClass.classDays"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Dias de aula*</FormLabel>
@@ -875,247 +698,443 @@ export function NewCourseForm() {
                   />
                 </CardContent>
               </Card>
-            ))}
+            )}
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addLocation}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar outra unidade
-            </Button>
-          </div>
-        )}
+            {(modalidade === 'Presencial' ||
+              modalidade === 'Semipresencial') && (
+              <div className="space-y-4 -mt-2">
+                {fields.map((field, index) => (
+                  <Card key={field.id}>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle>
+                        {index === 0
+                          ? 'Informações da Unidade'
+                          : `Informações da Unidade ${index + 1}`}
+                      </CardTitle>
+                      {index > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeLocation(index)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name={`locations.${index}.address`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Endereço da unidade*</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-        <FormField
-          control={form.control}
-          name="workload"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Carga Horária*</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex: 40 horas" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                      <FormField
+                        control={form.control}
+                        name={`locations.${index}.neighborhood`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Bairro*</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-        <FormField
-          control={form.control}
-          name="targetAudience"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Público-alvo*</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Ex: Servidores públicos, estudantes, profissionais da área de tecnologia..."
-                  className="min-h-[80px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                      <FormField
+                        control={form.control}
+                        name={`locations.${index}.vacancies`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Número de vagas*</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-        {/* Optional Fields Section */}
-        <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="optional-fields">
-            <AccordionTrigger className="text-lg font-semibold text-muted-foreground hover:no-underline">
-              Informações Adicionais (Opcionais)
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-6 pt-4">
-                <FormField
-                  control={form.control}
-                  name="prerequisites"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pré-requisitos para a capacitação</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
-                          className="min-h-[80px]"
-                          {...field}
+                      <div className="flex items-end gap-4">
+                        <FormField
+                          control={form.control}
+                          name={`locations.${index}.classStartDate`}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col flex-1">
+                              <FormLabel>Período das aulas*</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant={'outline'}
+                                      className={cn(
+                                        'w-full pl-3 text-left font-normal',
+                                        !field.value && 'text-muted-foreground'
+                                      )}
+                                    >
+                                      {field.value ? (
+                                        format(field.value, 'dd/MM/yyyy')
+                                      ) : (
+                                        <span>DD/MM/AAAA</span>
+                                      )}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-auto p-0"
+                                  align="start"
+                                >
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="hasCertificate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                        <span className="pb-2">à</span>
+                        <FormField
+                          control={form.control}
+                          name={`locations.${index}.classEndDate`}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col flex-1">
+                              <FormLabel className="opacity-0 pointer-events-none select-none">
+                                Data de fim*
+                              </FormLabel>
+                              <FormControl>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant={'outline'}
+                                      className={cn(
+                                        'w-full pl-3 text-left font-normal',
+                                        !field.value && 'text-muted-foreground'
+                                      )}
+                                    >
+                                      {field.value ? (
+                                        format(field.value, 'dd/MM/yyyy')
+                                      ) : (
+                                        <span>DD/MM/AAAA</span>
+                                      )}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent
+                                    className="w-auto p-0"
+                                    align="start"
+                                  >
+                                    <Calendar
+                                      mode="single"
+                                      selected={field.value}
+                                      onSelect={field.onChange}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Terá certificado</FormLabel>
                       </div>
-                    </FormItem>
-                  )}
-                />
 
-                <FormField
-                  control={form.control}
-                  name="facilitator"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Facilitador</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nome do facilitador ou instrutor"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      <FormField
+                        control={form.control}
+                        name={`locations.${index}.classTime`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Horário das aulas*</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Ex: 19:00 - 22:00"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                <FormField
-                  control={form.control}
-                  name="objectives"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Objetivos da capacitação</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Ex: Desenvolver habilidades em gestão de projetos, capacitar para uso de ferramentas específicas..."
-                          className="min-h-[80px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      <FormField
+                        control={form.control}
+                        name={`locations.${index}.classDays`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Dias de aula*</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Ex: Segunda, Quarta e Sexta"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
 
-                <FormField
-                  control={form.control}
-                  name="expectedResults"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Resultados esperados</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Ex: Ao final do curso, os participantes estarão aptos a..."
-                          className="min-h-[80px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="programContent"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Conteúdo programático</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Ex: Módulo 1: Introdução, Módulo 2: Conceitos básicos..."
-                          className="min-h-[120px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="methodology"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Metodologia</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Ex: Aulas expositivas, exercícios práticos, estudos de caso..."
-                          className="min-h-[80px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="resourcesUsed"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Recursos Utilizados</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Ex: Computadores, projetor, software específico..."
-                          className="min-h-[80px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="materialUsed"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Material utilizado</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Ex: Apostilas, slides, vídeos..."
-                          className="min-h-[80px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="teachingMaterial"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Material didático</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Ex: Livros, artigos, exercícios práticos..."
-                          className="min-h-[80px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addLocation}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar outra unidade
+                </Button>
               </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+            )}
+
+            <FormField
+              control={form.control}
+              name="workload"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Carga Horária*</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: 40 horas" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="targetAudience"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Público-alvo*</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Ex: Servidores públicos, estudantes, profissionais da área de tecnologia..."
+                      className="min-h-[80px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Optional Fields Section */}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="optional-fields">
+                <AccordionTrigger className="text-lg font-semibold text-muted-foreground hover:no-underline">
+                  Informações Adicionais (Opcionais)
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-6 pt-4">
+                    <FormField
+                      control={form.control}
+                      name="prerequisites"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Pré-requisitos para a capacitação
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
+                              className="min-h-[80px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="hasCertificate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Terá certificado</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="facilitator"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Facilitador</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Nome do facilitador ou instrutor"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="objectives"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Objetivos da capacitação</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Ex: Desenvolver habilidades em gestão de projetos, capacitar para uso de ferramentas específicas..."
+                              className="min-h-[80px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="expectedResults"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Resultados esperados</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Ex: Ao final do curso, os participantes estarão aptos a..."
+                              className="min-h-[80px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="programContent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Conteúdo programático</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Ex: Módulo 1: Introdução, Módulo 2: Conceitos básicos..."
+                              className="min-h-[120px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="methodology"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Metodologia</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Ex: Aulas expositivas, exercícios práticos, estudos de caso..."
+                              className="min-h-[80px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="resourcesUsed"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Recursos Utilizados</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Ex: Computadores, projetor, software específico..."
+                              className="min-h-[80px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="materialUsed"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Material utilizado</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Ex: Apostilas, slides, vídeos..."
+                              className="min-h-[80px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="teachingMaterial"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Material didático</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Ex: Livros, artigos, exercícios práticos..."
+                              className="min-h-[80px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+          <div>Second column fields here</div>
+        </div>
 
         <Button
           type="submit"
           disabled={form.formState.isSubmitting}
-          className="w-full"
+          className="w-full lg:mt-10 py-6"
         >
           {form.formState.isSubmitting ? 'Enviando...' : 'Criar Curso'}
         </Button>
