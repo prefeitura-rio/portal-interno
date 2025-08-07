@@ -179,20 +179,26 @@ const formSchema = z
           data.remoteClass.classEndDate !== undefined
         )
       }
-      return (
-        data.locations &&
-        data.locations.length > 0 &&
-        data.locations.every(
-          location =>
-            location.address.trim() !== '' &&
-            location.neighborhood.trim() !== '' &&
-            location.vacancies > 0 &&
-            location.classTime.trim() !== '' &&
-            location.classDays.trim() !== '' &&
-            location.classStartDate !== undefined &&
-            location.classEndDate !== undefined
+      if (
+        data.modalidade === 'Presencial' ||
+        data.modalidade === 'Semipresencial'
+      ) {
+        return (
+          data.locations &&
+          data.locations.length > 0 &&
+          data.locations.every(
+            location =>
+              location.address.trim() !== '' &&
+              location.neighborhood.trim() !== '' &&
+              location.vacancies > 0 &&
+              location.classTime.trim() !== '' &&
+              location.classDays.trim() !== '' &&
+              location.classStartDate !== undefined &&
+              location.classEndDate !== undefined
+          )
         )
-      )
+      }
+      return true
     },
     {
       message: 'Informações de localização/aulas são obrigatórias.',
@@ -231,8 +237,10 @@ const formSchema = z
     }
   )
 
+type FormData = z.infer<typeof formSchema>
+
 export function NewCourseForm() {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
@@ -241,24 +249,8 @@ export function NewCourseForm() {
       enrollmentEndDate: new Date(),
       organization: '',
       modalidade: undefined,
-      locations: [
-        {
-          address: '',
-          neighborhood: '',
-          vacancies: 0,
-          classStartDate: new Date(),
-          classEndDate: new Date(),
-          classTime: '',
-          classDays: '',
-        },
-      ],
-      remoteClass: {
-        vacancies: 0,
-        classStartDate: new Date(),
-        classEndDate: new Date(),
-        classTime: '',
-        classDays: '',
-      },
+      locations: [],
+      remoteClass: undefined,
     },
   })
 
@@ -268,11 +260,13 @@ export function NewCourseForm() {
   // Handle modalidade change to properly initialize fields
   const handleModalidadeChange = (value: string) => {
     if (value === 'Remoto') {
-      // Initialize remote class fields if not already set
+      // Clear locations array and initialize remote class fields
+      form.setValue('locations', [])
+
       const currentRemoteClass = form.getValues('remoteClass')
-      if (!currentRemoteClass || !currentRemoteClass.vacancies) {
+      if (!currentRemoteClass) {
         form.setValue('remoteClass', {
-          vacancies: 0,
+          vacancies: 1,
           classStartDate: new Date(),
           classEndDate: new Date(),
           classTime: '',
@@ -280,14 +274,16 @@ export function NewCourseForm() {
         })
       }
     } else if (value === 'Presencial' || value === 'Semipresencial') {
-      // Initialize locations if not already set
+      // Clear remote class and initialize locations if not already set
+      form.setValue('remoteClass', undefined)
+
       const currentLocations = form.getValues('locations')
       if (!currentLocations || currentLocations.length === 0) {
         form.setValue('locations', [
           {
             address: '',
             neighborhood: '',
-            vacancies: 0,
+            vacancies: 1,
             classStartDate: new Date(),
             classEndDate: new Date(),
             classTime: '',
@@ -305,7 +301,7 @@ export function NewCourseForm() {
       {
         address: '',
         neighborhood: '',
-        vacancies: 0,
+        vacancies: 1,
         classStartDate: new Date(),
         classEndDate: new Date(),
         classTime: '',
@@ -322,7 +318,9 @@ export function NewCourseForm() {
     )
   }
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: FormData) {
+    console.log('Form submitted successfully!')
+    console.log('Form values:', values)
     toast('Formulário enviado com sucesso!', {
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-neutral-950 p-4">
@@ -330,13 +328,14 @@ export function NewCourseForm() {
         </pre>
       ),
     })
-    console.log(values)
   }
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(onSubmit, errors => {
+          console.log('Form validation errors:', errors)
+        })}
         className="space-y-6 max-w-2xl"
       >
         <FormField
