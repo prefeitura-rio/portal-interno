@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/accordion'
 import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ImageUpload } from '@/components/ui/image-upload'
 import {
   Popover,
   PopoverContent,
@@ -168,6 +169,13 @@ const formSchema = z
         .min(1, { message: 'Público-alvo é obrigatório.' })
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
         .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
+      // Required image fields
+      institutionalLogo: z.instanceof(File, {
+        message: 'Logo institucional é obrigatório.',
+      }),
+      coverImage: z.instanceof(File, {
+        message: 'Imagem de capa é obrigatória.',
+      }),
       // Optional fields
       prerequisites: z.string().optional(),
       hasCertificate: z.boolean().optional(),
@@ -212,6 +220,13 @@ const formSchema = z
         .min(1, { message: 'Público-alvo é obrigatório.' })
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
         .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
+      // Required image fields
+      institutionalLogo: z.instanceof(File, {
+        message: 'Logo institucional é obrigatório.',
+      }),
+      coverImage: z.instanceof(File, {
+        message: 'Imagem de capa é obrigatória.',
+      }),
       // Optional fields
       prerequisites: z.string().optional(),
       hasCertificate: z.boolean().optional(),
@@ -270,6 +285,8 @@ type PartialFormData = Omit<
   resourcesUsed?: string
   materialUsed?: string
   teachingMaterial?: string
+  institutionalLogo?: File | null
+  coverImage?: File | null
 }
 
 export function NewCourseForm() {
@@ -296,6 +313,8 @@ export function NewCourseForm() {
       resourcesUsed: '',
       materialUsed: '',
       teachingMaterial: '',
+      institutionalLogo: undefined,
+      coverImage: undefined,
     },
     mode: 'onChange', // Enable real-time validation
   })
@@ -1128,7 +1147,45 @@ export function NewCourseForm() {
               </AccordionItem>
             </Accordion>
           </div>
-          <div>Second column fields here</div>
+          <div className="space-y-6">
+            <FormField
+              control={form.control}
+              name="institutionalLogo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      label="Logo institucional*"
+                      maxSize={1000000} // 1MB
+                      previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="coverImage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      label="Imagem de capa*"
+                      maxSize={1000000} // 1MB
+                      previewClassName="max-h-[300px] max-w-full rounded-lg object-contain"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         <Button
