@@ -237,8 +237,8 @@ export function NewCourseForm() {
     defaultValues: {
       title: '',
       description: '',
-      enrollmentStartDate: undefined,
-      enrollmentEndDate: undefined,
+      enrollmentStartDate: new Date(),
+      enrollmentEndDate: new Date(),
       organization: '',
       modalidade: undefined,
       locations: [
@@ -246,16 +246,16 @@ export function NewCourseForm() {
           address: '',
           neighborhood: '',
           vacancies: 0,
-          classStartDate: undefined,
-          classEndDate: undefined,
+          classStartDate: new Date(),
+          classEndDate: new Date(),
           classTime: '',
           classDays: '',
         },
       ],
       remoteClass: {
         vacancies: 0,
-        classStartDate: undefined,
-        classEndDate: undefined,
+        classStartDate: new Date(),
+        classEndDate: new Date(),
         classTime: '',
         classDays: '',
       },
@@ -273,8 +273,8 @@ export function NewCourseForm() {
       if (!currentRemoteClass || !currentRemoteClass.vacancies) {
         form.setValue('remoteClass', {
           vacancies: 0,
-          classStartDate: undefined,
-          classEndDate: undefined,
+          classStartDate: new Date(),
+          classEndDate: new Date(),
           classTime: '',
           classDays: '',
         })
@@ -288,8 +288,8 @@ export function NewCourseForm() {
             address: '',
             neighborhood: '',
             vacancies: 0,
-            classStartDate: undefined,
-            classEndDate: undefined,
+            classStartDate: new Date(),
+            classEndDate: new Date(),
             classTime: '',
             classDays: '',
           },
