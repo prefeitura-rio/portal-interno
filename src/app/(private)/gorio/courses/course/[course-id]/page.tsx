@@ -109,12 +109,20 @@ const statusConfig = {
 
 export default function CourseDetailPage({
   params,
-}: { params: { 'course-id': string } }) {
+}: { params: Promise<{ 'course-id': string }> }) {
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('about')
   const searchParams = useSearchParams()
-  const course = mockCourse // In a real app, you'd fetch this based on params['course-id']
+  const [courseId, setCourseId] = useState<string | null>(null)
+  const course = mockCourse // In a real app, you'd fetch this based on courseId
   const metadata = courseMetadata
+
+  // Handle async params
+  useEffect(() => {
+    params.then(resolvedParams => {
+      setCourseId(resolvedParams['course-id'])
+    })
+  }, [params])
 
   // Auto-enable edit mode if edit=true query parameter is present
   useEffect(() => {
