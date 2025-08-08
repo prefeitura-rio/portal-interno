@@ -16,6 +16,7 @@ interface ImageUploadProps {
   accept?: Record<string, string[]>
   error?: boolean
   errorMessage?: string
+  disabled?: boolean
 }
 
 export function ImageUpload({
@@ -33,6 +34,7 @@ export function ImageUpload({
   },
   error = false,
   errorMessage,
+  disabled = false,
 }: ImageUploadProps) {
   const id = React.useId()
   const [preview, setPreview] = React.useState<string | ArrayBuffer | null>('')
@@ -63,6 +65,7 @@ export function ImageUpload({
       maxFiles: 1,
       maxSize,
       accept,
+      disabled,
     })
 
   const hasError = error || fileRejections.length > 0
@@ -86,9 +89,12 @@ export function ImageUpload({
       <div
         {...getRootProps()}
         className={cn(
-          'flex cursor-pointer flex-col items-center justify-center gap-y-2 rounded-lg border p-6 shadow-sm! hover:bg-muted/50 transition-colors',
+          'flex flex-col items-center justify-center gap-y-2 rounded-lg border p-6 shadow-sm! transition-colors',
           hasError ? 'border-destructive' : 'border-muted-foreground/25',
-          preview && 'relative'
+          preview && 'relative',
+          disabled 
+            ? 'cursor-not-allowed opacity-50' 
+            : 'cursor-pointer hover:bg-muted/50'
         )}
       >
         {preview && (

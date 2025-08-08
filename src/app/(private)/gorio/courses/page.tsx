@@ -510,9 +510,16 @@ export default function Courses() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>Visualizar</DropdownMenuItem>
-                <DropdownMenuItem>Editar</DropdownMenuItem>
-                <DropdownMenuItem>Duplicar</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/gorio/courses/course/${course.id}`}>
+                    Visualizar
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/gorio/courses/course/${course.id}?edit=true`}>
+                    Editar
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive">
                   Excluir
                 </DropdownMenuItem>

@@ -309,10 +309,20 @@ type PartialFormData = Omit<
   customFields?: CustomField[]
 }
 
-export function NewCourseForm() {
+interface NewCourseFormProps {
+  initialData?: PartialFormData
+  isReadOnly?: boolean
+  onSubmit?: (data: PartialFormData) => void
+}
+
+export function NewCourseForm({
+  initialData,
+  isReadOnly = false,
+  onSubmit,
+}: NewCourseFormProps) {
   const form = useForm<PartialFormData>({
     resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
-    defaultValues: {
+    defaultValues: initialData || {
       title: '',
       description: '',
       enrollmentStartDate: new Date(),
@@ -397,7 +407,7 @@ export function NewCourseForm() {
     remove(index)
   }
 
-  async function onSubmit(values: PartialFormData) {
+  async function handleSubmit(values: PartialFormData) {
     try {
       // Validate the complete form data
       const validatedData = formSchema.parse(values)
@@ -405,7 +415,11 @@ export function NewCourseForm() {
       console.log('Form submitted successfully!')
       console.log('Form values:', validatedData)
 
-      toast.success('Formulário enviado com sucesso!')
+      if (onSubmit) {
+        onSubmit(validatedData)
+      } else {
+        toast.success('Formulário enviado com sucesso!')
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         console.error('Validation errors:', error.errors)
@@ -423,7 +437,7 @@ export function NewCourseForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16">
           <div className="space-y-6">
             <FormField
@@ -433,7 +447,7 @@ export function NewCourseForm() {
                 <FormItem>
                   <FormLabel>Título*</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} disabled={isReadOnly} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -447,7 +461,11 @@ export function NewCourseForm() {
                 <FormItem>
                   <FormLabel>Descrição*</FormLabel>
                   <FormControl>
-                    <Textarea className="min-h-[120px]" {...field} />
+                    <Textarea
+                      className="min-h-[120px]"
+                      {...field}
+                      disabled={isReadOnly}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -545,6 +563,7 @@ export function NewCourseForm() {
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    disabled={isReadOnly}
                   >
                     <FormControl>
                       <SelectTrigger>

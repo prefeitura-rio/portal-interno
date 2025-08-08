@@ -18,12 +18,14 @@ interface FieldsCreatorProps {
   fields: CustomField[]
   onFieldsChange: (fields: CustomField[]) => void
   title?: string
+  disabled?: boolean
 }
 
 export function FieldsCreator({
   fields,
   onFieldsChange,
   title = 'Informações complementares para a inscrição de participantes',
+  disabled = false,
 }: FieldsCreatorProps) {
   const [newFieldTitle, setNewFieldTitle] = useState('')
   const [newFieldRequired, setNewFieldRequired] = useState(false)
@@ -67,6 +69,7 @@ export function FieldsCreator({
             onChange={e => setNewFieldTitle(e.target.value)}
             onKeyPress={handleKeyPress}
             className="w-full"
+            disabled={disabled}
           />
 
           <div className="flex items-center space-x-2">
@@ -76,6 +79,7 @@ export function FieldsCreator({
               onCheckedChange={checked =>
                 setNewFieldRequired(checked as boolean)
               }
+              disabled={disabled}
             />
             <label
               htmlFor="required-field"
@@ -87,7 +91,7 @@ export function FieldsCreator({
 
           <Button
             onClick={addField}
-            disabled={!newFieldTitle.trim()}
+            disabled={!newFieldTitle.trim() || disabled}
             variant="outline"
             className="w-full"
           >
@@ -120,6 +124,7 @@ export function FieldsCreator({
                     variant="ghost"
                     size="sm"
                     onClick={() => removeField(field.id)}
+                    disabled={disabled}
                     className="text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
