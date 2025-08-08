@@ -63,6 +63,8 @@ interface Course {
   vacancies: number
   status: 'active' | 'inactive' | 'draft' | 'completed'
   created_at: string
+  registration_start: string
+  registration_end: string
 }
 
 // Comprehensive mock data
@@ -75,6 +77,8 @@ const data: Course[] = [
     vacancies: 25,
     status: 'active',
     created_at: '2025-07-30T10:00:00Z',
+    registration_start: '2025-08-01T00:00:00Z',
+    registration_end: '2025-08-31T23:59:59Z',
   },
   {
     id: '2',
@@ -84,6 +88,8 @@ const data: Course[] = [
     vacancies: 15,
     status: 'active',
     created_at: '2025-02-10T14:30:00Z',
+    registration_start: '2025-02-15T00:00:00Z',
+    registration_end: '2025-03-15T23:59:59Z',
   },
   {
     id: '3',
@@ -93,6 +99,8 @@ const data: Course[] = [
     vacancies: 10,
     status: 'inactive',
     created_at: '2025-06-05T09:15:00Z',
+    registration_start: '2025-06-10T00:00:00Z',
+    registration_end: '2025-07-10T23:59:59Z',
   },
   {
     id: '4',
@@ -102,6 +110,8 @@ const data: Course[] = [
     vacancies: 20,
     status: 'draft',
     created_at: '2025-06-20T16:45:00Z',
+    registration_start: '2025-07-01T00:00:00Z',
+    registration_end: '2025-07-31T23:59:59Z',
   },
   {
     id: '5',
@@ -111,6 +121,8 @@ const data: Course[] = [
     vacancies: 12,
     status: 'completed',
     created_at: '2025-07-30T11:00:00Z',
+    registration_start: '2025-08-01T00:00:00Z',
+    registration_end: '2025-08-31T23:59:59Z',
   },
   {
     id: '6',
@@ -120,6 +132,8 @@ const data: Course[] = [
     vacancies: 30,
     status: 'active',
     created_at: '2025-01-12T08:30:00Z',
+    registration_start: '2025-01-15T00:00:00Z',
+    registration_end: '2025-02-15T23:59:59Z',
   },
   {
     id: '7',
@@ -129,6 +143,8 @@ const data: Course[] = [
     vacancies: 18,
     status: 'active',
     created_at: '2025-01-18T13:20:00Z',
+    registration_start: '2025-01-20T00:00:00Z',
+    registration_end: '2025-02-20T23:59:59Z',
   },
   {
     id: '8',
@@ -138,6 +154,8 @@ const data: Course[] = [
     vacancies: 22,
     status: 'inactive',
     created_at: '2025-01-08T15:10:00Z',
+    registration_start: '2025-01-10T00:00:00Z',
+    registration_end: '2025-02-10T23:59:59Z',
   },
   {
     id: '9',
@@ -147,6 +165,8 @@ const data: Course[] = [
     vacancies: 25,
     status: 'active',
     created_at: '2025-01-15T10:00:00Z',
+    registration_start: '2025-01-20T00:00:00Z',
+    registration_end: '2025-02-20T23:59:59Z',
   },
   {
     id: '10',
@@ -156,6 +176,8 @@ const data: Course[] = [
     vacancies: 25,
     status: 'active',
     created_at: '2025-01-15T10:00:00Z',
+    registration_start: '2025-01-20T00:00:00Z',
+    registration_end: '2025-02-20T23:59:59Z',
   },
   {
     id: '11',
@@ -165,6 +187,8 @@ const data: Course[] = [
     vacancies: 25,
     status: 'active',
     created_at: '2025-01-15T10:00:00Z',
+    registration_start: '2025-01-20T00:00:00Z',
+    registration_end: '2025-02-20T23:59:59Z',
   },
   {
     id: '12',
@@ -174,6 +198,8 @@ const data: Course[] = [
     vacancies: 25,
     status: 'active',
     created_at: '2024-01-15T10:00:00Z',
+    registration_start: '2024-01-20T00:00:00Z',
+    registration_end: '2024-02-20T23:59:59Z',
   },
   {
     id: '13',
@@ -183,6 +209,8 @@ const data: Course[] = [
     vacancies: 25,
     status: 'active',
     created_at: '2024-01-15T10:00:00Z',
+    registration_start: '2024-01-20T00:00:00Z',
+    registration_end: '2024-02-20T23:59:59Z',
   },
 ]
 
@@ -249,7 +277,7 @@ export default function Courses() {
         id: 'provider',
         accessorKey: 'provider',
         header: ({ column }: { column: Column<Course, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Provedor" />
+          <DataTableColumnHeader column={column} title="Quem oferece" />
         ),
         cell: ({ cell }) => (
           <div className="flex items-center gap-2">
@@ -258,13 +286,104 @@ export default function Courses() {
           </div>
         ),
         meta: {
-          label: 'Provedor',
-          placeholder: 'Buscar provedor...',
+          label: 'Quem oferece',
+          placeholder: 'Buscar ofertante...',
           variant: 'text',
           icon: Building2,
         },
         enableColumnFilter: true,
       },
+      {
+        id: 'created_at',
+        accessorKey: 'created_at',
+        accessorFn: row => {
+          const date = new Date(row.created_at)
+          // Normalize to start of day (midnight) for proper date filtering
+          date.setHours(0, 0, 0, 0)
+          return date.getTime()
+        },
+        header: ({ column }: { column: Column<Course, unknown> }) => (
+          <DataTableColumnHeader column={column} title="Data de Criação" />
+        ),
+        cell: ({ cell }) => {
+          const timestamp = cell.getValue<number>()
+          const date = new Date(timestamp)
+          return (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span>{date.toLocaleDateString('pt-BR')}</span>
+            </div>
+          )
+        },
+        meta: {
+          label: 'Data de Criação',
+          variant: 'dateRange',
+          icon: Calendar,
+        },
+        enableColumnFilter: true,
+      },
+      {
+        id: 'registration_start',
+        accessorKey: 'registration_start',
+        accessorFn: row => {
+          const date = new Date(row.registration_start)
+          // Normalize to start of day (midnight) for proper date filtering
+          date.setHours(0, 0, 0, 0)
+          return date.getTime()
+        },
+        header: ({ column }: { column: Column<Course, unknown> }) => (
+          <DataTableColumnHeader
+            column={column}
+            title="Início das Inscrições"
+          />
+        ),
+        cell: ({ cell }) => {
+          const timestamp = cell.getValue<number>()
+          const date = new Date(timestamp)
+          return (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span>{date.toLocaleDateString('pt-BR')}</span>
+            </div>
+          )
+        },
+        meta: {
+          label: 'Início das Inscrições',
+          variant: 'dateRange',
+          icon: Calendar,
+        },
+        enableColumnFilter: true,
+      },
+      {
+        id: 'registration_end',
+        accessorKey: 'registration_end',
+        accessorFn: row => {
+          const date = new Date(row.registration_end)
+          // Normalize to start of day (midnight) for proper date filtering
+          date.setHours(0, 0, 0, 0)
+          return date.getTime()
+        },
+        header: ({ column }: { column: Column<Course, unknown> }) => (
+          <DataTableColumnHeader column={column} title="Fim das Inscrições" />
+        ),
+        cell: ({ cell }) => {
+          const timestamp = cell.getValue<number>()
+          const date = new Date(timestamp)
+          return (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span>{date.toLocaleDateString('pt-BR')}</span>
+            </div>
+          )
+        },
+        meta: {
+          label: 'Fim das Inscrições',
+          variant: 'dateRange',
+          icon: Calendar,
+        },
+        enableColumnFilter: true,
+      },
+
       {
         id: 'vacancies',
         accessorKey: 'vacancies',
@@ -375,35 +494,6 @@ export default function Courses() {
             { label: 'Rascunho', value: 'draft', icon: AlertCircle },
             { label: 'Concluído', value: 'completed', icon: CheckCircle },
           ],
-        },
-        enableColumnFilter: true,
-      },
-      {
-        id: 'created_at',
-        accessorKey: 'created_at',
-        accessorFn: row => {
-          const date = new Date(row.created_at)
-          // Normalize to start of day (midnight) for proper date filtering
-          date.setHours(0, 0, 0, 0)
-          return date.getTime()
-        },
-        header: ({ column }: { column: Column<Course, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Data de Criação" />
-        ),
-        cell: ({ cell }) => {
-          const timestamp = cell.getValue<number>()
-          const date = new Date(timestamp)
-          return (
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{date.toLocaleDateString('pt-BR')}</span>
-            </div>
-          )
-        },
-        meta: {
-          label: 'Data de Criação',
-          variant: 'dateRange',
-          icon: Calendar,
         },
         enableColumnFilter: true,
       },
