@@ -580,7 +580,13 @@ export default function Courses() {
           </div>
         </div>
 
-        <DataTable table={table}>
+        <DataTable 
+          table={table}
+          onRowClick={(course) => {
+            // Navigate to the course detail page
+            window.location.href = `/gorio/courses/course/${course.id}`
+          }}
+        >
           <DataTableToolbar table={table} />
 
           <DataTableActionBar table={table}>

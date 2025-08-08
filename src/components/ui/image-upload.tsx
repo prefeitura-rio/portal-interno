@@ -92,8 +92,8 @@ export function ImageUpload({
           'flex flex-col items-center justify-center gap-y-2 rounded-lg border p-6 shadow-sm! transition-colors',
           hasError ? 'border-destructive' : 'border-muted-foreground/25',
           preview && 'relative',
-          disabled 
-            ? 'cursor-not-allowed opacity-50' 
+          disabled
+            ? 'cursor-not-allowed opacity-50'
             : 'cursor-pointer hover:bg-muted/50'
         )}
       >

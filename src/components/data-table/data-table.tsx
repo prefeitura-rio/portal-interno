@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 interface DataTableProps<TData> extends React.ComponentProps<"div"> {
   table: TanstackTable<TData>;
   actionBar?: React.ReactNode;
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData>({
@@ -23,6 +24,7 @@ export function DataTable<TData>({
   actionBar,
   children,
   className,
+  onRowClick,
   ...props
 }: DataTableProps<TData>) {
   return (
@@ -61,6 +63,23 @@ export function DataTable<TData>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  onClick={(e) => {
+                    // Don't trigger row click if clicking on interactive elements
+                    if (e.target instanceof Element) {
+                      const target = e.target as Element
+                      if (
+                        target.closest('button') ||
+                        target.closest('input') ||
+                        target.closest('a') ||
+                        target.closest('[role="button"]') ||
+                        target.closest('[data-radix-collection-item]')
+                      ) {
+                        return
+                      }
+                    }
+                    onRowClick?.(row.original)
+                  }}
+                  className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
