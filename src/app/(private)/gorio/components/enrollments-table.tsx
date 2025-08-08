@@ -5,12 +5,15 @@ import { DataTableColumnHeader } from '@/components/data-table/data-table-column
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import {
   type Column,
   type ColumnDef,
@@ -27,7 +30,9 @@ import {
   AlertCircle,
   Calendar,
   CheckCircle,
-  MoreHorizontal,
+  Hash,
+  Mail,
+  Phone,
   Text,
   User,
   Users,
@@ -150,6 +155,9 @@ export function EnrollmentsTable() {
     pageIndex: 0,
     pageSize: 10,
   })
+  const [selectedEnrollment, setSelectedEnrollment] =
+    React.useState<Enrollment | null>(null)
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false)
 
   // Calculate summary statistics
   const confirmedCount = enrollmentData.filter(
@@ -161,6 +169,24 @@ export function EnrollmentsTable() {
   ).length
   const totalVacancies = 25 // This could come from course data
   const remainingVacancies = totalVacancies - confirmedCount
+
+  const handleConfirmEnrollment = React.useCallback(
+    (enrollment: Enrollment) => {
+      // TODO: Implement confirmation logic
+      console.log('Confirming enrollment:', enrollment.id)
+    },
+    []
+  )
+
+  const handleCancelEnrollment = React.useCallback((enrollment: Enrollment) => {
+    // TODO: Implement cancellation logic
+    console.log('Cancelling enrollment:', enrollment.id)
+  }, [])
+
+  const handleRowClick = React.useCallback((enrollment: Enrollment) => {
+    setSelectedEnrollment(enrollment)
+    setIsSheetOpen(true)
+  }, [])
 
   const columns = React.useMemo<ColumnDef<Enrollment>[]>(
     () => [
@@ -318,30 +344,6 @@ export function EnrollmentsTable() {
         },
         enableColumnFilter: true,
       },
-      {
-        id: 'actions',
-        cell: function Cell({ row }) {
-          const enrollment = row.original
-          return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Abrir menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>Visualizar detalhes</DropdownMenuItem>
-                <DropdownMenuItem>Confirmar inscrição</DropdownMenuItem>
-                <DropdownMenuItem variant="destructive">
-                  Cancelar inscrição
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )
-        },
-        size: 32,
-      },
     ],
     []
   )
@@ -433,7 +435,161 @@ export function EnrollmentsTable() {
         </div>
       </div>
 
-      <DataTable table={table}>
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Detalhes da Inscrição</SheetTitle>
+            <SheetDescription>
+              Informações completas do candidato
+            </SheetDescription>
+          </SheetHeader>
+          {selectedEnrollment && (
+            <>
+              <div className="flex-1 overflow-y-auto py-6 px-4">
+                <div className="space-y-6">
+                  {/* Candidate Info */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-12 h-12 bg-card border border-border rounded-lg">
+                        <User className="w-6 h-6 bg-background-light" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          {selectedEnrollment.candidateName}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Candidato
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Personal Information */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      Informações Pessoais
+                    </h4>
+                    <div className="grid gap-4">
+                      <div className="flex items-center gap-3">
+                        <Hash className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            CPF
+                          </Label>
+                          <p className="font-mono">{selectedEnrollment.cpf}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            Idade
+                          </Label>
+                          <p>{selectedEnrollment.age} anos</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            E-mail
+                          </Label>
+                          <p className="text-sm">{selectedEnrollment.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            Telefone
+                          </Label>
+                          <p className="text-sm">{selectedEnrollment.phone}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Enrollment Information */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      Informações da Inscrição
+                    </h4>
+                    <div className="grid gap-4">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            Data de Inscrição
+                          </Label>
+                          <p>
+                            {new Date(
+                              selectedEnrollment.enrollmentDate
+                            ).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            Status
+                          </Label>
+                          <div className="mt-1">
+                            {(() => {
+                              const statusConfig = {
+                                confirmed: {
+                                  label: 'Confirmado',
+                                  className: 'bg-green-100 text-green-800',
+                                },
+                                pending: {
+                                  label: 'Pendente',
+                                  className: 'bg-yellow-100 text-yellow-800',
+                                },
+                                cancelled: {
+                                  label: 'Cancelado',
+                                  className:
+                                    'text-red-600 border-red-200 bg-red-50',
+                                },
+                              }
+                              const config =
+                                statusConfig[selectedEnrollment.status]
+                              return (
+                                <Badge className={config.className}>
+                                  {config.label}
+                                </Badge>
+                              )
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <SheetFooter className="flex-col gap-2 sm:flex-row">
+                <Button
+                  onClick={() => handleConfirmEnrollment(selectedEnrollment)}
+                  className="w-full sm:w-auto"
+                  disabled={selectedEnrollment.status === 'confirmed'}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Confirmar inscrição
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleCancelEnrollment(selectedEnrollment)}
+                  className="w-full sm:w-auto"
+                  disabled={selectedEnrollment.status === 'cancelled'}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancelar inscrição
+                </Button>
+              </SheetFooter>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <DataTable table={table} onRowClick={handleRowClick}>
         <DataTableToolbar table={table} />
       </DataTable>
     </div>
