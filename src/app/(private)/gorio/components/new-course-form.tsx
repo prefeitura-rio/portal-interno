@@ -1249,7 +1249,11 @@ export function NewCourseForm({
           disabled={form.formState.isSubmitting}
           className="w-full lg:mt-10 py-6"
         >
-          {form.formState.isSubmitting ? 'Enviando...' : 'Criar Curso'}
+          {form.formState.isSubmitting
+            ? 'Enviando...'
+            : initialData
+              ? 'Salvar Alterações'
+              : 'Criar Curso'}
         </Button>
       </form>
     </Form>
