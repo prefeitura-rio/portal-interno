@@ -1,5 +1,6 @@
 'use client'
 
+import { EnrollmentsTable } from '@/app/(private)/gorio/components/enrollments-table'
 import { NewCourseForm } from '@/app/(private)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { Badge } from '@/components/ui/badge'
@@ -229,116 +230,7 @@ export default function CourseDetailPage({
           </TabsContent>
 
           <TabsContent value="enrollments" className="mt-6">
-            {/* Enrollments Section */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-semibold tracking-tight">
-                  Inscrições no Curso
-                </h2>
-                <Button variant="outline">
-                  <Users className="mr-2 h-4 w-4" />
-                  Exportar Lista
-                </Button>
-              </div>
-
-              {/* Mock enrollment data */}
-              <div className="grid gap-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold">JS</span>
-                    </div>
-                    <div>
-                      <p className="font-medium">João Silva</p>
-                      <p className="text-sm text-muted-foreground">
-                        joao.silva@email.com
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge
-                      variant="default"
-                      className="bg-green-100 text-green-800"
-                    >
-                      Confirmado
-                    </Badge>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Inscrito em 15/08/2025
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                      <span className="text-purple-600 font-semibold">MA</span>
-                    </div>
-                    <div>
-                      <p className="font-medium">Maria Alves</p>
-                      <p className="text-sm text-muted-foreground">
-                        maria.alves@email.com
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge
-                      variant="outline"
-                      className="text-yellow-600 border-yellow-200"
-                    >
-                      Pendente
-                    </Badge>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Inscrito em 18/08/2025
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <span className="text-orange-600 font-semibold">PC</span>
-                    </div>
-                    <div>
-                      <p className="font-medium">Pedro Costa</p>
-                      <p className="text-sm text-muted-foreground">
-                        pedro.costa@email.com
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge
-                      variant="default"
-                      className="bg-green-100 text-green-800"
-                    >
-                      Confirmado
-                    </Badge>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Inscrito em 20/08/2025
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Summary */}
-              <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-blue-600">25</p>
-                  <p className="text-sm text-muted-foreground">
-                    Total de Vagas
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">18</p>
-                  <p className="text-sm text-muted-foreground">
-                    Inscritos Confirmados
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-yellow-600">7</p>
-                  <p className="text-sm text-muted-foreground">Pendentes</p>
-                </div>
-              </div>
-            </div>
+            <EnrollmentsTable />
           </TabsContent>
         </Tabs>
       </div>
