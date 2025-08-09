@@ -39,18 +39,20 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
-  AlertCircle,
+  Ban,
   BookOpen,
   Building2,
   Calendar,
-  CheckCircle,
+  ClipboardList,
   Clock,
   Download,
+  FileText,
+  Flag,
   MoreHorizontal,
+  Play,
   Text,
   Trash2,
   Users,
-  XCircle,
 } from 'lucide-react'
 import Link from 'next/link'
 import * as React from 'react'
@@ -61,7 +63,13 @@ interface Course {
   provider: string
   duration: number // in hours
   vacancies: number
-  status: 'active' | 'inactive' | 'draft' | 'completed'
+  status:
+    | 'draft'
+    | 'scheduled'
+    | 'receiving_registrations'
+    | 'in_progress'
+    | 'finished'
+    | 'cancelled'
   created_at: string
   registration_start: string
   registration_end: string
@@ -75,7 +83,7 @@ const data: Course[] = [
     provider: 'TechEducation',
     duration: 40,
     vacancies: 25,
-    status: 'active',
+    status: 'receiving_registrations',
     created_at: '2025-07-30T10:00:00Z',
     registration_start: '2025-08-01T00:00:00Z',
     registration_end: '2025-08-31T23:59:59Z',
@@ -86,7 +94,7 @@ const data: Course[] = [
     provider: 'DataScience Academy',
     duration: 60,
     vacancies: 15,
-    status: 'active',
+    status: 'in_progress',
     created_at: '2025-02-10T14:30:00Z',
     registration_start: '2025-02-15T00:00:00Z',
     registration_end: '2025-03-15T23:59:59Z',
@@ -97,7 +105,7 @@ const data: Course[] = [
     provider: 'Cloud Masters',
     duration: 80,
     vacancies: 10,
-    status: 'inactive',
+    status: 'cancelled',
     created_at: '2025-06-05T09:15:00Z',
     registration_start: '2025-06-10T00:00:00Z',
     registration_end: '2025-07-10T23:59:59Z',
@@ -119,7 +127,7 @@ const data: Course[] = [
     provider: 'AI Institute',
     duration: 70,
     vacancies: 12,
-    status: 'completed',
+    status: 'finished',
     created_at: '2025-07-30T11:00:00Z',
     registration_start: '2025-08-01T00:00:00Z',
     registration_end: '2025-08-31T23:59:59Z',
@@ -130,7 +138,7 @@ const data: Course[] = [
     provider: 'JavaScript Academy',
     duration: 45,
     vacancies: 30,
-    status: 'active',
+    status: 'receiving_registrations',
     created_at: '2025-01-12T08:30:00Z',
     registration_start: '2025-01-15T00:00:00Z',
     registration_end: '2025-02-15T23:59:59Z',
@@ -141,7 +149,7 @@ const data: Course[] = [
     provider: 'SecureLearn',
     duration: 35,
     vacancies: 18,
-    status: 'active',
+    status: 'in_progress',
     created_at: '2025-01-18T13:20:00Z',
     registration_start: '2025-01-20T00:00:00Z',
     registration_end: '2025-02-20T23:59:59Z',
@@ -152,7 +160,7 @@ const data: Course[] = [
     provider: 'Design Hub',
     duration: 55,
     vacancies: 22,
-    status: 'inactive',
+    status: 'finished',
     created_at: '2025-01-08T15:10:00Z',
     registration_start: '2025-01-10T00:00:00Z',
     registration_end: '2025-02-10T23:59:59Z',
@@ -163,7 +171,7 @@ const data: Course[] = [
     provider: 'TechEducation',
     duration: 40,
     vacancies: 25,
-    status: 'active',
+    status: 'draft',
     created_at: '2025-01-15T10:00:00Z',
     registration_start: '2025-01-20T00:00:00Z',
     registration_end: '2025-02-20T23:59:59Z',
@@ -174,7 +182,7 @@ const data: Course[] = [
     provider: 'TechEducation',
     duration: 40,
     vacancies: 25,
-    status: 'active',
+    status: 'scheduled',
     created_at: '2025-01-15T10:00:00Z',
     registration_start: '2025-01-20T00:00:00Z',
     registration_end: '2025-02-20T23:59:59Z',
@@ -185,7 +193,7 @@ const data: Course[] = [
     provider: 'TechEducation',
     duration: 40,
     vacancies: 25,
-    status: 'active',
+    status: 'in_progress',
     created_at: '2025-01-15T10:00:00Z',
     registration_start: '2025-01-20T00:00:00Z',
     registration_end: '2025-02-20T23:59:59Z',
@@ -196,7 +204,7 @@ const data: Course[] = [
     provider: 'TechEducation',
     duration: 40,
     vacancies: 25,
-    status: 'active',
+    status: 'finished',
     created_at: '2024-01-15T10:00:00Z',
     registration_start: '2024-01-20T00:00:00Z',
     registration_end: '2024-02-20T23:59:59Z',
@@ -207,10 +215,32 @@ const data: Course[] = [
     provider: 'TechEducation',
     duration: 40,
     vacancies: 25,
-    status: 'active',
+    status: 'cancelled',
     created_at: '2024-01-15T10:00:00Z',
     registration_start: '2024-01-20T00:00:00Z',
     registration_end: '2024-02-20T23:59:59Z',
+  },
+  {
+    id: '14',
+    title: 'Inteligência Artificial Avançada',
+    provider: 'AI Masters',
+    duration: 90,
+    vacancies: 15,
+    status: 'scheduled',
+    created_at: '2025-01-25T14:30:00Z',
+    registration_start: '2025-02-01T00:00:00Z',
+    registration_end: '2025-03-01T23:59:59Z',
+  },
+  {
+    id: '15',
+    title: 'Blockchain e Criptomoedas',
+    provider: 'Crypto Academy',
+    duration: 55,
+    vacancies: 20,
+    status: 'scheduled',
+    created_at: '2025-01-28T09:15:00Z',
+    registration_start: '2025-02-05T00:00:00Z',
+    registration_end: '2025-03-05T23:59:59Z',
   },
 ]
 
@@ -303,7 +333,7 @@ export default function Courses() {
           return date.getTime()
         },
         header: ({ column }: { column: Column<Course, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Data de Criação" />
+          <DataTableColumnHeader column={column} title="Dt. de Criação" />
         ),
         cell: ({ cell }) => {
           const timestamp = cell.getValue<number>()
@@ -316,7 +346,7 @@ export default function Courses() {
           )
         },
         meta: {
-          label: 'Data de Criação',
+          label: 'Dt. de Criação',
           variant: 'dateRange',
           icon: Calendar,
         },
@@ -332,10 +362,7 @@ export default function Courses() {
           return date.getTime()
         },
         header: ({ column }: { column: Column<Course, unknown> }) => (
-          <DataTableColumnHeader
-            column={column}
-            title="Início das Inscrições"
-          />
+          <DataTableColumnHeader column={column} title="Início das Inscr." />
         ),
         cell: ({ cell }) => {
           const timestamp = cell.getValue<number>()
@@ -364,7 +391,7 @@ export default function Courses() {
           return date.getTime()
         },
         header: ({ column }: { column: Column<Course, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Fim das Inscrições" />
+          <DataTableColumnHeader column={column} title="Fim das Inscr." />
         ),
         cell: ({ cell }) => {
           const timestamp = cell.getValue<number>()
@@ -442,29 +469,41 @@ export default function Courses() {
         cell: ({ cell }) => {
           const status = cell.getValue<Course['status']>()
           const statusConfig = {
-            active: {
-              icon: CheckCircle,
-              label: 'Ativo',
-              variant: 'default' as const,
-              className: 'text-green-600 border-green-200 bg-green-50',
-            },
-            inactive: {
-              icon: XCircle,
-              label: 'Inativo',
-              variant: 'secondary' as const,
-              className: 'text-gray-600 border-gray-200 bg-gray-50',
-            },
             draft: {
-              icon: AlertCircle,
+              icon: FileText,
               label: 'Rascunho',
               variant: 'outline' as const,
               className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
             },
-            completed: {
-              icon: CheckCircle,
-              label: 'Concluído',
+            scheduled: {
+              icon: Calendar,
+              label: 'Agendado',
               variant: 'outline' as const,
+              className: 'text-blue-400 border-blue-200 bg-blue-50',
+            },
+            receiving_registrations: {
+              icon: ClipboardList,
+              label: 'Receb. insc.',
+              variant: 'default' as const,
+              className: 'text-green-600 border-green-200 bg-green-50',
+            },
+            in_progress: {
+              icon: Play,
+              label: 'Em andamento',
+              variant: 'default' as const,
               className: 'text-blue-600 border-blue-200 bg-blue-50',
+            },
+            finished: {
+              icon: Flag,
+              label: 'Encerrado',
+              variant: 'outline' as const,
+              className: 'text-gray-500 border-gray-200 bg-gray-50',
+            },
+            cancelled: {
+              icon: Ban,
+              label: 'Cancelado',
+              variant: 'secondary' as const,
+              className: 'text-red-600 border-red-200 bg-red-50',
             },
           }
 
@@ -489,10 +528,16 @@ export default function Courses() {
           label: 'Status',
           variant: 'multiSelect',
           options: [
-            { label: 'Ativo', value: 'active', icon: CheckCircle },
-            { label: 'Inativo', value: 'inactive', icon: XCircle },
-            { label: 'Rascunho', value: 'draft', icon: AlertCircle },
-            { label: 'Concluído', value: 'completed', icon: CheckCircle },
+            { label: 'Rascunho', value: 'draft', icon: FileText },
+            { label: 'Agendado', value: 'scheduled', icon: Calendar },
+            {
+              label: 'Recebendo inscrições',
+              value: 'receiving_registrations',
+              icon: ClipboardList,
+            },
+            { label: 'Em andamento', value: 'in_progress', icon: Play },
+            { label: 'Encerrado', value: 'finished', icon: Flag },
+            { label: 'Cancelado', value: 'cancelled', icon: Ban },
           ],
         },
         enableColumnFilter: true,
