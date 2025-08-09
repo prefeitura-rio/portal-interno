@@ -13,7 +13,10 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCourse } from '@/hooks/use-course'
+import type { CourseStatusConfig } from '@/types/course'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -29,81 +32,61 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-// Mock data for the course
-const mockCourse = {
-  title: 'Desenvolvimento Web Frontend com React',
-  description:
-    'Curso completo de desenvolvimento web frontend utilizando React, TypeScript e modernas práticas de desenvolvimento. Aprenda a criar aplicações web responsivas e interativas.',
-  organization: 'org1',
-  modalidade: 'Presencial' as const,
-  enrollmentStartDate: new Date('2025-08-01'),
-  enrollmentEndDate: new Date('2025-08-31'),
-  workload: '40 horas',
-  targetAudience:
-    'Desenvolvedores iniciantes e intermediários, estudantes de tecnologia, profissionais que desejam migrar para desenvolvimento web.',
-  prerequisites:
-    'Conhecimento básico em HTML, CSS e JavaScript. Ensino médio completo.',
-  hasCertificate: true,
-  facilitator: 'João Silva',
-  objectives:
-    'Desenvolver habilidades em React, TypeScript e desenvolvimento web moderno. Capacitar para criação de aplicações web profissionais.',
-  expectedResults:
-    'Ao final do curso, os participantes estarão aptos a criar aplicações web completas usando React e TypeScript.',
-  programContent:
-    'Módulo 1: Introdução ao React\nMódulo 2: Componentes e Props\nMódulo 3: Estado e Ciclo de Vida\nMódulo 4: Hooks\nMódulo 5: Roteamento\nMódulo 6: Integração com APIs',
-  methodology:
-    'Aulas expositivas, exercícios práticos, projetos em grupo, estudos de caso.',
-  resourcesUsed: 'Computadores, projetor, ambiente de desenvolvimento online.',
-  materialUsed: 'Slides, apostilas digitais, vídeos complementares.',
-  teachingMaterial:
-    'Documentação oficial do React, artigos técnicos, exercícios práticos.',
-  locations: [
-    {
-      address: 'Rua das Flores, 123 - Centro',
-      neighborhood: 'Centro',
-      vacancies: 25,
-      classStartDate: new Date('2025-09-01'),
-      classEndDate: new Date('2025-10-30'),
-      classTime: '19:00 - 22:00',
-      classDays: 'Segunda, Quarta, Sexta',
-    },
-  ],
-  institutionalLogo: null,
-  coverImage: null,
-  customFields: [],
-}
-
-// Additional course metadata for display purposes
-const courseMetadata = {
-  id: '1',
-  status: 'active' as 'active' | 'inactive' | 'draft' | 'completed', // Change to 'draft' to test draft behavior
-  created_at: new Date('2025-07-30T10:00:00Z'),
-}
-
-const statusConfig = {
+// Status configuration for badges
+const statusConfig: Record<string, CourseStatusConfig> = {
   active: {
     icon: CheckCircle,
     label: 'Ativo',
-    variant: 'default' as const,
+    variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
   inactive: {
     icon: XCircle,
     label: 'Inativo',
-    variant: 'secondary' as const,
+    variant: 'secondary',
     className: 'text-gray-600 border-gray-200 bg-gray-50',
   },
   draft: {
     icon: AlertCircle,
     label: 'Rascunho',
-    variant: 'outline' as const,
+    variant: 'outline',
     className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
   },
   completed: {
     icon: CheckCircle,
     label: 'Concluído',
-    variant: 'outline' as const,
+    variant: 'outline',
     className: 'text-blue-600 border-blue-200 bg-blue-50',
+  },
+  receiving_registrations: {
+    icon: CheckCircle,
+    label: 'Recebendo Inscrições',
+    variant: 'default',
+    className: 'text-green-600 border-green-200 bg-green-50',
+  },
+  in_progress: {
+    icon: CheckCircle,
+    label: 'Em Andamento',
+    variant: 'default',
+    className: 'text-blue-600 border-blue-200 bg-blue-50',
+  },
+  finished: {
+    icon: CheckCircle,
+    label: 'Finalizado',
+    variant: 'outline',
+    className: 'text-gray-600 border-gray-200 bg-gray-50',
+  },
+  cancelled: {
+    icon: XCircle,
+    label: 'Cancelado',
+    variant: 'secondary',
+    className: 'text-red-600 border-red-200 bg-red-50',
+  },
+  scheduled: {
+    icon: AlertCircle,
+    label: 'Agendado',
+    variant: 'outline',
+    className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
   },
 }
 
@@ -114,8 +97,9 @@ export default function CourseDetailPage({
   const [activeTab, setActiveTab] = useState('about')
   const searchParams = useSearchParams()
   const [courseId, setCourseId] = useState<string | null>(null)
-  const course = mockCourse // In a real app, you'd fetch this based on courseId
-  const metadata = courseMetadata
+
+  // Use the custom hook to fetch course data
+  const { course, loading, error } = useCourse(courseId)
 
   // Handle async params
   useEffect(() => {
@@ -147,11 +131,47 @@ export default function CourseDetailPage({
     setIsEditing(false)
   }
 
-  const config = statusConfig[metadata.status]
+  // Show loading state
+  if (loading) {
+    return (
+      <ContentLayout title="Carregando...">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <LoadingSpinner size="lg" className="mx-auto mb-4" />
+            <p className="text-muted-foreground">Carregando curso...</p>
+          </div>
+        </div>
+      </ContentLayout>
+    )
+  }
+
+  // Show error state
+  if (error || !course) {
+    return (
+      <ContentLayout title="Erro">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">
+              Erro ao carregar curso
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              {error || 'Curso não encontrado'}
+            </p>
+            <Link href="/gorio/courses">
+              <Button>Voltar para Cursos</Button>
+            </Link>
+          </div>
+        </div>
+      </ContentLayout>
+    )
+  }
+
+  const config = statusConfig[course.status] || statusConfig.draft
   const StatusIcon = config.icon
 
   // Check if course is a draft
-  const isDraft = metadata.status === 'draft'
+  const isDraft = course.status === 'draft'
 
   return (
     <ContentLayout title="Detalhes do Curso">
@@ -190,7 +210,7 @@ export default function CourseDetailPage({
                 </Badge>
                 <span className="text-sm text-muted-foreground">
                   Criado em{' '}
-                  {format(metadata.created_at, 'dd/MM/yyyy', { locale: ptBR })}
+                  {format(course.created_at, 'dd/MM/yyyy', { locale: ptBR })}
                 </span>
               </div>
             </div>

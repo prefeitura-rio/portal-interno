@@ -26,6 +26,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { mockCourseList } from '@/lib/mock-data'
+import type {
+  CourseListItem,
+  CourseStatus,
+  CourseStatusConfig,
+} from '@/types/course'
 
 import {
   type Column,
@@ -58,192 +64,45 @@ import {
 import Link from 'next/link'
 import * as React from 'react'
 
-interface Course {
-  id: string
-  title: string
-  provider: string
-  duration: number // in hours
-  vacancies: number
-  status:
-    | 'draft'
-    | 'scheduled'
-    | 'receiving_registrations'
-    | 'in_progress'
-    | 'finished'
-    | 'cancelled'
-  created_at: string
-  registration_start: string
-  registration_end: string
+// Status configuration for badges
+const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
+  draft: {
+    icon: FileText,
+    label: 'Rascunho',
+    variant: 'outline',
+    className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
+  },
+  scheduled: {
+    icon: Calendar,
+    label: 'Agendado',
+    variant: 'outline',
+    className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
+  },
+  receiving_registrations: {
+    icon: ClipboardList,
+    label: 'Receb. insc.',
+    variant: 'default',
+    className: 'text-green-600 border-green-200 bg-green-50',
+  },
+  in_progress: {
+    icon: Play,
+    label: 'Em andamento',
+    variant: 'default',
+    className: 'text-blue-600 border-blue-200 bg-blue-50',
+  },
+  finished: {
+    icon: Flag,
+    label: 'Encerrado',
+    variant: 'outline',
+    className: 'text-gray-500 border-gray-200 bg-gray-50',
+  },
+  cancelled: {
+    icon: Ban,
+    label: 'Cancelado',
+    variant: 'secondary',
+    className: 'text-red-600 border-red-200 bg-red-50',
+  },
 }
-
-// Comprehensive mock data
-const data: Course[] = [
-  {
-    id: '1',
-    title: 'Desenvolvimento Web Frontend com React',
-    provider: 'TechEducation',
-    duration: 40,
-    vacancies: 25,
-    status: 'receiving_registrations',
-    created_at: '2025-07-30T10:00:00Z',
-    registration_start: '2025-08-01T00:00:00Z',
-    registration_end: '2025-08-31T23:59:59Z',
-  },
-  {
-    id: '2',
-    title: 'Python para Ciência de Dados',
-    provider: 'DataScience Academy',
-    duration: 60,
-    vacancies: 15,
-    status: 'in_progress',
-    created_at: '2025-02-10T14:30:00Z',
-    registration_start: '2025-02-15T00:00:00Z',
-    registration_end: '2025-03-15T23:59:59Z',
-  },
-  {
-    id: '3',
-    title: 'DevOps e Kubernetes',
-    provider: 'Cloud Masters',
-    duration: 80,
-    vacancies: 10,
-    status: 'cancelled',
-    created_at: '2025-06-05T09:15:00Z',
-    registration_start: '2025-06-10T00:00:00Z',
-    registration_end: '2025-07-10T23:59:59Z',
-  },
-  {
-    id: '4',
-    title: 'Mobile Development com React Native',
-    provider: 'TechEducation',
-    duration: 50,
-    vacancies: 20,
-    status: 'draft',
-    created_at: '2025-06-20T16:45:00Z',
-    registration_start: '2025-07-01T00:00:00Z',
-    registration_end: '2025-07-31T23:59:59Z',
-  },
-  {
-    id: '5',
-    title: 'Machine Learning Fundamentals',
-    provider: 'AI Institute',
-    duration: 70,
-    vacancies: 12,
-    status: 'finished',
-    created_at: '2025-07-30T11:00:00Z',
-    registration_start: '2025-08-01T00:00:00Z',
-    registration_end: '2025-08-31T23:59:59Z',
-  },
-  {
-    id: '6',
-    title: 'Advanced JavaScript and TypeScript',
-    provider: 'JavaScript Academy',
-    duration: 45,
-    vacancies: 30,
-    status: 'receiving_registrations',
-    created_at: '2025-01-12T08:30:00Z',
-    registration_start: '2025-01-15T00:00:00Z',
-    registration_end: '2025-02-15T23:59:59Z',
-  },
-  {
-    id: '7',
-    title: 'Cybersecurity Essentials',
-    provider: 'SecureLearn',
-    duration: 35,
-    vacancies: 18,
-    status: 'in_progress',
-    created_at: '2025-01-18T13:20:00Z',
-    registration_start: '2025-01-20T00:00:00Z',
-    registration_end: '2025-02-20T23:59:59Z',
-  },
-  {
-    id: '8',
-    title: 'UX/UI Design Masterclass',
-    provider: 'Design Hub',
-    duration: 55,
-    vacancies: 22,
-    status: 'finished',
-    created_at: '2025-01-08T15:10:00Z',
-    registration_start: '2025-01-10T00:00:00Z',
-    registration_end: '2025-02-10T23:59:59Z',
-  },
-  {
-    id: '9',
-    title: 'Desenvolvimento Web Backend com Node.js',
-    provider: 'TechEducation',
-    duration: 40,
-    vacancies: 25,
-    status: 'draft',
-    created_at: '2025-01-15T10:00:00Z',
-    registration_start: '2025-01-20T00:00:00Z',
-    registration_end: '2025-02-20T23:59:59Z',
-  },
-  {
-    id: '10',
-    title: 'Desenvolvimento Web Backend com Node.js',
-    provider: 'TechEducation',
-    duration: 40,
-    vacancies: 25,
-    status: 'scheduled',
-    created_at: '2025-01-15T10:00:00Z',
-    registration_start: '2025-01-20T00:00:00Z',
-    registration_end: '2025-02-20T23:59:59Z',
-  },
-  {
-    id: '11',
-    title: 'Desenvolvimento Web Backend com Node.js',
-    provider: 'TechEducation',
-    duration: 40,
-    vacancies: 25,
-    status: 'in_progress',
-    created_at: '2025-01-15T10:00:00Z',
-    registration_start: '2025-01-20T00:00:00Z',
-    registration_end: '2025-02-20T23:59:59Z',
-  },
-  {
-    id: '12',
-    title: 'Desenvolvimento Web Backend com Node.js',
-    provider: 'TechEducation',
-    duration: 40,
-    vacancies: 25,
-    status: 'finished',
-    created_at: '2024-01-15T10:00:00Z',
-    registration_start: '2024-01-20T00:00:00Z',
-    registration_end: '2024-02-20T23:59:59Z',
-  },
-  {
-    id: '13',
-    title: 'Desenvolvimento Web Backend com Node.js',
-    provider: 'TechEducation',
-    duration: 40,
-    vacancies: 25,
-    status: 'cancelled',
-    created_at: '2024-01-15T10:00:00Z',
-    registration_start: '2024-01-20T00:00:00Z',
-    registration_end: '2024-02-20T23:59:59Z',
-  },
-  {
-    id: '14',
-    title: 'Inteligência Artificial Avançada',
-    provider: 'AI Masters',
-    duration: 90,
-    vacancies: 15,
-    status: 'scheduled',
-    created_at: '2025-01-25T14:30:00Z',
-    registration_start: '2025-02-01T00:00:00Z',
-    registration_end: '2025-03-01T23:59:59Z',
-  },
-  {
-    id: '15',
-    title: 'Blockchain e Criptomoedas',
-    provider: 'Crypto Academy',
-    duration: 55,
-    vacancies: 20,
-    status: 'scheduled',
-    created_at: '2025-01-28T09:15:00Z',
-    registration_start: '2025-02-05T00:00:00Z',
-    registration_end: '2025-03-05T23:59:59Z',
-  },
-]
 
 export default function Courses() {
   const [sorting, setSorting] = React.useState<SortingState>([
@@ -261,25 +120,25 @@ export default function Courses() {
   // Filter data based on active tab
   const filteredData = React.useMemo(() => {
     if (activeTab === 'draft') {
-      return data.filter(course => course.status === 'draft')
+      return mockCourseList.filter(course => course.status === 'draft')
     }
-    return data.filter(course => course.status !== 'draft')
+    return mockCourseList.filter(course => course.status !== 'draft')
   }, [activeTab])
 
   // Common columns without selection and status
-  const baseColumns = React.useMemo<ColumnDef<Course>[]>(
+  const baseColumns = React.useMemo<ColumnDef<CourseListItem>[]>(
     () => [
       {
         id: 'title',
         accessorKey: 'title',
-        header: ({ column }: { column: Column<Course, unknown> }) => (
+        header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Título do Curso" />
         ),
         cell: ({ cell }) => (
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">
-              {cell.getValue<Course['title']>()}
+              {cell.getValue<CourseListItem['title']>()}
             </span>
           </div>
         ),
@@ -294,13 +153,13 @@ export default function Courses() {
       {
         id: 'provider',
         accessorKey: 'provider',
-        header: ({ column }: { column: Column<Course, unknown> }) => (
+        header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Quem oferece" />
         ),
         cell: ({ cell }) => (
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4 text-muted-foreground" />
-            <span>{cell.getValue<Course['provider']>()}</span>
+            <span>{cell.getValue<CourseListItem['provider']>()}</span>
           </div>
         ),
         meta: {
@@ -319,7 +178,7 @@ export default function Courses() {
           date.setHours(0, 0, 0, 0)
           return date.getTime()
         },
-        header: ({ column }: { column: Column<Course, unknown> }) => (
+        header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Dt. de Criação" />
         ),
         cell: ({ cell }) => {
@@ -347,7 +206,7 @@ export default function Courses() {
           date.setHours(0, 0, 0, 0)
           return date.getTime()
         },
-        header: ({ column }: { column: Column<Course, unknown> }) => (
+        header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Início das Inscr." />
         ),
         cell: ({ cell }) => {
@@ -375,7 +234,7 @@ export default function Courses() {
           date.setHours(0, 0, 0, 0)
           return date.getTime()
         },
-        header: ({ column }: { column: Column<Course, unknown> }) => (
+        header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Fim das Inscr." />
         ),
         cell: ({ cell }) => {
@@ -399,11 +258,11 @@ export default function Courses() {
         id: 'vacancies',
         accessorKey: 'vacancies',
         accessorFn: row => Number(row.vacancies),
-        header: ({ column }: { column: Column<Course, unknown> }) => (
+        header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Vagas" />
         ),
         cell: ({ cell }) => {
-          const vacancies = cell.getValue<Course['vacancies']>()
+          const vacancies = cell.getValue<CourseListItem['vacancies']>()
           return (
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
@@ -423,11 +282,11 @@ export default function Courses() {
       {
         id: 'duration',
         accessorKey: 'duration',
-        header: ({ column }: { column: Column<Course, unknown> }) => (
+        header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Duração" />
         ),
         cell: ({ cell }) => {
-          const duration = cell.getValue<Course['duration']>()
+          const duration = cell.getValue<CourseListItem['duration']>()
           return (
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
@@ -481,14 +340,14 @@ export default function Courses() {
   )
 
   // Create columns based on active tab
-  const columns = React.useMemo<ColumnDef<Course>[]>(() => {
+  const columns = React.useMemo<ColumnDef<CourseListItem>[]>(() => {
     if (activeTab === 'draft') {
       // For draft tab, don't include selection column or status column
       return baseColumns
     }
 
     // Selection column for created courses
-    const selectionColumn: ColumnDef<Course> = {
+    const selectionColumn: ColumnDef<CourseListItem> = {
       id: 'select',
       header: ({ table }) => (
         <Checkbox
@@ -513,53 +372,14 @@ export default function Courses() {
     }
 
     // Status column for created courses (without draft option)
-    const statusColumn: ColumnDef<Course> = {
+    const statusColumn: ColumnDef<CourseListItem> = {
       id: 'status',
       accessorKey: 'status',
-      header: ({ column }: { column: Column<Course, unknown> }) => (
+      header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
         <DataTableColumnHeader column={column} title="Status" />
       ),
       cell: ({ cell }) => {
-        const status = cell.getValue<Course['status']>()
-        const statusConfig = {
-          draft: {
-            icon: FileText,
-            label: 'Rascunho',
-            variant: 'outline' as const,
-            className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
-          },
-          scheduled: {
-            icon: Calendar,
-            label: 'Agendado',
-            variant: 'outline' as const,
-            className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
-          },
-          receiving_registrations: {
-            icon: ClipboardList,
-            label: 'Receb. insc.',
-            variant: 'default' as const,
-            className: 'text-green-600 border-green-200 bg-green-50',
-          },
-          in_progress: {
-            icon: Play,
-            label: 'Em andamento',
-            variant: 'default' as const,
-            className: 'text-blue-600 border-blue-200 bg-blue-50',
-          },
-          finished: {
-            icon: Flag,
-            label: 'Encerrado',
-            variant: 'outline' as const,
-            className: 'text-gray-500 border-gray-200 bg-gray-50',
-          },
-          cancelled: {
-            icon: Ban,
-            label: 'Cancelado',
-            variant: 'secondary' as const,
-            className: 'text-red-600 border-red-200 bg-red-50',
-          },
-        }
-
+        const status = cell.getValue<CourseListItem['status']>()
         const config = statusConfig[status]
         const Icon = config.icon
 
