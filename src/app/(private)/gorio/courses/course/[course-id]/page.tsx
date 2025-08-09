@@ -76,7 +76,7 @@ const mockCourse = {
 // Additional course metadata for display purposes
 const courseMetadata = {
   id: '1',
-  status: 'active' as const,
+  status: 'active' as 'active' | 'inactive' | 'draft' | 'completed', // Change to 'draft' to test draft behavior
   created_at: new Date('2025-07-30T10:00:00Z'),
 }
 
@@ -150,6 +150,9 @@ export default function CourseDetailPage({
   const config = statusConfig[metadata.status]
   const StatusIcon = config.icon
 
+  // Check if course is a draft
+  const isDraft = metadata.status === 'draft'
+
   return (
     <ContentLayout title="Detalhes do Curso">
       <div className="space-y-6">
@@ -216,18 +219,10 @@ export default function CourseDetailPage({
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="about">Sobre o curso</TabsTrigger>
-            <TabsTrigger value="enrollments" disabled={isEditing}>
-              <Users className="w-4 h-4 mr-2" />
-              Inscrições
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="about" className="mt-6">
-            {/* Course Form */}
+        {/* Conditional rendering based on course status */}
+        {isDraft ? (
+          // For draft courses, show only the form without tabs
+          <div className="mt-6">
             <div className={isEditing ? '' : 'pointer-events-none opacity-90'}>
               <NewCourseForm
                 initialData={course as any}
@@ -235,12 +230,40 @@ export default function CourseDetailPage({
                 onSubmit={handleSave}
               />
             </div>
-          </TabsContent>
+          </div>
+        ) : (
+          // For non-draft courses, show tabs
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="about">Sobre o curso</TabsTrigger>
+              <TabsTrigger value="enrollments" disabled={isEditing}>
+                <Users className="w-4 h-4 mr-2" />
+                Inscrições
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="enrollments" className="mt-6">
-            <EnrollmentsTable />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="about" className="mt-6">
+              {/* Course Form */}
+              <div
+                className={isEditing ? '' : 'pointer-events-none opacity-90'}
+              >
+                <NewCourseForm
+                  initialData={course as any}
+                  isReadOnly={!isEditing}
+                  onSubmit={handleSave}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="enrollments" className="mt-6">
+              <EnrollmentsTable />
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </ContentLayout>
   )

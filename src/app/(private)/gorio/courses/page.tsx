@@ -266,32 +266,9 @@ export default function Courses() {
     return data.filter(course => course.status !== 'draft')
   }, [activeTab])
 
-  // Common columns (without status filter)
-  const commonColumns = React.useMemo<ColumnDef<Course>[]>(
+  // Common columns without selection and status
+  const baseColumns = React.useMemo<ColumnDef<Course>[]>(
     () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <Checkbox
-            checked={
-              table.getIsAllPageRowsSelected() ||
-              (table.getIsSomePageRowsSelected() && 'indeterminate')
-            }
-            onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-            aria-label="Select all"
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={value => row.toggleSelected(!!value)}
-            aria-label="Select row"
-          />
-        ),
-        size: 32,
-        enableSorting: false,
-        enableHiding: false,
-      },
       {
         id: 'title',
         accessorKey: 'title',
@@ -506,8 +483,33 @@ export default function Courses() {
   // Create columns based on active tab
   const columns = React.useMemo<ColumnDef<Course>[]>(() => {
     if (activeTab === 'draft') {
-      // For draft tab, don't include status column (no filter needed)
-      return commonColumns
+      // For draft tab, don't include selection column or status column
+      return baseColumns
+    }
+
+    // Selection column for created courses
+    const selectionColumn: ColumnDef<Course> = {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && 'indeterminate')
+          }
+          onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={value => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      size: 32,
+      enableSorting: false,
+      enableHiding: false,
     }
 
     // Status column for created courses (without draft option)
@@ -593,13 +595,14 @@ export default function Courses() {
       enableColumnFilter: true,
     }
 
-    // For created courses tab, include status column without draft option
+    // For created courses tab, include selection column and status column
     return [
-      ...commonColumns.slice(0, -1),
+      selectionColumn,
+      ...baseColumns.slice(0, -1),
       statusColumn,
-      commonColumns[commonColumns.length - 1],
+      baseColumns[baseColumns.length - 1],
     ]
-  }, [activeTab, commonColumns])
+  }, [activeTab, baseColumns])
 
   const table = useReactTable({
     data: filteredData, // Use filtered data based on active tab
@@ -714,41 +717,6 @@ export default function Courses() {
               }}
             >
               <DataTableToolbar table={table} />
-
-              <DataTableActionBar table={table}>
-                <DataTableActionBarSelection table={table} />
-                <DataTableActionBarAction
-                  tooltip="Baixar planilha(s) do(s) curso(s) selecionado(s)"
-                  onClick={() => {
-                    const selectedRows =
-                      table.getFilteredSelectedRowModel().rows
-                    console.log(
-                      'Baixando planilha:',
-                      selectedRows.map(row => row.original)
-                    )
-                    // TODO: Implement download logic
-                  }}
-                >
-                  <Download />
-                  Baixar planilha(s)
-                </DataTableActionBarAction>
-                <DataTableActionBarAction
-                  tooltip="Excluir cursos selecionados"
-                  variant="destructive"
-                  onClick={() => {
-                    const selectedRows =
-                      table.getFilteredSelectedRowModel().rows
-                    console.log(
-                      'Excluindo cursos:',
-                      selectedRows.map(row => row.original)
-                    )
-                    // TODO: Implement deletion logic with confirmation
-                  }}
-                >
-                  <Trash2 />
-                  Excluir
-                </DataTableActionBarAction>
-              </DataTableActionBar>
             </DataTable>
           </TabsContent>
         </Tabs>
