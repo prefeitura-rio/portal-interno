@@ -14,8 +14,8 @@ export function useCourse(courseId: string | null): UseCourseReturn {
 
   useEffect(() => {
     if (!courseId) {
-      setLoading(false)
-      setError('Course ID is required')
+      setLoading(true)
+      setError(null)
       return
     }
 

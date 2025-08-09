@@ -163,7 +163,7 @@ export default function CourseDetailPage({
   }
 
   // Show loading state
-  if (loading) {
+  if (loading || !courseId) {
     return (
       <ContentLayout title="Carregando...">
         <div className="flex items-center justify-center h-64">
@@ -266,10 +266,16 @@ export default function CourseDetailPage({
                       Publicar
                     </Button>
                   )}
-                                     <Button onClick={isDraft ? handleSaveDraftFromHeader : () => handleSave(course)}>
-                     <Save className="mr-2 h-4 w-4" />
-                     {isDraft ? 'Salvar Rascunho' : 'Salvar'}
-                   </Button>
+                  <Button
+                    onClick={
+                      isDraft
+                        ? handleSaveDraftFromHeader
+                        : () => handleSave(course)
+                    }
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {isDraft ? 'Salvar Rascunho' : 'Salvar'}
+                  </Button>
                 </>
               )}
             </div>
