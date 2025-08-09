@@ -1,7 +1,10 @@
 'use client'
 
 import { EnrollmentsTable } from '@/app/(private)/(app)/gorio/components/enrollments-table'
-import { NewCourseForm, type NewCourseFormRef } from '@/app/(private)/(app)/gorio/components/new-course-form'
+import {
+  NewCourseForm,
+  type NewCourseFormRef,
+} from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -98,7 +101,7 @@ export default function CourseDetailPage({
   const [activeTab, setActiveTab] = useState('about')
   const searchParams = useSearchParams()
   const [courseId, setCourseId] = useState<string | null>(null)
-  
+
   // Refs to trigger form submission
   const draftFormRef = useRef<NewCourseFormRef>(null)
   const courseFormRef = useRef<NewCourseFormRef>(null)
@@ -266,9 +269,7 @@ export default function CourseDetailPage({
                       Publicar
                     </Button>
                   )}
-                  <Button
-                    onClick={handleSaveDraftFromHeader}
-                  >
+                  <Button onClick={handleSaveDraftFromHeader}>
                     <Save className="mr-2 h-4 w-4" />
                     {isDraft ? 'Salvar Rascunho' : 'Salvar'}
                   </Button>

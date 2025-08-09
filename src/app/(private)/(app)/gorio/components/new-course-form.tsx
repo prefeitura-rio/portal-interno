@@ -1,9 +1,9 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { forwardRef, useImperativeHandle } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { forwardRef, useImperativeHandle } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -324,300 +324,258 @@ export interface NewCourseFormRef {
   triggerPublish: () => void
 }
 
-export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(({
-  initialData,
-  isReadOnly = false,
-  onSubmit,
-  onPublish,
-  isDraft = false,
-}, ref) => {
-  const form = useForm<PartialFormData>({
-    resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
-    defaultValues: initialData || {
-      title: '',
-      description: '',
-      enrollmentStartDate: new Date(),
-      enrollmentEndDate: new Date(),
-      organization: '',
-      modalidade: undefined,
-      locations: [],
-      remoteClass: undefined,
-      workload: '',
-      targetAudience: '',
-      prerequisites: '',
-      hasCertificate: false,
-      facilitator: '',
-      objectives: '',
-      expectedResults: '',
-      programContent: '',
-      methodology: '',
-      resourcesUsed: '',
-      materialUsed: '',
-      teachingMaterial: '',
-      institutionalLogo: undefined,
-      coverImage: undefined,
-      customFields: [],
-    },
-    mode: 'onChange', // Enable real-time validation
-  })
-
-  const modalidade = form.watch('modalidade')
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'locations',
-  })
-
-  // Expose methods to parent component via ref
-  useImperativeHandle(ref, () => ({
-    triggerSubmit: () => {
-      form.handleSubmit(handleSubmit)()
-    },
-    triggerPublish: () => {
-      handlePublish()
-    },
-  }))
-
-  // Handle modalidade change to properly initialize fields
-  const handleModalidadeChange = (
-    value: 'Presencial' | 'Semipresencial' | 'Remoto'
+export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
+  (
+    { initialData, isReadOnly = false, onSubmit, onPublish, isDraft = false },
+    ref
   ) => {
-    if (value === 'Remoto') {
-      // Clear locations array and initialize remote class fields
-      form.setValue('locations', [])
-      form.setValue('remoteClass', {
+    const form = useForm<PartialFormData>({
+      resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
+      defaultValues: initialData || {
+        title: '',
+        description: '',
+        enrollmentStartDate: new Date(),
+        enrollmentEndDate: new Date(),
+        organization: '',
+        modalidade: undefined,
+        locations: [],
+        remoteClass: undefined,
+        workload: '',
+        targetAudience: '',
+        prerequisites: '',
+        hasCertificate: false,
+        facilitator: '',
+        objectives: '',
+        expectedResults: '',
+        programContent: '',
+        methodology: '',
+        resourcesUsed: '',
+        materialUsed: '',
+        teachingMaterial: '',
+        institutionalLogo: undefined,
+        coverImage: undefined,
+        customFields: [],
+      },
+      mode: 'onChange', // Enable real-time validation
+    })
+
+    const modalidade = form.watch('modalidade')
+    const { fields, append, remove } = useFieldArray({
+      control: form.control,
+      name: 'locations',
+    })
+
+    // Expose methods to parent component via ref
+    useImperativeHandle(ref, () => ({
+      triggerSubmit: () => {
+        form.handleSubmit(handleSubmit)()
+      },
+      triggerPublish: () => {
+        handlePublish()
+      },
+    }))
+
+    // Handle modalidade change to properly initialize fields
+    const handleModalidadeChange = (
+      value: 'Presencial' | 'Semipresencial' | 'Remoto'
+    ) => {
+      if (value === 'Remoto') {
+        // Clear locations array and initialize remote class fields
+        form.setValue('locations', [])
+        form.setValue('remoteClass', {
+          vacancies: 1,
+          classStartDate: new Date(),
+          classEndDate: new Date(),
+          classTime: '',
+          classDays: '',
+        })
+      } else if (value === 'Presencial' || value === 'Semipresencial') {
+        // Clear remote class and initialize locations if not already set
+        form.setValue('remoteClass', undefined)
+
+        const currentLocations = form.getValues('locations')
+        if (!currentLocations || currentLocations.length === 0) {
+          form.setValue('locations', [
+            {
+              address: '',
+              neighborhood: '',
+              vacancies: 1,
+              classStartDate: new Date(),
+              classEndDate: new Date(),
+              classTime: '',
+              classDays: '',
+            },
+          ])
+        }
+      }
+    }
+
+    const addLocation = () => {
+      append({
+        address: '',
+        neighborhood: '',
         vacancies: 1,
         classStartDate: new Date(),
         classEndDate: new Date(),
         classTime: '',
         classDays: '',
       })
-    } else if (value === 'Presencial' || value === 'Semipresencial') {
-      // Clear remote class and initialize locations if not already set
-      form.setValue('remoteClass', undefined)
+    }
 
-      const currentLocations = form.getValues('locations')
-      if (!currentLocations || currentLocations.length === 0) {
-        form.setValue('locations', [
-          {
-            address: '',
-            neighborhood: '',
-            vacancies: 1,
-            classStartDate: new Date(),
-            classEndDate: new Date(),
-            classTime: '',
-            classDays: '',
-          },
-        ])
+    const removeLocation = (index: number) => {
+      remove(index)
+    }
+
+    async function handleSubmit(values: PartialFormData) {
+      try {
+        // Validate the complete form data
+        const validatedData = formSchema.parse(values)
+
+        // Adiciona o status para curso criado
+        const courseData = {
+          ...validatedData,
+          status: 'opened' as const,
+        }
+
+        console.log('Form submitted successfully!')
+        console.log('Form values:', courseData)
+
+        if (onSubmit) {
+          onSubmit(courseData)
+        } else {
+          toast.success('Formulário enviado com sucesso!')
+        }
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          console.error('Validation errors:', error.errors)
+          toast.error('Erro de validação', {
+            description: 'Por favor, verifique os campos destacados.',
+          })
+        } else {
+          console.error('Unexpected error:', error)
+          toast.error('Erro inesperado', {
+            description: 'Ocorreu um erro ao processar o formulário.',
+          })
+        }
       }
     }
-  }
 
-  const addLocation = () => {
-    append({
-      address: '',
-      neighborhood: '',
-      vacancies: 1,
-      classStartDate: new Date(),
-      classEndDate: new Date(),
-      classTime: '',
-      classDays: '',
-    })
-  }
+    async function handleSaveDraft() {
+      try {
+        const currentValues = form.getValues()
 
-  const removeLocation = (index: number) => {
-    remove(index)
-  }
+        // Adiciona o status para rascunho
+        const draftData = {
+          ...currentValues,
+          status: 'draft' as const,
+        }
 
-  async function handleSubmit(values: PartialFormData) {
-    try {
-      // Validate the complete form data
-      const validatedData = formSchema.parse(values)
+        console.log('Saving draft...')
+        console.log('Draft values:', draftData)
 
-      // Adiciona o status para curso criado
-      const courseData = {
-        ...validatedData,
-        status: 'opened' as const,
-      }
+        // Aqui você pode implementar a lógica para salvar o rascunho
+        // Por exemplo, enviar para uma API específica de rascunhos
+        // ou salvar no localStorage
 
-      console.log('Form submitted successfully!')
-      console.log('Form values:', courseData)
-
-      if (onSubmit) {
-        onSubmit(courseData)
-      } else {
-        toast.success('Formulário enviado com sucesso!')
-      }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        console.error('Validation errors:', error.errors)
-        toast.error('Erro de validação', {
-          description: 'Por favor, verifique os campos destacados.',
+        if (onSubmit) {
+          onSubmit(draftData)
+        }
+        toast.success('Rascunho salvo com sucesso!')
+      } catch (error) {
+        console.error('Error saving draft:', error)
+        toast.error('Erro ao salvar rascunho', {
+          description: 'Ocorreu um erro ao salvar o rascunho.',
         })
-      } else {
-        console.error('Unexpected error:', error)
-        toast.error('Erro inesperado', {
-          description: 'Ocorreu um erro ao processar o formulário.',
+      }
+    }
+
+    async function handlePublish() {
+      try {
+        const currentValues = form.getValues()
+
+        // Adiciona o status para publicação
+        const publishData = {
+          ...currentValues,
+          status: 'opened' as const,
+        }
+
+        console.log('Publishing course...')
+        console.log('Publish values:', publishData)
+
+        if (onPublish) {
+          onPublish(publishData)
+        }
+        toast.success('Curso publicado com sucesso!')
+      } catch (error) {
+        console.error('Error publishing course:', error)
+        toast.error('Erro ao publicar curso', {
+          description: 'Ocorreu um erro ao publicar o curso.',
         })
       }
     }
-  }
 
-  async function handleSaveDraft() {
-    try {
-      const currentValues = form.getValues()
-
-      // Adiciona o status para rascunho
-      const draftData = {
-        ...currentValues,
-        status: 'draft' as const,
-      }
-
-      console.log('Saving draft...')
-      console.log('Draft values:', draftData)
-
-      // Aqui você pode implementar a lógica para salvar o rascunho
-      // Por exemplo, enviar para uma API específica de rascunhos
-      // ou salvar no localStorage
-
-      if (onSubmit) {
-        onSubmit(draftData)
-      }
-      toast.success('Rascunho salvo com sucesso!')
-    } catch (error) {
-      console.error('Error saving draft:', error)
-      toast.error('Erro ao salvar rascunho', {
-        description: 'Ocorreu um erro ao salvar o rascunho.',
-      })
-    }
-  }
-
-  async function handlePublish() {
-    try {
-      const currentValues = form.getValues()
-
-      // Adiciona o status para publicação
-      const publishData = {
-        ...currentValues,
-        status: 'opened' as const,
-      }
-
-      console.log('Publishing course...')
-      console.log('Publish values:', publishData)
-
-      if (onPublish) {
-        onPublish(publishData)
-      }
-      toast.success('Curso publicado com sucesso!')
-    } catch (error) {
-      console.error('Error publishing course:', error)
-      toast.error('Erro ao publicar curso', {
-        description: 'Ocorreu um erro ao publicar o curso.',
-      })
-    }
-  }
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16">
-          <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Título*</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled={isReadOnly} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição*</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      className="min-h-[120px]"
-                      {...field}
-                      disabled={isReadOnly}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex items-center justify-between gap-4">
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16">
+            <div className="space-y-6">
               <FormField
                 control={form.control}
-                name="enrollmentStartDate"
+                name="title"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col flex-1">
-                    <FormLabel>Período de inscrições*</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={'outline'}
-                            className={cn(
-                              'w-full pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, 'dd/MM/yyyy')
-                            ) : (
-                              <span>DD/MM/AAAA</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  <FormItem>
+                    <FormLabel>Título*</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled={isReadOnly} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <div className="flex mt-4 items-center justify-center">à</div>
+
               <FormField
                 control={form.control}
-                name="enrollmentEndDate"
+                name="description"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col flex-1">
-                    <FormLabel className="opacity-0 pointer-events-none select-none">
-                      Data de término*
-                    </FormLabel>
+                  <FormItem>
+                    <FormLabel>Descrição*</FormLabel>
                     <FormControl>
+                      <Textarea
+                        className="min-h-[120px]"
+                        {...field}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex items-center justify-between gap-4">
+                <FormField
+                  control={form.control}
+                  name="enrollmentStartDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col flex-1">
+                      <FormLabel>Período de inscrições*</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            variant={'outline'}
-                            className={cn(
-                              'w-full pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, 'dd/MM/yyyy')
-                            ) : (
-                              <span>DD/MM/AAAA</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
+                          <FormControl>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, 'dd/MM/yyyy')
+                              ) : (
+                                <span>DD/MM/AAAA</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
@@ -628,164 +586,161 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(({
                           />
                         </PopoverContent>
                       </Popover>
-                    </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex mt-4 items-center justify-center">à</div>
+                <FormField
+                  control={form.control}
+                  name="enrollmentEndDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col flex-1">
+                      <FormLabel className="opacity-0 pointer-events-none select-none">
+                        Data de término*
+                      </FormLabel>
+                      <FormControl>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, 'dd/MM/yyyy')
+                              ) : (
+                                <span>DD/MM/AAAA</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="organization"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Órgão (Quem oferece o curso)*</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={isReadOnly}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um órgão" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="org1">Organização A</SelectItem>
+                        <SelectItem value="org2">Organização B</SelectItem>
+                        <SelectItem value="org3">Organização C</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
 
-            <FormField
-              control={form.control}
-              name="organization"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Órgão (Quem oferece o curso)*</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={isReadOnly}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um órgão" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="org1">Organização A</SelectItem>
-                      <SelectItem value="org2">Organização B</SelectItem>
-                      <SelectItem value="org3">Organização C</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="modalidade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Modalidade*</FormLabel>
+                    <Select
+                      onValueChange={value => {
+                        const modalidadeValue = value as
+                          | 'Presencial'
+                          | 'Semipresencial'
+                          | 'Remoto'
+                        field.onChange(modalidadeValue)
+                        handleModalidadeChange(modalidadeValue)
+                      }}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a modalidade" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Presencial">Presencial</SelectItem>
+                        <SelectItem value="Semipresencial">
+                          Semipresencial
+                        </SelectItem>
+                        <SelectItem value="Remoto">Remoto</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="modalidade"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Modalidade*</FormLabel>
-                  <Select
-                    onValueChange={value => {
-                      const modalidadeValue = value as
-                        | 'Presencial'
-                        | 'Semipresencial'
-                        | 'Remoto'
-                      field.onChange(modalidadeValue)
-                      handleModalidadeChange(modalidadeValue)
-                    }}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a modalidade" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Presencial">Presencial</SelectItem>
-                      <SelectItem value="Semipresencial">
-                        Semipresencial
-                      </SelectItem>
-                      <SelectItem value="Remoto">Remoto</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Conditional rendering based on modalidade */}
-            {modalidade === 'Remoto' && (
-              <Card className="-mt-2">
-                <CardHeader>
-                  <CardTitle>Informações das Aulas Remotas</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="remoteClass.vacancies"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Número de vagas*</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex items-center gap-4">
+              {/* Conditional rendering based on modalidade */}
+              {modalidade === 'Remoto' && (
+                <Card className="-mt-2">
+                  <CardHeader>
+                    <CardTitle>Informações das Aulas Remotas</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="remoteClass.classStartDate"
+                      name="remoteClass.vacancies"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col flex-1">
-                          <FormLabel>Período das aulas*</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={'outline'}
-                                  className={cn(
-                                    'w-full pl-3 text-left font-normal',
-                                    !field.value && 'text-muted-foreground'
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, 'dd/MM/yyyy')
-                                  ) : (
-                                    <span>DD/MM/AAAA</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
+                        <FormItem>
+                          <FormLabel>Número de vagas*</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="1" {...field} />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <span className="mt-4">à</span>
-                    <FormField
-                      control={form.control}
-                      name="remoteClass.classEndDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col flex-1">
-                          <FormLabel className="opacity-0 pointer-events-none select-none">
-                            Data de fim*
-                          </FormLabel>
-                          <FormControl>
+
+                    <div className="flex items-center gap-4">
+                      <FormField
+                        control={form.control}
+                        name="remoteClass.classStartDate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col flex-1">
+                            <FormLabel>Período das aulas*</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
-                                <Button
-                                  variant={'outline'}
-                                  className={cn(
-                                    'w-full pl-3 text-left font-normal',
-                                    !field.value && 'text-muted-foreground'
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, 'dd/MM/yyyy')
-                                  ) : (
-                                    <span>DD/MM/AAAA</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
+                                <FormControl>
+                                  <Button
+                                    variant={'outline'}
+                                    className={cn(
+                                      'w-full pl-3 text-left font-normal',
+                                      !field.value && 'text-muted-foreground'
+                                    )}
+                                  >
+                                    {field.value ? (
+                                      format(field.value, 'dd/MM/yyyy')
+                                    ) : (
+                                      <span>DD/MM/AAAA</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
                               </PopoverTrigger>
                               <PopoverContent
                                 className="w-auto p-0"
@@ -799,138 +754,36 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(({
                                 />
                               </PopoverContent>
                             </Popover>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="remoteClass.classTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Horário das aulas*</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: 19:00 - 22:00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="remoteClass.classDays"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Dias de aula*</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Ex: Segunda, Quarta e Sexta"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            {(modalidade === 'Presencial' ||
-              modalidade === 'Semipresencial') && (
-              <div className="space-y-4 -mt-2">
-                {fields.map((field, index) => (
-                  <Card key={field.id}>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <CardTitle>
-                        {index === 0
-                          ? 'Informações da Unidade'
-                          : `Informações da Unidade ${index + 1}`}
-                      </CardTitle>
-                      {index > 0 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeLocation(index)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name={`locations.${index}.address`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Endereço da unidade*</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-
+                      <span className="mt-4">à</span>
                       <FormField
                         control={form.control}
-                        name={`locations.${index}.neighborhood`}
+                        name="remoteClass.classEndDate"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Bairro*</FormLabel>
+                          <FormItem className="flex flex-col flex-1">
+                            <FormLabel className="opacity-0 pointer-events-none select-none">
+                              Data de fim*
+                            </FormLabel>
                             <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name={`locations.${index}.vacancies`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Número de vagas*</FormLabel>
-                            <FormControl>
-                              <Input type="number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="flex items-end gap-4">
-                        <FormField
-                          control={form.control}
-                          name={`locations.${index}.classStartDate`}
-                          render={({ field }) => (
-                            <FormItem className="flex flex-col flex-1">
-                              <FormLabel>Período das aulas*</FormLabel>
                               <Popover>
                                 <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant={'outline'}
-                                      className={cn(
-                                        'w-full pl-3 text-left font-normal',
-                                        !field.value && 'text-muted-foreground'
-                                      )}
-                                    >
-                                      {field.value ? (
-                                        format(field.value, 'dd/MM/yyyy')
-                                      ) : (
-                                        <span>DD/MM/AAAA</span>
-                                      )}
-                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                  </FormControl>
+                                  <Button
+                                    variant={'outline'}
+                                    className={cn(
+                                      'w-full pl-3 text-left font-normal',
+                                      !field.value && 'text-muted-foreground'
+                                    )}
+                                  >
+                                    {field.value ? (
+                                      format(field.value, 'dd/MM/yyyy')
+                                    ) : (
+                                      <span>DD/MM/AAAA</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
                                 </PopoverTrigger>
                                 <PopoverContent
                                   className="w-auto p-0"
@@ -944,36 +797,139 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(({
                                   />
                                 </PopoverContent>
                               </Popover>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="remoteClass.classTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Horário das aulas*</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: 19:00 - 22:00" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="remoteClass.classDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Dias de aula*</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Ex: Segunda, Quarta e Sexta"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {(modalidade === 'Presencial' ||
+                modalidade === 'Semipresencial') && (
+                <div className="space-y-4 -mt-2">
+                  {fields.map((field, index) => (
+                    <Card key={field.id}>
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>
+                          {index === 0
+                            ? 'Informações da Unidade'
+                            : `Informações da Unidade ${index + 1}`}
+                        </CardTitle>
+                        {index > 0 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeLocation(index)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name={`locations.${index}.address`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Endereço da unidade*</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <span className="pb-2">à</span>
+
                         <FormField
                           control={form.control}
-                          name={`locations.${index}.classEndDate`}
+                          name={`locations.${index}.neighborhood`}
                           render={({ field }) => (
-                            <FormItem className="flex flex-col flex-1">
-                              <FormLabel className="opacity-0 pointer-events-none select-none">
-                                Data de fim*
-                              </FormLabel>
+                            <FormItem>
+                              <FormLabel>Bairro*</FormLabel>
                               <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name={`locations.${index}.vacancies`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Número de vagas*</FormLabel>
+                              <FormControl>
+                                <Input type="number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex items-end gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`locations.${index}.classStartDate`}
+                            render={({ field }) => (
+                              <FormItem className="flex flex-col flex-1">
+                                <FormLabel>Período das aulas*</FormLabel>
                                 <Popover>
                                   <PopoverTrigger asChild>
-                                    <Button
-                                      variant={'outline'}
-                                      className={cn(
-                                        'w-full pl-3 text-left font-normal',
-                                        !field.value && 'text-muted-foreground'
-                                      )}
-                                    >
-                                      {field.value ? (
-                                        format(field.value, 'dd/MM/yyyy')
-                                      ) : (
-                                        <span>DD/MM/AAAA</span>
-                                      )}
-                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
+                                    <FormControl>
+                                      <Button
+                                        variant={'outline'}
+                                        className={cn(
+                                          'w-full pl-3 text-left font-normal',
+                                          !field.value &&
+                                            'text-muted-foreground'
+                                        )}
+                                      >
+                                        {field.value ? (
+                                          format(field.value, 'dd/MM/yyyy')
+                                        ) : (
+                                          <span>DD/MM/AAAA</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                      </Button>
+                                    </FormControl>
                                   </PopoverTrigger>
                                   <PopoverContent
                                     className="w-auto p-0"
@@ -987,22 +943,158 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(({
                                     />
                                   </PopoverContent>
                                 </Popover>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <span className="pb-2">à</span>
+                          <FormField
+                            control={form.control}
+                            name={`locations.${index}.classEndDate`}
+                            render={({ field }) => (
+                              <FormItem className="flex flex-col flex-1">
+                                <FormLabel className="opacity-0 pointer-events-none select-none">
+                                  Data de fim*
+                                </FormLabel>
+                                <FormControl>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant={'outline'}
+                                        className={cn(
+                                          'w-full pl-3 text-left font-normal',
+                                          !field.value &&
+                                            'text-muted-foreground'
+                                        )}
+                                      >
+                                        {field.value ? (
+                                          format(field.value, 'dd/MM/yyyy')
+                                        ) : (
+                                          <span>DD/MM/AAAA</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                      className="w-auto p-0"
+                                      align="start"
+                                    >
+                                      <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        initialFocus
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name={`locations.${index}.classTime`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Horário das aulas*</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Ex: 19:00 - 22:00"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                      </div>
 
+                        <FormField
+                          control={form.control}
+                          name={`locations.${index}.classDays`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Dias de aula*</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Ex: Segunda, Quarta e Sexta"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addLocation}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar outra unidade
+                  </Button>
+                </div>
+              )}
+
+              <FormField
+                control={form.control}
+                name="workload"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Carga Horária*</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: 40 horas" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="targetAudience"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Público-alvo*</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Ex: Servidores públicos, estudantes, profissionais da área de tecnologia..."
+                        className="min-h-[80px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Optional Fields Section */}
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="optional-fields">
+                  <AccordionTrigger className="text-lg font-semibold text-foreground hover:no-underline">
+                    Informações Adicionais (Opcionais)
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-6 pt-4">
                       <FormField
                         control={form.control}
-                        name={`locations.${index}.classTime`}
+                        name="prerequisites"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Horário das aulas*</FormLabel>
+                            <FormLabel>
+                              Pré-requisitos para a capacitação
+                            </FormLabel>
                             <FormControl>
-                              <Input
-                                placeholder="Ex: 19:00 - 22:00"
+                              <Textarea
+                                placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
+                                className="min-h-[80px]"
                                 {...field}
                               />
                             </FormControl>
@@ -1013,13 +1105,31 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(({
 
                       <FormField
                         control={form.control}
-                        name={`locations.${index}.classDays`}
+                        name="hasCertificate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Terá certificado</FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="facilitator"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Dias de aula*</FormLabel>
+                            <FormLabel>Facilitador</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="Ex: Segunda, Quarta e Sexta"
+                                placeholder="Nome do facilitador ou instrutor"
                                 {...field}
                               />
                             </FormControl>
@@ -1027,354 +1137,245 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(({
                           </FormItem>
                         )}
                       />
-                    </CardContent>
-                  </Card>
-                ))}
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addLocation}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar outra unidade
-                </Button>
-              </div>
+                      <FormField
+                        control={form.control}
+                        name="objectives"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Objetivos da capacitação</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex: Desenvolver habilidades em gestão de projetos, capacitar para uso de ferramentas específicas..."
+                                className="min-h-[80px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="expectedResults"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Resultados esperados</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex: Ao final do curso, os participantes estarão aptos a..."
+                                className="min-h-[80px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="programContent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Conteúdo programático</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex: Módulo 1: Introdução, Módulo 2: Conceitos básicos..."
+                                className="min-h-[120px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="methodology"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Metodologia</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex: Aulas expositivas, exercícios práticos, estudos de caso..."
+                                className="min-h-[80px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="resourcesUsed"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Recursos Utilizados</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex: Computadores, projetor, software específico..."
+                                className="min-h-[80px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="materialUsed"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Material utilizado</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex: Apostilas, slides, vídeos..."
+                                className="min-h-[80px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="teachingMaterial"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Material didático</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex: Livros, artigos, exercícios práticos..."
+                                className="min-h-[80px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="institutionalLogo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                        label="Logo institucional*"
+                        maxSize={1000000} // 1MB
+                        previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="coverImage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                        label="Imagem de capa*"
+                        maxSize={1000000} // 1MB
+                        previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="customFields"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <FieldsCreator
+                        fields={field.value || []}
+                        onFieldsChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4 lg:mt-10">
+            {!initialData && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSaveDraft}
+                className="w-full py-6"
+              >
+                Salvar Rascunho
+              </Button>
             )}
 
-            <FormField
-              control={form.control}
-              name="workload"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Carga Horária*</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: 40 horas" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {isDraft && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSaveDraft}
+                className="w-full py-6"
+              >
+                Salvar Rascunho
+              </Button>
+            )}
 
-            <FormField
-              control={form.control}
-              name="targetAudience"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Público-alvo*</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Ex: Servidores públicos, estudantes, profissionais da área de tecnologia..."
-                      className="min-h-[80px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {isDraft && (
+              <Button
+                type="button"
+                onClick={handlePublish}
+                className="w-full py-6"
+              >
+                Publicar
+              </Button>
+            )}
 
-            {/* Optional Fields Section */}
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="optional-fields">
-                <AccordionTrigger className="text-lg font-semibold text-foreground hover:no-underline">
-                  Informações Adicionais (Opcionais)
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-6 pt-4">
-                    <FormField
-                      control={form.control}
-                      name="prerequisites"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Pré-requisitos para a capacitação
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
-                              className="min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="hasCertificate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>Terá certificado</FormLabel>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="facilitator"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Facilitador</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Nome do facilitador ou instrutor"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="objectives"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Objetivos da capacitação</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Ex: Desenvolver habilidades em gestão de projetos, capacitar para uso de ferramentas específicas..."
-                              className="min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="expectedResults"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Resultados esperados</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Ex: Ao final do curso, os participantes estarão aptos a..."
-                              className="min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="programContent"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Conteúdo programático</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Ex: Módulo 1: Introdução, Módulo 2: Conceitos básicos..."
-                              className="min-h-[120px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="methodology"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Metodologia</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Ex: Aulas expositivas, exercícios práticos, estudos de caso..."
-                              className="min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="resourcesUsed"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Recursos Utilizados</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Ex: Computadores, projetor, software específico..."
-                              className="min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="materialUsed"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Material utilizado</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Ex: Apostilas, slides, vídeos..."
-                              className="min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="teachingMaterial"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Material didático</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Ex: Livros, artigos, exercícios práticos..."
-                              className="min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+            {!isDraft && (
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="w-full py-6"
+              >
+                {form.formState.isSubmitting
+                  ? 'Enviando...'
+                  : initialData
+                    ? 'Salvar Alterações'
+                    : 'Criar Curso'}
+              </Button>
+            )}
           </div>
-          <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="institutionalLogo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <ImageUpload
-                      value={field.value}
-                      onChange={field.onChange}
-                      label="Logo institucional*"
-                      maxSize={1000000} // 1MB
-                      previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="coverImage"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <ImageUpload
-                      value={field.value}
-                      onChange={field.onChange}
-                      label="Imagem de capa*"
-                      maxSize={1000000} // 1MB
-                      previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="customFields"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <FieldsCreator
-                      fields={field.value || []}
-                      onFieldsChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4 lg:mt-10">
-          {!initialData && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSaveDraft}
-              className="w-full py-6"
-            >
-              Salvar Rascunho
-            </Button>
-          )}
-
-          {isDraft && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSaveDraft}
-              className="w-full py-6"
-            >
-              Salvar Rascunho
-            </Button>
-          )}
-
-          {isDraft && (
-            <Button
-              type="button"
-              onClick={handlePublish}
-              className="w-full py-6"
-            >
-              Publicar
-            </Button>
-          )}
-
-          {!isDraft && (
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting}
-              className="w-full py-6"
-            >
-              {form.formState.isSubmitting
-                ? 'Enviando...'
-                : initialData
-                  ? 'Salvar Alterações'
-                  : 'Criar Curso'}
-            </Button>
-          )}
-        </div>
-      </form>
-    </Form>
-  )
-})
+        </form>
+      </Form>
+    )
+  }
+)
 
 NewCourseForm.displayName = 'NewCourseForm'
