@@ -280,7 +280,7 @@ export default function CourseDetailPage({
             </TabsContent>
 
             <TabsContent value="enrollments" className="mt-6">
-              <EnrollmentsTable />
+              <EnrollmentsTable courseId={courseId || ''} />
             </TabsContent>
           </Tabs>
         )}

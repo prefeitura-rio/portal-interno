@@ -119,3 +119,91 @@ export interface CourseFilters {
     max: number
   }
 }
+
+// Enrollment Types
+export type EnrollmentStatus =
+  | 'confirmed'
+  | 'pending'
+  | 'cancelled'
+  | 'waitlist'
+
+export interface Enrollment {
+  id: string
+  courseId: string
+  candidateName: string
+  cpf: string
+  email: string
+  age: number
+  phone: string
+  enrollmentDate: string
+  status: EnrollmentStatus
+  notes?: string
+  customFields?: Record<string, string>
+  created_at: string
+  updated_at: string
+}
+
+export interface EnrollmentSummary {
+  totalVacancies: number
+  confirmedCount: number
+  pendingCount: number
+  cancelledCount: number
+  waitlistCount: number
+  remainingVacancies: number
+}
+
+export interface EnrollmentFilters {
+  status?: EnrollmentStatus[]
+  dateRange?: {
+    start: Date
+    end: Date
+  }
+  ageRange?: {
+    min: number
+    max: number
+  }
+  search?: string
+}
+
+export interface EnrollmentStatusConfig {
+  label: string
+  variant: 'default' | 'secondary' | 'outline' | 'destructive'
+  className: string
+  icon: React.ComponentType<{ className?: string }>
+}
+
+export interface EnrollmentAction {
+  id: string
+  enrollmentId: string
+  action: 'confirm' | 'cancel' | 'move_to_waitlist'
+  performedBy: string
+  performedAt: string
+  notes?: string
+}
+
+export interface EnrollmentResponse {
+  enrollments: Enrollment[]
+  summary: EnrollmentSummary
+  pagination: {
+    page: number
+    perPage: number
+    total: number
+    totalPages: number
+  }
+}
+
+export interface EnrollmentUpdateRequest {
+  status: EnrollmentStatus
+  notes?: string
+}
+
+export interface EnrollmentCreateRequest {
+  courseId: string
+  candidateName: string
+  cpf: string
+  email: string
+  age: number
+  phone: string
+  notes?: string
+  customFields?: Record<string, string>
+}
