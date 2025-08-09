@@ -1,4 +1,5 @@
 import type { Course } from '@/types/course'
+import { convertDatesToObjects } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 
 interface UseCourseReturn {
@@ -34,7 +35,9 @@ export function useCourse(courseId: string | null): UseCourseReturn {
         }
 
         const data = await response.json()
-        setCourse(data)
+        // Convert string dates back to Date objects
+        const courseWithDates = convertDatesToObjects(data)
+        setCourse(courseWithDates)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
         setCourse(null)
