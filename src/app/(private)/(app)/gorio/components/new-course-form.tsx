@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { forwardRef, useImperativeHandle } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -318,13 +319,18 @@ interface NewCourseFormProps {
   isDraft?: boolean
 }
 
-export function NewCourseForm({
+export interface NewCourseFormRef {
+  triggerSubmit: () => void
+  triggerPublish: () => void
+}
+
+export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(({
   initialData,
   isReadOnly = false,
   onSubmit,
   onPublish,
   isDraft = false,
-}: NewCourseFormProps) {
+}, ref) => {
   const form = useForm<PartialFormData>({
     resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
     defaultValues: initialData || {
@@ -360,6 +366,16 @@ export function NewCourseForm({
     control: form.control,
     name: 'locations',
   })
+
+  // Expose methods to parent component via ref
+  useImperativeHandle(ref, () => ({
+    triggerSubmit: () => {
+      form.handleSubmit(handleSubmit)()
+    },
+    triggerPublish: () => {
+      handlePublish()
+    },
+  }))
 
   // Handle modalidade change to properly initialize fields
   const handleModalidadeChange = (
@@ -1359,4 +1375,6 @@ export function NewCourseForm({
       </form>
     </Form>
   )
-}
+})
+
+NewCourseForm.displayName = 'NewCourseForm'

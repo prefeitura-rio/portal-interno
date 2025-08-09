@@ -10,7 +10,7 @@ export async function GET() {
       registration_start: course.registration_start.toISOString(),
       registration_end: course.registration_end.toISOString(),
     }))
-    
+
     return NextResponse.json(coursesWithStringDates)
   } catch (error) {
     console.error('Error fetching courses:', error)

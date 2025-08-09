@@ -6,7 +6,7 @@ export type CourseStatus =
   | 'finished'
   | 'cancelled'
 
-export type CourseModality = 'Presencial' | 'Online' | 'Híbrido'
+export type CourseModality = 'Presencial' | 'Online' | 'Semipresencial'
 
 export interface CourseLocation {
   id: string

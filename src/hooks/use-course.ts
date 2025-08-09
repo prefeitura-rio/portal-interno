@@ -1,5 +1,5 @@
-import type { Course } from '@/types/course'
 import { convertDatesToObjects } from '@/lib/utils'
+import type { Course } from '@/types/course'
 import { useEffect, useState } from 'react'
 
 interface UseCourseReturn {

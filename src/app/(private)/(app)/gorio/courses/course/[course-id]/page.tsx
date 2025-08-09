@@ -1,7 +1,7 @@
 'use client'
 
 import { EnrollmentsTable } from '@/app/(private)/(app)/gorio/components/enrollments-table'
-import { NewCourseForm } from '@/app/(private)/(app)/gorio/components/new-course-form'
+import { NewCourseForm, type NewCourseFormRef } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -30,7 +30,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 // Status configuration for badges
@@ -98,6 +98,10 @@ export default function CourseDetailPage({
   const [activeTab, setActiveTab] = useState('about')
   const searchParams = useSearchParams()
   const [courseId, setCourseId] = useState<string | null>(null)
+  
+  // Refs to trigger form submission
+  const draftFormRef = useRef<NewCourseFormRef>(null)
+  const courseFormRef = useRef<NewCourseFormRef>(null)
 
   // Use the custom hook to fetch course data
   const { course, loading, error } = useCourse(courseId)
@@ -137,24 +141,20 @@ export default function CourseDetailPage({
   }
 
   const handlePublishFromHeader = () => {
-    // Chama a função handlePublish do formulário com status correto
-    if (course) {
-      const publishData = {
-        ...course,
-        status: 'opened' as const,
-      }
-      handlePublish(publishData)
+    // Trigger form validation and publish
+    if (isDraft) {
+      draftFormRef.current?.triggerPublish()
+    } else {
+      courseFormRef.current?.triggerPublish()
     }
   }
 
   const handleSaveDraftFromHeader = () => {
-    // Chama a função handleSave com status de rascunho
-    if (course) {
-      const draftData = {
-        ...course,
-        status: 'draft' as const,
-      }
-      handleSave(draftData)
+    // Trigger form validation and save draft
+    if (isDraft) {
+      draftFormRef.current?.triggerSubmit()
+    } else {
+      courseFormRef.current?.triggerSubmit()
     }
   }
 
@@ -267,11 +267,7 @@ export default function CourseDetailPage({
                     </Button>
                   )}
                   <Button
-                    onClick={
-                      isDraft
-                        ? handleSaveDraftFromHeader
-                        : () => handleSave(course)
-                    }
+                    onClick={handleSaveDraftFromHeader}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     {isDraft ? 'Salvar Rascunho' : 'Salvar'}
@@ -288,6 +284,7 @@ export default function CourseDetailPage({
           <div className="mt-6">
             <div className={isEditing ? '' : 'pointer-events-none opacity-90'}>
               <NewCourseForm
+                ref={draftFormRef}
                 initialData={course as any}
                 isReadOnly={!isEditing}
                 onSubmit={handleSave}
@@ -317,6 +314,7 @@ export default function CourseDetailPage({
                 className={isEditing ? '' : 'pointer-events-none opacity-90'}
               >
                 <NewCourseForm
+                  ref={courseFormRef}
                   initialData={course as any}
                   isReadOnly={!isEditing}
                   onSubmit={handleSave}
