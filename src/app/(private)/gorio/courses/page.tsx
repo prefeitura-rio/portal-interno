@@ -25,6 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import {
   type Column,
@@ -255,8 +256,18 @@ export default function Courses() {
     pageIndex: 0,
     pageSize: 10,
   })
+  const [activeTab, setActiveTab] = React.useState('created')
 
-  const columns = React.useMemo<ColumnDef<Course>[]>(
+  // Filter data based on active tab
+  const filteredData = React.useMemo(() => {
+    if (activeTab === 'draft') {
+      return data.filter(course => course.status === 'draft')
+    }
+    return data.filter(course => course.status !== 'draft')
+  }, [activeTab])
+
+  // Common columns (without status filter)
+  const commonColumns = React.useMemo<ColumnDef<Course>[]>(
     () => [
       {
         id: 'select',
@@ -328,7 +339,6 @@ export default function Courses() {
         accessorKey: 'created_at',
         accessorFn: row => {
           const date = new Date(row.created_at)
-          // Normalize to start of day (midnight) for proper date filtering
           date.setHours(0, 0, 0, 0)
           return date.getTime()
         },
@@ -357,7 +367,6 @@ export default function Courses() {
         accessorKey: 'registration_start',
         accessorFn: row => {
           const date = new Date(row.registration_start)
-          // Normalize to start of day (midnight) for proper date filtering
           date.setHours(0, 0, 0, 0)
           return date.getTime()
         },
@@ -386,7 +395,6 @@ export default function Courses() {
         accessorKey: 'registration_end',
         accessorFn: row => {
           const date = new Date(row.registration_end)
-          // Normalize to start of day (midnight) for proper date filtering
           date.setHours(0, 0, 0, 0)
           return date.getTime()
         },
@@ -410,7 +418,6 @@ export default function Courses() {
         },
         enableColumnFilter: true,
       },
-
       {
         id: 'vacancies',
         accessorKey: 'vacancies',
@@ -461,88 +468,6 @@ export default function Courses() {
         enableColumnFilter: true,
       },
       {
-        id: 'status',
-        accessorKey: 'status',
-        header: ({ column }: { column: Column<Course, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Status" />
-        ),
-        cell: ({ cell }) => {
-          const status = cell.getValue<Course['status']>()
-          const statusConfig = {
-            draft: {
-              icon: FileText,
-              label: 'Rascunho',
-              variant: 'outline' as const,
-              className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
-            },
-            scheduled: {
-              icon: Calendar,
-              label: 'Agendado',
-              variant: 'outline' as const,
-              className: 'text-blue-400 border-blue-200 bg-blue-50',
-            },
-            receiving_registrations: {
-              icon: ClipboardList,
-              label: 'Receb. insc.',
-              variant: 'default' as const,
-              className: 'text-green-600 border-green-200 bg-green-50',
-            },
-            in_progress: {
-              icon: Play,
-              label: 'Em andamento',
-              variant: 'default' as const,
-              className: 'text-blue-600 border-blue-200 bg-blue-50',
-            },
-            finished: {
-              icon: Flag,
-              label: 'Encerrado',
-              variant: 'outline' as const,
-              className: 'text-gray-500 border-gray-200 bg-gray-50',
-            },
-            cancelled: {
-              icon: Ban,
-              label: 'Cancelado',
-              variant: 'secondary' as const,
-              className: 'text-red-600 border-red-200 bg-red-50',
-            },
-          }
-
-          const config = statusConfig[status]
-          const Icon = config.icon
-
-          return (
-            <Badge
-              variant={config.variant}
-              className={`capitalize ${config.className}`}
-            >
-              <Icon className="w-3 h-3 mr-1" />
-              {config.label}
-            </Badge>
-          )
-        },
-        filterFn: (row, id, value) => {
-          const rowValue = row.getValue(id) as string
-          return Array.isArray(value) && value.includes(rowValue)
-        },
-        meta: {
-          label: 'Status',
-          variant: 'multiSelect',
-          options: [
-            { label: 'Rascunho', value: 'draft', icon: FileText },
-            { label: 'Agendado', value: 'scheduled', icon: Calendar },
-            {
-              label: 'Recebendo inscrições',
-              value: 'receiving_registrations',
-              icon: ClipboardList,
-            },
-            { label: 'Em andamento', value: 'in_progress', icon: Play },
-            { label: 'Encerrado', value: 'finished', icon: Flag },
-            { label: 'Cancelado', value: 'cancelled', icon: Ban },
-          ],
-        },
-        enableColumnFilter: true,
-      },
-      {
         id: 'actions',
         cell: function Cell({ row }) {
           const course = row.original
@@ -578,8 +503,106 @@ export default function Courses() {
     []
   )
 
+  // Create columns based on active tab
+  const columns = React.useMemo<ColumnDef<Course>[]>(() => {
+    if (activeTab === 'draft') {
+      // For draft tab, don't include status column (no filter needed)
+      return commonColumns
+    }
+
+    // Status column for created courses (without draft option)
+    const statusColumn: ColumnDef<Course> = {
+      id: 'status',
+      accessorKey: 'status',
+      header: ({ column }: { column: Column<Course, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Status" />
+      ),
+      cell: ({ cell }) => {
+        const status = cell.getValue<Course['status']>()
+        const statusConfig = {
+          draft: {
+            icon: FileText,
+            label: 'Rascunho',
+            variant: 'outline' as const,
+            className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
+          },
+          scheduled: {
+            icon: Calendar,
+            label: 'Agendado',
+            variant: 'outline' as const,
+            className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
+          },
+          receiving_registrations: {
+            icon: ClipboardList,
+            label: 'Receb. insc.',
+            variant: 'default' as const,
+            className: 'text-green-600 border-green-200 bg-green-50',
+          },
+          in_progress: {
+            icon: Play,
+            label: 'Em andamento',
+            variant: 'default' as const,
+            className: 'text-blue-600 border-blue-200 bg-blue-50',
+          },
+          finished: {
+            icon: Flag,
+            label: 'Encerrado',
+            variant: 'outline' as const,
+            className: 'text-gray-500 border-gray-200 bg-gray-50',
+          },
+          cancelled: {
+            icon: Ban,
+            label: 'Cancelado',
+            variant: 'secondary' as const,
+            className: 'text-red-600 border-red-200 bg-red-50',
+          },
+        }
+
+        const config = statusConfig[status]
+        const Icon = config.icon
+
+        return (
+          <Badge
+            variant={config.variant}
+            className={`capitalize ${config.className}`}
+          >
+            <Icon className="w-3 h-3 mr-1" />
+            {config.label}
+          </Badge>
+        )
+      },
+      filterFn: (row, id, value) => {
+        const rowValue = row.getValue(id) as string
+        return Array.isArray(value) && value.includes(rowValue)
+      },
+      meta: {
+        label: 'Status',
+        variant: 'multiSelect',
+        options: [
+          { label: 'Agendado', value: 'scheduled', icon: Calendar },
+          {
+            label: 'Recebendo inscrições',
+            value: 'receiving_registrations',
+            icon: ClipboardList,
+          },
+          { label: 'Em andamento', value: 'in_progress', icon: Play },
+          { label: 'Encerrado', value: 'finished', icon: Flag },
+          { label: 'Cancelado', value: 'cancelled', icon: Ban },
+        ],
+      },
+      enableColumnFilter: true,
+    }
+
+    // For created courses tab, include status column without draft option
+    return [
+      ...commonColumns.slice(0, -1),
+      statusColumn,
+      commonColumns[commonColumns.length - 1],
+    ]
+  }, [activeTab, commonColumns])
+
   const table = useReactTable({
-    data: data, // Use the full mock data
+    data: filteredData, // Use filtered data based on active tab
     columns,
     getRowId: row => row.id,
     state: {
@@ -625,48 +648,110 @@ export default function Courses() {
           </div>
         </div>
 
-        <DataTable
-          table={table}
-          onRowClick={course => {
-            // Navigate to the course detail page
-            window.location.href = `/gorio/courses/course/${course.id}`
-          }}
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-4"
         >
-          <DataTableToolbar table={table} />
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="created">Cursos Criados</TabsTrigger>
+            <TabsTrigger value="draft">Rascunho</TabsTrigger>
+          </TabsList>
 
-          <DataTableActionBar table={table}>
-            <DataTableActionBarSelection table={table} />
-            <DataTableActionBarAction
-              tooltip="Baixar planilha(s) do(s) curso(s) selecionado(s)"
-              onClick={() => {
-                const selectedRows = table.getFilteredSelectedRowModel().rows
-                console.log(
-                  'Baixando planilha:',
-                  selectedRows.map(row => row.original)
-                )
-                // TODO: Implement download logic
+          <TabsContent value="created" className="space-y-4">
+            <DataTable
+              table={table}
+              onRowClick={course => {
+                // Navigate to the course detail page
+                window.location.href = `/gorio/courses/course/${course.id}`
               }}
             >
-              <Download />
-              Baixar planilha(s)
-            </DataTableActionBarAction>
-            <DataTableActionBarAction
-              tooltip="Excluir cursos selecionados"
-              variant="destructive"
-              onClick={() => {
-                const selectedRows = table.getFilteredSelectedRowModel().rows
-                console.log(
-                  'Excluindo cursos:',
-                  selectedRows.map(row => row.original)
-                )
-                // TODO: Implement deletion logic with confirmation
+              <DataTableToolbar table={table} />
+
+              <DataTableActionBar table={table}>
+                <DataTableActionBarSelection table={table} />
+                <DataTableActionBarAction
+                  tooltip="Baixar planilha(s) do(s) curso(s) selecionado(s)"
+                  onClick={() => {
+                    const selectedRows =
+                      table.getFilteredSelectedRowModel().rows
+                    console.log(
+                      'Baixando planilha:',
+                      selectedRows.map(row => row.original)
+                    )
+                    // TODO: Implement download logic
+                  }}
+                >
+                  <Download />
+                  Baixar planilha(s)
+                </DataTableActionBarAction>
+                <DataTableActionBarAction
+                  tooltip="Excluir cursos selecionados"
+                  variant="destructive"
+                  onClick={() => {
+                    const selectedRows =
+                      table.getFilteredSelectedRowModel().rows
+                    console.log(
+                      'Excluindo cursos:',
+                      selectedRows.map(row => row.original)
+                    )
+                    // TODO: Implement deletion logic with confirmation
+                  }}
+                >
+                  <Trash2 />
+                  Excluir
+                </DataTableActionBarAction>
+              </DataTableActionBar>
+            </DataTable>
+          </TabsContent>
+
+          <TabsContent value="draft" className="space-y-4">
+            <DataTable
+              table={table}
+              onRowClick={course => {
+                // Navigate to the course detail page
+                window.location.href = `/gorio/courses/course/${course.id}`
               }}
             >
-              <Trash2 />
-              Excluir
-            </DataTableActionBarAction>
-          </DataTableActionBar>
-        </DataTable>
+              <DataTableToolbar table={table} />
+
+              <DataTableActionBar table={table}>
+                <DataTableActionBarSelection table={table} />
+                <DataTableActionBarAction
+                  tooltip="Baixar planilha(s) do(s) curso(s) selecionado(s)"
+                  onClick={() => {
+                    const selectedRows =
+                      table.getFilteredSelectedRowModel().rows
+                    console.log(
+                      'Baixando planilha:',
+                      selectedRows.map(row => row.original)
+                    )
+                    // TODO: Implement download logic
+                  }}
+                >
+                  <Download />
+                  Baixar planilha(s)
+                </DataTableActionBarAction>
+                <DataTableActionBarAction
+                  tooltip="Excluir cursos selecionados"
+                  variant="destructive"
+                  onClick={() => {
+                    const selectedRows =
+                      table.getFilteredSelectedRowModel().rows
+                    console.log(
+                      'Excluindo cursos:',
+                      selectedRows.map(row => row.original)
+                    )
+                    // TODO: Implement deletion logic with confirmation
+                  }}
+                >
+                  <Trash2 />
+                  Excluir
+                </DataTableActionBarAction>
+              </DataTableActionBar>
+            </DataTable>
+          </TabsContent>
+        </Tabs>
       </div>
     </ContentLayout>
   )
