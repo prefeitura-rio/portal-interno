@@ -1,7 +1,7 @@
 'use client'
 
-import { EnrollmentsTable } from '@/app/(private)/gorio/components/enrollments-table'
-import { NewCourseForm } from '@/app/(private)/gorio/components/new-course-form'
+import { EnrollmentsTable } from '@/app/(private)/(app)/gorio/components/enrollments-table'
+import { NewCourseForm } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { Badge } from '@/components/ui/badge'
 import {

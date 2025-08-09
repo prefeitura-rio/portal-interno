@@ -1,4 +1,4 @@
-import { NewCourseForm } from '@/app/(private)/gorio/components/new-course-form'
+import { NewCourseForm } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import {
   Breadcrumb,
