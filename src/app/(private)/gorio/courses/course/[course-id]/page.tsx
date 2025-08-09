@@ -31,6 +31,7 @@ import {
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 // Status configuration for badges
 const statusConfig: Record<string, CourseStatusConfig> = {
@@ -125,6 +126,36 @@ export default function CourseDetailPage({
     // TODO: Implement save logic
     console.log('Saving course data:', data)
     setIsEditing(false)
+    toast.success('Curso salvo com sucesso!')
+  }
+
+  const handlePublish = (data: any) => {
+    // TODO: Implement publish logic
+    console.log('Publishing course data:', data)
+    setIsEditing(false)
+    toast.success('Curso publicado com sucesso!')
+  }
+
+  const handlePublishFromHeader = () => {
+    // Chama a função handlePublish do formulário com status correto
+    if (course) {
+      const publishData = {
+        ...course,
+        status: 'opened' as const,
+      }
+      handlePublish(publishData)
+    }
+  }
+
+  const handleSaveDraftFromHeader = () => {
+    // Chama a função handleSave com status de rascunho
+    if (course) {
+      const draftData = {
+        ...course,
+        status: 'draft' as const,
+      }
+      handleSave(draftData)
+    }
   }
 
   const handleCancel = () => {
@@ -229,10 +260,16 @@ export default function CourseDetailPage({
                     <X className="mr-2 h-4 w-4" />
                     Cancelar
                   </Button>
-                  <Button onClick={() => handleSave(course)}>
-                    <Save className="mr-2 h-4 w-4" />
-                    Salvar
-                  </Button>
+                  {isDraft && (
+                    <Button onClick={handlePublishFromHeader}>
+                      <Save className="mr-2 h-4 w-4" />
+                      Publicar
+                    </Button>
+                  )}
+                                     <Button onClick={isDraft ? handleSaveDraftFromHeader : () => handleSave(course)}>
+                     <Save className="mr-2 h-4 w-4" />
+                     {isDraft ? 'Salvar Rascunho' : 'Salvar'}
+                   </Button>
                 </>
               )}
             </div>
@@ -248,6 +285,8 @@ export default function CourseDetailPage({
                 initialData={course as any}
                 isReadOnly={!isEditing}
                 onSubmit={handleSave}
+                onPublish={handlePublish}
+                isDraft={isDraft}
               />
             </div>
           </div>
@@ -275,6 +314,8 @@ export default function CourseDetailPage({
                   initialData={course as any}
                   isReadOnly={!isEditing}
                   onSubmit={handleSave}
+                  onPublish={handlePublish}
+                  isDraft={isDraft}
                 />
               </div>
             </TabsContent>

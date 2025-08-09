@@ -307,18 +307,23 @@ type PartialFormData = Omit<
   institutionalLogo?: File | null
   coverImage?: File | null
   customFields?: CustomField[]
+  status?: 'canceled' | 'draft' | 'opened' | 'closed'
 }
 
 interface NewCourseFormProps {
   initialData?: PartialFormData
   isReadOnly?: boolean
   onSubmit?: (data: PartialFormData) => void
+  onPublish?: (data: PartialFormData) => void
+  isDraft?: boolean
 }
 
 export function NewCourseForm({
   initialData,
   isReadOnly = false,
   onSubmit,
+  onPublish,
+  isDraft = false,
 }: NewCourseFormProps) {
   const form = useForm<PartialFormData>({
     resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
@@ -412,11 +417,17 @@ export function NewCourseForm({
       // Validate the complete form data
       const validatedData = formSchema.parse(values)
 
+      // Adiciona o status para curso criado
+      const courseData = {
+        ...validatedData,
+        status: 'opened' as const,
+      }
+
       console.log('Form submitted successfully!')
-      console.log('Form values:', validatedData)
+      console.log('Form values:', courseData)
 
       if (onSubmit) {
-        onSubmit(validatedData)
+        onSubmit(courseData)
       } else {
         toast.success('Formulário enviado com sucesso!')
       }
@@ -432,6 +443,60 @@ export function NewCourseForm({
           description: 'Ocorreu um erro ao processar o formulário.',
         })
       }
+    }
+  }
+
+  async function handleSaveDraft() {
+    try {
+      const currentValues = form.getValues()
+
+      // Adiciona o status para rascunho
+      const draftData = {
+        ...currentValues,
+        status: 'draft' as const,
+      }
+
+      console.log('Saving draft...')
+      console.log('Draft values:', draftData)
+
+      // Aqui você pode implementar a lógica para salvar o rascunho
+      // Por exemplo, enviar para uma API específica de rascunhos
+      // ou salvar no localStorage
+
+      if (onSubmit) {
+        onSubmit(draftData)
+      }
+      toast.success('Rascunho salvo com sucesso!')
+    } catch (error) {
+      console.error('Error saving draft:', error)
+      toast.error('Erro ao salvar rascunho', {
+        description: 'Ocorreu um erro ao salvar o rascunho.',
+      })
+    }
+  }
+
+  async function handlePublish() {
+    try {
+      const currentValues = form.getValues()
+
+      // Adiciona o status para publicação
+      const publishData = {
+        ...currentValues,
+        status: 'opened' as const,
+      }
+
+      console.log('Publishing course...')
+      console.log('Publish values:', publishData)
+
+      if (onPublish) {
+        onPublish(publishData)
+      }
+      toast.success('Curso publicado com sucesso!')
+    } catch (error) {
+      console.error('Error publishing course:', error)
+      toast.error('Erro ao publicar curso', {
+        description: 'Ocorreu um erro ao publicar o curso.',
+      })
     }
   }
 
@@ -1218,7 +1283,7 @@ export function NewCourseForm({
                       onChange={field.onChange}
                       label="Imagem de capa*"
                       maxSize={1000000} // 1MB
-                      previewClassName="max-h-[300px] max-w-full rounded-lg object-contain"
+                      previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
                     />
                   </FormControl>
                   <FormMessage />
@@ -1244,17 +1309,53 @@ export function NewCourseForm({
           </div>
         </div>
 
-        <Button
-          type="submit"
-          disabled={form.formState.isSubmitting}
-          className="w-full lg:mt-10 py-6"
-        >
-          {form.formState.isSubmitting
-            ? 'Enviando...'
-            : initialData
-              ? 'Salvar Alterações'
-              : 'Criar Curso'}
-        </Button>
+        <div className="space-y-4 lg:mt-10">
+          {!initialData && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSaveDraft}
+              className="w-full py-6"
+            >
+              Salvar Rascunho
+            </Button>
+          )}
+
+          {isDraft && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSaveDraft}
+              className="w-full py-6"
+            >
+              Salvar Rascunho
+            </Button>
+          )}
+
+          {isDraft && (
+            <Button
+              type="button"
+              onClick={handlePublish}
+              className="w-full py-6"
+            >
+              Publicar
+            </Button>
+          )}
+
+          {!isDraft && (
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting}
+              className="w-full py-6"
+            >
+              {form.formState.isSubmitting
+                ? 'Enviando...'
+                : initialData
+                  ? 'Salvar Alterações'
+                  : 'Criar Curso'}
+            </Button>
+          )}
+        </div>
       </form>
     </Form>
   )
