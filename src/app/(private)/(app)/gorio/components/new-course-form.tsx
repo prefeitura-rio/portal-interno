@@ -491,11 +491,25 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
     async function handlePublish() {
       try {
+        // Trigger form validation to show visual errors
+        const isValid = await form.trigger()
+
+        if (!isValid) {
+          toast.error('Erro de validação', {
+            description:
+              'Por favor, verifique os campos destacados antes de publicar.',
+          })
+          return
+        }
+
         const currentValues = form.getValues()
+
+        // Validate the complete form data before publishing
+        const validatedData = formSchema.parse(currentValues)
 
         // Adiciona o status para publicação
         const publishData = {
-          ...currentValues,
+          ...validatedData,
           status: 'opened' as const,
         }
 
@@ -507,10 +521,18 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         }
         toast.success('Curso publicado com sucesso!')
       } catch (error) {
-        console.error('Error publishing course:', error)
-        toast.error('Erro ao publicar curso', {
-          description: 'Ocorreu um erro ao publicar o curso.',
-        })
+        if (error instanceof z.ZodError) {
+          console.error('Validation errors:', error.errors)
+          toast.error('Erro de validação', {
+            description:
+              'Por favor, verifique os campos destacados antes de publicar.',
+          })
+        } else {
+          console.error('Error publishing course:', error)
+          toast.error('Erro ao publicar curso', {
+            description: 'Ocorreu um erro ao publicar o curso.',
+          })
+        }
       }
     }
 
