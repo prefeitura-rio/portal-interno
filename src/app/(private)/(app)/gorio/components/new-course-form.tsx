@@ -675,6 +675,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         <SelectItem value="org1">Organização A</SelectItem>
                         <SelectItem value="org2">Organização B</SelectItem>
                         <SelectItem value="org3">Organização C</SelectItem>
+                        <SelectItem value="org4">Organização C</SelectItem>
+                        <SelectItem value="org5">Organização C</SelectItem>
+                        <SelectItem value="org6">Organização C</SelectItem>
+                        <SelectItem value="org7">Organização C</SelectItem>
+                        <SelectItem value="org8">Organização C</SelectItem>
+                        <SelectItem value="org9">Organização C</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
