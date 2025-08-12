@@ -87,29 +87,15 @@ export const mockEnrollments: Record<string, Enrollment[]> = {
     {
       id: '7',
       courseId: '1',
-      candidateName: 'Roberto Ferreira Silva',
+      candidateName: 'Fernanda Lima Costa',
       cpf: '147.258.369-00',
-      email: 'roberto.ferreira@email.com',
-      age: 31,
+      email: 'fernanda.lima@email.com',
+      age: 29,
       phone: '(21) 33333-3333',
-      enrollmentDate: '2025-01-30T08:30:00Z',
-      status: 'confirmed',
-      created_at: '2025-01-30T08:30:00Z',
-      updated_at: '2025-01-31T15:20:00Z',
-    },
-    {
-      id: '8',
-      courseId: '1',
-      candidateName: 'Juliana Martins Costa',
-      cpf: '258.369.147-00',
-      email: 'juliana.martins@email.com',
-      age: 26,
-      phone: '(21) 22222-2222',
-      enrollmentDate: '2025-02-01T15:45:00Z',
-      status: 'waitlist',
-      notes: 'Lista de espera - vagas esgotadas',
-      created_at: '2025-02-01T15:45:00Z',
-      updated_at: '2025-02-01T15:45:00Z',
+      enrollmentDate: '2025-01-30T11:20:00Z',
+      status: 'pending',
+      created_at: '2025-01-30T11:20:00Z',
+      updated_at: '2025-01-30T11:20:00Z',
     },
     {
       id: '9',
@@ -264,29 +250,15 @@ export const mockEnrollments: Record<string, Enrollment[]> = {
     {
       id: '16',
       courseId: '4',
-      candidateName: 'Carolina Alves Santos',
+      candidateName: 'Ana Paula Costa',
       cpf: '753.951.486-00',
-      email: 'carolina.alves@email.com',
+      email: 'ana.paula@email.com',
       age: 28,
       phone: '(21) 17171-7171',
-      enrollmentDate: '2025-01-14T11:30:00Z',
-      status: 'pending',
-      created_at: '2025-01-14T11:30:00Z',
-      updated_at: '2025-01-14T11:30:00Z',
-    },
-    {
-      id: '17',
-      courseId: '4',
-      candidateName: 'Gabriel Silva Oliveira',
-      cpf: '951.753.486-00',
-      email: 'gabriel.silva@email.com',
-      age: 24,
-      phone: '(21) 18181-8181',
-      enrollmentDate: '2025-01-16T15:45:00Z',
-      status: 'waitlist',
-      notes: 'Lista de espera - curso lotado',
-      created_at: '2025-01-16T15:45:00Z',
-      updated_at: '2025-01-16T15:45:00Z',
+      enrollmentDate: '2025-01-15T12:30:00Z',
+      status: 'confirmed',
+      created_at: '2025-01-15T12:30:00Z',
+      updated_at: '2025-01-15T12:30:00Z',
     },
   ],
   '5': [
@@ -342,7 +314,6 @@ export function calculateEnrollmentSummary(
   const cancelledCount = enrollments.filter(
     e => e.status === 'cancelled'
   ).length
-  const waitlistCount = enrollments.filter(e => e.status === 'waitlist').length
   const remainingVacancies = Math.max(0, totalVacancies - confirmedCount)
 
   return {
@@ -350,7 +321,6 @@ export function calculateEnrollmentSummary(
     confirmedCount,
     pendingCount,
     cancelledCount,
-    waitlistCount,
     remainingVacancies,
   }
 }

@@ -121,11 +121,7 @@ export interface CourseFilters {
 }
 
 // Enrollment Types
-export type EnrollmentStatus =
-  | 'confirmed'
-  | 'pending'
-  | 'cancelled'
-  | 'waitlist'
+export type EnrollmentStatus = 'confirmed' | 'pending' | 'cancelled'
 
 export interface Enrollment {
   id: string
@@ -148,7 +144,6 @@ export interface EnrollmentSummary {
   confirmedCount: number
   pendingCount: number
   cancelledCount: number
-  waitlistCount: number
   remainingVacancies: number
 }
 
@@ -175,7 +170,7 @@ export interface EnrollmentStatusConfig {
 export interface EnrollmentAction {
   id: string
   enrollmentId: string
-  action: 'confirm' | 'cancel' | 'move_to_waitlist'
+  action: 'confirm' | 'cancel'
   performedBy: string
   performedAt: string
   notes?: string

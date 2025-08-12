@@ -2,11 +2,6 @@
 
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { DataTable } from '@/components/data-table/data-table'
-import {
-  DataTableActionBar,
-  DataTableActionBarAction,
-  DataTableActionBarSelection,
-} from '@/components/data-table/data-table-action-bar'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
 import { Badge } from '@/components/ui/badge'
@@ -18,7 +13,6 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,13 +46,11 @@ import {
   Calendar,
   ClipboardList,
   Clock,
-  Download,
   FileText,
   Flag,
   MoreHorizontal,
   Play,
   Text,
-  Trash2,
   Users,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -342,33 +334,8 @@ export default function Courses() {
   // Create columns based on active tab
   const columns = React.useMemo<ColumnDef<CourseListItem>[]>(() => {
     if (activeTab === 'draft') {
-      // For draft tab, don't include selection column or status column
+      // For draft tab, return base columns without status
       return baseColumns
-    }
-
-    // Selection column for created courses
-    const selectionColumn: ColumnDef<CourseListItem> = {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
-          onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={value => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      size: 32,
-      enableSorting: false,
-      enableHiding: false,
     }
 
     // Status column for created courses (without draft option)
@@ -415,9 +382,8 @@ export default function Courses() {
       enableColumnFilter: true,
     }
 
-    // For created courses tab, include selection column and status column
+    // For created courses tab, include status column before actions
     return [
-      selectionColumn,
       ...baseColumns.slice(0, -1),
       statusColumn,
       baseColumns[baseColumns.length - 1],
@@ -490,41 +456,6 @@ export default function Courses() {
               }}
             >
               <DataTableToolbar table={table} />
-
-              <DataTableActionBar table={table}>
-                <DataTableActionBarSelection table={table} />
-                <DataTableActionBarAction
-                  tooltip="Baixar planilha(s) do(s) curso(s) selecionado(s)"
-                  onClick={() => {
-                    const selectedRows =
-                      table.getFilteredSelectedRowModel().rows
-                    console.log(
-                      'Baixando planilha:',
-                      selectedRows.map(row => row.original)
-                    )
-                    // TODO: Implement download logic
-                  }}
-                >
-                  <Download />
-                  Baixar planilha(s)
-                </DataTableActionBarAction>
-                <DataTableActionBarAction
-                  tooltip="Excluir cursos selecionados"
-                  variant="destructive"
-                  onClick={() => {
-                    const selectedRows =
-                      table.getFilteredSelectedRowModel().rows
-                    console.log(
-                      'Excluindo cursos:',
-                      selectedRows.map(row => row.original)
-                    )
-                    // TODO: Implement deletion logic with confirmation
-                  }}
-                >
-                  <Trash2 />
-                  Excluir
-                </DataTableActionBarAction>
-              </DataTableActionBar>
             </DataTable>
           </TabsContent>
 

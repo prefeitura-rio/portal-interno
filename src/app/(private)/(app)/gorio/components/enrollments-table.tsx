@@ -1,10 +1,16 @@
 'use client'
 
 import { DataTable } from '@/components/data-table/data-table'
+import {
+  DataTableActionBar,
+  DataTableActionBarAction,
+  DataTableActionBarSelection,
+} from '@/components/data-table/data-table-action-bar'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
@@ -30,10 +36,10 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
-  AlertCircle,
   Calendar,
   CheckCircle,
   Clock,
+  FileDown,
   Hash,
   Mail,
   Phone,
@@ -46,9 +52,13 @@ import * as React from 'react'
 
 interface EnrollmentsTableProps {
   courseId: string
+  courseTitle?: string
 }
 
-export function EnrollmentsTable({ courseId }: EnrollmentsTableProps) {
+export function EnrollmentsTable({
+  courseId,
+  courseTitle,
+}: EnrollmentsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'enrollmentDate', desc: true },
   ])
@@ -104,6 +114,29 @@ export function EnrollmentsTable({ courseId }: EnrollmentsTableProps) {
 
   const columns = React.useMemo<ColumnDef<Enrollment>[]>(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected() ||
+              (table.getIsSomePageRowsSelected() && 'indeterminate')
+            }
+            onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={value => row.toggleSelected(!!value)}
+            aria-label="Select row"
+          />
+        ),
+        size: 32,
+        enableSorting: false,
+        enableHiding: false,
+      },
       {
         id: 'candidateName',
         accessorKey: 'candidateName',
@@ -236,12 +269,6 @@ export function EnrollmentsTable({ courseId }: EnrollmentsTableProps) {
               className: 'text-red-600 border-red-200 bg-red-50',
               icon: XCircle,
             },
-            waitlist: {
-              label: 'Lista de Espera',
-              variant: 'outline' as const,
-              className: 'text-blue-600 border-blue-200 bg-blue-50',
-              icon: AlertCircle,
-            },
           }
 
           const config = statusConfig[status]
@@ -265,7 +292,6 @@ export function EnrollmentsTable({ courseId }: EnrollmentsTableProps) {
             { label: 'Confirmado', value: 'confirmed' },
             { label: 'Pendente', value: 'pending' },
             { label: 'Cancelado', value: 'cancelled' },
-            { label: 'Lista de Espera', value: 'waitlist' },
           ],
         },
         enableColumnFilter: true,
@@ -293,6 +319,106 @@ export function EnrollmentsTable({ courseId }: EnrollmentsTableProps) {
     manualPagination: true,
     pageCount: apiPagination?.totalPages || 0,
   })
+
+  const handleBulkConfirmEnrollments = React.useCallback(async () => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows
+    const enrollmentsToConfirm = selectedRows
+      .map(row => row.original)
+      .filter(enrollment => enrollment.status !== 'confirmed')
+
+    if (enrollmentsToConfirm.length === 0) {
+      return
+    }
+
+    // Confirm all selected enrollments
+    for (const enrollment of enrollmentsToConfirm) {
+      await updateEnrollmentStatus(enrollment.id, 'confirmed')
+    }
+  }, [table, updateEnrollmentStatus])
+
+  const handleBulkSetPending = React.useCallback(async () => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows
+    const enrollmentsToSetPending = selectedRows
+      .map(row => row.original)
+      .filter(enrollment => enrollment.status !== 'pending')
+
+    if (enrollmentsToSetPending.length === 0) {
+      return
+    }
+
+    // Set all selected enrollments to pending
+    for (const enrollment of enrollmentsToSetPending) {
+      await updateEnrollmentStatus(enrollment.id, 'pending')
+    }
+  }, [table, updateEnrollmentStatus])
+
+  const handleDownloadSpreadsheet = React.useCallback(() => {
+    // Always export all enrollments, not just selected ones
+    const enrollmentsToExport = enrollments
+
+    if (enrollmentsToExport.length === 0) {
+      return
+    }
+
+    // Create CSV content
+    const csvContent = [
+      [
+        'Nome',
+        'CPF',
+        'E-mail',
+        'Idade',
+        'Telefone',
+        'Data de Inscrição',
+        'Status',
+        'Observações',
+      ],
+      ...enrollmentsToExport.map(enrollment => [
+        enrollment.candidateName,
+        enrollment.cpf,
+        enrollment.email,
+        enrollment.age.toString(),
+        enrollment.phone || '',
+        new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
+        enrollment.status,
+        enrollment.notes || '',
+      ]),
+    ]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n')
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+
+    // Use course title if available, otherwise fallback to course ID
+    const fileName = courseTitle
+      ? `inscricoes_curso_${courseTitle.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}`
+      : `inscricoes_curso_${courseId}`
+
+    link.setAttribute('download', `${fileName}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }, [enrollments, courseId, courseTitle])
+
+  const handleBulkCancelEnrollments = React.useCallback(async () => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows
+    const enrollmentsToCancel = selectedRows
+      .map(row => row.original)
+      .filter(enrollment => enrollment.status !== 'cancelled')
+
+    if (enrollmentsToCancel.length === 0) {
+      return
+    }
+
+    // Cancel all selected enrollments
+    for (const enrollment of enrollmentsToCancel) {
+      await updateEnrollmentStatus(enrollment.id, 'cancelled')
+    }
+  }, [table, updateEnrollmentStatus])
 
   // Show loading state
   if (loading && enrollments.length === 0) {
@@ -344,9 +470,9 @@ export function EnrollmentsTable({ courseId }: EnrollmentsTableProps) {
         <h2 className="text-2xl font-semibold tracking-tight">
           Inscrições no Curso
         </h2>
-        <Button variant="outline">
-          <Users className="mr-2 h-4 w-4" />
-          Exportar Lista
+        <Button variant="outline" onClick={handleDownloadSpreadsheet}>
+          <FileDown className="mr-2 h-4 w-4" />
+          Exportar CSV
         </Button>
       </div>
 
@@ -398,18 +524,6 @@ export function EnrollmentsTable({ courseId }: EnrollmentsTableProps) {
                 {summary.cancelledCount}
               </p>
               <p className="text-sm text-red-600">Cancelados</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-blue-700">
-                {summary.waitlistCount}
-              </p>
-              <p className="text-sm text-blue-600">Lista de Espera</p>
             </div>
           </div>
 
@@ -541,11 +655,6 @@ export function EnrollmentsTable({ courseId }: EnrollmentsTableProps) {
                                   className:
                                     'text-red-600 border-red-200 bg-red-50',
                                 },
-                                waitlist: {
-                                  label: 'Lista de Espera',
-                                  className:
-                                    'text-blue-600 border-blue-200 bg-blue-50',
-                                },
                               }
                               const config =
                                 statusConfig[selectedEnrollment.status]
@@ -600,6 +709,38 @@ export function EnrollmentsTable({ courseId }: EnrollmentsTableProps) {
 
       <DataTable table={table} onRowClick={handleRowClick}>
         <DataTableToolbar table={table} />
+
+        <DataTableActionBar table={table}>
+          <DataTableActionBarSelection table={table} />
+          <DataTableActionBarAction
+            tooltip="Confirmar todas as inscrições selecionadas"
+            onClick={handleBulkConfirmEnrollments}
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Confirmar todas as inscrições
+          </DataTableActionBarAction>
+          <DataTableActionBarAction
+            tooltip="Definir todas as inscrições selecionadas como pendentes"
+            onClick={handleBulkSetPending}
+          >
+            <Clock className="mr-2 h-4 w-4" />
+            Definir como pendentes
+          </DataTableActionBarAction>
+          <DataTableActionBarAction
+            tooltip="Exportar inscrições selecionadas para CSV"
+            onClick={handleDownloadSpreadsheet}
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            Exportar CSV
+          </DataTableActionBarAction>
+          <DataTableActionBarAction
+            tooltip="Cancelar inscrições selecionadas"
+            onClick={handleBulkCancelEnrollments}
+          >
+            <XCircle className="mr-2 h-4 w-4" />
+            Cancelar inscrições
+          </DataTableActionBarAction>
+        </DataTableActionBar>
       </DataTable>
     </div>
   )
