@@ -341,7 +341,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     // Dialog states
     const [confirmDialog, setConfirmDialog] = useState<{
       open: boolean
-      type: 'create_course' | 'save_draft' | 'publish_course' | 'save_changes' | null
+      type:
+        | 'create_course'
+        | 'save_draft'
+        | 'publish_course'
+        | 'save_changes'
+        | null
     }>({
       open: false,
       type: null,
@@ -449,13 +454,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Editing an existing course - show "Salvar Alterações" dialog
         setConfirmDialog({
           open: true,
-          type: 'save_changes'
+          type: 'save_changes',
         })
       } else {
         // Creating a new course - show "Criar Curso" dialog
         setConfirmDialog({
           open: true,
-          type: 'create_course'
+          type: 'create_course',
         })
       }
     }
