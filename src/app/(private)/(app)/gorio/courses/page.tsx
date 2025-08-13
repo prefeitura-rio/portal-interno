@@ -318,9 +318,11 @@ export default function Courses() {
                     Editar
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive">
-                  Excluir
-                </DropdownMenuItem>
+                {course.status !== 'draft' && (
+                  <DropdownMenuItem variant="destructive">
+                    Cancelar curso
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )
