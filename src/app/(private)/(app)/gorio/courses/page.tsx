@@ -318,7 +318,9 @@ export default function Courses() {
                     Editar
                   </Link>
                 </DropdownMenuItem>
-                {course.status !== 'draft' && (
+                {(course.status === 'in_progress' ||
+                  course.status === 'receiving_registrations' ||
+                  course.status === 'scheduled') && (
                   <DropdownMenuItem variant="destructive">
                     Cancelar curso
                   </DropdownMenuItem>
