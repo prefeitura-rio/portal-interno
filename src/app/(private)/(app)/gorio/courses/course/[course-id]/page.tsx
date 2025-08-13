@@ -249,32 +249,38 @@ export default function CourseDetailPage({
               </div>
             </div>
             <div className="flex gap-2">
-              {!isEditing ? (
-                <Button
-                  onClick={handleEdit}
-                  disabled={activeTab === 'enrollments'}
-                >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Editar
-                </Button>
-              ) : (
-                <>
-                  <Button variant="outline" onClick={handleCancel}>
-                    <X className="mr-2 h-4 w-4" />
-                    Cancelar
+              {/* Only show action buttons if course is not cancelled or finished */}
+              {course.status !== 'cancelled' &&
+                course.status !== 'finished' &&
+                (!isEditing ? (
+                  <Button
+                    onClick={handleEdit}
+                    disabled={activeTab === 'enrollments'}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar
                   </Button>
-                  {isDraft && (
-                    <Button onClick={handlePublishFromHeader}>
+                ) : (
+                  <>
+                    {isDraft && (
+                      <Button onClick={handlePublishFromHeader}>
+                        <Save className="mr-2 h-4 w-4" />
+                        Salvar e Publicar
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={handleSaveDraftFromHeader}
+                    >
                       <Save className="mr-2 h-4 w-4" />
-                      Publicar
+                      {isDraft ? 'Salvar Rascunho' : 'Salvar'}
                     </Button>
-                  )}
-                  <Button onClick={handleSaveDraftFromHeader}>
-                    <Save className="mr-2 h-4 w-4" />
-                    {isDraft ? 'Salvar Rascunho' : 'Salvar'}
-                  </Button>
-                </>
-              )}
+                    <Button variant="outline" onClick={handleCancel}>
+                      <X className="mr-2 h-4 w-4" />
+                      Cancelar
+                    </Button>
+                  </>
+                ))}
             </div>
           </div>
         </div>
@@ -291,6 +297,7 @@ export default function CourseDetailPage({
                 onSubmit={handleSave}
                 onPublish={handlePublish}
                 isDraft={isDraft}
+                courseStatus={course.status}
               />
             </div>
           </div>
@@ -321,6 +328,7 @@ export default function CourseDetailPage({
                   onSubmit={handleSave}
                   onPublish={handlePublish}
                   isDraft={isDraft}
+                  courseStatus={course.status}
                 />
               </div>
             </TabsContent>

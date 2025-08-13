@@ -317,6 +317,7 @@ interface NewCourseFormProps {
   onSubmit?: (data: PartialFormData) => void
   onPublish?: (data: PartialFormData) => void
   isDraft?: boolean
+  courseStatus?: string
 }
 
 export interface NewCourseFormRef {
@@ -326,7 +327,14 @@ export interface NewCourseFormRef {
 
 export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
   (
-    { initialData, isReadOnly = false, onSubmit, onPublish, isDraft = false },
+    {
+      initialData,
+      isReadOnly = false,
+      onSubmit,
+      onPublish,
+      isDraft = false,
+      courseStatus,
+    },
     ref
   ) => {
     const form = useForm<PartialFormData>({
@@ -1371,7 +1379,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 Salvar Rascunho
               </Button>
             )}
-
+            {isDraft && (
+              <Button
+                type="button"
+                onClick={handlePublish}
+                className="w-full py-6"
+              >
+                Salvar e Publicar
+              </Button>
+            )}
             {isDraft && (
               <Button
                 type="button"
@@ -1383,29 +1399,21 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               </Button>
             )}
 
-            {isDraft && (
-              <Button
-                type="button"
-                onClick={handlePublish}
-                className="w-full py-6"
-              >
-                Publicar
-              </Button>
-            )}
-
-            {!isDraft && (
-              <Button
-                type="submit"
-                disabled={form.formState.isSubmitting}
-                className="w-full py-6"
-              >
-                {form.formState.isSubmitting
-                  ? 'Enviando...'
-                  : initialData
-                    ? 'Salvar Alterações'
-                    : 'Criar Curso'}
-              </Button>
-            )}
+            {!isDraft &&
+              courseStatus !== 'cancelled' &&
+              courseStatus !== 'finished' && (
+                <Button
+                  type="submit"
+                  disabled={form.formState.isSubmitting}
+                  className="w-full py-6"
+                >
+                  {form.formState.isSubmitting
+                    ? 'Enviando...'
+                    : initialData
+                      ? 'Salvar Alterações'
+                      : 'Criar Curso'}
+                </Button>
+              )}
           </div>
         </form>
       </Form>
