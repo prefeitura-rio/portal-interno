@@ -27,6 +27,7 @@ import {
   CheckCircle,
   Edit,
   Save,
+  Trash2,
   Users,
   X,
   XCircle,
@@ -165,6 +166,14 @@ export default function CourseDetailPage({
     setIsEditing(false)
   }
 
+  const handleDeleteDraft = () => {
+    // TODO: Implement delete draft logic
+    console.log('Deleting draft course:', courseId)
+    toast.success('Rascunho excluído com sucesso!')
+    // Redirect to courses list
+    window.location.href = '/gorio/courses'
+  }
+
   // Show loading state
   if (loading || !courseId) {
     return (
@@ -253,13 +262,21 @@ export default function CourseDetailPage({
               {course.status !== 'cancelled' &&
                 course.status !== 'finished' &&
                 (!isEditing ? (
-                  <Button
-                    onClick={handleEdit}
-                    disabled={activeTab === 'enrollments'}
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    Editar
-                  </Button>
+                  <>
+                    <Button
+                      onClick={handleEdit}
+                      disabled={activeTab === 'enrollments'}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar
+                    </Button>
+                    {isDraft && (
+                      <Button variant="destructive" onClick={handleDeleteDraft}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir rascunho
+                      </Button>
+                    )}
+                  </>
                 ) : (
                   <>
                     {isDraft && (

@@ -318,6 +318,12 @@ export default function Courses() {
                     Editar
                   </Link>
                 </DropdownMenuItem>
+                {course.status === 'draft' && (
+                  <DropdownMenuItem variant="destructive">
+                    {/* <Trash2 className="mr-2 h-4 w-4" /> */}
+                    Excluir rascunho
+                  </DropdownMenuItem>
+                )}
                 {(course.status === 'in_progress' ||
                   course.status === 'receiving_registrations' ||
                   course.status === 'scheduled') && (
