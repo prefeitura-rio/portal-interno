@@ -16,6 +16,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCourse } from '@/hooks/use-course'
@@ -103,6 +104,15 @@ export default function CourseDetailPage({
   const searchParams = useSearchParams()
   const [courseId, setCourseId] = useState<string | null>(null)
 
+  // Dialog states
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean
+    type: 'delete_draft' | 'save_changes' | 'publish_course' | null
+  }>({
+    open: false,
+    type: null,
+  })
+
   // Refs to trigger form submission
   const draftFormRef = useRef<NewCourseFormRef>(null)
   const courseFormRef = useRef<NewCourseFormRef>(null)
@@ -131,6 +141,13 @@ export default function CourseDetailPage({
   }
 
   const handleSave = (data: any) => {
+    setConfirmDialog({
+      open: true,
+      type: 'save_changes',
+    })
+  }
+
+  const confirmSaveChanges = (data: any) => {
     // TODO: Implement save logic
     console.log('Saving course data:', data)
     setIsEditing(false)
@@ -138,6 +155,13 @@ export default function CourseDetailPage({
   }
 
   const handlePublish = (data: any) => {
+    setConfirmDialog({
+      open: true,
+      type: 'publish_course',
+    })
+  }
+
+  const confirmPublishCourse = (data: any) => {
     // TODO: Implement publish logic
     console.log('Publishing course data:', data)
     setIsEditing(false)
@@ -167,6 +191,13 @@ export default function CourseDetailPage({
   }
 
   const handleDeleteDraft = () => {
+    setConfirmDialog({
+      open: true,
+      type: 'delete_draft',
+    })
+  }
+
+  const confirmDeleteDraft = () => {
     // TODO: Implement delete draft logic
     console.log('Deleting draft course:', courseId)
     toast.success('Rascunho excluído com sucesso!')
@@ -311,8 +342,8 @@ export default function CourseDetailPage({
                 ref={draftFormRef}
                 initialData={course as any}
                 isReadOnly={!isEditing}
-                onSubmit={handleSave}
-                onPublish={handlePublish}
+                onSubmit={confirmSaveChanges}
+                onPublish={confirmPublishCourse}
                 isDraft={isDraft}
                 courseStatus={course.status}
               />
@@ -342,8 +373,8 @@ export default function CourseDetailPage({
                   ref={courseFormRef}
                   initialData={course as any}
                   isReadOnly={!isEditing}
-                  onSubmit={handleSave}
-                  onPublish={handlePublish}
+                  onSubmit={confirmSaveChanges}
+                  onPublish={confirmPublishCourse}
                   isDraft={isDraft}
                   courseStatus={course.status}
                 />
@@ -359,6 +390,55 @@ export default function CourseDetailPage({
           </Tabs>
         )}
       </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
+        title={
+          confirmDialog.type === 'delete_draft'
+            ? 'Excluir Rascunho'
+            : confirmDialog.type === 'save_changes'
+              ? 'Salvar Alterações'
+              : 'Publicar Curso'
+        }
+        description={
+          confirmDialog.type === 'delete_draft'
+            ? `Tem certeza que deseja excluir o rascunho "${course.title}"? Esta ação não pode ser desfeita.`
+            : confirmDialog.type === 'save_changes'
+              ? `Tem certeza que deseja salvar as alterações no curso "${course.title}"?`
+              : `Tem certeza que deseja publicar o curso "${course.title}"? Esta ação tornará o curso visível para inscrições.`
+        }
+        confirmText={
+          confirmDialog.type === 'delete_draft'
+            ? 'Excluir Rascunho'
+            : confirmDialog.type === 'save_changes'
+              ? 'Salvar Alterações'
+              : 'Publicar Curso'
+        }
+        variant={
+          confirmDialog.type === 'delete_draft' ? 'destructive' : 'default'
+        }
+        onConfirm={() => {
+          if (confirmDialog.type === 'delete_draft') {
+            confirmDeleteDraft()
+          } else if (confirmDialog.type === 'save_changes') {
+            // Trigger form submission
+            if (isDraft) {
+              draftFormRef.current?.triggerSubmit()
+            } else {
+              courseFormRef.current?.triggerSubmit()
+            }
+          } else if (confirmDialog.type === 'publish_course') {
+            // Trigger form publication
+            if (isDraft) {
+              draftFormRef.current?.triggerPublish()
+            } else {
+              courseFormRef.current?.triggerPublish()
+            }
+          }
+        }}
+      />
     </ContentLayout>
   )
 }

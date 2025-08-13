@@ -1,12 +1,13 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { forwardRef, useImperativeHandle } from 'react'
+import { forwardRef, useImperativeHandle, useState } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   Form,
   FormControl,
@@ -337,6 +338,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     },
     ref
   ) => {
+    // Dialog states
+    const [confirmDialog, setConfirmDialog] = useState<{
+      open: boolean
+      type: 'create_course' | 'save_draft' | 'publish_course' | 'save_changes' | null
+    }>({
+      open: false,
+      type: null,
+    })
+
     const form = useForm<PartialFormData>({
       resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
       defaultValues: initialData || {
@@ -434,7 +444,23 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       remove(index)
     }
 
-    async function handleSubmit(values: PartialFormData) {
+    const handleSubmit = (data: PartialFormData) => {
+      if (initialData) {
+        // Editing an existing course - show "Salvar Alterações" dialog
+        setConfirmDialog({
+          open: true,
+          type: 'save_changes'
+        })
+      } else {
+        // Creating a new course - show "Criar Curso" dialog
+        setConfirmDialog({
+          open: true,
+          type: 'create_course'
+        })
+      }
+    }
+
+    const confirmCreateCourse = async (values: PartialFormData) => {
       try {
         // Validate the complete form data
         const validatedData = formSchema.parse(values)
@@ -469,6 +495,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     }
 
     async function handleSaveDraft() {
+      setConfirmDialog({
+        open: true,
+        type: 'save_draft',
+      })
+    }
+
+    const confirmSaveDraft = async () => {
       try {
         const currentValues = form.getValues()
 
@@ -498,6 +531,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     }
 
     async function handlePublish() {
+      setConfirmDialog({
+        open: true,
+        type: 'publish_course',
+      })
+    }
+
+    const confirmPublishCourse = async () => {
       try {
         // Trigger form validation to show visual errors
         const isValid = await form.trigger()
@@ -517,7 +557,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
         // Adiciona o status para publicação
         const publishData = {
-          ...validatedData,
+          ...currentValues,
           status: 'opened' as const,
         }
 
@@ -1416,6 +1456,53 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               )}
           </div>
         </form>
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          open={confirmDialog.open}
+          onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
+          title={
+            confirmDialog.type === 'create_course'
+              ? 'Criar Curso'
+              : confirmDialog.type === 'save_draft'
+                ? 'Salvar Rascunho'
+                : confirmDialog.type === 'publish_course'
+                  ? 'Publicar Curso'
+                  : 'Salvar Alterações'
+          }
+          description={
+            confirmDialog.type === 'create_course'
+              ? 'Tem certeza que deseja criar este curso? Esta ação tornará o curso visível para inscrições.'
+              : confirmDialog.type === 'save_draft'
+                ? 'Tem certeza que deseja salvar este rascunho? O curso não será publicado ainda.'
+                : confirmDialog.type === 'publish_course'
+                  ? 'Tem certeza que deseja publicar este curso? Esta ação tornará o curso visível para inscrições.'
+                  : 'Tem certeza que deseja salvar as alterações neste curso?'
+          }
+          confirmText={
+            confirmDialog.type === 'create_course'
+              ? 'Criar Curso'
+              : confirmDialog.type === 'save_draft'
+                ? 'Salvar Rascunho'
+                : confirmDialog.type === 'publish_course'
+                  ? 'Publicar Curso'
+                  : 'Salvar Alterações'
+          }
+          variant="default"
+          onConfirm={() => {
+            const currentValues = form.getValues()
+            if (confirmDialog.type === 'create_course') {
+              confirmCreateCourse(currentValues)
+            } else if (confirmDialog.type === 'save_draft') {
+              confirmSaveDraft()
+            } else if (confirmDialog.type === 'publish_course') {
+              confirmPublishCourse()
+            } else if (confirmDialog.type === 'save_changes') {
+              // This handles the case when editing an existing course
+              confirmCreateCourse(currentValues)
+            }
+          }}
+        />
       </Form>
     )
   }

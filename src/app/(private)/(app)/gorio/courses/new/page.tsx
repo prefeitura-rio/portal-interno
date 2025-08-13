@@ -1,3 +1,4 @@
+'use client'
 import { NewCourseForm } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import {
@@ -8,9 +9,33 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import Link from 'next/link'
+import { useState } from 'react'
 
 export default function NewCourse() {
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean
+    type: 'create_course' | null
+  }>({
+    open: false,
+    type: null,
+  })
+
+  const handleCreateCourse = (data: any) => {
+    setConfirmDialog({
+      open: true,
+      type: 'create_course',
+    })
+  }
+
+  const confirmCreateCourse = (data: any) => {
+    // TODO: Implement create course logic
+    console.log('Creating course:', data)
+    // Redirect to courses list
+    window.location.href = '/gorio/courses'
+  }
+
   return (
     <ContentLayout title="Gestão de Cursos">
       <div className="space-y-4">
@@ -35,8 +60,22 @@ export default function NewCourse() {
             <p className="text-muted-foreground">Crie um novo curso.</p>
           </div>
         </div>
-        <NewCourseForm />
+        <NewCourseForm onSubmit={handleCreateCourse} />
       </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
+        title="Criar Curso"
+        description="Tem certeza que deseja criar este curso? Esta ação tornará o curso visível para inscrições."
+        confirmText="Criar Curso"
+        variant="default"
+        onConfirm={() => {
+          // TODO: Get form data and create course
+          confirmCreateCourse({})
+        }}
+      />
     </ContentLayout>
   )
 }
