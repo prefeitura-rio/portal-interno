@@ -13,6 +13,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +56,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import * as React from 'react'
+import { toast } from 'sonner'
 
 // Status configuration for badges
 const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
@@ -109,6 +111,17 @@ export default function Courses() {
   })
   const [activeTab, setActiveTab] = React.useState('created')
 
+  // Dialog states
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    open: boolean
+    type: 'cancel_course' | 'delete_draft' | null
+    course: CourseListItem | null
+  }>({
+    open: false,
+    type: null,
+    course: null,
+  })
+
   // Filter data based on active tab
   const filteredData = React.useMemo(() => {
     if (activeTab === 'draft') {
@@ -118,8 +131,32 @@ export default function Courses() {
   }, [activeTab])
 
   // Common columns without selection and status
-  const baseColumns = React.useMemo<ColumnDef<CourseListItem>[]>(
-    () => [
+  const baseColumns = React.useMemo<ColumnDef<CourseListItem>[]>(() => {
+    // Handle course actions
+    const handleCancelCourse = (course: CourseListItem) => {
+      // TODO: Implement cancel course logic
+      console.log('Cancelling course:', course.id)
+      toast.success('Curso cancelado com sucesso!')
+    }
+
+    const handleDeleteDraft = (course: CourseListItem) => {
+      // TODO: Implement delete draft logic
+      console.log('Deleting draft:', course.id)
+      toast.success('Rascunho excluído com sucesso!')
+    }
+
+    const openConfirmDialog = (
+      type: 'cancel_course' | 'delete_draft',
+      course: CourseListItem
+    ) => {
+      setConfirmDialog({
+        open: true,
+        type,
+        course,
+      })
+    }
+
+    return [
       {
         id: 'title',
         accessorKey: 'title',
@@ -318,18 +355,32 @@ export default function Courses() {
                     Editar
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive">
-                  Excluir
-                </DropdownMenuItem>
+                {course.status === 'draft' && (
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => openConfirmDialog('delete_draft', course)}
+                  >
+                    Excluir rascunho
+                  </DropdownMenuItem>
+                )}
+                {(course.status === 'in_progress' ||
+                  course.status === 'receiving_registrations' ||
+                  course.status === 'scheduled') && (
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => openConfirmDialog('cancel_course', course)}
+                  >
+                    Cancelar curso
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )
         },
         size: 32,
       },
-    ],
-    []
-  )
+    ]
+  }, [])
 
   // Create columns based on active tab
   const columns = React.useMemo<ColumnDef<CourseListItem>[]>(() => {
@@ -472,6 +523,41 @@ export default function Courses() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
+        title={
+          confirmDialog.type === 'cancel_course'
+            ? 'Cancelar Curso'
+            : 'Excluir Rascunho'
+        }
+        description={
+          confirmDialog.type === 'cancel_course'
+            ? `Tem certeza que deseja cancelar o curso "${confirmDialog.course?.title}"? Esta ação não pode ser desfeita.`
+            : `Tem certeza que deseja excluir o rascunho "${confirmDialog.course?.title}"? Esta ação não pode ser desfeita.`
+        }
+        confirmText={
+          confirmDialog.type === 'cancel_course'
+            ? 'Cancelar Curso'
+            : 'Excluir Rascunho'
+        }
+        variant="destructive"
+        onConfirm={() => {
+          if (confirmDialog.course) {
+            if (confirmDialog.type === 'cancel_course') {
+              // TODO: Implement cancel course logic
+              console.log('Cancelling course:', confirmDialog.course.id)
+              toast.success('Curso cancelado com sucesso!')
+            } else if (confirmDialog.type === 'delete_draft') {
+              // TODO: Implement delete draft logic
+              console.log('Deleting draft:', confirmDialog.course.id)
+              toast.success('Rascunho excluído com sucesso!')
+            }
+          }
+        }}
+      />
     </ContentLayout>
   )
 }

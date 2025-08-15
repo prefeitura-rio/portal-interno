@@ -1,12 +1,13 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { forwardRef, useImperativeHandle } from 'react'
+import { forwardRef, useImperativeHandle, useState } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   Form,
   FormControl,
@@ -317,6 +318,7 @@ interface NewCourseFormProps {
   onSubmit?: (data: PartialFormData) => void
   onPublish?: (data: PartialFormData) => void
   isDraft?: boolean
+  courseStatus?: string
 }
 
 export interface NewCourseFormRef {
@@ -326,9 +328,30 @@ export interface NewCourseFormRef {
 
 export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
   (
-    { initialData, isReadOnly = false, onSubmit, onPublish, isDraft = false },
+    {
+      initialData,
+      isReadOnly = false,
+      onSubmit,
+      onPublish,
+      isDraft = false,
+      courseStatus,
+    },
     ref
   ) => {
+    // Dialog states
+    const [confirmDialog, setConfirmDialog] = useState<{
+      open: boolean
+      type:
+        | 'create_course'
+        | 'save_draft'
+        | 'publish_course'
+        | 'save_changes'
+        | null
+    }>({
+      open: false,
+      type: null,
+    })
+
     const form = useForm<PartialFormData>({
       resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
       defaultValues: initialData || {
@@ -426,7 +449,23 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       remove(index)
     }
 
-    async function handleSubmit(values: PartialFormData) {
+    const handleSubmit = (data: PartialFormData) => {
+      if (initialData) {
+        // Editing an existing course - show "Salvar Alterações" dialog
+        setConfirmDialog({
+          open: true,
+          type: 'save_changes',
+        })
+      } else {
+        // Creating a new course - show "Criar Curso" dialog
+        setConfirmDialog({
+          open: true,
+          type: 'create_course',
+        })
+      }
+    }
+
+    const confirmCreateCourse = async (values: PartialFormData) => {
       try {
         // Validate the complete form data
         const validatedData = formSchema.parse(values)
@@ -461,6 +500,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     }
 
     async function handleSaveDraft() {
+      setConfirmDialog({
+        open: true,
+        type: 'save_draft',
+      })
+    }
+
+    const confirmSaveDraft = async () => {
       try {
         const currentValues = form.getValues()
 
@@ -490,6 +536,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     }
 
     async function handlePublish() {
+      setConfirmDialog({
+        open: true,
+        type: 'publish_course',
+      })
+    }
+
+    const confirmPublishCourse = async () => {
       try {
         // Trigger form validation to show visual errors
         const isValid = await form.trigger()
@@ -509,7 +562,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
         // Adiciona o status para publicação
         const publishData = {
-          ...validatedData,
+          ...currentValues,
           status: 'opened' as const,
         }
 
@@ -1104,197 +1157,204 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               />
 
               {/* Optional Fields Section */}
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="optional-fields">
-                  <AccordionTrigger className="text-lg font-semibold text-foreground hover:no-underline">
-                    Informações Adicionais (Opcionais)
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-6 pt-4">
-                      <FormField
-                        control={form.control}
-                        name="prerequisites"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              Pré-requisitos para a capacitação
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+              <Card className="w-full">
+                <CardHeader>
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem
+                      value="optional-fields"
+                      className="border-none"
+                    >
+                      <AccordionTrigger className="text-lg font-semibold text-foreground hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                        Informações Adicionais do Curso (Opcionais)
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-6 pt-4">
+                          <FormField
+                            control={form.control}
+                            name="prerequisites"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Pré-requisitos para a capacitação
+                                </FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
+                                    className="min-h-[80px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="hasCertificate"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Terá certificado</FormLabel>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="hasCertificate"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Terá certificado</FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="facilitator"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Facilitador</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Nome do facilitador ou instrutor"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="facilitator"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Facilitador</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="Nome do facilitador ou instrutor"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="objectives"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Objetivos da capacitação</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Desenvolver habilidades em gestão de projetos, capacitar para uso de ferramentas específicas..."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="objectives"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Objetivos da capacitação</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Ex: Desenvolver habilidades em gestão de projetos, capacitar para uso de ferramentas específicas..."
+                                    className="min-h-[80px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="expectedResults"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Resultados esperados</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Ao final do curso, os participantes estarão aptos a..."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="expectedResults"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Resultados esperados</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Ex: Ao final do curso, os participantes estarão aptos a..."
+                                    className="min-h-[80px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="programContent"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Conteúdo programático</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Módulo 1: Introdução, Módulo 2: Conceitos básicos..."
-                                className="min-h-[120px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="programContent"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Conteúdo programático</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Ex: Módulo 1: Introdução, Módulo 2: Conceitos básicos..."
+                                    className="min-h-[120px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="methodology"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Metodologia</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Aulas expositivas, exercícios práticos, estudos de caso..."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="methodology"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Metodologia</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Ex: Aulas expositivas, exercícios práticos, estudos de caso..."
+                                    className="min-h-[80px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="resourcesUsed"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Recursos Utilizados</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Computadores, projetor, software específico..."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="resourcesUsed"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Recursos Utilizados</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Ex: Computadores, projetor, software específico..."
+                                    className="min-h-[80px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="materialUsed"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Material utilizado</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Apostilas, slides, vídeos..."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="materialUsed"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Material utilizado</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Ex: Apostilas, slides, vídeos..."
+                                    className="min-h-[80px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="teachingMaterial"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Material didático</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Livros, artigos, exercícios práticos..."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+                          <FormField
+                            control={form.control}
+                            name="teachingMaterial"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Material didático</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Ex: Livros, artigos, exercícios práticos..."
+                                    className="min-h-[80px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </CardHeader>
+              </Card>
             </div>
             <div className="space-y-6">
               <FormField
@@ -1364,7 +1424,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 Salvar Rascunho
               </Button>
             )}
-
+            {isDraft && (
+              <Button
+                type="button"
+                onClick={handlePublish}
+                className="w-full py-6"
+              >
+                Salvar e Publicar
+              </Button>
+            )}
             {isDraft && (
               <Button
                 type="button"
@@ -1376,31 +1444,70 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               </Button>
             )}
 
-            {isDraft && (
-              <Button
-                type="button"
-                onClick={handlePublish}
-                className="w-full py-6"
-              >
-                Publicar
-              </Button>
-            )}
-
-            {!isDraft && (
-              <Button
-                type="submit"
-                disabled={form.formState.isSubmitting}
-                className="w-full py-6"
-              >
-                {form.formState.isSubmitting
-                  ? 'Enviando...'
-                  : initialData
-                    ? 'Salvar Alterações'
-                    : 'Criar Curso'}
-              </Button>
-            )}
+            {!isDraft &&
+              courseStatus !== 'cancelled' &&
+              courseStatus !== 'finished' && (
+                <Button
+                  type="submit"
+                  disabled={form.formState.isSubmitting}
+                  className="w-full py-6"
+                >
+                  {form.formState.isSubmitting
+                    ? 'Enviando...'
+                    : initialData
+                      ? 'Salvar Alterações'
+                      : 'Criar Curso'}
+                </Button>
+              )}
           </div>
         </form>
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          open={confirmDialog.open}
+          onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
+          title={
+            confirmDialog.type === 'create_course'
+              ? 'Criar Curso'
+              : confirmDialog.type === 'save_draft'
+                ? 'Salvar Rascunho'
+                : confirmDialog.type === 'publish_course'
+                  ? 'Publicar Curso'
+                  : 'Salvar Alterações'
+          }
+          description={
+            confirmDialog.type === 'create_course'
+              ? 'Tem certeza que deseja criar este curso? Esta ação tornará o curso visível para inscrições.'
+              : confirmDialog.type === 'save_draft'
+                ? 'Tem certeza que deseja salvar este rascunho? O curso não será publicado ainda.'
+                : confirmDialog.type === 'publish_course'
+                  ? 'Tem certeza que deseja publicar este curso? Esta ação tornará o curso visível para inscrições.'
+                  : 'Tem certeza que deseja salvar as alterações neste curso?'
+          }
+          confirmText={
+            confirmDialog.type === 'create_course'
+              ? 'Criar Curso'
+              : confirmDialog.type === 'save_draft'
+                ? 'Salvar Rascunho'
+                : confirmDialog.type === 'publish_course'
+                  ? 'Publicar Curso'
+                  : 'Salvar Alterações'
+          }
+          variant="default"
+          onConfirm={() => {
+            const currentValues = form.getValues()
+            if (confirmDialog.type === 'create_course') {
+              confirmCreateCourse(currentValues)
+            } else if (confirmDialog.type === 'save_draft') {
+              confirmSaveDraft()
+            } else if (confirmDialog.type === 'publish_course') {
+              confirmPublishCourse()
+            } else if (confirmDialog.type === 'save_changes') {
+              // This handles the case when editing an existing course
+              confirmCreateCourse(currentValues)
+            }
+          }}
+        />
       </Form>
     )
   }
