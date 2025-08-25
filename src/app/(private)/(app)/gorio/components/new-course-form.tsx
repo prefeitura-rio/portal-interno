@@ -173,11 +173,11 @@ const formSchema = z
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
         .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
       // Required image fields
-      institutionalLogo: z.instanceof(File, {
-        message: 'Logo institucional é obrigatório.',
+      institutionalLogo: z.string().url({
+        message: 'Logo institucional deve ser uma URL válida.',
       }),
-      coverImage: z.instanceof(File, {
-        message: 'Imagem de capa é obrigatória.',
+      coverImage: z.string().url({
+        message: 'Imagem de capa deve ser uma URL válida.',
       }),
       // Optional fields
       prerequisites: z.string().optional(),
@@ -233,11 +233,11 @@ const formSchema = z
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
         .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
       // Required image fields
-      institutionalLogo: z.instanceof(File, {
-        message: 'Logo institucional é obrigatório.',
+      institutionalLogo: z.string().url({
+        message: 'Logo institucional deve ser uma URL válida.',
       }),
-      coverImage: z.instanceof(File, {
-        message: 'Imagem de capa é obrigatória.',
+      coverImage: z.string().url({
+        message: 'Imagem de capa deve ser uma URL válida.',
       }),
       // Optional fields
       prerequisites: z.string().optional(),
@@ -306,8 +306,8 @@ type PartialFormData = Omit<
   resourcesUsed?: string
   materialUsed?: string
   teachingMaterial?: string
-  institutionalLogo?: File | null
-  coverImage?: File | null
+  institutionalLogo?: string | null
+  coverImage?: string | null
   customFields?: CustomField[]
   status?: 'canceled' | 'draft' | 'opened' | 'closed'
 }
@@ -375,8 +375,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         resourcesUsed: '',
         materialUsed: '',
         teachingMaterial: '',
-        institutionalLogo: undefined,
-        coverImage: undefined,
+        institutionalLogo: '',
+        coverImage: '',
         customFields: [],
       },
       mode: 'onChange', // Enable real-time validation
@@ -1367,7 +1367,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         value={field.value}
                         onChange={field.onChange}
                         label="Logo institucional*"
-                        maxSize={1000000} // 1MB
                         previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
                       />
                     </FormControl>
@@ -1386,7 +1385,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         value={field.value}
                         onChange={field.onChange}
                         label="Imagem de capa*"
-                        maxSize={1000000} // 1MB
                         previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
                       />
                     </FormControl>

@@ -3,17 +3,16 @@
 import { cn } from '@/lib/utils'
 import { ImagePlus, X } from 'lucide-react'
 import React from 'react'
-import { useDropzone } from 'react-dropzone'
 import { Button } from './button'
+import { Input } from './input'
 
 interface ImageUploadProps {
-  value?: File | null
-  onChange: (file: File | undefined) => void
+  value?: string | null
+  onChange: (url: string | undefined) => void
   label: string
   className?: string
   previewClassName?: string
-  maxSize?: number
-  accept?: Record<string, string[]>
+  placeholder?: string
   error?: boolean
   errorMessage?: string
   disabled?: boolean
@@ -25,54 +24,33 @@ export function ImageUpload({
   label,
   className,
   previewClassName = 'max-h-[200px] max-w-full rounded-lg object-contain',
-  maxSize = 1000000, // 1MB default
-  accept = {
-    'image/png': [],
-    'image/jpg': [],
-    'image/jpeg': [],
-    'image/svg+xml': [],
-  },
+  placeholder = 'https://exemplo.com/imagem.jpg',
   error = false,
   errorMessage,
   disabled = false,
 }: ImageUploadProps) {
   const id = React.useId()
-  const [preview, setPreview] = React.useState<string | ArrayBuffer | null>('')
+  const [inputValue, setInputValue] = React.useState(value || '')
 
-  const onDrop = React.useCallback(
-    (acceptedFiles: File[]) => {
-      const reader = new FileReader()
-      try {
-        reader.onload = () => setPreview(reader.result)
-        reader.readAsDataURL(acceptedFiles[0])
-        onChange(acceptedFiles[0])
-      } catch (error) {
-        setPreview(null)
-        onChange(undefined)
-      }
-    },
-    [onChange]
-  )
+  // Sync local state with prop value
+  React.useEffect(() => {
+    if (value !== inputValue) {
+      setInputValue(value || '')
+    }
+  }, [value, inputValue])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value
+    setInputValue(url)
+    onChange(url || undefined)
+  }
 
   const handleRemove = () => {
-    setPreview(null)
+    setInputValue('')
     onChange(undefined)
   }
 
-  const { getRootProps, getInputProps, isDragActive, fileRejections } =
-    useDropzone({
-      onDrop,
-      maxFiles: 1,
-      maxSize,
-      accept,
-      disabled,
-    })
-
-  const hasError = error || fileRejections.length > 0
-  const displayError =
-    errorMessage ||
-    (fileRejections.length > 0 &&
-      `A imagem deve ter menos de ${Math.round(maxSize / 1000000)}MB e ser do tipo PNG, JPG, JPEG ou SVG`)
+  const hasError = error
 
   return (
     <div className={cn('space-y-4 bg-card', className)}>
@@ -86,64 +64,64 @@ export function ImageUpload({
         {label}
       </label>
 
-      <div
-        {...getRootProps()}
-        className={cn(
-          'flex flex-col items-center justify-center gap-y-2 rounded-lg border p-6 shadow-sm! transition-colors',
-          hasError ? 'border-destructive' : 'border-muted-foreground/25',
-          preview && 'relative',
-          disabled
-            ? 'cursor-not-allowed opacity-50'
-            : 'cursor-pointer hover:bg-muted/50'
-        )}
-      >
-        {preview && (
-          <>
-            <img
-              src={preview as string}
-              alt="Preview"
-              className={previewClassName}
-            />
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <Input
+            id={id}
+            type="url"
+            placeholder={placeholder}
+            value={inputValue}
+            onChange={handleInputChange}
+            disabled={disabled}
+            className={cn(
+              'flex-1',
+              hasError && 'border-destructive focus-visible:ring-destructive'
+            )}
+          />
+          {inputValue && (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={e => {
-                e.stopPropagation()
-                handleRemove()
-              }}
-              className="absolute top-2 right-2 h-8 w-8 p-0 text-destructive hover:text-destructive"
+              onClick={handleRemove}
+              className="h-10 w-10 p-0 text-destructive hover:text-destructive"
+              disabled={disabled}
             >
               <X className="h-4 w-4" />
             </Button>
-          </>
-        )}
-
-        <ImagePlus
-          className={cn(
-            'text-muted-foreground',
-            preview ? 'hidden' : 'block',
-            previewClassName.includes('max-h-[300px]') ? 'size-16' : 'size-12'
           )}
-        />
+        </div>
 
-        <input {...getInputProps()} id={id} type="file" />
-
-        {isDragActive ? (
-          <p className="text-sm text-muted-foreground">Solte a imagem aqui!</p>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Clique aqui ou arraste uma imagem para fazer upload
-          </p>
+        {inputValue && (
+          <div className="relative rounded-lg border p-4">
+            <img
+              src={inputValue}
+              alt="Preview"
+              className={cn(previewClassName, 'w-full h-auto')}
+            />
+          </div>
         )}
 
-        <p className="text-xs text-muted-foreground">
-          PNG, JPG, JPEG ou SVG (MAX. {Math.round(maxSize / 1000000)}MB)
-        </p>
+        {!inputValue && (
+          <div
+            className={cn(
+              'flex flex-col items-center justify-center gap-y-2 rounded-lg border border-dashed border-muted-foreground/25 p-6 text-center',
+              disabled ? 'cursor-not-allowed opacity-50' : 'cursor-default'
+            )}
+          >
+            <ImagePlus className="size-12 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Digite uma URL de imagem para visualizar a prévia
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Suporte para PNG, JPG, JPEG ou SVG
+            </p>
+          </div>
+        )}
       </div>
 
-      {displayError && (
-        <p className="text-sm text-destructive">{displayError}</p>
+      {errorMessage && (
+        <p className="text-sm text-destructive">{errorMessage}</p>
       )}
     </div>
   )
