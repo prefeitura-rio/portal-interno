@@ -162,6 +162,11 @@ const formSchema = z
         message: 'Órgão é obrigatório.',
       }),
       modalidade: z.literal('Remoto'),
+      theme: z
+        .string()
+        .min(1, { message: 'Tema é obrigatório.' })
+        .min(3, { message: 'Tema deve ter pelo menos 3 caracteres.' })
+        .max(100, { message: 'Tema não pode exceder 100 caracteres.' }),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -222,6 +227,11 @@ const formSchema = z
         message: 'Órgão é obrigatório.',
       }),
       modalidade: z.enum(['Presencial', 'Semipresencial']),
+      theme: z
+        .string()
+        .min(1, { message: 'Tema é obrigatório.' })
+        .min(3, { message: 'Tema deve ter pelo menos 3 caracteres.' })
+        .max(100, { message: 'Tema não pode exceder 100 caracteres.' }),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -294,6 +304,7 @@ type PartialFormData = Omit<
   modalidade?: 'Presencial' | 'Semipresencial' | 'Remoto'
   locations?: z.infer<typeof locationClassSchema>[]
   remoteClass?: z.infer<typeof remoteClassSchema>
+  theme?: string
   workload?: string
   targetAudience?: string
   prerequisites?: string
@@ -361,6 +372,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         enrollmentEndDate: new Date(),
         organization: '',
         modalidade: undefined,
+        theme: '',
         locations: [],
         remoteClass: undefined,
         workload: '',
@@ -771,6 +783,24 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         <SelectItem value="Remoto">Remoto</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="theme"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tema*</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: Tecnologia, Gestão, Saúde, Educação..."
+                        {...field}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
