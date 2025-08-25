@@ -4,7 +4,6 @@ import {
   NextResponse,
 } from 'next/server'
 import { handleExpiredToken, isJwtExpired } from './lib'
-import { REDIRECT_WHEN_SESSION_EXPIRED_ROUTE } from './constants/url'
 
 const publicRoutes = [
   { path: '/description', whenAuthenticated: 'next' },
