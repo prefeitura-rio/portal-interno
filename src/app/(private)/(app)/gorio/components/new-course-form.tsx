@@ -44,6 +44,7 @@ import {
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { CalendarIcon, Plus, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
 
 // Define the schema for location/class information
@@ -357,6 +358,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     },
     ref
   ) => {
+    const router = useRouter()
+
     // State for organizations
     const [orgaos, setOrgaos] = useState<Array<{ id: number; nome: string }>>(
       []
@@ -469,6 +472,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Add the new fields that should always be sent
         turno: 'LIVRE',
         formato_aula: data.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
+        instituicao_id: 5,
       }
     }
 
@@ -569,7 +573,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         if (onSubmit) {
           onSubmit(courseData)
         } else {
-          toast.success('Formulário enviado com sucesso!')
+          toast.success('Curso criado com sucesso!')
+          // Redirect to courses page after a short delay to show the toast
+          setTimeout(() => {
+            router.push('/gorio/courses')
+          }, 1500)
         }
       } catch (error) {
         if (error instanceof z.ZodError) {
