@@ -9,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { toast } from 'sonner'
 
 import Link from 'next/link'
 
@@ -33,8 +34,11 @@ export default function NewCourse() {
       const result = await response.json()
       console.log('Course created successfully:', result)
 
-      // Redirect to courses list
-      window.location.href = '/gorio/courses'
+      // Show success toast and redirect
+      toast.success('Curso criado com sucesso!')
+      setTimeout(() => {
+        window.location.href = '/gorio/courses'
+      }, 1500)
     } catch (error) {
       console.error('Error creating course:', error)
       // You might want to show an error toast here
@@ -61,8 +65,11 @@ export default function NewCourse() {
       const result = await response.json()
       console.log('Draft course created successfully:', result)
 
-      // Redirect to courses list
-      window.location.href = '/gorio/courses'
+      // Show success toast and redirect
+      toast.success('Rascunho salvo com sucesso!')
+      setTimeout(() => {
+        window.location.href = '/gorio/courses'
+      }, 1500)
     } catch (error) {
       console.error('Error creating draft course:', error)
       // You might want to show an error toast here

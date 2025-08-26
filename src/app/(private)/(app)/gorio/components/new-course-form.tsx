@@ -574,10 +574,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           onSubmit(courseData)
         } else {
           toast.success('Curso criado com sucesso!')
-          // Redirect to courses page after a short delay to show the toast
-          setTimeout(() => {
-            router.push('/gorio/courses')
-          }, 1500)
+          router.push('/gorio/courses')
         }
       } catch (error) {
         if (error instanceof z.ZodError) {
