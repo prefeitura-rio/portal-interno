@@ -152,17 +152,17 @@ const formSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(500, { message: 'Descrição não pode exceder 500 caracteres.' }),
-      enrollmentStartDate: z.date({
+      enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
-      enrollmentEndDate: z.date({
+      enrollment_end_date: z.date({
         required_error: 'Data de término é obrigatória.',
       }),
       orgao: z.object({
         id: z.number(),
         nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       }),
-      modalidade: z.literal('Remoto'),
+      modalidade: z.literal('ONLINE'),
       theme: z
         .string()
         .min(1, { message: 'Tema é obrigatório.' })
@@ -173,39 +173,40 @@ const formSchema = z
         .min(1, { message: 'Carga horária é obrigatória.' })
         .min(3, { message: 'Carga horária deve ter pelo menos 3 caracteres.' })
         .max(50, { message: 'Carga horária não pode exceder 50 caracteres.' }),
-      targetAudience: z
+      target_audience: z
         .string()
         .min(1, { message: 'Público-alvo é obrigatório.' })
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
         .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
       // Required image fields
-      institutionalLogo: z.string().url({
+      institutional_logo: z.string().url({
         message: 'Logo institucional deve ser uma URL válida.',
       }),
-      coverImage: z.string().url({
+      cover_image: z.string().url({
         message: 'Imagem de capa deve ser uma URL válida.',
       }),
       // Optional fields
-      prerequisites: z.string().optional(),
-      hasCertificate: z.boolean().optional(),
+      pre_requisitos: z.string().optional(),
+      has_certificate: z.boolean().optional(),
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
-      expectedResults: z.string().optional(),
-      programContent: z.string().optional(),
+      expected_results: z.string().optional(),
+      program_content: z.string().optional(),
       methodology: z.string().optional(),
-      resourcesUsed: z.string().optional(),
-      materialUsed: z.string().optional(),
-      teachingMaterial: z.string().optional(),
-      customFields: z
+      resources_used: z.string().optional(),
+      material_used: z.string().optional(),
+      teaching_material: z.string().optional(),
+      custom_fields: z
         .array(
           z.object({
             id: z.string(),
             title: z.string(),
             required: z.boolean(),
+            field_type: z.string().optional(),
           })
         )
         .optional(),
-      remoteClass: remoteClassSchema,
+      remote_class: remoteClassSchema,
     }),
     z.object({
       title: z
@@ -218,17 +219,17 @@ const formSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(500, { message: 'Descrição não pode exceder 500 caracteres.' }),
-      enrollmentStartDate: z.date({
+      enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
-      enrollmentEndDate: z.date({
+      enrollment_end_date: z.date({
         required_error: 'Data de término é obrigatória.',
       }),
       orgao: z.object({
         id: z.number(),
         nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       }),
-      modalidade: z.enum(['Presencial', 'Semipresencial']),
+      modalidade: z.enum(['PRESENCIAL', 'HIBRIDO']),
       theme: z
         .string()
         .min(1, { message: 'Tema é obrigatório.' })
@@ -239,35 +240,36 @@ const formSchema = z
         .min(1, { message: 'Carga horária é obrigatória.' })
         .min(3, { message: 'Carga horária deve ter pelo menos 3 caracteres.' })
         .max(50, { message: 'Carga horária não pode exceder 50 caracteres.' }),
-      targetAudience: z
+      target_audience: z
         .string()
         .min(1, { message: 'Público-alvo é obrigatório.' })
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
         .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
       // Required image fields
-      institutionalLogo: z.string().url({
+      institutional_logo: z.string().url({
         message: 'Logo institucional deve ser uma URL válida.',
       }),
-      coverImage: z.string().url({
+      cover_image: z.string().url({
         message: 'Imagem de capa deve ser uma URL válida.',
       }),
       // Optional fields
-      prerequisites: z.string().optional(),
-      hasCertificate: z.boolean().optional(),
+      pre_requisitos: z.string().optional(),
+      has_certificate: z.boolean().optional(),
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
-      expectedResults: z.string().optional(),
-      programContent: z.string().optional(),
+      expected_results: z.string().optional(),
+      program_content: z.string().optional(),
       methodology: z.string().optional(),
-      resourcesUsed: z.string().optional(),
-      materialUsed: z.string().optional(),
-      teachingMaterial: z.string().optional(),
-      customFields: z
+      resources_used: z.string().optional(),
+      material_used: z.string().optional(),
+      teaching_material: z.string().optional(),
+      custom_fields: z
         .array(
           z.object({
             id: z.string(),
             title: z.string(),
             required: z.boolean(),
+            field_type: z.string().optional(),
           })
         )
         .optional(),
@@ -276,14 +278,16 @@ const formSchema = z
       }),
     }),
   ])
-  .refine(data => data.enrollmentEndDate >= data.enrollmentStartDate, {
+  .refine(data => data.enrollment_end_date >= data.enrollment_start_date, {
     message: 'A data final deve ser igual ou posterior à data inicial.',
-    path: ['enrollmentEndDate'],
+    path: ['enrollment_end_date'],
   })
   .refine(
     data => {
-      if (data.modalidade === 'Remoto') {
-        return data.remoteClass.classEndDate >= data.remoteClass.classStartDate
+      if (data.modalidade === 'ONLINE') {
+        return (
+          data.remote_class.classEndDate >= data.remote_class.classStartDate
+        )
       }
       return data.locations.every(
         location => location.classEndDate >= location.classStartDate
@@ -301,27 +305,27 @@ type FormData = z.infer<typeof formSchema>
 // Helper type for form state before modalidade is selected
 type PartialFormData = Omit<
   FormData,
-  'modalidade' | 'locations' | 'remoteClass'
+  'modalidade' | 'locations' | 'remote_class'
 > & {
-  modalidade?: 'Presencial' | 'Semipresencial' | 'Remoto'
+  modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
-  remoteClass?: z.infer<typeof remoteClassSchema>
+  remote_class?: z.infer<typeof remoteClassSchema>
   theme?: string
   workload?: string
-  targetAudience?: string
-  prerequisites?: string
-  hasCertificate?: boolean
+  target_audience?: string
+  pre_requisitos?: string
+  has_certificate?: boolean
   facilitator?: string
   objectives?: string
-  expectedResults?: string
-  programContent?: string
+  expected_results?: string
+  program_content?: string
   methodology?: string
-  resourcesUsed?: string
-  materialUsed?: string
-  teachingMaterial?: string
-  institutionalLogo?: string | null
-  coverImage?: string | null
-  customFields?: CustomField[]
+  resources_used?: string
+  material_used?: string
+  teaching_material?: string
+  institutional_logo?: string | null
+  cover_image?: string | null
+  custom_fields?: CustomField[]
   status?: 'canceled' | 'draft' | 'opened' | 'closed'
 }
 
@@ -378,28 +382,28 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       defaultValues: initialData || {
         title: '',
         description: '',
-        enrollmentStartDate: new Date(),
-        enrollmentEndDate: new Date(),
+        enrollment_start_date: new Date(),
+        enrollment_end_date: new Date(),
         orgao: undefined,
         modalidade: undefined,
         theme: '',
         locations: [],
-        remoteClass: undefined,
+        remote_class: undefined,
         workload: '',
-        targetAudience: '',
-        prerequisites: '',
-        hasCertificate: false,
+        target_audience: '',
+        pre_requisitos: '',
+        has_certificate: false,
         facilitator: '',
         objectives: '',
-        expectedResults: '',
-        programContent: '',
+        expected_results: '',
+        program_content: '',
         methodology: '',
-        resourcesUsed: '',
-        materialUsed: '',
-        teachingMaterial: '',
-        institutionalLogo: '',
-        coverImage: '',
-        customFields: [],
+        resources_used: '',
+        material_used: '',
+        teaching_material: '',
+        institutional_logo: '',
+        cover_image: '',
+        custom_fields: [],
       },
       mode: 'onChange', // Enable real-time validation
     })
@@ -435,6 +439,36 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       fetchOrgaos()
     }, [])
 
+    // Transform form data to snake_case for backend
+    const transformFormDataToSnakeCase = (data: PartialFormData) => {
+      return {
+        title: data.title,
+        description: data.description,
+        enrollment_start_date: data.enrollment_start_date,
+        enrollment_end_date: data.enrollment_end_date,
+        orgao: data.orgao,
+        modalidade: data.modalidade,
+        theme: data.theme,
+        workload: data.workload,
+        target_audience: data.target_audience,
+        institutional_logo: data.institutional_logo,
+        cover_image: data.cover_image,
+        pre_requisitos: data.pre_requisitos,
+        has_certificate: data.has_certificate,
+        facilitator: data.facilitator,
+        objectives: data.objectives,
+        expected_results: data.expected_results,
+        program_content: data.program_content,
+        methodology: data.methodology,
+        resources_used: data.resources_used,
+        material_used: data.material_used,
+        teaching_material: data.teaching_material,
+        custom_fields: data.custom_fields,
+        locations: data.locations,
+        remote_class: data.remote_class,
+      }
+    }
+
     // Expose methods to parent component via ref
     useImperativeHandle(ref, () => ({
       triggerSubmit: () => {
@@ -447,21 +481,21 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
     // Handle modalidade change to properly initialize fields
     const handleModalidadeChange = (
-      value: 'Presencial' | 'Semipresencial' | 'Remoto'
+      value: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
     ) => {
-      if (value === 'Remoto') {
+      if (value === 'ONLINE') {
         // Clear locations array and initialize remote class fields
         form.setValue('locations', [])
-        form.setValue('remoteClass', {
+        form.setValue('remote_class', {
           vacancies: 1,
           classStartDate: new Date(),
           classEndDate: new Date(),
           classTime: '',
           classDays: '',
         })
-      } else if (value === 'Presencial' || value === 'Semipresencial') {
+      } else if (value === 'PRESENCIAL' || value === 'HIBRIDO') {
         // Clear remote class and initialize locations if not already set
-        form.setValue('remoteClass', undefined)
+        form.setValue('remote_class', undefined)
 
         const currentLocations = form.getValues('locations')
         if (!currentLocations || currentLocations.length === 0) {
@@ -517,9 +551,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Validate the complete form data
         const validatedData = formSchema.parse(values)
 
+        // Transform to snake_case for backend
+        const transformedData = transformFormDataToSnakeCase(validatedData)
+
         // Adiciona o status para curso criado
         const courseData = {
-          ...validatedData,
+          ...transformedData,
           status: 'opened' as const,
         }
 
@@ -557,9 +594,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       try {
         const currentValues = form.getValues()
 
+        // Transform to snake_case for backend
+        const transformedData = transformFormDataToSnakeCase(currentValues)
+
         // Adiciona o status para rascunho
         const draftData = {
-          ...currentValues,
+          ...transformedData,
           status: 'draft' as const,
         }
 
@@ -610,9 +650,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Validate the complete form data before publishing
         const validatedData = formSchema.parse(currentValues)
 
+        // Transform to snake_case for backend
+        const transformedData = transformFormDataToSnakeCase(validatedData)
+
         // Adiciona o status para publicação
         const publishData = {
-          ...currentValues,
+          ...transformedData,
           status: 'opened' as const,
         }
 
@@ -679,7 +722,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               <div className="flex items-center justify-between gap-4">
                 <FormField
                   control={form.control}
-                  name="enrollmentStartDate"
+                  name="enrollment_start_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col flex-1">
                       <FormLabel>Período de inscrições*</FormLabel>
@@ -718,7 +761,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 <div className="flex mt-4 items-center justify-center">à</div>
                 <FormField
                   control={form.control}
-                  name="enrollmentEndDate"
+                  name="enrollment_end_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col flex-1">
                       <FormLabel className="opacity-0 pointer-events-none select-none">
@@ -816,9 +859,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     <Select
                       onValueChange={value => {
                         const modalidadeValue = value as
-                          | 'Presencial'
-                          | 'Semipresencial'
-                          | 'Remoto'
+                          | 'PRESENCIAL'
+                          | 'HIBRIDO'
+                          | 'ONLINE'
                         field.onChange(modalidadeValue)
                         handleModalidadeChange(modalidadeValue)
                       }}
@@ -830,11 +873,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Presencial">Presencial</SelectItem>
-                        <SelectItem value="Semipresencial">
-                          Semipresencial
-                        </SelectItem>
-                        <SelectItem value="Remoto">Remoto</SelectItem>
+                        <SelectItem value="PRESENCIAL">Presencial</SelectItem>
+                        <SelectItem value="HIBRIDO">Híbrido</SelectItem>
+                        <SelectItem value="ONLINE">Online</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -861,7 +902,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               />
 
               {/* Conditional rendering based on modalidade */}
-              {modalidade === 'Remoto' && (
+              {modalidade === 'ONLINE' && (
                 <Card className="-mt-2">
                   <CardHeader>
                     <CardTitle>Informações das Aulas Remotas</CardTitle>
@@ -869,7 +910,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <CardContent className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="remoteClass.vacancies"
+                      name="remote_class.vacancies"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Número de vagas*</FormLabel>
@@ -884,7 +925,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     <div className="flex items-center gap-4">
                       <FormField
                         control={form.control}
-                        name="remoteClass.classStartDate"
+                        name="remote_class.classStartDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col flex-1">
                             <FormLabel>Período das aulas*</FormLabel>
@@ -926,7 +967,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       <span className="mt-4">à</span>
                       <FormField
                         control={form.control}
-                        name="remoteClass.classEndDate"
+                        name="remote_class.classEndDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col flex-1">
                             <FormLabel className="opacity-0 pointer-events-none select-none">
@@ -971,7 +1012,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                     <FormField
                       control={form.control}
-                      name="remoteClass.classTime"
+                      name="remote_class.classTime"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Horário das aulas*</FormLabel>
@@ -985,7 +1026,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                     <FormField
                       control={form.control}
-                      name="remoteClass.classDays"
+                      name="remote_class.classDays"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Dias de aula*</FormLabel>
@@ -1003,8 +1044,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 </Card>
               )}
 
-              {(modalidade === 'Presencial' ||
-                modalidade === 'Semipresencial') && (
+              {(modalidade === 'PRESENCIAL' || modalidade === 'HIBRIDO') && (
                 <div className="space-y-4 -mt-2">
                   {fields.map((field, index) => (
                     <Card key={field.id}>
@@ -1224,7 +1264,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
               <FormField
                 control={form.control}
-                name="targetAudience"
+                name="target_audience"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Público-alvo*</FormLabel>
@@ -1255,7 +1295,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         <div className="space-y-6 pt-4">
                           <FormField
                             control={form.control}
-                            name="prerequisites"
+                            name="pre_requisitos"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>
@@ -1275,7 +1315,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                           <FormField
                             control={form.control}
-                            name="hasCertificate"
+                            name="has_certificate"
                             render={({ field }) => (
                               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                 <FormControl>
@@ -1328,7 +1368,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                           <FormField
                             control={form.control}
-                            name="expectedResults"
+                            name="expected_results"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Resultados esperados</FormLabel>
@@ -1346,7 +1386,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                           <FormField
                             control={form.control}
-                            name="programContent"
+                            name="program_content"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Conteúdo programático</FormLabel>
@@ -1382,7 +1422,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                           <FormField
                             control={form.control}
-                            name="resourcesUsed"
+                            name="resources_used"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Recursos Utilizados</FormLabel>
@@ -1400,7 +1440,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                           <FormField
                             control={form.control}
-                            name="materialUsed"
+                            name="material_used"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Material utilizado</FormLabel>
@@ -1418,7 +1458,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                           <FormField
                             control={form.control}
-                            name="teachingMaterial"
+                            name="teaching_material"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Material didático</FormLabel>
@@ -1443,7 +1483,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             <div className="space-y-6">
               <FormField
                 control={form.control}
-                name="institutionalLogo"
+                name="institutional_logo"
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
@@ -1461,7 +1501,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
               <FormField
                 control={form.control}
-                name="coverImage"
+                name="cover_image"
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
@@ -1479,7 +1519,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
               <FormField
                 control={form.control}
-                name="customFields"
+                name="custom_fields"
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
