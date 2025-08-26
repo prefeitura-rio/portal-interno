@@ -1,7 +1,8 @@
+import { postApiV1Courses } from '@/http/courses/courses'
 import type { ModelsCursoBody } from '@/http/models/modelsCursoBody'
-import { type NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body: ModelsCursoBody = await request.json()
 
@@ -13,36 +14,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const apiUrl = `${process.env.NEXT_PUBLIC_BASE_API_URL}/api/v1/courses`
+    console.log('Creating course with data:', JSON.stringify(body, null, 2))
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
+    // Call the external API using the existing client function
+    const response = await postApiV1Courses(body)
+
+    console.log('API Response:', {
+      status: response.status,
+      data: response.data,
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(
-        `API request failed: ${response.status} - ${errorData.error || 'Unknown error'}`
-      )
+    if (response.status === 201) {
+      return NextResponse.json({
+        course: response.data,
+        success: true,
+      })
     }
 
-    const data = await response.json()
-
-    return NextResponse.json({
-      course: data.data,
-      success: true,
-    })
+    return NextResponse.json(
+      { error: 'Failed to create course' },
+      { status: response.status }
+    )
   } catch (error) {
     console.error('Error creating course:', error)
     return NextResponse.json(
-      {
-        error: 'Failed to create course',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

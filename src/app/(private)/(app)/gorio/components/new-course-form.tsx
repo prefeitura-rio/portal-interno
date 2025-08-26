@@ -327,6 +327,7 @@ interface NewCourseFormProps {
   initialData?: PartialFormData
   isReadOnly?: boolean
   onSubmit?: (data: PartialFormData) => void
+  onSaveDraft?: (data: PartialFormData) => void
   onPublish?: (data: PartialFormData) => void
   isDraft?: boolean
   courseStatus?: string
@@ -343,6 +344,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       initialData,
       isReadOnly = false,
       onSubmit,
+      onSaveDraft,
       onPublish,
       isDraft = false,
       courseStatus,
@@ -535,10 +537,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Por exemplo, enviar para uma API específica de rascunhos
         // ou salvar no localStorage
 
-        if (onSubmit) {
+        if (onSaveDraft) {
+          onSaveDraft(draftData)
+        } else if (onSubmit) {
           onSubmit(draftData)
+        } else {
+          toast.success('Rascunho salvo com sucesso!')
         }
-        toast.success('Rascunho salvo com sucesso!')
       } catch (error) {
         console.error('Error saving draft:', error)
         toast.error('Erro ao salvar rascunho', {

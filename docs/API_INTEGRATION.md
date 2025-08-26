@@ -56,16 +56,18 @@ Frontend → /api/courses/drafts → getApiV1CoursesDrafts() → External API
 ### 4. Create New Course
 - **Route**: `/api/courses/new`
 - **Method**: `POST`
-- **Description**: Creates a new published course via the external API
+- **Description**: Creates a new published course via the external API using `postApiV1Courses()`
 - **Body**: Course data in `ModelsCursoBody` format
-- **Response**: Created course data
+- **Response**: Created course data with success status
+- **Status**: Returns 201 on successful creation
 
 ### 5. Create Draft Course
 - **Route**: `/api/courses/draft`
 - **Method**: `POST`
-- **Description**: Creates a new draft course via the external API
+- **Description**: Creates a new draft course via the external API using `postApiV1CoursesDraft()`
 - **Body**: Course data in `ModelsCursoBody` format
-- **Response**: Created draft course data
+- **Response**: Created draft course data with success status
+- **Status**: Returns 201 on successful creation
 
 ### 6. Update Course
 - **Route**: `/api/courses/[course-id]`
@@ -79,6 +81,24 @@ Frontend → /api/courses/drafts → getApiV1CoursesDrafts() → External API
 - **Method**: `DELETE`
 - **Description**: Deletes a course via the external API
 - **Response**: Success message and deleted course data
+
+## Course Creation Flow
+
+### Frontend to API Flow
+1. **Form Submission**: User fills out course form and clicks "Criar Curso" or "Salvar Rascunho"
+2. **Form Validation**: React Hook Form validates the data using Zod schema
+3. **Confirm Dialog**: User confirms the action in a confirmation dialog
+4. **API Call**: Frontend calls the appropriate route handler (`/api/courses/new` or `/api/courses/draft`)
+5. **Route Handler**: Next.js route handler receives the request and calls the external API
+6. **External API**: Uses `postApiV1Courses()` or `postApiV1CoursesDraft()` from the generated client
+7. **Response**: Returns success/error response to frontend
+8. **Redirect**: On success, user is redirected to the courses list
+
+### Form Components
+- **NewCourseForm**: Main form component with validation and submission logic
+- **FieldsCreator**: Dynamic custom fields creation component
+- **ImageUpload**: File upload component for course images
+- **Location Management**: Support for both physical and remote class locations
 
 ## Data Transformation
 
