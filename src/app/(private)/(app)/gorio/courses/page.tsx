@@ -21,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { mockCourseList } from '@/lib/mock-data'
 import type {
   CourseListItem,
   CourseStatus,
@@ -50,7 +49,6 @@ import {
   FileText,
   Flag,
   MoreHorizontal,
-  Play,
   Text,
   Users,
 } from 'lucide-react'
@@ -66,27 +64,21 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
     variant: 'outline',
     className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
   },
-  scheduled: {
-    icon: Calendar,
-    label: 'Agendado',
-    variant: 'outline',
-    className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
-  },
-  receiving_registrations: {
+  opened: {
     icon: ClipboardList,
-    label: 'Receb. insc.',
+    label: 'Aberto',
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
-  in_progress: {
-    icon: Play,
-    label: 'Em andamento',
+  ABERTO: {
+    icon: ClipboardList,
+    label: 'Aberto',
     variant: 'default',
-    className: 'text-blue-600 border-blue-200 bg-blue-50',
+    className: 'text-green-600 border-green-200 bg-green-50',
   },
-  finished: {
+  closed: {
     icon: Flag,
-    label: 'Encerrado',
+    label: 'Fechado',
     variant: 'outline',
     className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
@@ -110,25 +102,49 @@ export default function Courses() {
     pageSize: 10,
   })
   const [activeTab, setActiveTab] = React.useState('created')
+  const [courses, setCourses] = React.useState<CourseListItem[]>([])
+  const [draftCourses, setDraftCourses] = React.useState<CourseListItem[]>([])
+  const [loading, setLoading] = React.useState(true)
 
-  // Dialog states
-  const [confirmDialog, setConfirmDialog] = React.useState<{
-    open: boolean
-    type: 'cancel_course' | 'delete_draft' | null
-    course: CourseListItem | null
-  }>({
-    open: false,
-    type: null,
-    course: null,
-  })
+  // Fetch courses data
+  React.useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true)
+
+        // Fetch both regular courses and draft courses
+        const [coursesResponse, draftsResponse] = await Promise.all([
+          fetch('/api/courses'),
+          fetch('/api/courses/drafts'),
+        ])
+
+        if (coursesResponse.ok) {
+          const coursesData = await coursesResponse.json()
+          setCourses(coursesData.courses || [])
+        }
+
+        if (draftsResponse.ok) {
+          const draftsData = await draftsResponse.json()
+          setDraftCourses(draftsData.courses || [])
+        }
+      } catch (error) {
+        console.error('Error fetching courses:', error)
+        toast.error('Erro ao carregar cursos')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCourses()
+  }, [])
 
   // Filter data based on active tab
   const filteredData = React.useMemo(() => {
     if (activeTab === 'draft') {
-      return mockCourseList.filter(course => course.status === 'draft')
+      return draftCourses
     }
-    return mockCourseList.filter(course => course.status !== 'draft')
-  }, [activeTab])
+    return courses
+  }, [activeTab, courses, draftCourses])
 
   // Common columns without selection and status
   const baseColumns = React.useMemo<ColumnDef<CourseListItem>[]>(() => {
@@ -231,15 +247,20 @@ export default function Courses() {
         id: 'registration_start',
         accessorKey: 'registration_start',
         accessorFn: row => {
-          const date = new Date(row.registration_start)
-          date.setHours(0, 0, 0, 0)
-          return date.getTime()
+          const date = row.registration_start
+          if (!date) return null
+          const dateObj = new Date(date)
+          dateObj.setHours(0, 0, 0, 0)
+          return dateObj.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Início das Inscr." />
         ),
         cell: ({ cell }) => {
-          const timestamp = cell.getValue<number>()
+          const timestamp = cell.getValue<number | null>()
+          if (!timestamp)
+            return <span className="text-muted-foreground">Não definido</span>
+
           const date = new Date(timestamp)
           return (
             <div className="flex items-center gap-2">
@@ -259,15 +280,20 @@ export default function Courses() {
         id: 'registration_end',
         accessorKey: 'registration_end',
         accessorFn: row => {
-          const date = new Date(row.registration_end)
-          date.setHours(0, 0, 0, 0)
-          return date.getTime()
+          const date = row.registration_end
+          if (!date) return null
+          const dateObj = new Date(date)
+          dateObj.setHours(0, 0, 0, 0)
+          return dateObj.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Fim das Inscr." />
         ),
         cell: ({ cell }) => {
-          const timestamp = cell.getValue<number>()
+          const timestamp = cell.getValue<number | null>()
+          if (!timestamp)
+            return <span className="text-muted-foreground">Não definido</span>
+
           const date = new Date(timestamp)
           return (
             <div className="flex items-center gap-2">
@@ -363,9 +389,7 @@ export default function Courses() {
                     Excluir rascunho
                   </DropdownMenuItem>
                 )}
-                {(course.status === 'in_progress' ||
-                  course.status === 'receiving_registrations' ||
-                  course.status === 'scheduled') && (
+                {(course.status === 'opened' || course.status === 'ABERTO') && (
                   <DropdownMenuItem
                     variant="destructive"
                     onClick={() => openConfirmDialog('cancel_course', course)}
@@ -419,14 +443,9 @@ export default function Courses() {
         label: 'Status',
         variant: 'multiSelect',
         options: [
-          { label: 'Agendado', value: 'scheduled', icon: Calendar },
-          {
-            label: 'Recebendo inscrições',
-            value: 'receiving_registrations',
-            icon: ClipboardList,
-          },
-          { label: 'Em andamento', value: 'in_progress', icon: Play },
-          { label: 'Encerrado', value: 'finished', icon: Flag },
+          { label: 'Aberto', value: 'opened', icon: ClipboardList },
+          { label: 'Aberto', value: 'ABERTO', icon: ClipboardList },
+          { label: 'Fechado', value: 'closed', icon: Flag },
           { label: 'Cancelado', value: 'cancelled', icon: Ban },
         ],
       },
@@ -441,8 +460,19 @@ export default function Courses() {
     ]
   }, [activeTab, baseColumns])
 
+  // Dialog states
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    open: boolean
+    type: 'cancel_course' | 'delete_draft' | null
+    course: CourseListItem | null
+  }>({
+    open: false,
+    type: null,
+    course: null,
+  })
+
   const table = useReactTable({
-    data: filteredData, // Use filtered data based on active tab
+    data: filteredData,
     columns,
     getRowId: row => row.id,
     state: {
@@ -458,6 +488,19 @@ export default function Courses() {
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
   })
+
+  if (loading) {
+    return (
+      <ContentLayout title="Gestão de Cursos">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Carregando cursos...</p>
+          </div>
+        </div>
+      </ContentLayout>
+    )
+  }
 
   return (
     <ContentLayout title="Gestão de Cursos">

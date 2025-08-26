@@ -39,10 +39,15 @@ const getHeaders = async (headers?: HeadersInit): Promise<HeadersInit> => {
   const cookieStore = await cookies()
   const access_token = cookieStore.get('access_token')?.value
 
+  // Check if Content-Type is already set in headers
+  const hasContentType =
+    headers && typeof headers === 'object' && 'Content-Type' in headers
+
   return {
     ...headers,
     ...(access_token && { Authorization: `Bearer ${access_token}` }),
-    'Content-Type': 'multipart/form-data',
+    // Don't override Content-Type if it's already set in headers
+    ...(hasContentType ? {} : { 'Content-Type': 'application/json' }),
   }
 }
 

@@ -1,4 +1,4 @@
-import { getApiV1Courses } from '@/http/courses/courses'
+import { getApiV1CoursesDrafts } from '@/http/courses/courses'
 import { transformApiCourseToCourseListItem } from '@/lib/api-transformers'
 import type { CourseListItem } from '@/types/course'
 import { NextResponse } from 'next/server'
@@ -10,37 +10,27 @@ export async function GET(request: Request) {
     // Extract query parameters
     const page = searchParams.get('page')
     const perPage = searchParams.get('per_page')
-    const status = searchParams.get('status')
     const search = searchParams.get('search')
     const provider = searchParams.get('provider')
     const dateFrom = searchParams.get('date_from')
     const dateTo = searchParams.get('date_to')
-    const vacanciesMin = searchParams.get('vacancies_min')
-    const vacanciesMax = searchParams.get('vacancies_max')
-    const durationMin = searchParams.get('duration_min')
-    const durationMax = searchParams.get('duration_max')
 
     // Build params object for the API
     const params: any = {}
 
     if (page) params.page = Number.parseInt(page, 10)
     if (perPage) params.per_page = Number.parseInt(perPage, 10)
-    if (status) params.status = status
     if (search) params.search = search
     if (provider) params.provider = provider
     if (dateFrom) params.date_from = dateFrom
     if (dateTo) params.date_to = dateTo
-    if (vacanciesMin) params.vacancies_min = Number.parseInt(vacanciesMin, 10)
-    if (vacanciesMax) params.vacancies_max = Number.parseInt(vacanciesMax, 10)
-    if (durationMin) params.duration_min = Number.parseInt(durationMin, 10)
-    if (durationMax) params.duration_max = Number.parseInt(durationMax, 10)
 
     // Call the external API using the existing client function
-    const response = await getApiV1Courses(params)
+    const response = await getApiV1CoursesDrafts(params)
 
     if (response.status === 200) {
       console.log(
-        'API Response structure:',
+        'Drafts API Response structure:',
         JSON.stringify(response.data, null, 2)
       )
 
@@ -54,6 +44,10 @@ export async function GET(request: Request) {
         courses = responseData.courses
       } else if (responseData?.data?.courses) {
         courses = responseData.data.courses
+      } else if (responseData?.drafts) {
+        courses = responseData.drafts
+      } else if (responseData?.data?.drafts) {
+        courses = responseData.data.drafts
       } else if (Array.isArray(responseData)) {
         courses = responseData
       }
@@ -64,7 +58,7 @@ export async function GET(request: Request) {
         pagination = responseData.data.pagination
       }
 
-      console.log('Extracted courses:', courses)
+      console.log('Extracted draft courses:', courses)
       console.log('Extracted pagination:', pagination)
 
       // Transform the API response to match our CourseListItem interface
@@ -73,7 +67,7 @@ export async function GET(request: Request) {
             try {
               return transformApiCourseToCourseListItem(course)
             } catch (error) {
-              console.error('Error transforming course:', course, error)
+              console.error('Error transforming draft course:', course, error)
               // Return a fallback course item
               return {
                 id: course.id?.toString() || 'unknown',
@@ -104,11 +98,11 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch courses' },
+      { error: 'Failed to fetch draft courses' },
       { status: response.status }
     )
   } catch (error) {
-    console.error('Error fetching courses:', error)
+    console.error('Error fetching draft courses:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
