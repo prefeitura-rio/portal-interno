@@ -1,3 +1,8 @@
+import {
+  deleteApiV1CoursesCourseId,
+  getApiV1CoursesCourseId,
+  putApiV1CoursesCourseId,
+} from '@/http/courses/courses'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
@@ -14,29 +19,31 @@ export async function GET(
       )
     }
 
-    const apiUrl = `${process.env.NEXT_PUBLIC_BASE_API_URL}/api/v1/courses/${courseId}`
+    // Use the proper HTTP client function instead of direct fetch
+    const response = await getApiV1CoursesCourseId(
+      Number.parseInt(courseId, 10)
+    )
 
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      next: { revalidate: 60 }, // Cache for 1 minute
-    })
+    console.log('API Response:', response)
+    console.log('API Response data:', response.data)
+    console.log('API Response status:', response.status)
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return NextResponse.json({ error: 'Course not found' }, { status: 404 })
-      }
-      throw new Error(`API request failed: ${response.status}`)
+    if (response.status === 200) {
+      // The external API returns { data: ModelsCurso, status: 200 }
+      // We need to extract the course data and return it in our format
+      const courseData = response.data
+
+      return NextResponse.json({
+        course: courseData,
+        success: true,
+      })
     }
 
-    const data = await response.json()
-
-    return NextResponse.json({
-      course: data.data,
-      success: true,
-    })
+    // Handle error responses
+    return NextResponse.json(
+      { error: 'Failed to fetch course from external API' },
+      { status: response.status }
+    )
   } catch (error) {
     console.error('Error fetching course:', error)
     return NextResponse.json(
@@ -64,26 +71,25 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const apiUrl = `${process.env.NEXT_PUBLIC_BASE_API_URL}/api/v1/courses/${courseId}`
 
-    const response = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    })
+    // Use the proper HTTP client function instead of direct fetch
+    const response = await putApiV1CoursesCourseId(
+      Number.parseInt(courseId, 10),
+      body
+    )
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`)
+    if (response.status === 200) {
+      return NextResponse.json({
+        course: response.data,
+        success: true,
+      })
     }
 
-    const data = await response.json()
-
-    return NextResponse.json({
-      course: data.data,
-      success: true,
-    })
+    // Handle error responses
+    return NextResponse.json(
+      { error: 'Failed to update course from external API' },
+      { status: response.status }
+    )
   } catch (error) {
     console.error('Error updating course:', error)
     return NextResponse.json(
@@ -110,26 +116,24 @@ export async function DELETE(
       )
     }
 
-    const apiUrl = `${process.env.NEXT_PUBLIC_BASE_API_URL}/api/v1/courses/${courseId}`
+    // Use the proper HTTP client function instead of direct fetch
+    const response = await deleteApiV1CoursesCourseId(
+      Number.parseInt(courseId, 10)
+    )
 
-    const response = await fetch(apiUrl, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`)
+    if (response.status === 200) {
+      return NextResponse.json({
+        message: 'Course deleted successfully',
+        data: response.data,
+        success: true,
+      })
     }
 
-    const data = await response.json()
-
-    return NextResponse.json({
-      message: 'Course deleted successfully',
-      data: data.data,
-      success: true,
-    })
+    // Handle error responses
+    return NextResponse.json(
+      { error: 'Failed to delete course from external API' },
+      { status: response.status }
+    )
   } catch (error) {
     console.error('Error deleting course:', error)
     return NextResponse.json(

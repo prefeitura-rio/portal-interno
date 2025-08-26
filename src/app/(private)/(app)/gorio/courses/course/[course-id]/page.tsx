@@ -38,61 +38,49 @@ import { useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-// Status configuration for badges
+// Status configuration for badges - updated to match actual API response
 const statusConfig: Record<string, CourseStatusConfig> = {
-  active: {
-    icon: CheckCircle,
-    label: 'Ativo',
-    variant: 'default',
-    className: 'text-green-600 border-green-200 bg-green-50',
-  },
-  inactive: {
-    icon: XCircle,
-    label: 'Inativo',
-    variant: 'secondary',
-    className: 'text-gray-600 border-gray-200 bg-gray-50',
-  },
   draft: {
     icon: AlertCircle,
     label: 'Rascunho',
     variant: 'outline',
     className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
   },
-  completed: {
+  opened: {
     icon: CheckCircle,
-    label: 'Concluído',
-    variant: 'outline',
-    className: 'text-blue-600 border-blue-200 bg-blue-50',
-  },
-  receiving_registrations: {
-    icon: CheckCircle,
-    label: 'Recebendo Inscrições',
+    label: 'Aberto',
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
-  in_progress: {
+  ABERTO: {
     icon: CheckCircle,
-    label: 'Em Andamento',
+    label: 'Aberto',
     variant: 'default',
+    className: 'text-green-600 border-green-200 bg-green-50',
+  },
+  CRIADO: {
+    icon: AlertCircle,
+    label: 'Criado',
+    variant: 'outline',
     className: 'text-blue-600 border-blue-200 bg-blue-50',
   },
-  finished: {
-    icon: CheckCircle,
-    label: 'Finalizado',
-    variant: 'outline',
+  closed: {
+    icon: XCircle,
+    label: 'Fechado',
+    variant: 'secondary',
     className: 'text-gray-600 border-gray-200 bg-gray-50',
   },
-  cancelled: {
+  ENCERRADO: {
+    icon: XCircle,
+    label: 'Encerrado',
+    variant: 'secondary',
+    className: 'text-gray-600 border-gray-200 bg-gray-50',
+  },
+  canceled: {
     icon: XCircle,
     label: 'Cancelado',
-    variant: 'secondary',
+    variant: 'destructive',
     className: 'text-red-600 border-red-200 bg-red-50',
-  },
-  scheduled: {
-    icon: AlertCircle,
-    label: 'Agendado',
-    variant: 'outline',
-    className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
   },
 }
 
@@ -119,6 +107,14 @@ export default function CourseDetailPage({
 
   // Use the custom hook to fetch course data
   const { course, loading, error } = useCourse(courseId)
+
+  // Debug logging
+  useEffect(() => {
+    if (course) {
+      console.log('Course data received:', course)
+      console.log('Course status:', course.status)
+    }
+  }, [course])
 
   // Handle async params
   useEffect(() => {
@@ -289,9 +285,10 @@ export default function CourseDetailPage({
               </div>
             </div>
             <div className="flex gap-2">
-              {/* Only show action buttons if course is not cancelled or finished */}
-              {course.status !== 'cancelled' &&
-                course.status !== 'finished' &&
+              {/* Only show action buttons if course is not canceled, closed, or encerrado */}
+              {course.status !== 'canceled' &&
+                course.status !== 'closed' &&
+                course.status !== 'ENCERRADO' &&
                 (!isEditing ? (
                   <>
                     <Button

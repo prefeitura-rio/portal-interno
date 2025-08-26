@@ -1,4 +1,4 @@
-import { convertDatesToObjects } from '@/lib/utils'
+import { transformApiCourseToCourse } from '@/lib/utils'
 import type { Course } from '@/types/course'
 import { useEffect, useState } from 'react'
 
@@ -35,9 +35,17 @@ export function useCourse(courseId: string | null): UseCourseReturn {
         }
 
         const data = await response.json()
-        // Convert string dates back to Date objects
-        const courseWithDates = convertDatesToObjects(data)
-        setCourse(courseWithDates)
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to fetch course')
+        }
+
+        // Extract the course from the response structure
+        const courseData = data.course
+
+        // Transform API course data to frontend Course type (this already handles date conversion)
+        const transformedCourse = transformApiCourseToCourse(courseData)
+        setCourse(transformedCourse)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
         setCourse(null)

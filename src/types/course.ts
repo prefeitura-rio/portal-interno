@@ -16,7 +16,7 @@ export interface ApiCourse {
   }
   organization?: string // Keep for backward compatibility
   modalidade: 'ONLINE' | 'PRESENCIAL' | 'SEMIPRESENCIAL'
-  status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'cancelled'
+  status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled'
   created_at: string
   updated_at: string
   enrollment_start_date?: string | null
@@ -66,7 +66,9 @@ export type CourseStatus =
   | 'opened'
   | 'ABERTO'
   | 'closed'
-  | 'cancelled'
+  | 'canceled'
+  | 'CRIADO'
+  | 'ENCERRADO'
 
 export interface CourseStatusConfig {
   icon: React.ComponentType<{ className?: string }>
