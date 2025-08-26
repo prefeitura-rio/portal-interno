@@ -467,8 +467,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         locations: data.locations,
         remote_class: data.remote_class,
         // Add the new fields that should always be sent
-        turno: "LIVRE",
-        formato_aula: data.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL'
+        turno: 'LIVRE',
+        formato_aula: data.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
       }
     }
 
