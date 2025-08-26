@@ -9,7 +9,8 @@ export function transformApiCourseToCourseListItem(
   return {
     id: apiCourse.id.toString(),
     title: apiCourse.title || 'Sem título',
-    provider: apiCourse.organization || 'Não informado',
+    provider:
+      apiCourse.orgao?.nome || apiCourse.organization || 'Não informado',
     duration: apiCourse.carga_horaria || 0,
     vacancies: apiCourse.numero_vagas || 0,
     status: apiCourse.status,
@@ -21,7 +22,8 @@ export function transformApiCourseToCourseListItem(
       ? new Date(apiCourse.enrollment_end_date)
       : null,
     modalidade: apiCourse.modalidade,
-    organization: apiCourse.organization,
+    organization:
+      apiCourse.orgao?.nome || apiCourse.organization || 'Não informado',
   }
 }
 

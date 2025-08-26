@@ -10,7 +10,11 @@ export interface ApiCourse {
   id: number
   title: string
   description: string
-  organization: string
+  orgao?: {
+    id: number
+    nome: string
+  }
+  organization?: string // Keep for backward compatibility
   modalidade: 'ONLINE' | 'PRESENCIAL' | 'SEMIPRESENCIAL'
   status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'cancelled'
   created_at: string

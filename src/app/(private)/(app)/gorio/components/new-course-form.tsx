@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { forwardRef, useImperativeHandle, useState } from 'react'
+import React, { forwardRef, useImperativeHandle, useState } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -158,8 +158,9 @@ const formSchema = z
       enrollmentEndDate: z.date({
         required_error: 'Data de término é obrigatória.',
       }),
-      organization: z.string().min(1, {
-        message: 'Órgão é obrigatório.',
+      orgao: z.object({
+        id: z.number(),
+        nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       }),
       modalidade: z.literal('Remoto'),
       theme: z
@@ -223,8 +224,9 @@ const formSchema = z
       enrollmentEndDate: z.date({
         required_error: 'Data de término é obrigatória.',
       }),
-      organization: z.string().min(1, {
-        message: 'Órgão é obrigatório.',
+      orgao: z.object({
+        id: z.number(),
+        nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       }),
       modalidade: z.enum(['Presencial', 'Semipresencial']),
       theme: z
@@ -351,6 +353,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     },
     ref
   ) => {
+    // State for organizations
+    const [orgaos, setOrgaos] = useState<Array<{ id: number; nome: string }>>(
+      []
+    )
+    const [loadingOrgaos, setLoadingOrgaos] = useState(false)
+
     // Dialog states
     const [confirmDialog, setConfirmDialog] = useState<{
       open: boolean
@@ -372,7 +380,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         description: '',
         enrollmentStartDate: new Date(),
         enrollmentEndDate: new Date(),
-        organization: '',
+        orgao: undefined,
         modalidade: undefined,
         theme: '',
         locations: [],
@@ -401,6 +409,31 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       control: form.control,
       name: 'locations',
     })
+
+    // Fetch organizations on component mount
+    React.useEffect(() => {
+      const fetchOrgaos = async () => {
+        try {
+          setLoadingOrgaos(true)
+          const response = await fetch('/api/orgaos')
+
+          if (response.ok) {
+            const data = await response.json()
+            setOrgaos(data.data || [])
+          } else {
+            console.error('Failed to fetch organizations')
+            toast.error('Erro ao carregar organizações')
+          }
+        } catch (error) {
+          console.error('Error fetching organizations:', error)
+          toast.error('Erro ao carregar organizações')
+        } finally {
+          setLoadingOrgaos(false)
+        }
+      }
+
+      fetchOrgaos()
+    }, [])
 
     // Expose methods to parent component via ref
     useImperativeHandle(ref, () => ({
@@ -727,31 +760,47 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
               <FormField
                 control={form.control}
-                name="organization"
+                name="orgao"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Órgão (Quem oferece o curso)*</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isReadOnly}
+                      onValueChange={value => {
+                        const selectedOrgao = orgaos.find(
+                          org => org.id.toString() === value
+                        )
+                        if (selectedOrgao) {
+                          field.onChange(selectedOrgao)
+                        }
+                      }}
+                      value={field.value?.id?.toString() || ''}
+                      disabled={isReadOnly || loadingOrgaos}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione um órgão" />
+                          <SelectValue
+                            placeholder={
+                              loadingOrgaos
+                                ? 'Carregando organizações...'
+                                : orgaos.length === 0
+                                  ? 'Nenhuma organização encontrada'
+                                  : 'Selecione um órgão'
+                            }
+                          />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="org1">Organização A</SelectItem>
-                        <SelectItem value="org2">Organização B</SelectItem>
-                        <SelectItem value="org3">Organização C</SelectItem>
-                        <SelectItem value="org4">Organização D</SelectItem>
-                        <SelectItem value="org5">Organização E</SelectItem>
-                        <SelectItem value="org6">Organização F</SelectItem>
-                        <SelectItem value="org7">Organização G</SelectItem>
-                        <SelectItem value="org8">Organização H</SelectItem>
-                        <SelectItem value="org9">Organização I</SelectItem>
-                      </SelectContent>
+                      {!loadingOrgaos && orgaos.length > 0 && (
+                        <SelectContent>
+                          {orgaos.map(orgao => (
+                            <SelectItem
+                              key={orgao.id}
+                              value={orgao.id.toString()}
+                            >
+                              {orgao.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      )}
                     </Select>
                     <FormMessage />
                   </FormItem>
