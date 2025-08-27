@@ -99,7 +99,7 @@ export default function CourseDetailPage({
   const [isLoading, setIsLoading] = useState(false)
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [courseId, setCourseId] = useState<string | null>(null)
+  const [courseId, setCourseId] = useState<number | null>(null)
 
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -120,7 +120,9 @@ export default function CourseDetailPage({
   const courseFormRef = useRef<NewCourseFormRef>(null)
 
   // Use the custom hook to fetch course data
-  const { course, loading, error, refetch } = useCourse(courseId)
+  const { course, loading, error, refetch } = useCourse(
+    courseId?.toString() || null
+  )
 
   // Debug logging
   useEffect(() => {
@@ -133,7 +135,7 @@ export default function CourseDetailPage({
   // Handle async params
   useEffect(() => {
     params.then(resolvedParams => {
-      setCourseId(resolvedParams['course-id'])
+      setCourseId(Number(resolvedParams['course-id']))
     })
   }, [params])
 
@@ -154,7 +156,7 @@ export default function CourseDetailPage({
     try {
       setIsLoading(true)
 
-      const response = await fetch(`/api/courses/${Number(courseId)}`, {
+      const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -197,7 +199,7 @@ export default function CourseDetailPage({
         status: 'opened',
       }
 
-      const response = await fetch(`/api/courses/${Number(courseId)}`, {
+      const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -241,13 +243,12 @@ export default function CourseDetailPage({
     try {
       setIsLoading(true)
 
-      // Update the course status to 'canceled'
+      // Only send the necessary fields for status update, not the entire course object
       const cancelData = {
-        ...course,
         status: 'canceled',
       }
 
-      const response = await fetch(`/api/courses/${Number(courseId)}`, {
+      const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -312,7 +313,7 @@ export default function CourseDetailPage({
     try {
       setIsLoading(true)
 
-      const response = await fetch(`/api/courses/${Number(courseId)}`, {
+      const response = await fetch(`/api/courses/${courseId}`, {
         method: 'DELETE',
       })
 
@@ -537,7 +538,7 @@ export default function CourseDetailPage({
 
             <TabsContent value="enrollments" className="mt-6">
               <EnrollmentsTable
-                courseId={courseId || ''}
+                courseId={courseId?.toString() || ''}
                 courseTitle={course?.title}
               />
             </TabsContent>
