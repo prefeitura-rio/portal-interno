@@ -1,24 +1,24 @@
-import type { Table } from "@tanstack/react-table";
+import type { Table } from '@tanstack/react-table'
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-} from "lucide-react";
+} from 'lucide-react'
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
-interface DataTablePaginationProps<TData> extends React.ComponentProps<"div"> {
-  table: Table<TData>;
-  pageSizeOptions?: number[];
+interface DataTablePaginationProps<TData> extends React.ComponentProps<'div'> {
+  table: Table<TData>
+  pageSizeOptions?: number[]
 }
 
 export function DataTablePagination<TData>({
@@ -27,42 +27,54 @@ export function DataTablePagination<TData>({
   className,
   ...props
 }: DataTablePaginationProps<TData>) {
+  // Check if manual pagination is enabled
+  const isManualPagination = (table.options as any).manualPagination || false
+  const pageCount = table.getPageCount()
+  const currentPage = table.getState().pagination.pageIndex
+  const pageSize = table.getState().pagination.pageSize
+
+  // For manual pagination, we need to handle the total count differently
+  const totalRows = isManualPagination
+    ? pageCount * pageSize // Estimate total based on page count
+    : table.getFilteredRowModel().rows.length
+
+  const selectedRows = table.getFilteredSelectedRowModel().rows.length
+
   return (
     <div
       className={cn(
-        "flex w-full flex-col-reverse items-center justify-between gap-4 overflow-auto p-1 sm:flex-row sm:gap-8",
-        className,
+        'flex w-full flex-col-reverse items-center justify-between gap-4 overflow-auto p-1 sm:flex-row sm:gap-8',
+        className
       )}
       {...props}
     >
       <div className="flex-1 whitespace-nowrap text-muted-foreground text-sm">
-        {table.getFilteredSelectedRowModel().rows.length} of{" "}
-        {table.getFilteredRowModel().rows.length} row(s) selected.
+        {selectedRows} of {isManualPagination ? `${totalRows}+` : totalRows}{' '}
+        row(s) selected.
       </div>
       <div className="flex flex-col-reverse items-center gap-4 sm:flex-row sm:gap-6 lg:gap-8">
         <div className="flex items-center space-x-2">
           <p className="whitespace-nowrap font-medium text-sm">Rows per page</p>
           <Select
-            value={`${table.getState().pagination.pageSize}`}
-            onValueChange={(value) => {
-              table.setPageSize(Number(value));
+            value={`${pageSize}`}
+            onValueChange={value => {
+              table.setPageSize(Number(value))
             }}
           >
             <SelectTrigger className="h-8 w-[4.5rem] [&[data-size]]:h-8">
-              <SelectValue placeholder={table.getState().pagination.pageSize} />
+              <SelectValue placeholder={pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
-              {pageSizeOptions.map((pageSize) => (
-                <SelectItem key={pageSize} value={`${pageSize}`}>
-                  {pageSize}
+              {pageSizeOptions.map(size => (
+                <SelectItem key={size} value={`${size}`}>
+                  {size}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex items-center justify-center font-medium text-sm">
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount()}
+          Page {currentPage + 1} of {pageCount || 1}
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -100,7 +112,7 @@ export function DataTablePagination<TData>({
             variant="outline"
             size="icon"
             className="hidden size-8 lg:flex"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            onClick={() => table.setPageIndex(pageCount - 1)}
             disabled={!table.getCanNextPage()}
           >
             <ChevronsRight />
@@ -108,5 +120,5 @@ export function DataTablePagination<TData>({
         </div>
       </div>
     </div>
-  );
+  )
 }

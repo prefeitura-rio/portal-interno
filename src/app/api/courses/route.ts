@@ -99,6 +99,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         courses: transformedCourses,
         pagination: pagination,
+        total: pagination?.total || transformedCourses.length,
         success: true,
       })
     }

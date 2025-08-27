@@ -118,26 +118,49 @@ export default function Courses() {
   const [draftCourses, setDraftCourses] = React.useState<CourseListItem[]>([])
   const [loading, setLoading] = React.useState(true)
 
-  // Fetch courses data
-  React.useEffect(() => {
-    const fetchCourses = async () => {
+  // Add state for total counts and pagination info
+  const [coursesTotal, setCoursesTotal] = React.useState(0)
+  const [draftCoursesTotal, setDraftCoursesTotal] = React.useState(0)
+  const [coursesPageCount, setCoursesPageCount] = React.useState(0)
+  const [draftCoursesPageCount, setDraftCoursesPageCount] = React.useState(0)
+
+  // Fetch courses data with pagination
+  const fetchCourses = React.useCallback(
+    async (pageIndex = 0, pageSize = 10, tab = activeTab) => {
       try {
         setLoading(true)
+        console.log(
+          `Fetching ${tab} courses: page ${pageIndex + 1}, size ${pageSize}`
+        )
 
-        // Fetch both regular courses and draft courses
-        const [coursesResponse, draftsResponse] = await Promise.all([
-          fetch('/api/courses'),
-          fetch('/api/courses/drafts'),
-        ])
-
-        if (coursesResponse.ok) {
-          const coursesData = await coursesResponse.json()
-          setCourses(coursesData.courses || [])
-        }
-
-        if (draftsResponse.ok) {
-          const draftsData = await draftsResponse.json()
-          setDraftCourses(draftsData.courses || [])
+        if (tab === 'draft') {
+          // Fetch draft courses with pagination
+          const response = await fetch(
+            `/api/courses/drafts?page=${pageIndex + 1}&per_page=${pageSize}`
+          )
+          if (response.ok) {
+            const data = await response.json()
+            console.log('Drafts API response:', data)
+            setDraftCourses(data.courses || [])
+            setDraftCoursesTotal(data.total || data.pagination?.total || 0)
+            setDraftCoursesPageCount(
+              Math.ceil((data.total || data.pagination?.total || 0) / pageSize)
+            )
+          }
+        } else {
+          // Fetch regular courses with pagination
+          const response = await fetch(
+            `/api/courses?page=${pageIndex + 1}&per_page=${pageSize}`
+          )
+          if (response.ok) {
+            const data = await response.json()
+            console.log('Courses API response:', data)
+            setCourses(data.courses || [])
+            setCoursesTotal(data.total || data.pagination?.total || 0)
+            setCoursesPageCount(
+              Math.ceil((data.total || data.pagination?.total || 0) / pageSize)
+            )
+          }
         }
       } catch (error) {
         console.error('Error fetching courses:', error)
@@ -145,10 +168,42 @@ export default function Courses() {
       } finally {
         setLoading(false)
       }
-    }
+    },
+    [activeTab]
+  )
 
-    fetchCourses()
-  }, [])
+  // Initial fetch
+  React.useEffect(() => {
+    fetchCourses(pagination.pageIndex, pagination.pageSize, activeTab)
+  }, [fetchCourses, pagination.pageIndex, pagination.pageSize, activeTab])
+
+  // Handle pagination changes
+  const handlePaginationChange = React.useCallback(
+    (
+      updater: PaginationState | ((prev: PaginationState) => PaginationState)
+    ) => {
+      const newPagination =
+        typeof updater === 'function' ? updater(pagination) : updater
+      console.log('Pagination changed:', newPagination)
+      setPagination(newPagination)
+
+      // Fetch new data when pagination changes
+      fetchCourses(newPagination.pageIndex, newPagination.pageSize, activeTab)
+    },
+    [pagination, fetchCourses, activeTab]
+  )
+
+  // Handle tab changes
+  const handleTabChange = React.useCallback(
+    (value: string) => {
+      setActiveTab(value)
+      // Reset to first page when changing tabs
+      const newPagination = { pageIndex: 0, pageSize: pagination.pageSize }
+      setPagination(newPagination)
+      fetchCourses(0, pagination.pageSize, value)
+    },
+    [pagination.pageSize, fetchCourses]
+  )
 
   // Filter data based on active tab
   const filteredData = React.useMemo(() => {
@@ -157,6 +212,15 @@ export default function Courses() {
     }
     return courses
   }, [activeTab, courses, draftCourses])
+
+  // Get total count and page count based on active tab
+  const totalCount = React.useMemo(() => {
+    return activeTab === 'draft' ? draftCoursesTotal : coursesTotal
+  }, [activeTab, draftCoursesTotal, coursesTotal])
+
+  const pageCount = React.useMemo(() => {
+    return activeTab === 'draft' ? draftCoursesPageCount : coursesPageCount
+  }, [activeTab, draftCoursesPageCount, coursesPageCount])
 
   // Common columns without selection and status
   const baseColumns = React.useMemo<ColumnDef<CourseListItem>[]>(() => {
@@ -494,11 +558,14 @@ export default function Courses() {
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    // Add manual pagination configuration
+    manualPagination: true,
+    pageCount: pageCount,
   })
 
   if (loading) {
@@ -545,7 +612,7 @@ export default function Courses() {
 
         <Tabs
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={handleTabChange}
           className="space-y-4"
         >
           <TabsList className="grid w-full grid-cols-2">
