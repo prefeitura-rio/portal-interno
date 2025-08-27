@@ -156,12 +156,20 @@ export default function CourseDetailPage({
     try {
       setIsLoading(true)
 
+      // Ensure required fields are always included
+      const updateData = {
+        ...data,
+        title: data.title || course?.title,
+        modalidade: data.modalidade || course?.modalidade,
+        status: data.status || course?.status,
+      }
+
       const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(updateData),
       })
 
       if (!response.ok) {
@@ -193,9 +201,11 @@ export default function CourseDetailPage({
     try {
       setIsLoading(true)
 
-      // Update the course status to 'opened' to publish it
+      // Ensure required fields are always included
       const publishData = {
         ...data,
+        title: data.title || course?.title,
+        modalidade: data.modalidade || course?.modalidade,
         status: 'opened',
       }
 
@@ -243,8 +253,10 @@ export default function CourseDetailPage({
     try {
       setIsLoading(true)
 
-      // Only send the necessary fields for status update, not the entire course object
+      // Ensure required fields are always included
       const cancelData = {
+        title: course?.title,
+        modalidade: course?.modalidade,
         status: 'canceled',
       }
 

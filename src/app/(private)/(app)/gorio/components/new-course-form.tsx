@@ -571,6 +571,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         turno: 'LIVRE',
         formato_aula: data.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
         instituicao_id: 5,
+        // Ensure status is always included if it exists
+        ...(data.status && { status: data.status }),
       }
     }
 
@@ -660,9 +662,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         const transformedData = transformFormDataToSnakeCase(validatedData)
 
         if (initialData) {
-          // Editing an existing course - call onSubmit with the transformed data
+          // Editing an existing course - ensure status is preserved if not explicitly set
+          const editData = {
+            ...transformedData,
+            status: initialData.status || 'opened',
+          }
+
           if (onSubmit) {
-            onSubmit(transformedData)
+            onSubmit(editData)
           }
         } else {
           // Creating a new course - add the status for course created
