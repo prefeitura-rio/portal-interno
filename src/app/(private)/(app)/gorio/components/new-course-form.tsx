@@ -705,10 +705,24 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
     const confirmSaveDraft = async () => {
       try {
+        // Trigger form validation to show visual errors
+        const isValid = await form.trigger()
+
+        if (!isValid) {
+          toast.error('Erro de validação', {
+            description:
+              'Por favor, verifique os campos destacados antes de salvar o rascunho.',
+          })
+          return
+        }
+
         const currentValues = form.getValues()
 
+        // Validate the complete form data before saving draft
+        const validatedData = formSchema.parse(currentValues)
+
         // Transform to snake_case for backend
-        const transformedData = transformFormDataToSnakeCase(currentValues)
+        const transformedData = transformFormDataToSnakeCase(validatedData)
 
         // Adiciona o status para rascunho
         const draftData = {
@@ -731,10 +745,18 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           toast.success('Rascunho salvo com sucesso!')
         }
       } catch (error) {
-        console.error('Error saving draft:', error)
-        toast.error('Erro ao salvar rascunho', {
-          description: 'Ocorreu um erro ao salvar o rascunho.',
-        })
+        if (error instanceof z.ZodError) {
+          console.error('Validation errors:', error.errors)
+          toast.error('Erro de validação', {
+            description:
+              'Por favor, verifique os campos destacados antes de salvar o rascunho.',
+          })
+        } else {
+          console.error('Error saving draft:', error)
+          toast.error('Erro ao salvar rascunho', {
+            description: 'Ocorreu um erro ao salvar o rascunho.',
+          })
+        }
       }
     }
 
@@ -1028,7 +1050,19 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         <FormItem>
                           <FormLabel>Número de vagas*</FormLabel>
                           <FormControl>
-                            <Input type="number" min="1" {...field} />
+                            <Input
+                              type="number"
+                              min="1"
+                              value={field.value || ''}
+                              onChange={e => {
+                                const value =
+                                  e.target.value === ''
+                                    ? undefined
+                                    : Number(e.target.value)
+                                field.onChange(value)
+                              }}
+                              onBlur={field.onBlur}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1215,7 +1249,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             <FormItem>
                               <FormLabel>Número de vagas*</FormLabel>
                               <FormControl>
-                                <Input type="number" {...field} />
+                                <Input
+                                  type="number"
+                                  value={field.value || ''}
+                                  onChange={e =>
+                                    field.onChange(Number(e.target.value))
+                                  }
+                                  onBlur={field.onBlur}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
