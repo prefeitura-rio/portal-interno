@@ -41,7 +41,9 @@ export default function NewCourse() {
       }, 1500)
     } catch (error) {
       console.error('Error creating course:', error)
-      // You might want to show an error toast here
+      toast.error('Erro ao criar curso', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
     }
   }
 
@@ -72,7 +74,9 @@ export default function NewCourse() {
       }, 1500)
     } catch (error) {
       console.error('Error creating draft course:', error)
-      // You might want to show an error toast here
+      toast.error('Erro ao salvar rascunho', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
     }
   }
 

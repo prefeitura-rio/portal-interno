@@ -428,32 +428,61 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
     const form = useForm<PartialFormData>({
       resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
-      defaultValues: initialData || {
-        title: '',
-        description: '',
-        enrollment_start_date: new Date(),
-        enrollment_end_date: new Date(),
-        orgao: undefined,
-        modalidade: undefined,
-        theme: '',
-        locations: [],
-        remote_class: undefined,
-        workload: '',
-        target_audience: '',
-        pre_requisitos: '',
-        has_certificate: false,
-        facilitator: '',
-        objectives: '',
-        expected_results: '',
-        program_content: '',
-        methodology: '',
-        resources_used: '',
-        material_used: '',
-        teaching_material: '',
-        institutional_logo: '',
-        cover_image: '',
-        custom_fields: [],
-      },
+      defaultValues: initialData
+        ? {
+            title: initialData.title || '',
+            description: initialData.description || '',
+            enrollment_start_date:
+              initialData.enrollment_start_date || new Date(),
+            enrollment_end_date: initialData.enrollment_end_date || new Date(),
+            orgao: initialData.orgao,
+            modalidade: initialData.modalidade,
+            theme: initialData.theme || '',
+            workload: initialData.workload || '',
+            target_audience: initialData.target_audience || '',
+            pre_requisitos: initialData.pre_requisitos || '',
+            has_certificate: initialData.has_certificate || false,
+            facilitator: initialData.facilitator || '',
+            objectives: initialData.objectives || '',
+            expected_results: initialData.expected_results || '',
+            program_content: initialData.program_content || '',
+            methodology: initialData.methodology || '',
+            resources_used: initialData.resources_used || '',
+            material_used: initialData.material_used || '',
+            teaching_material: initialData.teaching_material || '',
+            institutional_logo: initialData.institutional_logo || '',
+            cover_image: initialData.cover_image || '',
+            custom_fields: initialData.custom_fields || [],
+            // Handle locations and remote_class based on modalidade
+            locations: initialData.locations || [],
+            remote_class: initialData.remote_class,
+          }
+        : {
+            title: '',
+            description: '',
+            enrollment_start_date: new Date(),
+            enrollment_end_date: new Date(),
+            orgao: undefined,
+            modalidade: undefined,
+            theme: '',
+            locations: [],
+            remote_class: undefined,
+            workload: '',
+            target_audience: '',
+            pre_requisitos: '',
+            has_certificate: false,
+            facilitator: '',
+            objectives: '',
+            expected_results: '',
+            program_content: '',
+            methodology: '',
+            resources_used: '',
+            material_used: '',
+            teaching_material: '',
+            institutional_logo: '',
+            cover_image: '',
+            custom_fields: [],
+          },
       mode: 'onChange', // Enable real-time validation
     })
 
@@ -629,20 +658,27 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Transform to snake_case for backend
         const transformedData = transformFormDataToSnakeCase(validatedData)
 
-        // Adiciona o status para curso criado
-        const courseData = {
-          ...transformedData,
-          status: 'opened' as const,
-        }
-
-        console.log('Form submitted successfully!')
-        console.log('Form values:', courseData)
-
-        if (onSubmit) {
-          onSubmit(courseData)
+        if (initialData) {
+          // Editing an existing course - call onSubmit with the transformed data
+          if (onSubmit) {
+            onSubmit(transformedData)
+          }
         } else {
-          toast.success('Curso criado com sucesso!')
-          router.push('/gorio/courses')
+          // Creating a new course - add the status for course created
+          const courseData = {
+            ...transformedData,
+            status: 'opened' as const,
+          }
+
+          console.log('Form submitted successfully!')
+          console.log('Form values:', courseData)
+
+          if (onSubmit) {
+            onSubmit(courseData)
+          } else {
+            toast.success('Curso criado com sucesso!')
+            router.push('/gorio/courses')
+          }
         }
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -1644,7 +1680,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
             {!isDraft &&
               courseStatus !== 'cancelled' &&
-              courseStatus !== 'finished' && (
+              courseStatus !== 'finished' &&
+              courseStatus !== 'canceled' && (
                 <Button
                   type="submit"
                   disabled={form.formState.isSubmitting}

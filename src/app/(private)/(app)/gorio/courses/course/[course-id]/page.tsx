@@ -25,6 +25,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   AlertCircle,
+  Ban,
   CheckCircle,
   Edit,
   Save,
@@ -34,7 +35,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -82,6 +83,12 @@ const statusConfig: Record<string, CourseStatusConfig> = {
     variant: 'destructive',
     className: 'text-red-600 border-red-200 bg-red-50',
   },
+  CANCELADO: {
+    icon: XCircle,
+    label: 'Cancelado',
+    variant: 'destructive',
+    className: 'text-red-600 border-red-200 bg-red-50',
+  },
 }
 
 export default function CourseDetailPage({
@@ -89,13 +96,20 @@ export default function CourseDetailPage({
 }: { params: Promise<{ 'course-id': string }> }) {
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('about')
+  const [isLoading, setIsLoading] = useState(false)
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [courseId, setCourseId] = useState<string | null>(null)
 
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean
-    type: 'delete_draft' | 'save_changes' | 'publish_course' | null
+    type:
+      | 'delete_draft'
+      | 'save_changes'
+      | 'publish_course'
+      | 'cancel_course'
+      | null
   }>({
     open: false,
     type: null,
@@ -106,7 +120,7 @@ export default function CourseDetailPage({
   const courseFormRef = useRef<NewCourseFormRef>(null)
 
   // Use the custom hook to fetch course data
-  const { course, loading, error } = useCourse(courseId)
+  const { course, loading, error, refetch } = useCourse(courseId)
 
   // Debug logging
   useEffect(() => {
@@ -136,32 +150,133 @@ export default function CourseDetailPage({
     setActiveTab('about')
   }
 
-  const handleSave = (data: any) => {
+  const handleSave = async (data: any) => {
+    try {
+      setIsLoading(true)
+
+      const response = await fetch(`/api/courses/${Number(courseId)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save course')
+      }
+
+      const result = await response.json()
+      console.log('Course saved successfully:', result)
+
+      toast.success('Curso salvo com sucesso!')
+      setIsEditing(false)
+
+      // Refetch course data to get updated information
+      if (refetch) {
+        refetch()
+      }
+    } catch (error) {
+      console.error('Error saving course:', error)
+      toast.error('Erro ao salvar curso', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handlePublish = async (data: any) => {
+    try {
+      setIsLoading(true)
+
+      // Update the course status to 'opened' to publish it
+      const publishData = {
+        ...data,
+        status: 'opened',
+      }
+
+      const response = await fetch(`/api/courses/${Number(courseId)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(publishData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to publish course')
+      }
+
+      const result = await response.json()
+      console.log('Course published successfully:', result)
+
+      toast.success('Curso publicado com sucesso!')
+      setIsEditing(false)
+
+      // Refetch course data to get updated information
+      if (refetch) {
+        refetch()
+      }
+    } catch (error) {
+      console.error('Error publishing course:', error)
+      toast.error('Erro ao publicar curso', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCancelCourse = () => {
     setConfirmDialog({
       open: true,
-      type: 'save_changes',
+      type: 'cancel_course',
     })
   }
 
-  const confirmSaveChanges = (data: any) => {
-    // TODO: Implement save logic
-    console.log('Saving course data:', data)
-    setIsEditing(false)
-    toast.success('Curso salvo com sucesso!')
-  }
+  const confirmCancelCourse = async () => {
+    try {
+      setIsLoading(true)
 
-  const handlePublish = (data: any) => {
-    setConfirmDialog({
-      open: true,
-      type: 'publish_course',
-    })
-  }
+      // Update the course status to 'canceled'
+      const cancelData = {
+        ...course,
+        status: 'canceled',
+      }
 
-  const confirmPublishCourse = (data: any) => {
-    // TODO: Implement publish logic
-    console.log('Publishing course data:', data)
-    setIsEditing(false)
-    toast.success('Curso publicado com sucesso!')
+      const response = await fetch(`/api/courses/${Number(courseId)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cancelData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to cancel course')
+      }
+
+      const result = await response.json()
+      console.log('Course canceled successfully:', result)
+
+      toast.success('Curso cancelado com sucesso!')
+
+      // Refetch course data to get updated information
+      if (refetch) {
+        refetch()
+      }
+    } catch (error) {
+      console.error('Error canceling course:', error)
+      toast.error('Erro ao cancelar curso', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePublishFromHeader = () => {
@@ -193,12 +308,34 @@ export default function CourseDetailPage({
     })
   }
 
-  const confirmDeleteDraft = () => {
-    // TODO: Implement delete draft logic
-    console.log('Deleting draft course:', courseId)
-    toast.success('Rascunho excluído com sucesso!')
-    // Redirect to courses list
-    window.location.href = '/gorio/courses'
+  const confirmDeleteDraft = async () => {
+    try {
+      setIsLoading(true)
+
+      const response = await fetch(`/api/courses/${Number(courseId)}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete draft course')
+      }
+
+      const result = await response.json()
+      console.log('Draft course deleted successfully:', result)
+
+      toast.success('Rascunho excluído com sucesso!')
+
+      // Redirect to courses list
+      router.push('/gorio/courses')
+    } catch (error) {
+      console.error('Error deleting draft course:', error)
+      toast.error('Erro ao excluir rascunho', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Show loading state
@@ -242,6 +379,9 @@ export default function CourseDetailPage({
 
   // Check if course is a draft
   const isDraft = course.status === 'draft'
+
+  // Check if course can be canceled (only if status is "opened" or "ABERTO")
+  const canCancel = course.status === 'opened' || course.status === 'ABERTO'
 
   return (
     <ContentLayout title="Detalhes do Curso">
@@ -293,11 +433,24 @@ export default function CourseDetailPage({
                   <>
                     <Button
                       onClick={handleEdit}
-                      disabled={activeTab === 'enrollments'}
+                      disabled={activeTab === 'enrollments' || isLoading}
                     >
                       <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </Button>
+
+                    {/* Cancel Course button - only show if status is "opened" or "ABERTO" */}
+                    {canCancel && (
+                      <Button
+                        variant="destructive"
+                        onClick={handleCancelCourse}
+                        disabled={isLoading}
+                      >
+                        <Ban className="mr-2 h-4 w-4" />
+                        Cancelar Curso
+                      </Button>
+                    )}
+
                     {isDraft && (
                       <Button variant="destructive" onClick={handleDeleteDraft}>
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -308,7 +461,10 @@ export default function CourseDetailPage({
                 ) : (
                   <>
                     {isDraft && (
-                      <Button onClick={handlePublishFromHeader}>
+                      <Button
+                        onClick={handlePublishFromHeader}
+                        disabled={isLoading}
+                      >
                         <Save className="mr-2 h-4 w-4" />
                         Salvar e Publicar
                       </Button>
@@ -316,6 +472,7 @@ export default function CourseDetailPage({
                     <Button
                       variant="outline"
                       onClick={handleSaveDraftFromHeader}
+                      disabled={isLoading}
                     >
                       <Save className="mr-2 h-4 w-4" />
                       {isDraft ? 'Salvar Rascunho' : 'Salvar'}
@@ -339,8 +496,8 @@ export default function CourseDetailPage({
                 ref={draftFormRef}
                 initialData={course as any}
                 isReadOnly={!isEditing}
-                onSubmit={confirmSaveChanges}
-                onPublish={confirmPublishCourse}
+                onSubmit={handleSave}
+                onPublish={handlePublish}
                 isDraft={isDraft}
                 courseStatus={course.status}
               />
@@ -370,8 +527,8 @@ export default function CourseDetailPage({
                   ref={courseFormRef}
                   initialData={course as any}
                   isReadOnly={!isEditing}
-                  onSubmit={confirmSaveChanges}
-                  onPublish={confirmPublishCourse}
+                  onSubmit={handleSave}
+                  onPublish={handlePublish}
                   isDraft={isDraft}
                   courseStatus={course.status}
                 />
@@ -397,24 +554,39 @@ export default function CourseDetailPage({
             ? 'Excluir Rascunho'
             : confirmDialog.type === 'save_changes'
               ? 'Salvar Alterações'
-              : 'Publicar Curso'
+              : confirmDialog.type === 'publish_course'
+                ? 'Publicar Curso'
+                : confirmDialog.type === 'cancel_course'
+                  ? 'Cancelar Curso'
+                  : 'Confirmar Ação'
         }
         description={
           confirmDialog.type === 'delete_draft'
             ? `Tem certeza que deseja excluir o rascunho "${course.title}"? Esta ação não pode ser desfeita.`
             : confirmDialog.type === 'save_changes'
               ? `Tem certeza que deseja salvar as alterações no curso "${course.title}"?`
-              : `Tem certeza que deseja publicar o curso "${course.title}"? Esta ação tornará o curso visível para inscrições.`
+              : confirmDialog.type === 'publish_course'
+                ? `Tem certeza que deseja publicar o curso "${course.title}"? Esta ação tornará o curso visível para inscrições.`
+                : confirmDialog.type === 'cancel_course'
+                  ? `Tem certeza que deseja cancelar o curso "${course.title}"? Esta ação não pode ser desfeita e o curso não estará mais disponível para inscrições.`
+                  : 'Tem certeza que deseja realizar esta ação?'
         }
         confirmText={
           confirmDialog.type === 'delete_draft'
             ? 'Excluir Rascunho'
             : confirmDialog.type === 'save_changes'
               ? 'Salvar Alterações'
-              : 'Publicar Curso'
+              : confirmDialog.type === 'publish_course'
+                ? 'Publicar Curso'
+                : confirmDialog.type === 'cancel_course'
+                  ? 'Cancelar Curso'
+                  : 'Confirmar'
         }
         variant={
-          confirmDialog.type === 'delete_draft' ? 'destructive' : 'default'
+          confirmDialog.type === 'delete_draft' ||
+          confirmDialog.type === 'cancel_course'
+            ? 'destructive'
+            : 'default'
         }
         onConfirm={() => {
           if (confirmDialog.type === 'delete_draft') {
@@ -433,6 +605,8 @@ export default function CourseDetailPage({
             } else {
               courseFormRef.current?.triggerPublish()
             }
+          } else if (confirmDialog.type === 'cancel_course') {
+            confirmCancelCourse()
           }
         }}
       />
