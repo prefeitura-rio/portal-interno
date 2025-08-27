@@ -426,6 +426,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       type: null,
     })
 
+    console.log('>>>>>>>>>>initialData', initialData)
     const form = useForm<PartialFormData>({
       resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
       defaultValues: initialData

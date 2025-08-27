@@ -74,6 +74,8 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     description: courseData.description || '',
     organization: courseData.orgao?.nome || courseData.organization || '',
     provider: courseData.orgao?.nome || courseData.organization || '',
+    // Add the missing theme field
+    theme: courseData.theme || '',
     modalidade: (() => {
       const modalidade =
         courseData.modalidade?.nome || courseData.modalidade || ''
@@ -85,6 +87,8 @@ export function transformApiCourseToCourse(apiCourse: any): any {
         return 'HIBRIDO'
       return modalidade
     })(),
+    // Add the missing orgao object
+    orgao: courseData.orgao || null,
     enrollment_start_date:
       safeParseDate(courseData.enrollment_start_date) ||
       safeParseDate(courseData.data_inicio) ||
@@ -113,10 +117,10 @@ export function transformApiCourseToCourse(apiCourse: any): any {
       address: location.address || '',
       neighborhood: location.neighborhood || '',
       vacancies: location.vacancies || 0,
-      class_start_date: safeParseDate(location.class_start_date) || new Date(),
-      class_end_date: safeParseDate(location.class_end_date) || new Date(),
-      class_time: location.class_time || '',
-      class_days: location.class_days || '',
+      classStartDate: safeParseDate(location.class_start_date) || new Date(),
+      classEndDate: safeParseDate(location.class_end_date) || new Date(),
+      classTime: location.class_time || '',
+      classDays: location.class_days || '',
     })),
     institutional_logo: courseData.institutional_logo || '',
     cover_image: courseData.cover_image || '',
@@ -124,15 +128,29 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     remote_class: courseData.remote_class
       ? {
           vacancies: courseData.remote_class.vacancies || 0,
-          class_start_date:
+          classStartDate:
             safeParseDate(courseData.remote_class.class_start_date) ||
             new Date(),
-          class_end_date:
+          classEndDate:
             safeParseDate(courseData.remote_class.class_end_date) || new Date(),
-          class_time: courseData.remote_class.class_time || '',
-          class_days: courseData.remote_class.class_days || '',
+          classTime: courseData.remote_class.class_time || '',
+          classDays: courseData.remote_class.class_days || '',
         }
-      : undefined,
+      : // For online courses, map from the main course fields
+        courseData.modalidade === 'ONLINE' || courseData.modalidade === 'Remoto'
+        ? {
+            vacancies: courseData.numero_vagas || 0,
+            classStartDate: safeParseDate(courseData.data_inicio) || new Date(),
+            classEndDate: safeParseDate(courseData.data_termino) || new Date(),
+            classTime: courseData.turno || 'LIVRE',
+            classDays: 'A definir', // Default value since this field is not in the API
+          }
+        : undefined,
+    // Add missing fields from API response
+    instituicao_id:
+      courseData.instituicao_id || courseData.instituicao?.id || 5,
+    turno: courseData.turno || 'LIVRE',
+    formato_aula: courseData.formato_aula || 'PRESENCIAL',
     status: courseData.status || 'draft',
     created_at: safeParseDate(courseData.created_at) || new Date(),
     updated_at: safeParseDate(courseData.updated_at) || new Date(),
