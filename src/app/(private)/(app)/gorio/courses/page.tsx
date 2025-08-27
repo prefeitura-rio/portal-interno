@@ -457,22 +457,14 @@ export default function Courses() {
                     Editar
                   </Link>
                 </DropdownMenuItem>
-                {course.status === 'draft' && (
+                {/* {course.status === 'draft' && (
                   <DropdownMenuItem
                     variant="destructive"
                     onClick={() => openConfirmDialog('delete_draft', course)}
                   >
                     Excluir rascunho
                   </DropdownMenuItem>
-                )}
-                {(course.status === 'opened' || course.status === 'ABERTO') && (
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onClick={() => openConfirmDialog('cancel_course', course)}
-                  >
-                    Cancelar curso
-                  </DropdownMenuItem>
-                )}
+                )} */}
               </DropdownMenuContent>
             </DropdownMenu>
           )
