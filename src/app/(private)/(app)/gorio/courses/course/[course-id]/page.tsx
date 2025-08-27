@@ -24,69 +24,72 @@ import type { CourseStatusConfig } from '@/types/course'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
-  AlertCircle,
   Ban,
+  Building2,
+  Calendar,
   CheckCircle,
   Edit,
+  FileText,
+  Flag,
   Save,
   Trash2,
   Users,
   X,
-  XCircle,
+  ClipboardList,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-// Status configuration for badges - updated to match actual API response
+// Status configuration for badges - updated to match courses list page
 const statusConfig: Record<string, CourseStatusConfig> = {
   draft: {
-    icon: AlertCircle,
+    icon: FileText,
     label: 'Rascunho',
     variant: 'outline',
     className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
   },
   opened: {
-    icon: CheckCircle,
+    icon: ClipboardList,
     label: 'Aberto',
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
   ABERTO: {
-    icon: CheckCircle,
+    icon: ClipboardList,
     label: 'Aberto',
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
   CRIADO: {
-    icon: AlertCircle,
+    icon: ClipboardList,
     label: 'Criado',
-    variant: 'outline',
-    className: 'text-blue-600 border-blue-200 bg-blue-50',
+    variant: 'default',
+    className: 'text-green-600 border-green-200 bg-green-50',
   },
   closed: {
-    icon: XCircle,
+    icon: Flag,
     label: 'Fechado',
-    variant: 'secondary',
-    className: 'text-gray-600 border-gray-200 bg-gray-50',
+    variant: 'outline',
+    className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
   ENCERRADO: {
-    icon: XCircle,
+    icon: Flag,
     label: 'Encerrado',
-    variant: 'secondary',
-    className: 'text-gray-600 border-gray-200 bg-gray-50',
+    variant: 'outline',
+    className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
   canceled: {
-    icon: XCircle,
+    icon: Ban,
     label: 'Cancelado',
-    variant: 'destructive',
+    variant: 'secondary',
     className: 'text-red-600 border-red-200 bg-red-50',
   },
   CANCELADO: {
-    icon: XCircle,
+    icon: Ban,
     label: 'Cancelado',
-    variant: 'destructive',
+    variant: 'secondary',
     className: 'text-red-600 border-red-200 bg-red-50',
   },
 }
@@ -359,7 +362,7 @@ export default function CourseDetailPage({
       <ContentLayout title="Erro">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <Ban className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">
               Erro ao carregar curso
             </h2>
