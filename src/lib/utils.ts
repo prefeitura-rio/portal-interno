@@ -115,10 +115,10 @@ export function transformApiCourseToCourse(apiCourse: any): any {
       address: location.address || '',
       neighborhood: location.neighborhood || '',
       vacancies: location.vacancies || 0,
-      class_start_date: safeParseDate(location.class_start_date) || new Date(),
-      class_end_date: safeParseDate(location.class_end_date) || new Date(),
-      class_time: location.class_time || '',
-      class_days: location.class_days || '',
+      classStartDate: safeParseDate(location.class_start_date) || new Date(),
+      classEndDate: safeParseDate(location.class_end_date) || new Date(),
+      classTime: location.class_time || '',
+      classDays: location.class_days || '',
     })),
     institutional_logo: courseData.institutional_logo || '',
     cover_image: courseData.cover_image || '',
@@ -126,13 +126,13 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     remote_class: courseData.remote_class
       ? {
           vacancies: courseData.remote_class.vacancies || 0,
-          class_start_date:
+          classStartDate:
             safeParseDate(courseData.remote_class.class_start_date) ||
             new Date(),
-          class_end_date:
+          classEndDate:
             safeParseDate(courseData.remote_class.class_end_date) || new Date(),
-          class_time: courseData.remote_class.class_time || '',
-          class_days: courseData.remote_class.class_days || '',
+          classTime: courseData.remote_class.class_time || '',
+          classDays: courseData.remote_class.class_days || '',
         }
       : undefined,
     status: courseData.status || 'draft',
