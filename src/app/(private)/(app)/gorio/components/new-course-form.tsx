@@ -330,12 +330,58 @@ type PartialFormData = Omit<
   status?: 'canceled' | 'draft' | 'opened' | 'closed'
 }
 
+// Type for backend API data (with snake_case field names)
+type BackendCourseData = {
+  title: string
+  description: string
+  enrollment_start_date: Date
+  enrollment_end_date: Date
+  orgao: { id: number; nome: string }
+  modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
+  theme: string
+  workload: string
+  target_audience: string
+  institutional_logo: string | null
+  cover_image: string | null
+  pre_requisitos?: string
+  has_certificate?: boolean
+  facilitator?: string
+  objectives?: string
+  expected_results?: string
+  program_content?: string
+  methodology?: string
+  resources_used?: string
+  material_used?: string
+  teaching_material?: string
+  custom_fields?: CustomField[]
+  locations?: Array<{
+    address: string
+    neighborhood: string
+    vacancies: number
+    class_start_date: Date
+    class_end_date: Date
+    class_time: string
+    class_days: string
+  }>
+  remote_class?: {
+    vacancies: number
+    class_start_date: Date
+    class_end_date: Date
+    class_time: string
+    class_days: string
+  }
+  turno: string
+  formato_aula: string
+  instituicao_id: number
+  status?: 'canceled' | 'draft' | 'opened' | 'closed'
+}
+
 interface NewCourseFormProps {
   initialData?: PartialFormData
   isReadOnly?: boolean
-  onSubmit?: (data: PartialFormData) => void
-  onSaveDraft?: (data: PartialFormData) => void
-  onPublish?: (data: PartialFormData) => void
+  onSubmit?: (data: BackendCourseData) => void
+  onSaveDraft?: (data: BackendCourseData) => void
+  onPublish?: (data: BackendCourseData) => void
   isDraft?: boolean
   courseStatus?: string
 }
@@ -442,8 +488,30 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       fetchOrgaos()
     }, [])
 
-    // Transform form data to snake_case for backend
+    // Transform form data to snake_case for backend API
     const transformFormDataToSnakeCase = (data: PartialFormData) => {
+      // Transform remote_class fields to snake_case if it exists
+      const transformedRemoteClass = data.remote_class
+        ? {
+            vacancies: data.remote_class.vacancies,
+            class_start_date: data.remote_class.classStartDate,
+            class_end_date: data.remote_class.classEndDate,
+            class_time: data.remote_class.classTime,
+            class_days: data.remote_class.classDays,
+          }
+        : undefined
+
+      // Transform locations fields to snake_case if they exist
+      const transformedLocations = data.locations?.map(location => ({
+        address: location.address,
+        neighborhood: location.neighborhood,
+        vacancies: location.vacancies,
+        class_start_date: location.classStartDate,
+        class_end_date: location.classEndDate,
+        class_time: location.classTime,
+        class_days: location.classDays,
+      }))
+
       return {
         title: data.title,
         description: data.description,
@@ -467,8 +535,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         material_used: data.material_used,
         teaching_material: data.teaching_material,
         custom_fields: data.custom_fields,
-        locations: data.locations,
-        remote_class: data.remote_class,
+        locations: transformedLocations,
+        remote_class: transformedRemoteClass,
         // Add the new fields that should always be sent
         turno: 'LIVRE',
         formato_aula: data.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
