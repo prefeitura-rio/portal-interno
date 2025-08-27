@@ -7,10 +7,10 @@ import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { 'course-id': string } }
+  { params }: { params: Promise<{ 'course-id': string }> }
 ) {
   try {
-    const courseId = params['course-id']
+    const { 'course-id': courseId } = await params
 
     if (!courseId) {
       return NextResponse.json(
@@ -58,10 +58,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { 'course-id': string } }
+  { params }: { params: Promise<{ 'course-id': string }> }
 ) {
   try {
-    const courseId = params['course-id']
+    const { 'course-id': courseId } = await params
 
     if (!courseId) {
       return NextResponse.json(
@@ -104,10 +104,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { 'course-id': string } }
+  { params }: { params: Promise<{ 'course-id': string }> }
 ) {
   try {
-    const courseId = params['course-id']
+    const { 'course-id': courseId } = await params
 
     if (!courseId) {
       return NextResponse.json(

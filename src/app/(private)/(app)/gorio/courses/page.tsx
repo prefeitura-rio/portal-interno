@@ -82,11 +82,23 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
     variant: 'outline',
     className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
-  cancelled: {
+  canceled: {
     icon: Ban,
     label: 'Cancelado',
     variant: 'secondary',
     className: 'text-red-600 border-red-200 bg-red-50',
+  },
+  CRIADO: {
+    icon: ClipboardList,
+    label: 'Criado',
+    variant: 'default',
+    className: 'text-green-600 border-green-200 bg-green-50',
+  },
+  ENCERRADO: {
+    icon: Flag,
+    label: 'Encerrado',
+    variant: 'outline',
+    className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
 }
 
