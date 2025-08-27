@@ -994,6 +994,24 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
               <FormField
                 control={form.control}
+                name="theme"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tema*</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: Tecnologia, Gestão, Saúde, Educação..."
+                        {...field}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="modalidade"
                 render={({ field }) => (
                   <FormItem>
@@ -1020,24 +1038,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         <SelectItem value="ONLINE">Online</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="theme"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tema*</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ex: Tecnologia, Gestão, Saúde, Educação..."
-                        {...field}
-                        disabled={isReadOnly}
-                      />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
