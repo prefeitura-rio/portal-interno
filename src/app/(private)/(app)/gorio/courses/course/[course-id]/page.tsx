@@ -25,9 +25,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Ban,
-  Building2,
-  Calendar,
-  CheckCircle,
+  ClipboardList,
   Edit,
   FileText,
   Flag,
@@ -35,7 +33,6 @@ import {
   Trash2,
   Users,
   X,
-  ClipboardList,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
