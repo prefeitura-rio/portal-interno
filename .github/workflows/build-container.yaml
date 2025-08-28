@@ -47,7 +47,7 @@ jobs:
             --build-arg NEXT_PUBLIC_IDENTIDADE_CARIOCA_CLIENT_ID="superapp" \
             --build-arg NEXT_PUBLIC_IDENTIDADE_CARIOCA_REDIRECT_URI="https://admin.staging.app.dados.rio/api/auth/callback/keycloak" \
             --build-arg NEXT_PUBLIC_GOVBR_BASE_URL="https://sso.staging.acesso.gov.br/" \
-            --build-arg NEXT_PUBLIC_BASE_API_URL="https://services.staging.app.dados.rio/go \
+            --build-arg NEXT_PUBLIC_BASE_API_URL="https://services.staging.app.dados.rio/go" \
             --tag $IMAGE_NAME:$TAG1 \
             --tag $IMAGE_NAME:$TAG2 \
             --push .
