@@ -109,6 +109,7 @@ export default function CourseDetailPage({
       | 'save_changes'
       | 'publish_course'
       | 'cancel_course'
+      | 'close_course'
       | null
   }>({
     open: false,
