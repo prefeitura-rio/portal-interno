@@ -82,6 +82,7 @@ export async function GET(request: Request) {
                 duration: course.carga_horaria || 0,
                 vacancies: course.numero_vagas || 0,
                 status: course.status || 'draft',
+                originalStatus: course.status || 'draft',
                 created_at: new Date(course.created_at || Date.now()),
                 registration_start: course.enrollment_start_date
                   ? new Date(course.enrollment_start_date)

@@ -15,7 +15,12 @@ export interface ApiCourse {
     nome: string
   }
   organization?: string // Keep for backward compatibility
-  modalidade: 'ONLINE' | 'PRESENCIAL' | 'SEMIPRESENCIAL'
+  modalidade:
+    | 'ONLINE'
+    | 'PRESENCIAL'
+    | 'SEMIPRESENCIAL'
+    | 'Remoto'
+    | 'Presencial'
   status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled'
   created_at: string
   updated_at: string
@@ -54,6 +59,7 @@ export interface CourseListItem {
   duration: number
   vacancies: number
   status: CourseStatus
+  originalStatus?: CourseStatus // The actual status from API (for sending back)
   created_at: Date
   registration_start: Date | null
   registration_end: Date | null
@@ -69,6 +75,10 @@ export type CourseStatus =
   | 'canceled'
   | 'CRIADO'
   | 'ENCERRADO'
+  | 'scheduled'
+  | 'accepting_enrollments'
+  | 'in_progress'
+  | 'finished'
 
 export interface CourseStatusConfig {
   icon: React.ComponentType<{ className?: string }>
@@ -119,6 +129,7 @@ export interface Course {
   coverImage: string | null
   customFields: any[]
   status: CourseStatus
+  originalStatus?: CourseStatus // The actual status from API (for sending back)
   created_at: Date
   updated_at: Date
 }

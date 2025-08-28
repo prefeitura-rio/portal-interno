@@ -48,7 +48,9 @@ import {
   FileText,
   Flag,
   MoreHorizontal,
+  Play,
   Text,
+  UserCheck,
 } from 'lucide-react'
 import Link from 'next/link'
 import * as React from 'react'
@@ -73,6 +75,31 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
     label: 'Aberto',
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
+  },
+  // New dynamic statuses for opened/ABERTO courses
+  scheduled: {
+    icon: Calendar,
+    label: 'Agendado',
+    variant: 'outline',
+    className: 'text-blue-600 border-blue-200 bg-blue-50',
+  },
+  accepting_enrollments: {
+    icon: UserCheck,
+    label: 'Recebendo Inscrições',
+    variant: 'default',
+    className: 'text-green-600 border-green-200 bg-green-50',
+  },
+  in_progress: {
+    icon: Play,
+    label: 'Em Andamento',
+    variant: 'default',
+    className: 'text-orange-600 border-orange-200 bg-orange-50',
+  },
+  finished: {
+    icon: Flag,
+    label: 'Encerrado',
+    variant: 'outline',
+    className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
   closed: {
     icon: Flag,
@@ -509,6 +536,14 @@ export default function Courses() {
         label: 'Status',
         variant: 'multiSelect',
         options: [
+          { label: 'Agendado', value: 'scheduled', icon: Calendar },
+          {
+            label: 'Recebendo Inscrições',
+            value: 'accepting_enrollments',
+            icon: UserCheck,
+          },
+          { label: 'Em Andamento', value: 'in_progress', icon: Play },
+          { label: 'Encerrado', value: 'finished', icon: Flag },
           { label: 'Aberto', value: 'opened', icon: ClipboardList },
           { label: 'Fechado', value: 'closed', icon: Flag },
           { label: 'Cancelado', value: 'cancelled', icon: Ban },

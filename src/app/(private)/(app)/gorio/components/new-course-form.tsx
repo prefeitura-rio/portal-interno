@@ -328,6 +328,7 @@ type PartialFormData = Omit<
   cover_image?: string | null
   custom_fields?: CustomField[]
   status?: 'canceled' | 'draft' | 'opened' | 'closed'
+  originalStatus?: 'canceled' | 'draft' | 'opened' | 'closed'
 }
 
 // Type for backend API data (with snake_case field names)
@@ -671,7 +672,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           // Editing an existing course - ensure status is preserved if not explicitly set
           const editData = {
             ...transformedData,
-            status: initialData.status || 'opened',
+            status:
+              initialData.originalStatus || initialData.status || 'opened',
           }
 
           if (onSubmit) {

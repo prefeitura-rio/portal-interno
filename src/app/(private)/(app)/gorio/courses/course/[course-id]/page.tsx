@@ -25,12 +25,15 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Ban,
+  Calendar,
   ClipboardList,
   Edit,
   FileText,
   Flag,
+  Play,
   Save,
   Trash2,
+  UserCheck,
   Users,
   X,
 } from 'lucide-react'
@@ -58,6 +61,31 @@ const statusConfig: Record<string, CourseStatusConfig> = {
     label: 'Aberto',
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
+  },
+  // New dynamic statuses for opened/ABERTO courses
+  scheduled: {
+    icon: Calendar,
+    label: 'Agendado',
+    variant: 'outline',
+    className: 'text-blue-600 border-blue-200 bg-blue-50',
+  },
+  accepting_enrollments: {
+    icon: UserCheck,
+    label: 'Recebendo Inscrições',
+    variant: 'default',
+    className: 'text-green-600 border-green-200 bg-green-50',
+  },
+  in_progress: {
+    icon: Play,
+    label: 'Em Andamento',
+    variant: 'default',
+    className: 'text-orange-600 border-orange-200 bg-orange-50',
+  },
+  finished: {
+    icon: Flag,
+    label: 'Encerrado',
+    variant: 'outline',
+    className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
   CRIADO: {
     icon: ClipboardList,
@@ -163,7 +191,7 @@ export default function CourseDetailPage({
         ...data,
         title: data.title || course?.title,
         modalidade: data.modalidade || course?.modalidade,
-        status: data.status || course?.status,
+        status: data.status || course?.originalStatus || course?.status,
         // Ensure organization is synced with orgao.nome
         organization:
           data.orgao?.nome || data.organization || course?.organization,
@@ -506,17 +534,20 @@ export default function CourseDetailPage({
   const config = statusConfig[course.status] || statusConfig.draft
   const StatusIcon = config.icon
 
+  // Use originalStatus for business logic, fallback to status if originalStatus not available
+  const actualStatus = course.originalStatus || course.status
+
   // Check if course is a draft
-  const isDraft = course.status === 'draft'
+  const isDraft = actualStatus === 'draft'
 
   // Check if course can be canceled (only if status is "opened" or "ABERTO")
-  const canCancel = course.status === 'opened' || course.status === 'ABERTO'
+  const canCancel = actualStatus === 'opened' || actualStatus === 'ABERTO'
 
   // Check if course can be closed (only if status is "opened" or "ABERTO")
-  const canClose = course.status === 'opened' || course.status === 'ABERTO'
+  const canClose = actualStatus === 'opened' || actualStatus === 'ABERTO'
 
   // Check if course can be reopened (only if status is "closed")
-  const canReopen = course.status === 'closed'
+  const canReopen = actualStatus === 'closed'
 
   return (
     <ContentLayout title="Detalhes do Curso">
@@ -561,12 +592,12 @@ export default function CourseDetailPage({
             </div>
             <div className="flex gap-2">
               {/* Only show action buttons if course is not canceled or encerrado */}
-              {course.status !== 'canceled' &&
-                course.status !== 'ENCERRADO' &&
+              {actualStatus !== 'canceled' &&
+                actualStatus !== 'ENCERRADO' &&
                 (!isEditing ? (
                   <>
                     {/* Edit button - don't show for closed courses when not in enrollments tab */}
-                    {course.status !== 'closed' && (
+                    {actualStatus !== 'closed' && (
                       <Button
                         onClick={handleEdit}
                         disabled={activeTab === 'enrollments' || isLoading}

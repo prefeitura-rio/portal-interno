@@ -173,7 +173,7 @@ interface CourseListItem {
 Required environment variables:
 
 ```env
-NEXT_PUBLIC_BASE_API_URL=https://services.staging.app.dados.rio/go
+NEXT_PUBLIC_COURSES_BASE_API_URL=https://services.staging.app.dados.rio/go
 ```
 
 ## Caching
@@ -216,7 +216,7 @@ console.error('Error transforming course:', course, error)
 - **Authentication**: Tokens are automatically included via cookies through `custom-fetch.ts`
 - **Input Validation**: Query parameters are validated and sanitized
 - **Error Handling**: Proper error responses prevent information leakage
-- **Environment Variables**: Base URL configuration via `NEXT_PUBLIC_BASE_API_URL`
+- **Environment Variables**: Base URL configuration via `NEXT_PUBLIC_COURSES_BASE_API_URL`
 
 ## Troubleshooting
 
@@ -224,7 +224,7 @@ console.error('Error transforming course:', course, error)
 
 #### 1. "Failed to fetch" Errors
 - **Check**: Browser console for network errors
-- **Verify**: `NEXT_PUBLIC_BASE_API_URL` environment variable is set correctly
+- **Verify**: `NEXT_PUBLIC_COURSES_BASE_API_URL` environment variable is set correctly
 - **Debug**: Look for console logs showing API response structure
 
 #### 2. Empty Course Lists
@@ -263,7 +263,7 @@ console.log('RequestInit:', requestInit)
 
 1. **Test Route Handlers**: Visit `/api/courses` and `/api/courses/drafts` directly
 2. **Check Console**: Look for debug logs and error messages
-3. **Verify Environment**: Ensure `NEXT_PUBLIC_BASE_API_URL` is set correctly
+3. **Verify Environment**: Ensure `NEXT_PUBLIC_COURSES_BASE_API_URL` is set correctly
 4. **Monitor Network**: Use browser DevTools to track API requests
 
 ## Performance Considerations
