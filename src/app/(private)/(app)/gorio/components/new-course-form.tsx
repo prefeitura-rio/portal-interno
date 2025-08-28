@@ -337,6 +337,8 @@ type BackendCourseData = {
   enrollment_start_date: Date
   enrollment_end_date: Date
   orgao: { id: number; nome: string }
+  organization: string
+  orgao_id: number | null
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   theme: string
   workload: string
@@ -548,6 +550,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         enrollment_start_date: data.enrollment_start_date,
         enrollment_end_date: data.enrollment_end_date,
         orgao: data.orgao,
+        // Bind orgao.nome to organization field
+        organization: data.orgao?.nome || '',
+        // Include orgao_id for backend compatibility
+        orgao_id: data.orgao?.id || null,
         modalidade: data.modalidade,
         theme: data.theme,
         workload: data.workload,

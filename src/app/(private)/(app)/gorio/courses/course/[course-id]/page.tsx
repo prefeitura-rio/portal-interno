@@ -162,6 +162,10 @@ export default function CourseDetailPage({
         title: data.title || course?.title,
         modalidade: data.modalidade || course?.modalidade,
         status: data.status || course?.status,
+        // Ensure organization is synced with orgao.nome
+        organization:
+          data.orgao?.nome || data.organization || course?.organization,
+        orgao_id: data.orgao?.id || data.orgao_id || course?.orgao?.id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -207,6 +211,10 @@ export default function CourseDetailPage({
         title: data.title || course?.title,
         modalidade: data.modalidade || course?.modalidade,
         status: 'opened',
+        // Ensure organization is synced with orgao.nome
+        organization:
+          data.orgao?.nome || data.organization || course?.organization,
+        orgao_id: data.orgao?.id || data.orgao_id || course?.orgao?.id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {

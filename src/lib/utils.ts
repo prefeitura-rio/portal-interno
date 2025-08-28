@@ -72,7 +72,6 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     id: courseData.id?.toString() || '',
     title: courseData.title || '',
     description: courseData.description || '',
-    organization: courseData.orgao?.nome || courseData.organization || '',
     provider: courseData.orgao?.nome || courseData.organization || '',
     theme: courseData.theme || '',
     modalidade: (() => {
@@ -87,6 +86,8 @@ export function transformApiCourseToCourse(apiCourse: any): any {
       return modalidade
     })(),
     orgao: courseData.orgao || null,
+    // Ensure organization field is properly mapped from orgao.nome or existing organization
+    organization: courseData.orgao?.nome || courseData.organization || '',
     enrollment_start_date:
       safeParseDate(courseData.enrollment_start_date) ||
       safeParseDate(courseData.data_inicio) ||
@@ -95,21 +96,39 @@ export function transformApiCourseToCourse(apiCourse: any): any {
       safeParseDate(courseData.enrollment_end_date) ||
       safeParseDate(courseData.data_limite_inscricoes) ||
       new Date(),
+    // Map enrollment dates to the expected property names in Course interface
+    enrollmentStartDate:
+      safeParseDate(courseData.enrollment_start_date) ||
+      safeParseDate(courseData.data_inicio) ||
+      new Date(),
+    enrollmentEndDate:
+      safeParseDate(courseData.enrollment_end_date) ||
+      safeParseDate(courseData.data_limite_inscricoes) ||
+      new Date(),
     workload: courseData.workload || courseData.carga_horaria?.toString() || '',
     duration: courseData.carga_horaria || 0,
     vacancies: courseData.numero_vagas || 0,
     target_audience: courseData.target_audience || '',
+    targetAudience: courseData.target_audience || '',
     pre_requisitos: courseData.pre_requisitos || courseData.prerequisites || '',
+    prerequisites: courseData.pre_requisitos || courseData.prerequisites || '',
     has_certificate:
+      courseData.has_certificate || courseData.certificacao_oferecida || false,
+    hasCertificate:
       courseData.has_certificate || courseData.certificacao_oferecida || false,
     facilitator: courseData.facilitator || '',
     objectives: courseData.objectives || '',
     expected_results: courseData.expected_results || '',
+    expectedResults: courseData.expected_results || '',
     program_content: courseData.program_content || '',
+    programContent: courseData.program_content || '',
     methodology: courseData.methodology || '',
     resources_used: courseData.resources_used || '',
+    resourcesUsed: courseData.resources_used || '',
     material_used: courseData.material_used || '',
+    materialUsed: courseData.material_used || '',
     teaching_material: courseData.teaching_material || '',
+    teachingMaterial: courseData.teaching_material || '',
     locations: (courseData.locations || []).map((location: any) => ({
       id: location.id || '',
       address: location.address || '',
@@ -121,8 +140,11 @@ export function transformApiCourseToCourse(apiCourse: any): any {
       classDays: location.class_days || '',
     })),
     institutional_logo: courseData.institutional_logo || '',
+    institutionalLogo: courseData.institutional_logo || '',
     cover_image: courseData.cover_image || '',
+    coverImage: courseData.cover_image || '',
     custom_fields: courseData.custom_fields || [],
+    customFields: courseData.custom_fields || [],
     remote_class: courseData.remote_class
       ? {
           vacancies: courseData.remote_class.vacancies || 0,

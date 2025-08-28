@@ -84,6 +84,10 @@ export interface Course {
   description: string
   organization: string
   provider: string
+  orgao?: {
+    id: number
+    nome: string
+  }
   modalidade: string
   enrollmentStartDate: Date
   enrollmentEndDate: Date
