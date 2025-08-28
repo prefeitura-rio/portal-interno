@@ -45,12 +45,10 @@ import {
   Building2,
   Calendar,
   ClipboardList,
-  Clock,
   FileText,
   Flag,
   MoreHorizontal,
   Text,
-  Users,
 } from 'lucide-react'
 import Link from 'next/link'
 import * as React from 'react'
@@ -300,7 +298,7 @@ export default function Courses() {
           return date.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Dt. de Criação" />
+          <DataTableColumnHeader column={column} title="Data de Criação" />
         ),
         cell: ({ cell }) => {
           const timestamp = cell.getValue<number>()
@@ -385,55 +383,55 @@ export default function Courses() {
         },
         enableColumnFilter: true,
       },
-      {
-        id: 'vacancies',
-        accessorKey: 'vacancies',
-        accessorFn: row => Number(row.vacancies),
-        header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Vagas" />
-        ),
-        cell: ({ cell }) => {
-          const vacancies = cell.getValue<CourseListItem['vacancies']>()
-          return (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span>{vacancies}</span>
-            </div>
-          )
-        },
-        meta: {
-          label: 'Vagas',
-          variant: 'range',
-          range: [5, 50],
-          unit: 'vagas',
-          icon: Users,
-        },
-        enableColumnFilter: true,
-      },
-      {
-        id: 'duration',
-        accessorKey: 'duration',
-        header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Duração" />
-        ),
-        cell: ({ cell }) => {
-          const duration = cell.getValue<CourseListItem['duration']>()
-          return (
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span>{duration}h</span>
-            </div>
-          )
-        },
-        meta: {
-          label: 'Duração',
-          variant: 'range',
-          range: [2, 50],
-          unit: 'h',
-          icon: Clock,
-        },
-        enableColumnFilter: true,
-      },
+      // {
+      //   id: 'vacancies',
+      //   accessorKey: 'vacancies',
+      //   accessorFn: row => Number(row.vacancies),
+      //   header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
+      //     <DataTableColumnHeader column={column} title="Vagas" />
+      //   ),
+      //   cell: ({ cell }) => {
+      //     const vacancies = cell.getValue<CourseListItem['vacancies']>()
+      //     return (
+      //       <div className="flex items-center gap-2">
+      //         <Users className="h-4 w-4 text-muted-foreground" />
+      //         <span>{vacancies}</span>
+      //       </div>
+      //     )
+      //   },
+      //   meta: {
+      //     label: 'Vagas',
+      //     variant: 'range',
+      //     range: [5, 50],
+      //     unit: 'vagas',
+      //     icon: Users,
+      //   },
+      //   enableColumnFilter: true,
+      // },
+      // {
+      //   id: 'duration',
+      //   accessorKey: 'duration',
+      //   header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
+      //     <DataTableColumnHeader column={column} title="Duração" />
+      //   ),
+      //   cell: ({ cell }) => {
+      //     const duration = cell.getValue<CourseListItem['duration']>()
+      //     return (
+      //       <div className="flex items-center gap-2">
+      //         <Clock className="h-4 w-4 text-muted-foreground" />
+      //         <span>{duration}h</span>
+      //       </div>
+      //     )
+      //   },
+      //   meta: {
+      //     label: 'Duração',
+      //     variant: 'range',
+      //     range: [2, 50],
+      //     unit: 'h',
+      //     icon: Clock,
+      //   },
+      //   enableColumnFilter: true,
+      // },
       {
         id: 'actions',
         cell: function Cell({ row }) {
@@ -512,7 +510,6 @@ export default function Courses() {
         variant: 'multiSelect',
         options: [
           { label: 'Aberto', value: 'opened', icon: ClipboardList },
-          { label: 'Aberto', value: 'ABERTO', icon: ClipboardList },
           { label: 'Fechado', value: 'closed', icon: Flag },
           { label: 'Cancelado', value: 'cancelled', icon: Ban },
         ],
