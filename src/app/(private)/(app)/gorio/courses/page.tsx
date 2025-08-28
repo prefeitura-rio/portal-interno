@@ -258,7 +258,7 @@ export default function Courses() {
         cell: ({ cell }) => (
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">
+            <span className="font-medium max-w-[300px] truncate">
               {cell.getValue<CourseListItem['title']>()}
             </span>
           </div>
