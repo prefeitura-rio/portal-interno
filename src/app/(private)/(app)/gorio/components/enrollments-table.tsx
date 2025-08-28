@@ -700,10 +700,10 @@ export function EnrollmentsTable({
                   </div>
                 </div>
               </div>
-              <SheetFooter className="flex-col gap-2 sm:flex-row">
+              <SheetFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
                 <Button
                   onClick={() => handleConfirmEnrollment(selectedEnrollment)}
-                  className="w-full sm:w-auto bg-green-50 border border-green-200 text-green-700"
+                  className="w-full sm:flex-1 bg-green-50 border border-green-200 text-green-700"
                   disabled={selectedEnrollment.status === 'confirmed'}
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
@@ -711,7 +711,7 @@ export function EnrollmentsTable({
                 </Button>
                 <Button
                   onClick={() => handleSetPendingEnrollment(selectedEnrollment)}
-                  className="w-full sm:w-auto bg-yellow-50 border border-yellow-200 text-yellow-700"
+                  className="w-full sm:flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700"
                   disabled={selectedEnrollment.status === 'pending'}
                 >
                   <Clock className="mr-2 h-4 w-4" />
@@ -720,7 +720,7 @@ export function EnrollmentsTable({
                 <Button
                   variant="destructive"
                   onClick={() => handleCancelEnrollment(selectedEnrollment)}
-                  className="w-full sm:w-auto bg-red-50! border border-red-200 text-red-700"
+                  className="w-full sm:flex-1 bg-red-50! border border-red-200 text-red-700"
                   disabled={selectedEnrollment.status === 'cancelled'}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
