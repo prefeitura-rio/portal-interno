@@ -110,6 +110,7 @@ export default function CourseDetailPage({
       | 'publish_course'
       | 'cancel_course'
       | 'close_course'
+      | 'reopen_course'
       | null
   }>({
     open: false,
@@ -258,6 +259,20 @@ export default function CourseDetailPage({
     })
   }
 
+  const handleCloseCourse = () => {
+    setConfirmDialog({
+      open: true,
+      type: 'close_course',
+    })
+  }
+
+  const handleReopenCourse = () => {
+    setConfirmDialog({
+      open: true,
+      type: 'reopen_course',
+    })
+  }
+
   const confirmCancelCourse = async () => {
     try {
       setIsLoading(true)
@@ -265,6 +280,8 @@ export default function CourseDetailPage({
       // Ensure required fields are always included
       const cancelData = {
         title: course?.title,
+        orgao_id: course?.orgao?.id,
+        instituicao_id: 5,
         modalidade: course?.modalidade,
         status: 'canceled',
       }
@@ -294,6 +311,96 @@ export default function CourseDetailPage({
     } catch (error) {
       console.error('Error canceling course:', error)
       toast.error('Erro ao cancelar curso', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const confirmCloseCourse = async () => {
+    try {
+      setIsLoading(true)
+
+      // Ensure required fields are always included
+      const closeData = {
+        title: course?.title,
+        orgao_id: course?.orgao?.id,
+        instituicao_id: 5,
+        modalidade: course?.modalidade,
+        status: 'closed',
+      }
+
+      const response = await fetch(`/api/courses/${courseId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(closeData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to close course')
+      }
+
+      const result = await response.json()
+      console.log('Course closed successfully:', result)
+
+      toast.success('Curso fechado com sucesso!')
+
+      // Refetch course data to get updated information
+      if (refetch) {
+        refetch()
+      }
+    } catch (error) {
+      console.error('Error closing course:', error)
+      toast.error('Erro ao fechar curso', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const confirmReopenCourse = async () => {
+    try {
+      setIsLoading(true)
+
+      // Ensure required fields are always included
+      const reopenData = {
+        title: course?.title,
+        orgao_id: course?.orgao?.id,
+        instituicao_id: 5,
+        modalidade: course?.modalidade,
+        status: 'opened',
+      }
+
+      const response = await fetch(`/api/courses/${courseId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reopenData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to reopen course')
+      }
+
+      const result = await response.json()
+      console.log('Course reopened successfully:', result)
+
+      toast.success('Curso reaberto com sucesso!')
+
+      // Refetch course data to get updated information
+      if (refetch) {
+        refetch()
+      }
+    } catch (error) {
+      console.error('Error reopening course:', error)
+      toast.error('Erro ao reabrir curso', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
       })
     } finally {
@@ -405,6 +512,12 @@ export default function CourseDetailPage({
   // Check if course can be canceled (only if status is "opened" or "ABERTO")
   const canCancel = course.status === 'opened' || course.status === 'ABERTO'
 
+  // Check if course can be closed (only if status is "opened" or "ABERTO")
+  const canClose = course.status === 'opened' || course.status === 'ABERTO'
+
+  // Check if course can be reopened (only if status is "closed")
+  const canReopen = course.status === 'closed'
+
   return (
     <ContentLayout title="Detalhes do Curso">
       <div className="space-y-6">
@@ -447,19 +560,45 @@ export default function CourseDetailPage({
               </div>
             </div>
             <div className="flex gap-2">
-              {/* Only show action buttons if course is not canceled, closed, or encerrado */}
+              {/* Only show action buttons if course is not canceled or encerrado */}
               {course.status !== 'canceled' &&
-                course.status !== 'closed' &&
                 course.status !== 'ENCERRADO' &&
                 (!isEditing ? (
                   <>
-                    <Button
-                      onClick={handleEdit}
-                      disabled={activeTab === 'enrollments' || isLoading}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
-                    </Button>
+                    {/* Edit button - don't show for closed courses when not in enrollments tab */}
+                    {course.status !== 'closed' && (
+                      <Button
+                        onClick={handleEdit}
+                        disabled={activeTab === 'enrollments' || isLoading}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </Button>
+                    )}
+
+                    {/* Reopen Course button - only show if status is "closed" */}
+                    {canReopen && (
+                      <Button
+                        variant="outline"
+                        onClick={handleReopenCourse}
+                        disabled={isLoading}
+                      >
+                        <ClipboardList className="mr-2 h-4 w-4" />
+                        Reabrir Curso
+                      </Button>
+                    )}
+
+                    {/* Close Course button - only show if status is "opened" or "ABERTO" */}
+                    {canClose && (
+                      <Button
+                        variant="outline"
+                        onClick={handleCloseCourse}
+                        disabled={isLoading}
+                      >
+                        <Flag className="mr-2 h-4 w-4" />
+                        Fechar Curso
+                      </Button>
+                    )}
 
                     {/* Cancel Course button - only show if status is "opened" or "ABERTO" */}
                     {canCancel && (
@@ -580,7 +719,11 @@ export default function CourseDetailPage({
                 ? 'Publicar Curso'
                 : confirmDialog.type === 'cancel_course'
                   ? 'Cancelar Curso'
-                  : 'Confirmar Ação'
+                  : confirmDialog.type === 'close_course'
+                    ? 'Fechar Curso'
+                    : confirmDialog.type === 'reopen_course'
+                      ? 'Reabrir Curso'
+                      : 'Confirmar Ação'
         }
         description={
           confirmDialog.type === 'delete_draft'
@@ -591,7 +734,11 @@ export default function CourseDetailPage({
                 ? `Tem certeza que deseja publicar o curso "${course.title}"? Esta ação tornará o curso visível para inscrições.`
                 : confirmDialog.type === 'cancel_course'
                   ? `Tem certeza que deseja cancelar o curso "${course.title}"? Esta ação não pode ser desfeita e o curso não estará mais disponível para inscrições.`
-                  : 'Tem certeza que deseja realizar esta ação?'
+                  : confirmDialog.type === 'close_course'
+                    ? `Tem certeza que deseja fechar o curso "${course.title}"? Esta ação encerrará o período de inscrições e o curso não receberá mais candidatos.`
+                    : confirmDialog.type === 'reopen_course'
+                      ? `Tem certeza que deseja reabrir o curso "${course.title}"? Esta ação permitirá que o curso volte a receber inscrições.`
+                      : 'Tem certeza que deseja realizar esta ação?'
         }
         confirmText={
           confirmDialog.type === 'delete_draft'
@@ -602,7 +749,11 @@ export default function CourseDetailPage({
                 ? 'Publicar Curso'
                 : confirmDialog.type === 'cancel_course'
                   ? 'Cancelar Curso'
-                  : 'Confirmar'
+                  : confirmDialog.type === 'close_course'
+                    ? 'Fechar Curso'
+                    : confirmDialog.type === 'reopen_course'
+                      ? 'Reabrir Curso'
+                      : 'Confirmar'
         }
         variant={
           confirmDialog.type === 'delete_draft' ||
@@ -629,6 +780,10 @@ export default function CourseDetailPage({
             }
           } else if (confirmDialog.type === 'cancel_course') {
             confirmCancelCourse()
+          } else if (confirmDialog.type === 'close_course') {
+            confirmCloseCourse()
+          } else if (confirmDialog.type === 'reopen_course') {
+            confirmReopenCourse()
           }
         }}
       />
