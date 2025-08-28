@@ -191,7 +191,7 @@ export default function CourseDetailPage({
         ...data,
         title: data.title || course?.title,
         modalidade: data.modalidade || course?.modalidade,
-        status: data.status || course?.originalStatus || course?.status,
+        status: data.status || course?.status,
         // Ensure organization is synced with orgao.nome
         organization:
           data.orgao?.nome || data.organization || course?.organization,
@@ -301,18 +301,51 @@ export default function CourseDetailPage({
     })
   }
 
+  // Helper function to build complete course data for API calls
+  const buildCompleteUpdateData = (statusOverride?: string) => {
+    if (!course) return {}
+
+    return {
+      title: course.title,
+      description: course.description,
+      enrollment_start_date:
+        course.enrollment_start_date || course.enrollment_start_date,
+      enrollment_end_date:
+        course.enrollment_end_date || course.enrollment_end_date,
+      orgao_id: course.orgao?.id,
+      instituicao_id: 5,
+      modalidade: course.modalidade,
+      theme: course.theme,
+      workload: course.workload,
+      target_audience: course.target_audience,
+      institutional_logo: course.institutional_logo,
+      cover_image: course.cover_image,
+      pre_requisitos: course.pre_requisitos || course.prerequisites,
+      has_certificate: course.has_certificate,
+      facilitator: course.facilitator,
+      objectives: course.objectives,
+      expected_results: course.expected_results,
+      program_content: course.program_content,
+      methodology: course.methodology,
+      resources_used: course.resources_used,
+      material_used: course.material_used,
+      teaching_material: course.teaching_material,
+      custom_fields: course.custom_fields || [],
+      locations: course.locations || [],
+      remote_class: course.remote_class,
+      turno: 'LIVRE',
+      formato_aula: course.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
+      status: statusOverride || course.status,
+      organization: course.organization || course.orgao?.nome,
+    }
+  }
+
   const confirmCancelCourse = async () => {
     try {
       setIsLoading(true)
 
-      // Ensure required fields are always included
-      const cancelData = {
-        title: course?.title,
-        orgao_id: course?.orgao?.id,
-        instituicao_id: 5,
-        modalidade: course?.modalidade,
-        status: 'canceled',
-      }
+      // Build complete course data with canceled status
+      const cancelData = buildCompleteUpdateData('canceled')
 
       const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
@@ -350,14 +383,8 @@ export default function CourseDetailPage({
     try {
       setIsLoading(true)
 
-      // Ensure required fields are always included
-      const closeData = {
-        title: course?.title,
-        orgao_id: course?.orgao?.id,
-        instituicao_id: 5,
-        modalidade: course?.modalidade,
-        status: 'closed',
-      }
+      // Build complete course data with closed status
+      const closeData = buildCompleteUpdateData('closed')
 
       const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
@@ -395,14 +422,8 @@ export default function CourseDetailPage({
     try {
       setIsLoading(true)
 
-      // Ensure required fields are always included
-      const reopenData = {
-        title: course?.title,
-        orgao_id: course?.orgao?.id,
-        instituicao_id: 5,
-        modalidade: course?.modalidade,
-        status: 'opened',
-      }
+      // Build complete course data with opened status
+      const reopenData = buildCompleteUpdateData('opened')
 
       const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
@@ -531,11 +552,13 @@ export default function CourseDetailPage({
     )
   }
 
-  const config = statusConfig[course.status] || statusConfig.draft
+  const config =
+    statusConfig[course.status as keyof typeof statusConfig] ||
+    statusConfig.draft
   const StatusIcon = config.icon
 
   // Use originalStatus for business logic, fallback to status if originalStatus not available
-  const actualStatus = course.originalStatus || course.status
+  const actualStatus = course.status
 
   // Check if course is a draft
   const isDraft = actualStatus === 'draft'
@@ -586,7 +609,9 @@ export default function CourseDetailPage({
                 </Badge>
                 <span className="text-sm text-muted-foreground">
                   Criado em{' '}
-                  {format(course.created_at, 'dd/MM/yyyy', { locale: ptBR })}
+                  {format(course.created_at || new Date(), 'dd/MM/yyyy', {
+                    locale: ptBR,
+                  })}
                 </span>
               </div>
             </div>
