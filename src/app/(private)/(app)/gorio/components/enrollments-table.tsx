@@ -81,6 +81,7 @@ export function EnrollmentsTable({
     loading,
     error,
     updateEnrollmentStatus,
+    updateMultipleEnrollmentStatuses,
   } = useEnrollments({
     courseId,
     page: pagination.pageIndex + 1,
@@ -100,6 +101,16 @@ export function EnrollmentsTable({
   const handleCancelEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
       const updated = await updateEnrollmentStatus(enrollment.id, 'cancelled')
+      if (updated) {
+        setSelectedEnrollment(updated)
+      }
+    },
+    [updateEnrollmentStatus]
+  )
+
+  const handleSetPendingEnrollment = React.useCallback(
+    async (enrollment: Enrollment) => {
+      const updated = await updateEnrollmentStatus(enrollment.id, 'pending')
       if (updated) {
         setSelectedEnrollment(updated)
       }
@@ -330,11 +341,13 @@ export function EnrollmentsTable({
       return
     }
 
-    // Confirm all selected enrollments
-    for (const enrollment of enrollmentsToConfirm) {
-      await updateEnrollmentStatus(enrollment.id, 'confirmed')
-    }
-  }, [table, updateEnrollmentStatus])
+    // Use bulk update API
+    const enrollmentIds = enrollmentsToConfirm.map(e => e.id)
+    await updateMultipleEnrollmentStatuses(enrollmentIds, 'confirmed')
+
+    // Clear selection after successful update
+    table.resetRowSelection()
+  }, [table, updateMultipleEnrollmentStatuses])
 
   const handleBulkSetPending = React.useCallback(async () => {
     const selectedRows = table.getFilteredSelectedRowModel().rows
@@ -346,11 +359,13 @@ export function EnrollmentsTable({
       return
     }
 
-    // Set all selected enrollments to pending
-    for (const enrollment of enrollmentsToSetPending) {
-      await updateEnrollmentStatus(enrollment.id, 'pending')
-    }
-  }, [table, updateEnrollmentStatus])
+    // Use bulk update API
+    const enrollmentIds = enrollmentsToSetPending.map(e => e.id)
+    await updateMultipleEnrollmentStatuses(enrollmentIds, 'pending')
+
+    // Clear selection after successful update
+    table.resetRowSelection()
+  }, [table, updateMultipleEnrollmentStatuses])
 
   const handleDownloadSpreadsheet = React.useCallback(() => {
     // Always export all enrollments, not just selected ones
@@ -414,11 +429,13 @@ export function EnrollmentsTable({
       return
     }
 
-    // Cancel all selected enrollments
-    for (const enrollment of enrollmentsToCancel) {
-      await updateEnrollmentStatus(enrollment.id, 'cancelled')
-    }
-  }, [table, updateEnrollmentStatus])
+    // Use bulk update API
+    const enrollmentIds = enrollmentsToCancel.map(e => e.id)
+    await updateMultipleEnrollmentStatuses(enrollmentIds, 'cancelled')
+
+    // Clear selection after successful update
+    table.resetRowSelection()
+  }, [table, updateMultipleEnrollmentStatuses])
 
   // Show loading state
   if (loading && enrollments.length === 0) {
@@ -479,7 +496,7 @@ export function EnrollmentsTable({
       {/* Summary */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          {/* <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg">
               <Users className="w-5 h-5 text-blue-600" />
             </div>
@@ -489,7 +506,7 @@ export function EnrollmentsTable({
               </p>
               <p className="text-sm text-blue-600">Total de Vagas</p>
             </div>
-          </div>
+          </div> */}
 
           <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg">
@@ -527,7 +544,7 @@ export function EnrollmentsTable({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          {/* <div className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <div className="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-lg">
               <User className="w-5 h-5 text-gray-600" />
             </div>
@@ -537,12 +554,12 @@ export function EnrollmentsTable({
               </p>
               <p className="text-sm text-gray-600">Vagas Restantes</p>
             </div>
-          </div>
+          </div> */}
         </div>
       )}
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent>
+        <SheetContent className="md:max-w-xl!">
           <SheetHeader>
             <SheetTitle>Detalhes da Inscrição</SheetTitle>
             <SheetDescription>
@@ -686,16 +703,24 @@ export function EnrollmentsTable({
               <SheetFooter className="flex-col gap-2 sm:flex-row">
                 <Button
                   onClick={() => handleConfirmEnrollment(selectedEnrollment)}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto bg-green-50 border border-green-200 text-green-700"
                   disabled={selectedEnrollment.status === 'confirmed'}
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Confirmar inscrição
                 </Button>
                 <Button
+                  onClick={() => handleSetPendingEnrollment(selectedEnrollment)}
+                  className="w-full sm:w-auto bg-yellow-50 border border-yellow-200 text-yellow-700"
+                  disabled={selectedEnrollment.status === 'pending'}
+                >
+                  <Clock className="mr-2 h-4 w-4" />
+                  Deixar pendente
+                </Button>
+                <Button
                   variant="destructive"
                   onClick={() => handleCancelEnrollment(selectedEnrollment)}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto bg-red-50! border border-red-200 text-red-700"
                   disabled={selectedEnrollment.status === 'cancelled'}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
