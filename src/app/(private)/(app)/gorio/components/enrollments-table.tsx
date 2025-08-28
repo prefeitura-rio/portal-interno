@@ -92,7 +92,10 @@ export function EnrollmentsTable({
     async (enrollment: Enrollment) => {
       const updated = await updateEnrollmentStatus(enrollment.id, 'confirmed')
       if (updated) {
-        setSelectedEnrollment(updated)
+        // Update the selected enrollment immediately with the new status
+        setSelectedEnrollment(prev =>
+          prev ? { ...prev, status: 'confirmed' } : prev
+        )
       }
     },
     [updateEnrollmentStatus]
@@ -102,7 +105,10 @@ export function EnrollmentsTable({
     async (enrollment: Enrollment) => {
       const updated = await updateEnrollmentStatus(enrollment.id, 'cancelled')
       if (updated) {
-        setSelectedEnrollment(updated)
+        // Update the selected enrollment immediately with the new status
+        setSelectedEnrollment(prev =>
+          prev ? { ...prev, status: 'cancelled' } : prev
+        )
       }
     },
     [updateEnrollmentStatus]
@@ -112,11 +118,26 @@ export function EnrollmentsTable({
     async (enrollment: Enrollment) => {
       const updated = await updateEnrollmentStatus(enrollment.id, 'pending')
       if (updated) {
-        setSelectedEnrollment(updated)
+        // Update the selected enrollment immediately with the new status
+        setSelectedEnrollment(prev =>
+          prev ? { ...prev, status: 'pending' } : prev
+        )
       }
     },
     [updateEnrollmentStatus]
   )
+
+  // Update selectedEnrollment when enrollments data changes
+  React.useEffect(() => {
+    if (selectedEnrollment && enrollments.length > 0) {
+      const updatedEnrollment = enrollments.find(
+        e => e.id === selectedEnrollment.id
+      )
+      if (updatedEnrollment) {
+        setSelectedEnrollment(updatedEnrollment)
+      }
+    }
+  }, [enrollments, selectedEnrollment])
 
   const handleRowClick = React.useCallback((enrollment: Enrollment) => {
     setSelectedEnrollment(enrollment)
