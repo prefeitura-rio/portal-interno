@@ -103,11 +103,11 @@ export function EnrollmentsTable({
 
   const handleCancelEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
-      const updated = await updateEnrollmentStatus(enrollment.id, 'cancelled')
+      const updated = await updateEnrollmentStatus(enrollment.id, 'rejected')
       if (updated) {
         // Update the selected enrollment immediately with the new status
         setSelectedEnrollment(prev =>
-          prev ? { ...prev, status: 'cancelled' } : prev
+          prev ? { ...prev, status: 'rejected' } : prev
         )
       }
     },
@@ -301,6 +301,12 @@ export function EnrollmentsTable({
               className: 'text-red-600 border-red-200 bg-red-50',
               icon: XCircle,
             },
+            rejected: {
+              label: 'Recusado',
+              variant: 'secondary' as const,
+              className: 'text-red-600 border-red-200 bg-red-50',
+              icon: XCircle,
+            },
           }
 
           const config = statusConfig[status]
@@ -324,6 +330,7 @@ export function EnrollmentsTable({
             { label: 'Confirmado', value: 'confirmed' },
             { label: 'Pendente', value: 'pending' },
             { label: 'Cancelado', value: 'cancelled' },
+            { label: 'Recusado', value: 'rejected' },
           ],
         },
         enableColumnFilter: true,
@@ -444,7 +451,7 @@ export function EnrollmentsTable({
     const selectedRows = table.getFilteredSelectedRowModel().rows
     const enrollmentsToCancel = selectedRows
       .map(row => row.original)
-      .filter(enrollment => enrollment.status !== 'cancelled')
+      .filter(enrollment => enrollment.status !== 'rejected')
 
     if (enrollmentsToCancel.length === 0) {
       return
@@ -452,7 +459,7 @@ export function EnrollmentsTable({
 
     // Use bulk update API
     const enrollmentIds = enrollmentsToCancel.map(e => e.id)
-    await updateMultipleEnrollmentStatuses(enrollmentIds, 'cancelled')
+    await updateMultipleEnrollmentStatuses(enrollmentIds, 'rejected')
 
     // Clear selection after successful update
     table.resetRowSelection()
@@ -561,7 +568,7 @@ export function EnrollmentsTable({
               <p className="text-2xl font-bold text-red-700">
                 {summary.cancelledCount}
               </p>
-              <p className="text-sm text-red-600">Cancelados</p>
+              <p className="text-sm text-red-600">Recusados</p>
             </div>
           </div>
 
@@ -693,6 +700,11 @@ export function EnrollmentsTable({
                                   className:
                                     'text-red-600 border-red-200 bg-red-50',
                                 },
+                                rejected: {
+                                  label: 'Recusado',
+                                  className:
+                                    'text-red-600 border-red-200 bg-red-50',
+                                },
                               }
                               const config =
                                 statusConfig[selectedEnrollment.status]
@@ -742,10 +754,10 @@ export function EnrollmentsTable({
                   variant="destructive"
                   onClick={() => handleCancelEnrollment(selectedEnrollment)}
                   className="w-full sm:flex-1 bg-red-50! border border-red-200 text-red-700"
-                  disabled={selectedEnrollment.status === 'cancelled'}
+                  disabled={selectedEnrollment.status === 'rejected'}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
-                  Cancelar inscrição
+                  Recusar inscrição
                 </Button>
               </SheetFooter>
             </>
@@ -780,11 +792,11 @@ export function EnrollmentsTable({
             Exportar CSV
           </DataTableActionBarAction>
           <DataTableActionBarAction
-            tooltip="Cancelar inscrições selecionadas"
+            tooltip="Recusar inscrições selecionadas"
             onClick={handleBulkCancelEnrollments}
           >
             <XCircle className="mr-2 h-4 w-4" />
-            Cancelar inscrições
+            Recusar inscrições
           </DataTableActionBarAction>
         </DataTableActionBar>
       </DataTable>

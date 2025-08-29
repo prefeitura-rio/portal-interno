@@ -198,7 +198,11 @@ export interface CourseFilters {
 }
 
 // Enrollment Types
-export type EnrollmentStatus = 'confirmed' | 'pending' | 'cancelled'
+export type EnrollmentStatus =
+  | 'confirmed'
+  | 'pending'
+  | 'cancelled'
+  | 'rejected'
 
 export interface Enrollment {
   id: string

@@ -26,8 +26,9 @@ function convertApiStatusToFrontend(
     case 'pending':
       return 'pending'
     case 'cancelled':
-    case 'rejected':
       return 'cancelled'
+    case 'rejected':
+      return 'rejected'
     default:
       return 'pending'
   }
@@ -42,6 +43,8 @@ function convertFrontendStatusToApi(
       return 'approved'
     case 'pending':
       return 'pending'
+    case 'rejected':
+      return 'rejected'
     case 'cancelled':
       return 'cancelled'
     default:
@@ -151,8 +154,9 @@ export async function GET(
         totalVacancies: apiSummary?.total || 100, // Use total from API
         confirmedCount: apiSummary?.approved || 0,
         pendingCount: apiSummary?.pending || 0,
-        cancelledCount:
-          (apiSummary?.cancelled || 0) + (apiSummary?.rejected || 0),
+        // cancelledCount:
+        //   (apiSummary?.cancelled || 0) + (apiSummary?.rejected || 0),
+        cancelledCount: apiSummary?.rejected || 0,
         remainingVacancies: Math.max(
           0,
           (apiSummary?.total || 100) - (apiSummary?.approved || 0)

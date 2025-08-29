@@ -311,9 +311,7 @@ export function calculateEnrollmentSummary(
     e => e.status === 'confirmed'
   ).length
   const pendingCount = enrollments.filter(e => e.status === 'pending').length
-  const cancelledCount = enrollments.filter(
-    e => e.status === 'cancelled'
-  ).length
+  const cancelledCount = enrollments.filter(e => e.status === 'rejected').length
   const remainingVacancies = Math.max(0, totalVacancies - confirmedCount)
 
   return {
