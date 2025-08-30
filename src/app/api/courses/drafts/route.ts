@@ -11,19 +11,20 @@ export async function GET(request: Request) {
     const page = searchParams.get('page')
     const perPage = searchParams.get('per_page')
     const search = searchParams.get('search')
-    const provider = searchParams.get('provider')
-    const dateFrom = searchParams.get('date_from')
-    const dateTo = searchParams.get('date_to')
 
-    // Build params object for the API
+    // Build params object for the API - using correct parameter names based on GetApiV1CoursesDraftsParams
     const params: any = {}
 
-    if (page) params.page = Number.parseInt(page, 10)
-    if (perPage) params.per_page = Number.parseInt(perPage, 10)
-    if (search) params.search = search
-    if (provider) params.provider = provider
-    if (dateFrom) params.date_from = dateFrom
-    if (dateTo) params.date_to = dateTo
+    // Set defaults and convert parameters
+    params.page = page ? Number.parseInt(page, 10) : 1
+    params.limit = perPage ? Number.parseInt(perPage, 10) : 10
+
+    // Add search parameter for filtering by title
+    if (search?.trim()) {
+      params.search = search.trim()
+    }
+
+    console.log('Drafts API call params:', params)
 
     // Call the external API using the existing client function
     const response = await getApiV1CoursesDrafts(params)
@@ -93,7 +94,9 @@ export async function GET(request: Request) {
       return NextResponse.json({
         courses: transformedCourses,
         pagination: pagination,
-        total: pagination?.total || transformedCourses.length,
+        total: pagination?.total || 0,
+        page: params.page,
+        per_page: params.limit,
         success: true,
       })
     }
