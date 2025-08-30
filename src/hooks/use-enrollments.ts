@@ -71,7 +71,8 @@ export function useEnrollments({
       })
 
       if (filters?.status && filters.status.length > 0) {
-        params.append('status', filters.status.join(','))
+        // Since we now expect only one status, take the first one
+        params.append('status', filters.status[0])
       }
 
       if (filters?.search) {

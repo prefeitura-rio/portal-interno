@@ -100,27 +100,25 @@ export async function GET(
     const statusParam = searchParams.get('status')
     const search = searchParams.get('search') || undefined
 
-    // Handle status parameter - can be a comma-separated string or array
+    // Handle single status parameter
     let status: string | undefined = undefined
-    if (statusParam) {
-      const statusArray = statusParam.split(',').filter(Boolean)
-      if (statusArray.length > 0) {
-        // Convert frontend statuses to API statuses
-        const apiStatuses = statusArray.map(s => {
-          switch (s.trim()) {
-            case 'confirmed':
-              return 'approved'
-            case 'pending':
-              return 'pending'
-            case 'rejected':
-              return 'rejected'
-            case 'cancelled':
-              return 'cancelled'
-            default:
-              return s.trim()
-          }
-        })
-        status = apiStatuses.join(',')
+    if (statusParam && statusParam.trim() !== '') {
+      // Convert frontend status to API status
+      switch (statusParam.trim()) {
+        case 'confirmed':
+          status = 'approved'
+          break
+        case 'pending':
+          status = 'pending'
+          break
+        case 'rejected':
+          status = 'rejected'
+          break
+        case 'cancelled':
+          status = 'cancelled'
+          break
+        default:
+          status = statusParam.trim()
       }
     }
 
