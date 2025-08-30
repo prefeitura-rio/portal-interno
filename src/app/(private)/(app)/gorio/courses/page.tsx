@@ -314,7 +314,7 @@ export default function Courses() {
           variant: 'text',
           icon: Building2,
         },
-        enableColumnFilter: true,
+        enableColumnFilter: false,
       },
       {
         id: 'created_at',
@@ -325,7 +325,7 @@ export default function Courses() {
           return date.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Data de Criação" />
+          <DataTableColumnHeader column={column} title="Data de criação" />
         ),
         cell: ({ cell }) => {
           const timestamp = cell.getValue<number>()
@@ -338,11 +338,11 @@ export default function Courses() {
           )
         },
         meta: {
-          label: 'Dt. de Criação',
+          label: 'Data de criação',
           variant: 'dateRange',
           icon: Calendar,
         },
-        enableColumnFilter: true,
+        enableColumnFilter: false,
       },
       {
         id: 'registration_start',
@@ -355,7 +355,10 @@ export default function Courses() {
           return dateObj.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Início das Inscr." />
+          <DataTableColumnHeader
+            column={column}
+            title="Início das inscrições"
+          />
         ),
         cell: ({ cell }) => {
           const timestamp = cell.getValue<number | null>()
@@ -371,11 +374,11 @@ export default function Courses() {
           )
         },
         meta: {
-          label: 'Início das Inscrições',
+          label: 'Início das inscrições',
           variant: 'dateRange',
           icon: Calendar,
         },
-        enableColumnFilter: true,
+        enableColumnFilter: false,
       },
       {
         id: 'registration_end',
@@ -388,7 +391,7 @@ export default function Courses() {
           return dateObj.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Fim das Inscr." />
+          <DataTableColumnHeader column={column} title="Fim das inscrições" />
         ),
         cell: ({ cell }) => {
           const timestamp = cell.getValue<number | null>()
@@ -404,11 +407,11 @@ export default function Courses() {
           )
         },
         meta: {
-          label: 'Fim das Inscrições',
+          label: 'Fim das inscrições',
           variant: 'dateRange',
           icon: Calendar,
         },
-        enableColumnFilter: true,
+        enableColumnFilter: false,
       },
       // {
       //   id: 'vacancies',
@@ -532,24 +535,6 @@ export default function Courses() {
         const rowValue = row.getValue(id) as string
         return Array.isArray(value) && value.includes(rowValue)
       },
-      meta: {
-        label: 'Status',
-        variant: 'multiSelect',
-        options: [
-          { label: 'Agendado', value: 'scheduled', icon: Calendar },
-          {
-            label: 'Recebendo Inscrições',
-            value: 'accepting_enrollments',
-            icon: UserCheck,
-          },
-          { label: 'Em Andamento', value: 'in_progress', icon: Play },
-          { label: 'Encerrado', value: 'finished', icon: Flag },
-          { label: 'Aberto', value: 'opened', icon: ClipboardList },
-          { label: 'Fechado', value: 'closed', icon: Flag },
-          { label: 'Cancelado', value: 'cancelled', icon: Ban },
-        ],
-      },
-      enableColumnFilter: true,
     }
 
     // For created courses tab, include status column before actions
