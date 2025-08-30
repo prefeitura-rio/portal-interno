@@ -208,7 +208,7 @@ export function EnrollmentsTable({
           variant: 'text',
           icon: Text,
         },
-        enableColumnFilter: true,
+        enableColumnFilter: false,
       },
       {
         id: 'email',
@@ -221,30 +221,6 @@ export function EnrollmentsTable({
             {cell.getValue<Enrollment['email']>()}
           </span>
         ),
-      },
-      {
-        id: 'age',
-        accessorKey: 'age',
-        header: ({ column }: { column: Column<Enrollment, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Idade" />
-        ),
-        cell: ({ cell }) => {
-          const age = cell.getValue<Enrollment['age']>()
-          return (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span>{age} anos</span>
-            </div>
-          )
-        },
-        meta: {
-          label: 'Idade',
-          variant: 'range',
-          range: [18, 80],
-          unit: 'anos',
-          icon: Users,
-        },
-        enableColumnFilter: true,
       },
       {
         id: 'enrollmentDate',
@@ -272,7 +248,7 @@ export function EnrollmentsTable({
           variant: 'dateRange',
           icon: Calendar,
         },
-        enableColumnFilter: true,
+        enableColumnFilter: false,
       },
       {
         id: 'status',
