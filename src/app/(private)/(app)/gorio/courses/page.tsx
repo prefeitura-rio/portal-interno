@@ -352,7 +352,7 @@ export default function Courses() {
         ),
         meta: {
           label: 'Título do curso',
-          placeholder: 'Buscar cursos...',
+          placeholder: 'Buscar curso por título...',
           variant: 'text',
           icon: Text,
         },
