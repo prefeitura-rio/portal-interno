@@ -39,7 +39,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 // Status configuration for badges - updated to match courses list page
@@ -169,17 +169,45 @@ export default function CourseDetailPage({
     })
   }, [params])
 
+  // Function to update URL with tab parameter
+  const updateTabInUrl = useCallback(
+    (newTab: string) => {
+      const currentUrl = new URL(window.location.href)
+      currentUrl.searchParams.set('tab', newTab)
+
+      // Use router.replace to update URL without adding to history
+      router.replace(currentUrl.pathname + currentUrl.search, { scroll: false })
+    },
+    [router]
+  )
+
   // Auto-enable edit mode if edit=true query parameter is present
   useEffect(() => {
     const editParam = searchParams.get('edit')
     if (editParam === 'true') {
       setIsEditing(true)
     }
-  }, [searchParams])
+
+    // Set active tab from URL parameter
+    const tabParam = searchParams.get('tab')
+    if (tabParam && (tabParam === 'about' || tabParam === 'enrollments')) {
+      setActiveTab(tabParam)
+    } else if (!tabParam && course && course.status !== 'draft') {
+      // Set default tab for non-draft courses if no tab param exists
+      updateTabInUrl('about')
+    }
+  }, [searchParams, course, updateTabInUrl])
+
+  // Handler for tab change
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab)
+    updateTabInUrl(newTab)
+  }
 
   const handleEdit = () => {
     setIsEditing(true)
     setActiveTab('about')
+    updateTabInUrl('about')
   }
 
   const handleSave = async (data: any) => {
@@ -724,7 +752,7 @@ export default function CourseDetailPage({
           // For non-draft courses, show tabs
           <Tabs
             value={activeTab}
-            onValueChange={setActiveTab}
+            onValueChange={handleTabChange}
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-2">
