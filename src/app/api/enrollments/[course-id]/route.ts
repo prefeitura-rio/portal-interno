@@ -97,8 +97,32 @@ export async function GET(
     // Extract query parameters
     const page = Number.parseInt(searchParams.get('page') || '1', 10)
     const limit = Number.parseInt(searchParams.get('perPage') || '10', 10)
-    const status = searchParams.get('status') || undefined
+    const statusParam = searchParams.get('status')
     const search = searchParams.get('search') || undefined
+
+    // Handle status parameter - can be a comma-separated string or array
+    let status: string | undefined = undefined
+    if (statusParam) {
+      const statusArray = statusParam.split(',').filter(Boolean)
+      if (statusArray.length > 0) {
+        // Convert frontend statuses to API statuses
+        const apiStatuses = statusArray.map(s => {
+          switch (s.trim()) {
+            case 'confirmed':
+              return 'approved'
+            case 'pending':
+              return 'pending'
+            case 'rejected':
+              return 'rejected'
+            case 'cancelled':
+              return 'cancelled'
+            default:
+              return s.trim()
+          }
+        })
+        status = apiStatuses.join(',')
+      }
+    }
 
     // Call the API
     const response = await getApiV1CoursesCourseIdEnrollments(

@@ -24,10 +24,6 @@ export async function GET(
       Number.parseInt(courseId, 10)
     )
 
-    console.log('API Response:', response)
-    console.log('API Response data:', response.data)
-    console.log('API Response status:', response.status)
-
     if (response.status === 200) {
       // The external API returns { data: ModelsCurso, status: 200 }
       // We need to extract the course data and return it in our format

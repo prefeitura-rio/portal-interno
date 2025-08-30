@@ -22,7 +22,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { useEnrollments } from '@/hooks/use-enrollments'
-import type { Enrollment } from '@/types/course'
+import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import {
   type Column,
   type ColumnDef,
@@ -73,6 +73,19 @@ export function EnrollmentsTable({
     React.useState<Enrollment | null>(null)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
 
+  // Convert column filters to enrollment filters
+  const filters = React.useMemo(() => {
+    const statusFilter = columnFilters.find(filter => filter.id === 'status')
+    const candidateNameFilter = columnFilters.find(
+      filter => filter.id === 'candidateName'
+    )
+
+    return {
+      status: statusFilter?.value as EnrollmentStatus[],
+      search: candidateNameFilter?.value as string,
+    }
+  }, [columnFilters])
+
   // Use the custom hook to fetch enrollments
   const {
     enrollments,
@@ -82,10 +95,12 @@ export function EnrollmentsTable({
     error,
     updateEnrollmentStatus,
     updateMultipleEnrollmentStatuses,
+    refetch,
   } = useEnrollments({
     courseId,
     page: pagination.pageIndex + 1,
     perPage: pagination.pageSize,
+    filters,
   })
 
   const handleConfirmEnrollment = React.useCallback(
@@ -125,6 +140,18 @@ export function EnrollmentsTable({
       }
     },
     [updateEnrollmentStatus]
+  )
+
+  // Handle pagination changes
+  const handlePaginationChange = React.useCallback(
+    (
+      updater: PaginationState | ((prev: PaginationState) => PaginationState)
+    ) => {
+      const newPagination =
+        typeof updater === 'function' ? updater(pagination) : updater
+      setPagination(newPagination)
+    },
+    [pagination]
   )
 
   // Update selectedEnrollment when enrollments data changes
@@ -326,13 +353,15 @@ export function EnrollmentsTable({
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
+    manualFiltering: true,
     pageCount: apiPagination?.totalPages || 0,
+    rowCount: apiPagination?.total || 0,
   })
 
   const handleBulkConfirmEnrollments = React.useCallback(async () => {

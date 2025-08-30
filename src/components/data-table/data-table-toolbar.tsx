@@ -52,7 +52,7 @@ export function DataTableToolbar<TData>({
             aria-label="Reset filters"
             variant="outline"
             size="sm"
-            className="border-dashed"
+            className="border-dashed lg:py-6!"
             onClick={onReset}
           >
             <X />
