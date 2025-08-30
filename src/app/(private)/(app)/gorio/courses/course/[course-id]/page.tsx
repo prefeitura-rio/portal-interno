@@ -504,8 +504,8 @@ export default function CourseDetailPage({
 
       toast.success('Rascunho excluído com sucesso!')
 
-      // Redirect to courses list
-      router.push('/gorio/courses')
+      // Redirect to courses list with appropriate tab
+      router.push('/gorio/courses?tab=draft')
     } catch (error) {
       console.error('Error deleting draft course:', error)
       toast.error('Erro ao excluir rascunho', {

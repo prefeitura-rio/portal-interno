@@ -9,11 +9,14 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import Link from 'next/link'
 
 export default function NewCourse() {
+  const router = useRouter()
+
   const handleCreateCourse = async (data: any) => {
     try {
       console.log('Creating course:', data)
@@ -34,11 +37,12 @@ export default function NewCourse() {
       const result = await response.json()
       console.log('Course created successfully:', result)
 
-      // Show success toast and redirect
+      // Show success toast and redirect to courses with 'created' tab
       toast.success('Curso criado com sucesso!')
-      setTimeout(() => {
-        window.location.href = '/gorio/courses'
-      }, 1500)
+      router.push('/gorio/courses?tab=created')
+
+      // Trigger cache revalidation
+      router.refresh()
     } catch (error) {
       console.error('Error creating course:', error)
       toast.error('Erro ao criar curso', {
@@ -67,11 +71,12 @@ export default function NewCourse() {
       const result = await response.json()
       console.log('Draft course created successfully:', result)
 
-      // Show success toast and redirect
+      // Show success toast and redirect to courses with 'draft' tab
       toast.success('Rascunho salvo com sucesso!')
-      setTimeout(() => {
-        window.location.href = '/gorio/courses'
-      }, 1500)
+      router.push('/gorio/courses?tab=draft')
+
+      // Trigger cache revalidation
+      router.refresh()
     } catch (error) {
       console.error('Error creating draft course:', error)
       toast.error('Erro ao salvar rascunho', {

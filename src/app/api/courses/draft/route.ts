@@ -1,5 +1,6 @@
 import { postApiV1CoursesDraft } from '@/http/courses/courses'
 import type { ModelsCursoBody } from '@/http/models/modelsCursoBody'
+import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -28,6 +29,10 @@ export async function POST(request: Request) {
     })
 
     if (response.status === 201) {
+      // Revalidate courses cache (especially drafts)
+      revalidateTag('courses')
+      revalidateTag('courses-drafts')
+
       return NextResponse.json({
         course: response.data,
         success: true,

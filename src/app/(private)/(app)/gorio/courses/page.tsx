@@ -27,6 +27,7 @@ import type {
   CourseStatus,
   CourseStatusConfig,
 } from '@/types/course'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import {
   type Column,
@@ -128,6 +129,9 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
 }
 
 export default function Courses() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'created_at', desc: true },
   ])
@@ -138,7 +142,9 @@ export default function Courses() {
     pageIndex: 0,
     pageSize: 10,
   })
-  const [activeTab, setActiveTab] = React.useState('created')
+
+  // Get active tab from search params, default to 'created'
+  const activeTab = searchParams.get('tab') || 'created'
   const [courses, setCourses] = React.useState<CourseListItem[]>([])
   const [draftCourses, setDraftCourses] = React.useState<CourseListItem[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -271,13 +277,19 @@ export default function Courses() {
   // Handle tab changes
   const handleTabChange = React.useCallback(
     (value: string) => {
-      setActiveTab(value)
+      // Update URL with tab parameter
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('tab', value)
+      router.push(`/gorio/courses?${params.toString()}`)
+
       // Reset to first page when changing tabs
       const newPagination = { pageIndex: 0, pageSize: pagination.pageSize }
       setPagination(newPagination)
-      fetchCourses(0, pagination.pageSize, value, searchQuery)
+
+      // Note: fetchCourses will be called automatically by the useEffect
+      // that monitors activeTab changes, so we don't need to call it here
     },
-    [pagination.pageSize, fetchCourses, searchQuery]
+    [router, searchParams, pagination.pageSize]
   )
 
   // Filter data based on active tab

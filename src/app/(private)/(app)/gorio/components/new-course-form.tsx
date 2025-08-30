@@ -830,7 +830,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             onSubmit(courseData)
           } else {
             toast.success('Curso criado com sucesso!')
-            router.push('/gorio/courses')
+            // Redirect to courses page with 'created' tab active
+            router.push('/gorio/courses?tab=created')
           }
         }
       } catch (error) {
@@ -881,6 +882,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           onSubmit(draftData)
         } else {
           toast.success('Rascunho salvo com sucesso!')
+          // Redirect to courses page with 'draft' tab active
+          router.push('/gorio/courses?tab=draft')
         }
       } catch (error) {
         if (error instanceof z.ZodError) {
