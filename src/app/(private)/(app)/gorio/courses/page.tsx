@@ -34,7 +34,6 @@ import {
   type PaginationState,
   type SortingState,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
@@ -142,6 +141,7 @@ export default function Courses() {
   const [courses, setCourses] = React.useState<CourseListItem[]>([])
   const [draftCourses, setDraftCourses] = React.useState<CourseListItem[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [searchQuery, setSearchQuery] = React.useState('')
 
   // Add state for total counts and pagination info
   const [coursesTotal, setCoursesTotal] = React.useState(0)
@@ -151,18 +151,23 @@ export default function Courses() {
 
   // Fetch courses data with pagination
   const fetchCourses = React.useCallback(
-    async (pageIndex = 0, pageSize = 10, tab = activeTab) => {
+    async (pageIndex = 0, pageSize = 10, tab = activeTab, searchQuery = '') => {
       try {
         setLoading(true)
         console.log(
-          `Fetching ${tab} courses: page ${pageIndex + 1}, size ${pageSize}`
+          `Fetching ${tab} courses: page ${pageIndex + 1}, size ${pageSize}, search: "${searchQuery}"`
         )
 
         if (tab === 'draft') {
-          // Fetch draft courses with pagination
-          const response = await fetch(
-            `/api/courses/drafts?page=${pageIndex + 1}&per_page=${pageSize}`
-          )
+          // Build URL with search parameter for drafts
+          const url = new URL('/api/courses/drafts', window.location.origin)
+          url.searchParams.set('page', (pageIndex + 1).toString())
+          url.searchParams.set('per_page', pageSize.toString())
+          if (searchQuery.trim()) {
+            url.searchParams.set('search', searchQuery.trim())
+          }
+
+          const response = await fetch(url.toString())
           if (response.ok) {
             const data = await response.json()
             console.log('Drafts API response:', data)
@@ -173,10 +178,15 @@ export default function Courses() {
             )
           }
         } else {
-          // Fetch regular courses with pagination
-          const response = await fetch(
-            `/api/courses?page=${pageIndex + 1}&per_page=${pageSize}`
-          )
+          // Build URL with search parameter for regular courses
+          const url = new URL('/api/courses', window.location.origin)
+          url.searchParams.set('page', (pageIndex + 1).toString())
+          url.searchParams.set('per_page', pageSize.toString())
+          if (searchQuery.trim()) {
+            url.searchParams.set('search', searchQuery.trim())
+          }
+
+          const response = await fetch(url.toString())
           if (response.ok) {
             const data = await response.json()
             console.log('Courses API response:', data)
@@ -199,8 +209,31 @@ export default function Courses() {
 
   // Initial fetch
   React.useEffect(() => {
-    fetchCourses(pagination.pageIndex, pagination.pageSize, activeTab)
-  }, [fetchCourses, pagination.pageIndex, pagination.pageSize, activeTab])
+    fetchCourses(
+      pagination.pageIndex,
+      pagination.pageSize,
+      activeTab,
+      searchQuery
+    )
+  }, [
+    fetchCourses,
+    pagination.pageIndex,
+    pagination.pageSize,
+    activeTab,
+    searchQuery,
+  ])
+
+  // Handle search filter changes
+  React.useEffect(() => {
+    const titleFilter = columnFilters.find(filter => filter.id === 'title')
+    const newSearchQuery = (titleFilter?.value as string) || ''
+
+    if (newSearchQuery !== searchQuery) {
+      setSearchQuery(newSearchQuery)
+      // Reset to first page when searching
+      setPagination(prev => ({ ...prev, pageIndex: 0 }))
+    }
+  }, [columnFilters, searchQuery])
 
   // Handle pagination changes
   const handlePaginationChange = React.useCallback(
@@ -213,9 +246,14 @@ export default function Courses() {
       setPagination(newPagination)
 
       // Fetch new data when pagination changes
-      fetchCourses(newPagination.pageIndex, newPagination.pageSize, activeTab)
+      fetchCourses(
+        newPagination.pageIndex,
+        newPagination.pageSize,
+        activeTab,
+        searchQuery
+      )
     },
-    [pagination, fetchCourses, activeTab]
+    [pagination, fetchCourses, activeTab, searchQuery]
   )
 
   // Handle tab changes
@@ -225,9 +263,9 @@ export default function Courses() {
       // Reset to first page when changing tabs
       const newPagination = { pageIndex: 0, pageSize: pagination.pageSize }
       setPagination(newPagination)
-      fetchCourses(0, pagination.pageSize, value)
+      fetchCourses(0, pagination.pageSize, value, searchQuery)
     },
-    [pagination.pageSize, fetchCourses]
+    [pagination.pageSize, fetchCourses, searchQuery]
   )
 
   // Filter data based on active tab
@@ -569,12 +607,14 @@ export default function Courses() {
     onColumnFiltersChange: setColumnFilters,
     onPaginationChange: handlePaginationChange,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    // Remove client-side filtering since we're doing server-side filtering
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    // Add manual pagination configuration
+    // Add manual pagination and filtering configuration
     manualPagination: true,
+    manualFiltering: true,
     pageCount: pageCount,
+    rowCount: totalCount,
   })
 
   if (loading) {

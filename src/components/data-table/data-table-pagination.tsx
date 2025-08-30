@@ -35,7 +35,7 @@ export function DataTablePagination<TData>({
 
   // For manual pagination, we need to handle the total count differently
   const totalRows = isManualPagination
-    ? pageCount * pageSize // Estimate total based on page count
+    ? (table.options as any).rowCount || pageCount * pageSize // Use provided rowCount or estimate
     : table.getFilteredRowModel().rows.length
 
   const selectedRows = table.getFilteredSelectedRowModel().rows.length
