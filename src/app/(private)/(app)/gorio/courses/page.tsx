@@ -278,7 +278,7 @@ export default function Courses() {
         id: 'title',
         accessorKey: 'title',
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Título do Curso" />
+          <DataTableColumnHeader column={column} title="Título do curso" />
         ),
         cell: ({ cell }) => (
           <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export default function Courses() {
           </div>
         ),
         meta: {
-          label: 'Título',
+          label: 'Título do curso',
           placeholder: 'Buscar cursos...',
           variant: 'text',
           icon: Text,
