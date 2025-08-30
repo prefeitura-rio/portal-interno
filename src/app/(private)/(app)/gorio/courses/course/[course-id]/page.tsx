@@ -467,11 +467,11 @@ export default function CourseDetailPage({
   }
 
   const handleSaveDraftFromHeader = () => {
-    // Trigger form validation and save draft
+    // Use the new triggerSaveDraft method that bypasses validation
     if (isDraft) {
-      draftFormRef.current?.triggerSubmit()
+      draftFormRef.current?.triggerSaveDraft()
     } else {
-      courseFormRef.current?.triggerSubmit()
+      courseFormRef.current?.triggerSaveDraft()
     }
   }
 

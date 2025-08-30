@@ -139,8 +139,8 @@ const remoteClassSchema = z.object({
     ),
 })
 
-// Create a discriminated union for better type safety
-const formSchema = z
+// Create the full schema for complete validation (used for publishing)
+const fullFormSchema = z
   .discriminatedUnion('modalidade', [
     z.object({
       title: z
@@ -301,6 +301,71 @@ const formSchema = z
     }
   )
 
+// Create a minimal schema for draft validation (only basic field presence)
+const draftFormSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  enrollment_start_date: z.date().optional(),
+  enrollment_end_date: z.date().optional(),
+  orgao: z
+    .object({
+      id: z.number(),
+      nome: z.string(),
+    })
+    .optional(),
+  modalidade: z.enum(['PRESENCIAL', 'HIBRIDO', 'ONLINE']).optional(),
+  theme: z.string().optional(),
+  workload: z.string().optional(),
+  target_audience: z.string().optional(),
+  institutional_logo: z.string().optional(),
+  cover_image: z.string().optional(),
+  pre_requisitos: z.string().optional(),
+  has_certificate: z.boolean().optional(),
+  facilitator: z.string().optional(),
+  objectives: z.string().optional(),
+  expected_results: z.string().optional(),
+  program_content: z.string().optional(),
+  methodology: z.string().optional(),
+  resources_used: z.string().optional(),
+  material_used: z.string().optional(),
+  teaching_material: z.string().optional(),
+  custom_fields: z
+    .array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        required: z.boolean(),
+        field_type: z.string().optional(),
+      })
+    )
+    .optional(),
+  locations: z
+    .array(
+      z.object({
+        address: z.string().optional(),
+        neighborhood: z.string().optional(),
+        vacancies: z.number().optional(),
+        classStartDate: z.date().optional(),
+        classEndDate: z.date().optional(),
+        classTime: z.string().optional(),
+        classDays: z.string().optional(),
+      })
+    )
+    .optional(),
+  remote_class: z
+    .object({
+      vacancies: z.number().optional(),
+      classStartDate: z.date().optional(),
+      classEndDate: z.date().optional(),
+      classTime: z.string().optional(),
+      classDays: z.string().optional(),
+    })
+    .optional(),
+})
+
+// Use the full schema as the main form schema for form validation display
+const formSchema = fullFormSchema
+
 type FormData = z.infer<typeof formSchema>
 
 // Helper type for form state before modalidade is selected
@@ -392,6 +457,7 @@ interface NewCourseFormProps {
 export interface NewCourseFormRef {
   triggerSubmit: () => void
   triggerPublish: () => void
+  triggerSaveDraft: () => void
 }
 
 export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
@@ -429,7 +495,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       type: null,
     })
 
-    console.log('>>>>>>>>>>initialData', initialData)
     const form = useForm<PartialFormData>({
       resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
       defaultValues: initialData
@@ -583,6 +648,75 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       }
     }
 
+    // Transform form data for draft with default values for required fields
+    const transformFormDataForDraft = (data: any) => {
+      const currentDate = new Date()
+      const nextMonth = new Date(
+        currentDate.getTime() + 30 * 24 * 60 * 60 * 1000
+      )
+
+      // Fill in default values for required fields when saving as draft
+      const modalidade = data.modalidade || 'PRESENCIAL'
+
+      const draftData: PartialFormData = {
+        title: data.title || 'Rascunho de curso. Edite antes de publicar!',
+        description:
+          data.description ||
+          'Descrição em desenvolvimento. Edite antes de publicar!',
+        enrollment_start_date: data.enrollment_start_date || currentDate,
+        enrollment_end_date: data.enrollment_end_date || nextMonth,
+        orgao:
+          data.orgao ||
+          (orgaos.length > 0 ? orgaos[0] : { id: 1, nome: 'Órgão Padrão' }),
+        modalidade: modalidade as 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE',
+        theme: data.theme,
+        workload: data.workload,
+        target_audience: data.target_audience,
+        institutional_logo: data.institutional_logo || '',
+        cover_image: data.cover_image || '',
+        pre_requisitos: data.pre_requisitos,
+        has_certificate: data.has_certificate,
+        facilitator: data.facilitator,
+        objectives: data.objectives,
+        expected_results: data.expected_results,
+        program_content: data.program_content,
+        methodology: data.methodology,
+        resources_used: data.resources_used,
+        material_used: data.material_used,
+        teaching_material: data.teaching_material,
+        custom_fields: data.custom_fields,
+        // Handle modalidade-specific data
+        locations:
+          modalidade !== 'ONLINE'
+            ? data.locations && data.locations.length > 0
+              ? data.locations
+              : [
+                  {
+                    address: '',
+                    neighborhood: '',
+                    vacancies: 1,
+                    classStartDate: currentDate,
+                    classEndDate: nextMonth,
+                    classTime: '',
+                    classDays: '',
+                  },
+                ]
+            : undefined,
+        remote_class:
+          modalidade === 'ONLINE'
+            ? data.remote_class || {
+                vacancies: 1,
+                classStartDate: currentDate,
+                classEndDate: nextMonth,
+                classTime: 'Horário em definição',
+                classDays: 'Dias em definição',
+              }
+            : undefined,
+      }
+
+      return transformFormDataToSnakeCase(draftData)
+    }
+
     // Expose methods to parent component via ref
     useImperativeHandle(ref, () => ({
       triggerSubmit: () => {
@@ -590,6 +724,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       },
       triggerPublish: () => {
         handlePublish()
+      },
+      triggerSaveDraft: () => {
+        handleSaveDraft()
       },
     }))
 
@@ -663,7 +800,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     const confirmCreateCourse = async (values: PartialFormData) => {
       try {
         // Validate the complete form data
-        const validatedData = formSchema.parse(values)
+        const validatedData = fullFormSchema.parse(values)
 
         // Transform to snake_case for backend
         const transformedData = transformFormDataToSnakeCase(validatedData)
@@ -718,26 +855,16 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       })
     }
 
-    const confirmSaveDraft = async () => {
+    // Function to save draft without validation
+    const handleSaveDraftDirectly = async () => {
       try {
-        // Trigger form validation to show visual errors
-        const isValid = await form.trigger()
-
-        if (!isValid) {
-          toast.error('Erro de validação', {
-            description:
-              'Por favor, verifique os campos destacados antes de salvar o rascunho.',
-          })
-          return
-        }
-
         const currentValues = form.getValues()
 
-        // Validate the complete form data before saving draft
-        const validatedData = formSchema.parse(currentValues)
+        // Use minimal validation for drafts - only check basic field types
+        const validatedData = draftFormSchema.parse(currentValues)
 
-        // Transform to snake_case for backend
-        const transformedData = transformFormDataToSnakeCase(validatedData)
+        // Transform to snake_case for backend with default values filled in
+        const transformedData = transformFormDataForDraft(validatedData)
 
         // Adiciona o status para rascunho
         const draftData = {
@@ -747,10 +874,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
         console.log('Saving draft...')
         console.log('Draft values:', draftData)
-
-        // Aqui você pode implementar a lógica para salvar o rascunho
-        // Por exemplo, enviar para uma API específica de rascunhos
-        // ou salvar no localStorage
 
         if (onSaveDraft) {
           onSaveDraft(draftData)
@@ -762,9 +885,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       } catch (error) {
         if (error instanceof z.ZodError) {
           console.error('Validation errors:', error.errors)
-          toast.error('Erro de validação', {
+          toast.error('Erro ao salvar rascunho', {
             description:
-              'Por favor, verifique os campos destacados antes de salvar o rascunho.',
+              'Ocorreu um erro de formato nos dados. Tente novamente.',
           })
         } else {
           console.error('Error saving draft:', error)
@@ -798,7 +921,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         const currentValues = form.getValues()
 
         // Validate the complete form data before publishing
-        const validatedData = formSchema.parse(currentValues)
+        const validatedData = fullFormSchema.parse(currentValues)
 
         // Transform to snake_case for backend
         const transformedData = transformFormDataToSnakeCase(validatedData)
@@ -1791,7 +1914,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             if (confirmDialog.type === 'create_course') {
               confirmCreateCourse(currentValues)
             } else if (confirmDialog.type === 'save_draft') {
-              confirmSaveDraft()
+              handleSaveDraftDirectly()
             } else if (confirmDialog.type === 'publish_course') {
               confirmPublishCourse()
             } else if (confirmDialog.type === 'save_changes') {
