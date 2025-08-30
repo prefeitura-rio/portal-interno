@@ -68,12 +68,13 @@ function convertApiEnrollmentToFrontend(
     candidateName: apiEnrollment.name || '',
     cpf: apiEnrollment.cpf || '',
     email: apiEnrollment.email || '',
-    age: estimatedAge,
     phone: apiEnrollment.phone || '',
     enrollmentDate: apiEnrollment.enrolled_at || new Date().toISOString(),
     status: convertApiStatusToFrontend(apiEnrollment.status),
     notes: apiEnrollment.admin_notes || apiEnrollment.reason,
-    customFields: apiEnrollment.custom_fields as Record<string, string>,
+    customFields: Array.isArray(apiEnrollment.custom_fields)
+      ? apiEnrollment.custom_fields
+      : [],
     created_at: apiEnrollment.enrolled_at || new Date().toISOString(),
     updated_at: apiEnrollment.updated_at || new Date().toISOString(),
   }

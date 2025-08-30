@@ -149,9 +149,9 @@ export interface CourseLocation {
 
 export interface CustomField {
   id: string
-  label: string
+  title: string
   value: string
-  type: 'text' | 'number' | 'date' | 'select'
+  type?: 'text' | 'number' | 'date' | 'select'
   required: boolean
 }
 
@@ -210,12 +210,11 @@ export interface Enrollment {
   candidateName: string
   cpf: string
   email: string
-  age: number
   phone: string
   enrollmentDate: string
   status: EnrollmentStatus
   notes?: string
-  customFields?: Record<string, string>
+  customFields?: CustomField[]
   created_at: string
   updated_at: string
 }

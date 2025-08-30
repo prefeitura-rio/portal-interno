@@ -637,7 +637,9 @@ export function EnrollmentsTable({
                           <Label className="text-xs text-muted-foreground">
                             CPF
                           </Label>
-                          <p className="font-mono">{selectedEnrollment.cpf}</p>
+                          <p className="font-mono text-sm">
+                            {selectedEnrollment.cpf}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -682,7 +684,7 @@ export function EnrollmentsTable({
                       </div>
                       <div className="flex items-center gap-3">
                         <div>
-                          <Label className="text-xs text-muted-foreground">
+                          <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                             Status
                           </Label>
                           <div className="mt-1">
@@ -718,18 +720,30 @@ export function EnrollmentsTable({
                           </div>
                         </div>
                       </div>
-                      {selectedEnrollment.notes && (
-                        <div className="flex items-start gap-3">
-                          <div>
-                            <Label className="text-xs text-muted-foreground">
-                              Observações
+                      {selectedEnrollment.customFields &&
+                        selectedEnrollment.customFields.length > 0 && (
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                              Informações Complementares
                             </Label>
-                            <p className="text-sm mt-1">
-                              {selectedEnrollment.notes}
-                            </p>
+                            {selectedEnrollment.customFields.map(field => (
+                              <div
+                                key={field.id}
+                                className="flex items-start gap-3"
+                              >
+                                <div className="flex-1">
+                                  <Label className="text-sm text-muted-foreground">
+                                    {field.title}
+                                    {field.required && (
+                                      <span className="text-red-500">*</span>
+                                    )}
+                                  </Label>
+                                  <p className="text-sm mt-1">{field.value}</p>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </div>
                 </div>
