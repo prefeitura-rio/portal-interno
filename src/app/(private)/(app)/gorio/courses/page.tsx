@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import type {
   CourseListItem,
   CourseStatus,
@@ -140,7 +141,8 @@ export default function Courses() {
   const [activeTab, setActiveTab] = React.useState('created')
   const [courses, setCourses] = React.useState<CourseListItem[]>([])
   const [draftCourses, setDraftCourses] = React.useState<CourseListItem[]>([])
-  const [loading, setLoading] = React.useState(true)
+  const [loading, setLoading] = React.useState(false)
+  const [initialLoading, setInitialLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState('')
 
   // Add state for total counts and pagination info
@@ -202,19 +204,27 @@ export default function Courses() {
         toast.error('Erro ao carregar cursos')
       } finally {
         setLoading(false)
+        setInitialLoading(false)
       }
     },
     [activeTab]
   )
 
-  // Initial fetch
+  // Debounced search function to prevent too many API calls
+  const debouncedFetchCourses = useDebouncedCallback((searchQuery: string) => {
+    fetchCourses(0, pagination.pageSize, activeTab, searchQuery)
+  }, 200)
+
+  // Initial fetch when component mounts or tab changes
   React.useEffect(() => {
-    fetchCourses(
-      pagination.pageIndex,
-      pagination.pageSize,
-      activeTab,
-      searchQuery
-    )
+    if (!searchQuery) {
+      fetchCourses(
+        pagination.pageIndex,
+        pagination.pageSize,
+        activeTab,
+        searchQuery
+      )
+    }
   }, [
     fetchCourses,
     pagination.pageIndex,
@@ -232,8 +242,10 @@ export default function Courses() {
       setSearchQuery(newSearchQuery)
       // Reset to first page when searching
       setPagination(prev => ({ ...prev, pageIndex: 0 }))
+      // Use debounced search to prevent losing focus
+      debouncedFetchCourses(newSearchQuery)
     }
-  }, [columnFilters, searchQuery])
+  }, [columnFilters, searchQuery, debouncedFetchCourses])
 
   // Handle pagination changes
   const handlePaginationChange = React.useCallback(
@@ -617,7 +629,7 @@ export default function Courses() {
     rowCount: totalCount,
   })
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <ContentLayout title="Gestão de Cursos">
         <div className="flex items-center justify-center h-64">
@@ -672,6 +684,7 @@ export default function Courses() {
           <TabsContent value="created" className="space-y-4">
             <DataTable
               table={table}
+              loading={loading}
               onRowClick={course => {
                 // Navigate to the course detail page
                 window.location.href = `/gorio/courses/course/${course.id}`
@@ -684,6 +697,7 @@ export default function Courses() {
           <TabsContent value="draft" className="space-y-4">
             <DataTable
               table={table}
+              loading={loading}
               onRowClick={course => {
                 // Navigate to the course detail page
                 window.location.href = `/gorio/courses/course/${course.id}`
