@@ -45,7 +45,6 @@ import {
   Phone,
   Text,
   User,
-  Users,
   XCircle,
 } from 'lucide-react'
 import * as React from 'react'
@@ -219,7 +218,7 @@ export function EnrollmentsTable({
         ),
         meta: {
           label: 'Candidato',
-          placeholder: 'Buscar candidato...',
+          placeholder: 'Buscar candidato por nome, cpf ou email',
           variant: 'text',
           icon: User,
         },
@@ -422,7 +421,6 @@ export function EnrollmentsTable({
         'Nome',
         'CPF',
         'E-mail',
-        'Idade',
         'Telefone',
         'Data de Inscrição',
         'Status',
@@ -432,7 +430,6 @@ export function EnrollmentsTable({
         enrollment.candidateName,
         enrollment.cpf,
         enrollment.email,
-        enrollment.age.toString(),
         enrollment.phone || '',
         new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
         enrollment.status,
@@ -641,15 +638,6 @@ export function EnrollmentsTable({
                             CPF
                           </Label>
                           <p className="font-mono">{selectedEnrollment.cpf}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Users className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <Label className="text-xs text-muted-foreground">
-                            Idade
-                          </Label>
-                          <p>{selectedEnrollment.age} anos</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
