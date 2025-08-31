@@ -1171,13 +1171,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               type="number"
                               min="1"
                               value={field.value || ''}
-                              onChange={e => {
-                                const value =
-                                  e.target.value === ''
-                                    ? undefined
-                                    : Number(e.target.value)
-                                field.onChange(value)
-                              }}
+                              onChange={e =>
+                                field.onChange(Number(e.target.value))
+                              }
                               onBlur={field.onBlur}
                             />
                           </FormControl>
