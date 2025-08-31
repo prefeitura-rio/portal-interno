@@ -660,9 +660,10 @@ export default function CourseDetailPage({
               {/* Show action buttons based on course status */}
               {!isEditing ? (
                 <>
-                  {/* Edit button - don't show for closed or canceled courses when not in enrollments tab */}
+                  {/* Edit button - don't show for closed, canceled, finished, or encerrado courses when not in enrollments tab */}
                   {actualStatus !== 'closed' &&
                     actualStatus !== 'canceled' &&
+                    actualStatus !== 'finished' &&
                     actualStatus !== 'ENCERRADO' && (
                       <Button
                         onClick={handleEdit}
@@ -831,7 +832,7 @@ export default function CourseDetailPage({
               : confirmDialog.type === 'publish_course'
                 ? `Tem certeza que deseja publicar o curso "${course.title}"? Esta ação tornará o curso visível para inscrições.`
                 : confirmDialog.type === 'cancel_course'
-                  ? `Tem certeza que deseja cancelar o curso "${course.title}"? Esta ação não pode ser desfeita e o curso não estará mais disponível para inscrições.`
+                  ? `Tem certeza que deseja cancelar o curso "${course.title}"? O curso não estará mais disponível para inscrições.`
                   : confirmDialog.type === 'close_course'
                     ? `Tem certeza que deseja fechar o curso "${course.title}"? Esta ação encerrará o período de inscrições e o curso não receberá mais candidatos.`
                     : confirmDialog.type === 'reopen_course'
