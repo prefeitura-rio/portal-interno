@@ -63,34 +63,8 @@ const locationClassSchema = z.object({
   classEndDate: z.date({
     required_error: 'Data de fim das aulas é obrigatória.',
   }),
-  classTime: z
-    .string()
-    .min(1, { message: 'Horário das aulas é obrigatório.' })
-    .refine(
-      value => {
-        if (!value || value.trim() === '') return false
-        return /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](\s*[-à]\s*([0-1]?[0-9]|2[0-3]):[0-5][0-9])?$/.test(
-          value
-        )
-      },
-      {
-        message: 'Formato de horário inválido. Use: HH:MM ou HH:MM - HH:MM',
-      }
-    ),
-  classDays: z
-    .string()
-    .min(1, { message: 'Dias de aula é obrigatório.' })
-    .refine(
-      value => {
-        if (!value || value.trim() === '') return false
-        return /^(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)(\s*,\s*(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo))*$/.test(
-          value
-        )
-      },
-      {
-        message: 'Formato inválido. Use: Segunda, Quarta, Sexta',
-      }
-    ),
+  classTime: z.string().min(1, { message: 'Horário das aulas é obrigatório.' }),
+  classDays: z.string().min(1, { message: 'Dias de aula é obrigatório.' }),
 })
 
 // Define the schema for remote class information
@@ -105,34 +79,8 @@ const remoteClassSchema = z.object({
   classEndDate: z.date({
     required_error: 'Data de fim das aulas é obrigatória.',
   }),
-  classTime: z
-    .string()
-    .min(1, { message: 'Horário das aulas é obrigatório.' })
-    .refine(
-      value => {
-        if (!value || value.trim() === '') return false
-        return /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](\s*[-à]\s*([0-1]?[0-9]|2[0-3]):[0-5][0-9])?$/.test(
-          value
-        )
-      },
-      {
-        message: 'Formato de horário inválido. Use: HH:MM ou HH:MM - HH:MM',
-      }
-    ),
-  classDays: z
-    .string()
-    .min(1, { message: 'Dias de aula é obrigatório.' })
-    .refine(
-      value => {
-        if (!value || value.trim() === '') return false
-        return /^(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)(\s*,\s*(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo))*$/.test(
-          value
-        )
-      },
-      {
-        message: 'Formato inválido. Use: Segunda, Quarta, Sexta',
-      }
-    ),
+  classTime: z.string().min(1, { message: 'Horário das aulas é obrigatório.' }),
+  classDays: z.string().min(1, { message: 'Dias de aula é obrigatório.' }),
 })
 
 // Create the full schema for complete validation (used for publishing)
@@ -1229,7 +1177,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         <FormItem>
                           <FormLabel>Horário das aulas*</FormLabel>
                           <FormControl>
-                            <Input placeholder="Ex: 19:00 - 22:00" {...field} />
+                            <Input
+                              placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1244,7 +1195,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                           <FormLabel>Dias de aula*</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="Ex: Segunda, Quarta e Sexta"
+                              placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
                               {...field}
                             />
                           </FormControl>
@@ -1376,7 +1327,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormLabel>Horário das aulas*</FormLabel>
                               <FormControl>
                                 <Input
-                                  placeholder="Ex: 19:00 - 22:00"
+                                  placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
                                   {...field}
                                 />
                               </FormControl>
@@ -1393,7 +1344,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormLabel>Dias de aula*</FormLabel>
                               <FormControl>
                                 <Input
-                                  placeholder="Ex: Segunda, Quarta e Sexta"
+                                  placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
                                   {...field}
                                 />
                               </FormControl>
@@ -1424,7 +1375,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <FormItem>
                     <FormLabel>Carga Horária*</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: 40 horas" {...field} />
+                      <Input
+                        placeholder="Digite a carga horária (ex: 40 horas, 80h, 2 meses, etc.)"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
