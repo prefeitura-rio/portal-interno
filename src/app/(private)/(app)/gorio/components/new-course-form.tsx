@@ -83,6 +83,17 @@ const remoteClassSchema = z.object({
   classDays: z.string().min(1, { message: 'Dias de aula é obrigatório.' }),
 })
 
+// Custom validation function for Google Cloud Storage URLs
+const validateGoogleCloudStorageURL = (url: string) => {
+  // Allow empty or undefined URLs for drafts
+  if (!url || url.trim() === '') {
+    return true
+  }
+  return url.startsWith(
+    'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/'
+  )
+}
+
 // Create the full schema for complete validation (used for publishing)
 const fullFormSchema = z
   .discriminatedUnion('modalidade', [
@@ -122,12 +133,20 @@ const fullFormSchema = z
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
         .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
       // Required image fields
-      institutional_logo: z.string().url({
-        message: 'Logo institucional deve ser uma URL válida.',
-      }),
-      cover_image: z.string().url({
-        message: 'Imagem de capa deve ser uma URL válida.',
-      }),
+      institutional_logo: z
+        .string()
+        .url({ message: 'Logo institucional deve ser uma URL válida.' })
+        .refine(validateGoogleCloudStorageURL, {
+          message:
+            'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
+      cover_image: z
+        .string()
+        .url({ message: 'Imagem de capa deve ser uma URL válida.' })
+        .refine(validateGoogleCloudStorageURL, {
+          message:
+            'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
       // Optional fields
       pre_requisitos: z.string().optional(),
       has_certificate: z.boolean().optional(),
@@ -187,12 +206,20 @@ const fullFormSchema = z
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
         .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
       // Required image fields
-      institutional_logo: z.string().url({
-        message: 'Logo institucional deve ser uma URL válida.',
-      }),
-      cover_image: z.string().url({
-        message: 'Imagem de capa deve ser uma URL válida.',
-      }),
+      institutional_logo: z
+        .string()
+        .url({ message: 'Logo institucional deve ser uma URL válida.' })
+        .refine(validateGoogleCloudStorageURL, {
+          message:
+            'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
+      cover_image: z
+        .string()
+        .url({ message: 'Imagem de capa deve ser uma URL válida.' })
+        .refine(validateGoogleCloudStorageURL, {
+          message:
+            'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
       // Optional fields
       pre_requisitos: z.string().optional(),
       has_certificate: z.boolean().optional(),
@@ -257,8 +284,20 @@ const draftFormSchema = z.object({
   theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
   workload: z.string().optional(),
   target_audience: z.string().optional(),
-  institutional_logo: z.string().optional(),
-  cover_image: z.string().optional(),
+  institutional_logo: z
+    .string()
+    .refine(validateGoogleCloudStorageURL, {
+      message:
+        'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
+    })
+    .optional(),
+  cover_image: z
+    .string()
+    .refine(validateGoogleCloudStorageURL, {
+      message:
+        'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
+    })
+    .optional(),
   pre_requisitos: z.string().optional(),
   has_certificate: z.boolean().optional(),
   facilitator: z.string().optional(),
@@ -957,12 +996,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 )}
               />
 
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-wrap items-start gap-4">
                 <FormField
                   control={form.control}
                   name="enrollment_start_date"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col flex-1">
+                    <FormItem className="flex flex-col flex-1 min-w-[280px]">
                       <FormLabel>Início das inscrições*</FormLabel>
                       <FormControl>
                         <DateTimePicker
@@ -976,12 +1015,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     </FormItem>
                   )}
                 />
-                <div className="flex mt-4 items-center justify-center">à</div>
                 <FormField
                   control={form.control}
                   name="enrollment_end_date"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col flex-1">
+                    <FormItem className="flex flex-col flex-1 min-w-[280px]">
                       <FormLabel>Fim das inscrições*</FormLabel>
                       <FormControl>
                         <DateTimePicker
@@ -1135,12 +1173,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       )}
                     />
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-start gap-4">
                       <FormField
                         control={form.control}
                         name="remote_class.classStartDate"
                         render={({ field }) => (
-                          <FormItem className="flex flex-col flex-1">
+                          <FormItem className="flex flex-col flex-1 min-w-[280px]">
                             <FormLabel>Início das aulas*</FormLabel>
                             <FormControl>
                               <DateTimePicker
@@ -1154,12 +1192,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                           </FormItem>
                         )}
                       />
-                      <span className="mt-4">à</span>
                       <FormField
                         control={form.control}
                         name="remote_class.classEndDate"
                         render={({ field }) => (
-                          <FormItem className="flex flex-col flex-1">
+                          <FormItem className="flex flex-col flex-1 min-w-[280px]">
                             <FormLabel>Fim das aulas*</FormLabel>
                             <FormControl>
                               <DateTimePicker
@@ -1284,12 +1321,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                           )}
                         />
 
-                        <div className="flex items-end gap-4">
+                        <div className="flex flex-wrap items-start gap-4">
                           <FormField
                             control={form.control}
                             name={`locations.${index}.classStartDate`}
                             render={({ field }) => (
-                              <FormItem className="flex flex-col flex-1">
+                              <FormItem className="flex flex-col flex-1 min-w-[280px]">
                                 <FormLabel>Início das aulas*</FormLabel>
                                 <FormControl>
                                   <DateTimePicker
@@ -1303,12 +1340,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               </FormItem>
                             )}
                           />
-                          <span className="pb-2">à</span>
                           <FormField
                             control={form.control}
                             name={`locations.${index}.classEndDate`}
                             render={({ field }) => (
-                              <FormItem className="flex flex-col flex-1">
+                              <FormItem className="flex flex-col flex-1 min-w-[280px]">
                                 <FormLabel>Fim das aulas*</FormLabel>
                                 <FormControl>
                                   <DateTimePicker

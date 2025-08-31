@@ -127,7 +127,7 @@ export function DateTimePicker({
         </Popover>
       </div>
 
-      <div className="flex flex-col gap-2 w-32">
+      <div className="flex flex-col gap-2">
         <Input
           type="time"
           step="1"
