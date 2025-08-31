@@ -1767,27 +1767,33 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               ? 'Criar Curso'
               : confirmDialog.type === 'save_draft'
                 ? 'Salvar Rascunho'
-                : confirmDialog.type === 'publish_course'
-                  ? 'Publicar Curso'
-                  : 'Salvar Alterações'
+                : confirmDialog.type === 'save_changes'
+                  ? 'Salvar Alterações'
+                  : confirmDialog.type === 'publish_course'
+                    ? 'Publicar Curso'
+                    : 'Salvar Alterações'
           }
           description={
             confirmDialog.type === 'create_course'
               ? 'Tem certeza que deseja criar este curso? Esta ação tornará o curso visível para inscrições.'
               : confirmDialog.type === 'save_draft'
                 ? 'Tem certeza que deseja salvar este rascunho? O curso não será publicado ainda.'
-                : confirmDialog.type === 'publish_course'
-                  ? 'Tem certeza que deseja publicar este curso? Esta ação tornará o curso visível para inscrições.'
-                  : 'Tem certeza que deseja salvar as alterações neste curso?'
+                : confirmDialog.type === 'save_changes'
+                  ? 'Tem certeza que deseja salvar as alterações neste curso?'
+                  : confirmDialog.type === 'publish_course'
+                    ? 'Tem certeza que deseja publicar este curso? Esta ação tornará o curso visível para inscrições.'
+                    : 'Tem certeza que deseja salvar as alterações neste curso?'
           }
           confirmText={
             confirmDialog.type === 'create_course'
               ? 'Criar Curso'
               : confirmDialog.type === 'save_draft'
                 ? 'Salvar Rascunho'
-                : confirmDialog.type === 'publish_course'
-                  ? 'Publicar Curso'
-                  : 'Salvar Alterações'
+                : confirmDialog.type === 'save_changes'
+                  ? 'Salvar Alterações'
+                  : confirmDialog.type === 'publish_course'
+                    ? 'Publicar Curso'
+                    : 'Salvar Alterações'
           }
           variant="default"
           onConfirm={() => {
