@@ -108,11 +108,9 @@ const fullFormSchema = z
         nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       }),
       modalidade: z.literal('ONLINE'),
-      theme: z
-        .string()
-        .min(1, { message: 'Tema é obrigatório.' })
-        .min(3, { message: 'Tema deve ter pelo menos 3 caracteres.' })
-        .max(100, { message: 'Tema não pode exceder 100 caracteres.' }),
+      theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
+        required_error: 'Tema é obrigatório.',
+      }),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -175,11 +173,9 @@ const fullFormSchema = z
         nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       }),
       modalidade: z.enum(['PRESENCIAL', 'HIBRIDO']),
-      theme: z
-        .string()
-        .min(1, { message: 'Tema é obrigatório.' })
-        .min(3, { message: 'Tema deve ter pelo menos 3 caracteres.' })
-        .max(100, { message: 'Tema não pode exceder 100 caracteres.' }),
+      theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
+        required_error: 'Tema é obrigatório.',
+      }),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -258,7 +254,7 @@ const draftFormSchema = z.object({
     })
     .optional(),
   modalidade: z.enum(['PRESENCIAL', 'HIBRIDO', 'ONLINE']).optional(),
-  theme: z.string().optional(),
+  theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
   workload: z.string().optional(),
   target_audience: z.string().optional(),
   institutional_logo: z.string().optional(),
@@ -320,7 +316,7 @@ type PartialFormData = Omit<
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
-  theme?: string
+  theme?: 'Educação' | 'Saúde' | 'Esportes'
   workload?: string
   target_audience?: string
   pre_requisitos?: string
@@ -450,7 +446,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
             orgao: initialData.orgao,
             modalidade: initialData.modalidade,
-            theme: initialData.theme || '',
+            theme: initialData.theme || 'Educação',
             workload: initialData.workload || '',
             target_audience: initialData.target_audience || '',
             pre_requisitos: initialData.pre_requisitos || '',
@@ -477,7 +473,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_end_date: new Date(),
             orgao: undefined,
             modalidade: undefined,
-            theme: '',
+            theme: 'Educação',
             locations: [],
             remote_class: undefined,
             workload: '',
@@ -577,7 +573,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Include orgao_id for backend compatibility
         orgao_id: data.orgao?.id || null,
         modalidade: data.modalidade,
-        theme: data.theme,
+        theme: data.theme || 'Educação',
         workload: data.workload,
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo,
@@ -625,7 +621,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           data.orgao ||
           (orgaos.length > 0 ? orgaos[0] : { id: 1, nome: 'Órgão Padrão' }),
         modalidade: modalidade as 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE',
-        theme: data.theme,
+        theme: data.theme || 'Educação',
         workload: data.workload,
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo || '',
@@ -1056,13 +1052,22 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tema*</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ex: Tecnologia, Gestão, Saúde, Educação..."
-                        {...field}
-                        disabled={isReadOnly}
-                      />
-                    </FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isReadOnly}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um tema" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Educação">Educação</SelectItem>
+                        <SelectItem value="Saúde">Saúde</SelectItem>
+                        <SelectItem value="Esportes">Esportes</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
