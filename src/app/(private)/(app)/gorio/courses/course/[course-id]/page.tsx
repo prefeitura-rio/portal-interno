@@ -586,19 +586,32 @@ export default function CourseDetailPage({
   const StatusIcon = config.icon
 
   // Use originalStatus for business logic, fallback to status if originalStatus not available
-  const actualStatus = course.status
+  const actualStatus = course.status as string
+  console.log('actualStatus', actualStatus)
 
   // Check if course is a draft
   const isDraft = actualStatus === 'draft'
 
-  // Check if course can be canceled (only if status is "opened" or "ABERTO")
-  const canCancel = actualStatus === 'opened' || actualStatus === 'ABERTO'
+  // Check if course can be canceled (only if status is "opened", "ABERTO", "accepting_enrollments", or "in_progress")
+  const canCancel =
+    actualStatus === 'opened' ||
+    actualStatus === 'ABERTO' ||
+    actualStatus === 'accepting_enrollments' ||
+    actualStatus === 'in_progress'
 
   // Check if course can be closed (only if status is "opened" or "ABERTO")
   const canClose = actualStatus === 'opened' || actualStatus === 'ABERTO'
 
-  // Check if course can be reopened (only if status is "closed")
-  const canReopen = actualStatus === 'closed'
+  // Check if course can be reopened (only if status is "closed" or "canceled")
+  const canReopen = actualStatus === 'closed' || actualStatus === 'canceled'
+
+  // Debug logging for canReopen
+  console.log('canReopen calculation:', {
+    actualStatus,
+    isClosed: actualStatus === 'closed',
+    isCanceled: actualStatus === 'canceled',
+    canReopen,
+  })
 
   return (
     <ContentLayout title="Detalhes do Curso">
@@ -644,13 +657,13 @@ export default function CourseDetailPage({
               </div>
             </div>
             <div className="flex gap-2">
-              {/* Only show action buttons if course is not canceled or encerrado */}
-              {actualStatus !== 'canceled' &&
-                actualStatus !== 'ENCERRADO' &&
-                (!isEditing ? (
-                  <>
-                    {/* Edit button - don't show for closed courses when not in enrollments tab */}
-                    {actualStatus !== 'closed' && (
+              {/* Show action buttons based on course status */}
+              {!isEditing ? (
+                <>
+                  {/* Edit button - don't show for closed or canceled courses when not in enrollments tab */}
+                  {actualStatus !== 'closed' &&
+                    actualStatus !== 'canceled' &&
+                    actualStatus !== 'ENCERRADO' && (
                       <Button
                         onClick={handleEdit}
                         disabled={activeTab === 'enrollments' || isLoading}
@@ -660,74 +673,75 @@ export default function CourseDetailPage({
                       </Button>
                     )}
 
-                    {/* Reopen Course button - only show if status is "closed" */}
-                    {canReopen && (
-                      <Button
-                        variant="outline"
-                        onClick={handleReopenCourse}
-                        disabled={isLoading}
-                      >
-                        <ClipboardList className="mr-2 h-4 w-4" />
-                        Reabrir Curso
-                      </Button>
-                    )}
-
-                    {/* Close Course button - only show if status is "opened" or "ABERTO" */}
-                    {canClose && (
-                      <Button
-                        variant="outline"
-                        onClick={handleCloseCourse}
-                        disabled={isLoading}
-                      >
-                        <Flag className="mr-2 h-4 w-4" />
-                        Fechar Curso
-                      </Button>
-                    )}
-
-                    {/* Cancel Course button - only show if status is "opened" or "ABERTO" */}
-                    {canCancel && (
-                      <Button
-                        variant="destructive"
-                        onClick={handleCancelCourse}
-                        disabled={isLoading}
-                      >
-                        <Ban className="mr-2 h-4 w-4" />
-                        Cancelar Curso
-                      </Button>
-                    )}
-
-                    {isDraft && (
-                      <Button variant="destructive" onClick={handleDeleteDraft}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir rascunho
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {isDraft && (
-                      <Button
-                        onClick={handlePublishFromHeader}
-                        disabled={isLoading}
-                      >
-                        <Save className="mr-2 h-4 w-4" />
-                        Salvar e Publicar
-                      </Button>
-                    )}
+                  {/* Reopen Course button - only show if status is "closed" or "canceled" */}
+                  {canReopen && (
                     <Button
                       variant="outline"
-                      onClick={handleSaveDraftFromHeader}
+                      onClick={handleReopenCourse}
+                      disabled={isLoading}
+                    >
+                      <ClipboardList className="mr-2 h-4 w-4" />
+                      Reabrir Curso
+                    </Button>
+                  )}
+
+                  {/* Close Course button - only show if status is "opened" or "ABERTO" */}
+                  {canClose && (
+                    <Button
+                      variant="outline"
+                      onClick={handleCloseCourse}
+                      disabled={isLoading}
+                    >
+                      <Flag className="mr-2 h-4 w-4" />
+                      Fechar Curso
+                    </Button>
+                  )}
+
+                  {/* Cancel Course button - only show if status is "opened", "ABERTO", "accepting_enrollments", or "in_progress" */}
+                  {canCancel && (
+                    <Button
+                      variant="destructive"
+                      onClick={handleCancelCourse}
+                      disabled={isLoading}
+                    >
+                      <Ban className="mr-2 h-4 w-4" />
+                      Cancelar Curso
+                    </Button>
+                  )}
+
+                  {/* Delete Draft button - only show for draft courses */}
+                  {isDraft && (
+                    <Button variant="destructive" onClick={handleDeleteDraft}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir rascunho
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  {isDraft && (
+                    <Button
+                      onClick={handlePublishFromHeader}
                       disabled={isLoading}
                     >
                       <Save className="mr-2 h-4 w-4" />
-                      {isDraft ? 'Salvar Rascunho' : 'Salvar'}
+                      Salvar e Publicar
                     </Button>
-                    <Button variant="outline" onClick={handleCancel}>
-                      <X className="mr-2 h-4 w-4" />
-                      Cancelar
-                    </Button>
-                  </>
-                ))}
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveDraftFromHeader}
+                    disabled={isLoading}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {isDraft ? 'Salvar Rascunho' : 'Salvar'}
+                  </Button>
+                  <Button variant="outline" onClick={handleCancel}>
+                    <X className="mr-2 h-4 w-4" />
+                    Cancelar
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
