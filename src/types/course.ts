@@ -214,6 +214,7 @@ export interface Enrollment {
   enrollmentDate: string
   status: EnrollmentStatus
   notes?: string
+  reason?: string
   customFields?: CustomField[]
   created_at: string
   updated_at: string

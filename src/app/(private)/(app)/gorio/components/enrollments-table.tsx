@@ -415,26 +415,49 @@ export function EnrollmentsTable({
       return
     }
 
+    // Get all unique custom field titles
+    const allCustomFieldTitles = Array.from(
+      new Set(
+        enrollmentsToExport
+          .flatMap(enrollment => enrollment.customFields || [])
+          .map(field => field.title)
+      )
+    )
+
+    // Create CSV headers
+    const headers = [
+      'Nome',
+      'CPF',
+      'E-mail',
+      'Telefone',
+      'Data de Inscrição',
+      'Status',
+      'Motivo',
+      'Observações Administrativas',
+      ...allCustomFieldTitles,
+    ]
+
     // Create CSV content
     const csvContent = [
-      [
-        'Nome',
-        'CPF',
-        'E-mail',
-        'Telefone',
-        'Data de Inscrição',
-        'Status',
-        'Observações',
-      ],
-      ...enrollmentsToExport.map(enrollment => [
-        enrollment.candidateName,
-        enrollment.cpf,
-        enrollment.email,
-        enrollment.phone || '',
-        new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
-        enrollment.status,
-        enrollment.notes || '',
-      ]),
+      headers,
+      ...enrollmentsToExport.map(enrollment => {
+        const customFieldValues = allCustomFieldTitles.map(title => {
+          const field = enrollment.customFields?.find(f => f.title === title)
+          return field?.value || ''
+        })
+
+        return [
+          enrollment.candidateName,
+          enrollment.cpf,
+          enrollment.email,
+          enrollment.phone || '',
+          new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
+          enrollment.status,
+          enrollment.reason || '',
+          enrollment.notes || '',
+          ...customFieldValues,
+        ]
+      }),
     ]
       .map(row => row.map(field => `"${field}"`).join(','))
       .join('\n')
@@ -720,6 +743,18 @@ export function EnrollmentsTable({
                           </div>
                         </div>
                       </div>
+                      {selectedEnrollment.reason && (
+                        <div className="flex items-start gap-3">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Motivo
+                            </Label>
+                            <p className="text-sm mt-1">
+                              {selectedEnrollment.reason}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                       {selectedEnrollment.customFields &&
                         selectedEnrollment.customFields.length > 0 && (
                           <div className="space-y-3">

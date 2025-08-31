@@ -71,7 +71,8 @@ function convertApiEnrollmentToFrontend(
     phone: apiEnrollment.phone || '',
     enrollmentDate: apiEnrollment.enrolled_at || new Date().toISOString(),
     status: convertApiStatusToFrontend(apiEnrollment.status),
-    notes: apiEnrollment.admin_notes || apiEnrollment.reason,
+    notes: apiEnrollment.admin_notes,
+    reason: apiEnrollment.reason,
     customFields: Array.isArray(apiEnrollment.custom_fields)
       ? apiEnrollment.custom_fields
       : [],
