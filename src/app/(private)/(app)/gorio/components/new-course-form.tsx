@@ -33,17 +33,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ImageUpload } from '@/components/ui/image-upload'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
-import { CalendarIcon, Plus, Trash2 } from 'lucide-react'
+  DateTimePicker,
+  formatDateTimeToUTC,
+} from '@/components/ui/datetime-picker'
+import { ImageUpload } from '@/components/ui/image-upload'
+import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
 
@@ -396,12 +392,12 @@ type PartialFormData = Omit<
   originalStatus?: 'canceled' | 'draft' | 'opened' | 'closed'
 }
 
-// Type for backend API data (with snake_case field names)
+// Type for backend API data (with snake_case field names and UTC strings for dates)
 type BackendCourseData = {
   title: string
   description: string
-  enrollment_start_date: Date
-  enrollment_end_date: Date
+  enrollment_start_date: string | undefined
+  enrollment_end_date: string | undefined
   orgao: { id: number; nome: string }
   organization: string
   orgao_id: number | null
@@ -426,15 +422,15 @@ type BackendCourseData = {
     address: string
     neighborhood: string
     vacancies: number
-    class_start_date: Date
-    class_end_date: Date
+    class_start_date: string | undefined
+    class_end_date: string | undefined
     class_time: string
     class_days: string
   }>
   remote_class?: {
     vacancies: number
-    class_start_date: Date
-    class_end_date: Date
+    class_start_date: string | undefined
+    class_end_date: string | undefined
     class_time: string
     class_days: string
   }
@@ -592,8 +588,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       const transformedRemoteClass = data.remote_class
         ? {
             vacancies: data.remote_class.vacancies,
-            class_start_date: data.remote_class.classStartDate,
-            class_end_date: data.remote_class.classEndDate,
+            class_start_date: data.remote_class.classStartDate
+              ? formatDateTimeToUTC(data.remote_class.classStartDate)
+              : undefined,
+            class_end_date: data.remote_class.classEndDate
+              ? formatDateTimeToUTC(data.remote_class.classEndDate)
+              : undefined,
             class_time: data.remote_class.classTime,
             class_days: data.remote_class.classDays,
           }
@@ -604,8 +604,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         address: location.address,
         neighborhood: location.neighborhood,
         vacancies: location.vacancies,
-        class_start_date: location.classStartDate,
-        class_end_date: location.classEndDate,
+        class_start_date: location.classStartDate
+          ? formatDateTimeToUTC(location.classStartDate)
+          : undefined,
+        class_end_date: location.classEndDate
+          ? formatDateTimeToUTC(location.classEndDate)
+          : undefined,
         class_time: location.classTime,
         class_days: location.classDays,
       }))
@@ -613,8 +617,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       return {
         title: data.title,
         description: data.description,
-        enrollment_start_date: data.enrollment_start_date,
-        enrollment_end_date: data.enrollment_end_date,
+        enrollment_start_date: data.enrollment_start_date
+          ? formatDateTimeToUTC(data.enrollment_start_date)
+          : undefined,
+        enrollment_end_date: data.enrollment_end_date
+          ? formatDateTimeToUTC(data.enrollment_end_date)
+          : undefined,
         orgao: data.orgao,
         // Bind orgao.nome to organization field
         organization: data.orgao?.nome || '',
@@ -804,6 +812,16 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
         // Transform to snake_case for backend
         const transformedData = transformFormDataToSnakeCase(validatedData)
+
+        // Log for demonstration - show how dates are converted to UTC format
+        console.log('Original dates from form:', {
+          enrollment_start_date: validatedData.enrollment_start_date,
+          enrollment_end_date: validatedData.enrollment_end_date,
+        })
+        console.log('Converted to UTC format for API:', {
+          enrollment_start_date: transformedData.enrollment_start_date,
+          enrollment_end_date: transformedData.enrollment_end_date,
+        })
 
         if (initialData) {
           // Editing an existing course - ensure status is preserved if not explicitly set
@@ -1001,35 +1019,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   name="enrollment_start_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col flex-1">
-                      <FormLabel>Período de inscrições*</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={'outline'}
-                              className={cn(
-                                'w-full pl-3 text-left font-normal',
-                                !field.value && 'text-muted-foreground'
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, 'dd/MM/yyyy')
-                              ) : (
-                                <span>DD/MM/AAAA</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <FormLabel>Início das inscrições*</FormLabel>
+                      <FormControl>
+                        <DateTimePicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Selecionar data e hora de início"
+                          disabled={isReadOnly}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1040,36 +1038,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   name="enrollment_end_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col flex-1">
-                      <FormLabel className="opacity-0 pointer-events-none select-none">
-                        Data de término*
-                      </FormLabel>
+                      <FormLabel>Fim das inscrições*</FormLabel>
                       <FormControl>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant={'outline'}
-                              className={cn(
-                                'w-full pl-3 text-left font-normal',
-                                !field.value && 'text-muted-foreground'
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, 'dd/MM/yyyy')
-                              ) : (
-                                <span>DD/MM/AAAA</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <DateTimePicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Selecionar data e hora de fim"
+                          disabled={isReadOnly}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1216,38 +1192,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         name="remote_class.classStartDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col flex-1">
-                            <FormLabel>Período das aulas*</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={'outline'}
-                                    className={cn(
-                                      'w-full pl-3 text-left font-normal',
-                                      !field.value && 'text-muted-foreground'
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(field.value, 'dd/MM/yyyy')
-                                    ) : (
-                                      <span>DD/MM/AAAA</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start"
-                              >
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
+                            <FormLabel>Início das aulas*</FormLabel>
+                            <FormControl>
+                              <DateTimePicker
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="Selecionar data e hora de início"
+                                disabled={isReadOnly}
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1258,39 +1211,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         name="remote_class.classEndDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col flex-1">
-                            <FormLabel className="opacity-0 pointer-events-none select-none">
-                              Data de fim*
-                            </FormLabel>
+                            <FormLabel>Fim das aulas*</FormLabel>
                             <FormControl>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant={'outline'}
-                                    className={cn(
-                                      'w-full pl-3 text-left font-normal',
-                                      !field.value && 'text-muted-foreground'
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(field.value, 'dd/MM/yyyy')
-                                    ) : (
-                                      <span>DD/MM/AAAA</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent
-                                  className="w-auto p-0"
-                                  align="start"
-                                >
-                                  <Calendar
-                                    mode="single"
-                                    selected={field.value}
-                                    onSelect={field.onChange}
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
+                              <DateTimePicker
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="Selecionar data e hora de fim"
+                                disabled={isReadOnly}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1410,39 +1338,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             name={`locations.${index}.classStartDate`}
                             render={({ field }) => (
                               <FormItem className="flex flex-col flex-1">
-                                <FormLabel>Período das aulas*</FormLabel>
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <FormControl>
-                                      <Button
-                                        variant={'outline'}
-                                        className={cn(
-                                          'w-full pl-3 text-left font-normal',
-                                          !field.value &&
-                                            'text-muted-foreground'
-                                        )}
-                                      >
-                                        {field.value ? (
-                                          format(field.value, 'dd/MM/yyyy')
-                                        ) : (
-                                          <span>DD/MM/AAAA</span>
-                                        )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                      </Button>
-                                    </FormControl>
-                                  </PopoverTrigger>
-                                  <PopoverContent
-                                    className="w-auto p-0"
-                                    align="start"
-                                  >
-                                    <Calendar
-                                      mode="single"
-                                      selected={field.value}
-                                      onSelect={field.onChange}
-                                      initialFocus
-                                    />
-                                  </PopoverContent>
-                                </Popover>
+                                <FormLabel>Início das aulas*</FormLabel>
+                                <FormControl>
+                                  <DateTimePicker
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Selecionar data e hora de início"
+                                    disabled={isReadOnly}
+                                  />
+                                </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -1453,40 +1357,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             name={`locations.${index}.classEndDate`}
                             render={({ field }) => (
                               <FormItem className="flex flex-col flex-1">
-                                <FormLabel className="opacity-0 pointer-events-none select-none">
-                                  Data de fim*
-                                </FormLabel>
+                                <FormLabel>Fim das aulas*</FormLabel>
                                 <FormControl>
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <Button
-                                        variant={'outline'}
-                                        className={cn(
-                                          'w-full pl-3 text-left font-normal',
-                                          !field.value &&
-                                            'text-muted-foreground'
-                                        )}
-                                      >
-                                        {field.value ? (
-                                          format(field.value, 'dd/MM/yyyy')
-                                        ) : (
-                                          <span>DD/MM/AAAA</span>
-                                        )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                      </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                      className="w-auto p-0"
-                                      align="start"
-                                    >
-                                      <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        initialFocus
-                                      />
-                                    </PopoverContent>
-                                  </Popover>
+                                  <DateTimePicker
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Selecionar data e hora de fim"
+                                    disabled={isReadOnly}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
