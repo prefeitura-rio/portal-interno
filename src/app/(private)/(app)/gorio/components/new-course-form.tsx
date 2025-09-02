@@ -149,7 +149,7 @@ const fullFormSchema = z
         }),
       // Optional fields
       pre_requisitos: z.string().optional(),
-      has_certificate: z.boolean().optional(),
+
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
       expected_results: z.string().optional(),
@@ -222,7 +222,7 @@ const fullFormSchema = z
         }),
       // Optional fields
       pre_requisitos: z.string().optional(),
-      has_certificate: z.boolean().optional(),
+
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
       expected_results: z.string().optional(),
@@ -359,7 +359,7 @@ type PartialFormData = Omit<
   workload?: string
   target_audience?: string
   pre_requisitos?: string
-  has_certificate?: boolean
+
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -391,7 +391,7 @@ type BackendCourseData = {
   institutional_logo: string | null
   cover_image: string | null
   pre_requisitos?: string
-  has_certificate?: boolean
+
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -489,7 +489,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             workload: initialData.workload || '',
             target_audience: initialData.target_audience || '',
             pre_requisitos: initialData.pre_requisitos || '',
-            has_certificate: initialData.has_certificate || false,
+
             facilitator: initialData.facilitator || '',
             objectives: initialData.objectives || '',
             expected_results: initialData.expected_results || '',
@@ -518,7 +518,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             workload: '',
             target_audience: '',
             pre_requisitos: '',
-            has_certificate: false,
+
             facilitator: '',
             objectives: '',
             expected_results: '',
@@ -618,7 +618,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         institutional_logo: data.institutional_logo,
         cover_image: data.cover_image,
         pre_requisitos: data.pre_requisitos,
-        has_certificate: data.has_certificate,
+        has_certificate: Boolean(data.pre_requisitos?.trim()),
         facilitator: data.facilitator,
         objectives: data.objectives,
         expected_results: data.expected_results,
@@ -666,7 +666,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         institutional_logo: data.institutional_logo || '',
         cover_image: data.cover_image || '',
         pre_requisitos: data.pre_requisitos,
-        has_certificate: data.has_certificate,
+
         facilitator: data.facilitator,
         objectives: data.objectives,
         expected_results: data.expected_results,
@@ -1463,7 +1463,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>
-                                  Pré-requisitos para a capacitação
+                                  Pré-requisitos para receber certificado
                                 </FormLabel>
                                 <FormControl>
                                   <Textarea
@@ -1477,23 +1477,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             )}
                           />
 
-                          <FormField
-                            control={form.control}
-                            name="has_certificate"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Terá certificado</FormLabel>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
+
 
                           <FormField
                             control={form.control}
