@@ -595,6 +595,7 @@ export default function CourseDetailPage({
   // Check if course can be canceled (only if status is "opened", "ABERTO", "accepting_enrollments", or "in_progress")
   const canCancel =
     actualStatus === 'opened' ||
+    actualStatus === 'scheduled' ||
     actualStatus === 'ABERTO' ||
     actualStatus === 'accepting_enrollments' ||
     actualStatus === 'in_progress'
