@@ -57,27 +57,32 @@ function convertApiEnrollmentToFrontend(
   apiEnrollment: ModelsInscricao
 ): Enrollment {
   // Calculate age from enrolled_at date (rough estimate - ideally should use birth date)
-  const enrolledDate = new Date(apiEnrollment.enrolled_at || '')
+  const enrolledDate = new Date((apiEnrollment.enrolled_at as string) || '')
   const currentYear = new Date().getFullYear()
   const enrolledYear = enrolledDate.getFullYear()
   const estimatedAge = Math.max(18, 30 + (currentYear - enrolledYear)) // Fallback age calculation
 
   return {
-    id: apiEnrollment.id || '',
-    courseId: apiEnrollment.course_id?.toString() || '',
-    candidateName: apiEnrollment.name || '',
-    cpf: apiEnrollment.cpf || '',
-    email: apiEnrollment.email || '',
-    phone: apiEnrollment.phone || '',
-    enrollmentDate: apiEnrollment.enrolled_at || new Date().toISOString(),
-    status: convertApiStatusToFrontend(apiEnrollment.status),
-    notes: apiEnrollment.admin_notes,
-    reason: apiEnrollment.reason,
+    id: (apiEnrollment.id as string) || '',
+    courseId: (apiEnrollment.course_id as number)?.toString() || '',
+    candidateName: (apiEnrollment.name as string) || '',
+    cpf: (apiEnrollment.cpf as string) || '',
+    email: (apiEnrollment.email as string) || '',
+    phone: (apiEnrollment.phone as string) || '',
+    enrollmentDate:
+      (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
+    status: convertApiStatusToFrontend(
+      apiEnrollment.status as ModelsStatusInscricao
+    ),
+    notes: apiEnrollment.admin_notes as string | undefined,
+    reason: apiEnrollment.reason as string | undefined,
     customFields: Array.isArray(apiEnrollment.custom_fields)
       ? apiEnrollment.custom_fields
       : [],
-    created_at: apiEnrollment.enrolled_at || new Date().toISOString(),
-    updated_at: apiEnrollment.updated_at || new Date().toISOString(),
+    created_at:
+      (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
+    updated_at:
+      (apiEnrollment.updated_at as string) || new Date().toISOString(),
   }
 }
 

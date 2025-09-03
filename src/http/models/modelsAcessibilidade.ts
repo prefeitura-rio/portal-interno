@@ -5,11 +5,5 @@
  * API de serviços para aplicativos da Prefeitura do Rio
  * OpenAPI spec version: 1.0
  */
-import type { ModelsCurso } from './modelsCurso';
 
-export interface ModelsAcessibilidade {
-  /** Relacionamentos */
-  cursos?: ModelsCurso[];
-  id?: number;
-  nome?: string;
-}
+export interface ModelsAcessibilidade { [key: string]: unknown }

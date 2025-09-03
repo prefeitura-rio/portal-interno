@@ -11,6 +11,8 @@ import type {
   GetApiV1CoursesDrafts200,
   GetApiV1CoursesDraftsParams,
   GetApiV1CoursesParams,
+  GetApiV1UsersUserIdCourses200,
+  GetApiV1UsersUserIdCoursesParams,
   ModelsCurso,
   ModelsCursoBody,
   ModelsErrorResponse,
@@ -313,6 +315,55 @@ export const deleteApiV1CoursesCourseId = async (courseId: number, options?: Req
   {      
     ...options,
     method: 'DELETE'
+    
+    
+  }
+);}
+
+
+/**
+ * Retorna lista paginada de cursos criados por um usuário/organização
+ * @summary Listar cursos de um usuário específico
+ */
+export type getApiV1UsersUserIdCoursesResponse200 = {
+  data: GetApiV1UsersUserIdCourses200
+  status: 200
+}
+
+export type getApiV1UsersUserIdCoursesResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+    
+export type getApiV1UsersUserIdCoursesResponseComposite = getApiV1UsersUserIdCoursesResponse200 | getApiV1UsersUserIdCoursesResponse400;
+    
+export type getApiV1UsersUserIdCoursesResponse = getApiV1UsersUserIdCoursesResponseComposite & {
+  headers: Headers;
+}
+
+export const getGetApiV1UsersUserIdCoursesUrl = (userId: number,
+    params?: GetApiV1UsersUserIdCoursesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/users/${userId}/courses?${stringifiedParams}` : `/api/v1/users/${userId}/courses`
+}
+
+export const getApiV1UsersUserIdCourses = async (userId: number,
+    params?: GetApiV1UsersUserIdCoursesParams, options?: RequestInit): Promise<getApiV1UsersUserIdCoursesResponse> => {
+  
+  return customFetch<getApiV1UsersUserIdCoursesResponse>(getGetApiV1UsersUserIdCoursesUrl(userId,params),
+  {      
+    ...options,
+    method: 'GET'
     
     
   }

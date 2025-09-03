@@ -223,7 +223,10 @@ export default function CourseDetailPage({
         // Ensure organization is synced with orgao.nome
         organization:
           data.orgao?.nome || data.organization || course?.organization,
-        orgao_id: data.orgao?.id || data.orgao_id || course?.orgao?.id,
+        orgao_id:
+          (data.orgao as any)?.id ||
+          data.orgao_id ||
+          (course?.orgao as any)?.id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -272,7 +275,10 @@ export default function CourseDetailPage({
         // Ensure organization is synced with orgao.nome
         organization:
           data.orgao?.nome || data.organization || course?.organization,
-        orgao_id: data.orgao?.id || data.orgao_id || course?.orgao?.id,
+        orgao_id:
+          (data.orgao as any)?.id ||
+          data.orgao_id ||
+          (course?.orgao as any)?.id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -340,7 +346,7 @@ export default function CourseDetailPage({
         course.enrollment_start_date || course.enrollment_start_date,
       enrollment_end_date:
         course.enrollment_end_date || course.enrollment_end_date,
-      orgao_id: course.orgao?.id,
+      orgao_id: (course.orgao as any)?.id,
       instituicao_id: 5,
       modalidade: course.modalidade,
       theme: course.theme,
@@ -364,7 +370,7 @@ export default function CourseDetailPage({
       turno: 'LIVRE',
       formato_aula: course.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
       status: statusOverride || course.status,
-      organization: course.organization || course.orgao?.nome,
+      organization: course.organization || (course.orgao as any)?.nome,
     }
   }
 
@@ -630,7 +636,7 @@ export default function CourseDetailPage({
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{course.title}</BreadcrumbPage>
+                <BreadcrumbPage>{course.title as string}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -639,7 +645,7 @@ export default function CourseDetailPage({
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
-                {course.title}
+                {course.title as string}
               </h1>
               <div className="flex items-center gap-4 mt-2">
                 <Badge
@@ -651,9 +657,13 @@ export default function CourseDetailPage({
                 </Badge>
                 <span className="text-sm text-muted-foreground">
                   Criado em{' '}
-                  {format(course.created_at || new Date(), 'dd/MM/yyyy', {
-                    locale: ptBR,
-                  })}
+                  {format(
+                    (course.created_at as string) || new Date(),
+                    'dd/MM/yyyy',
+                    {
+                      locale: ptBR,
+                    }
+                  )}
                 </span>
               </div>
             </div>
@@ -760,7 +770,7 @@ export default function CourseDetailPage({
                 onSubmit={handleSave}
                 onPublish={handlePublish}
                 isDraft={isDraft}
-                courseStatus={course.status}
+                courseStatus={course.status as string}
               />
             </div>
           </div>
@@ -791,7 +801,7 @@ export default function CourseDetailPage({
                   onSubmit={handleSave}
                   onPublish={handlePublish}
                   isDraft={isDraft}
-                  courseStatus={course.status}
+                  courseStatus={course.status as string}
                 />
               </div>
             </TabsContent>
@@ -799,7 +809,7 @@ export default function CourseDetailPage({
             <TabsContent value="enrollments" className="mt-6">
               <EnrollmentsTable
                 courseId={courseId?.toString() || ''}
-                courseTitle={course?.title}
+                courseTitle={course?.title as string}
               />
             </TabsContent>
           </Tabs>
