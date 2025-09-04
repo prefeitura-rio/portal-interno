@@ -17,10 +17,12 @@ const getBody = <T>(c: Response | Request): Promise<T> => {
 
 // NOTE: Update just base url
 const getUrl = (contextUrl: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_API_URL
+  const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
 
   if (!baseUrl) {
-    throw new Error('NEXT_PUBLIC_BASE_API_URL environment variable is not set.')
+    throw new Error(
+      'NEXT_PUBLIC_COURSES_BASE_API_URL environment variable is not set.'
+    )
   }
 
   // Ensure baseUrl ends with '/' and contextUrl doesn't start with '/'
@@ -39,10 +41,15 @@ const getHeaders = async (headers?: HeadersInit): Promise<HeadersInit> => {
   const cookieStore = await cookies()
   const access_token = cookieStore.get('access_token')?.value
 
+  // Check if Content-Type is already set in headers
+  const hasContentType =
+    headers && typeof headers === 'object' && 'Content-Type' in headers
+
   return {
     ...headers,
     ...(access_token && { Authorization: `Bearer ${access_token}` }),
-    'Content-Type': 'multipart/form-data',
+    // Don't override Content-Type if it's already set in headers
+    ...(hasContentType ? {} : { 'Content-Type': 'application/json' }),
   }
 }
 

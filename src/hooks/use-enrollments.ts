@@ -32,6 +32,11 @@ interface UseEnrollmentsReturn {
     status: EnrollmentStatus,
     notes?: string
   ) => Promise<Enrollment | null>
+  updateMultipleEnrollmentStatuses: (
+    enrollmentIds: string[],
+    status: EnrollmentStatus,
+    notes?: string
+  ) => Promise<boolean>
 }
 
 export function useEnrollments({
@@ -66,7 +71,8 @@ export function useEnrollments({
       })
 
       if (filters?.status && filters.status.length > 0) {
-        params.append('status', filters.status.join(','))
+        // Since we now expect only one status, take the first one
+        params.append('status', filters.status[0])
       }
 
       if (filters?.search) {
@@ -152,6 +158,42 @@ export function useEnrollments({
     [courseId, fetchEnrollments]
   )
 
+  const updateMultipleEnrollmentStatuses = useCallback(
+    async (
+      enrollmentIds: string[],
+      status: EnrollmentStatus,
+      notes?: string
+    ): Promise<boolean> => {
+      try {
+        const response = await fetch(`/api/enrollments/${courseId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ enrollmentIds, status, notes }),
+        })
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to update enrollments: ${response.statusText}`
+          )
+        }
+
+        // Refetch to update local state and summary
+        await fetchEnrollments()
+
+        return true
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to update enrollments'
+        )
+        console.error('Error updating enrollments:', err)
+        return false
+      }
+    },
+    [courseId, fetchEnrollments]
+  )
+
   useEffect(() => {
     if (autoFetch) {
       fetchEnrollments()
@@ -166,5 +208,6 @@ export function useEnrollments({
     error,
     refetch: fetchEnrollments,
     updateEnrollmentStatus,
+    updateMultipleEnrollmentStatuses,
   }
 }

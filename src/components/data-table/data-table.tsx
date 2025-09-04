@@ -1,7 +1,8 @@
-import { flexRender, type Table as TanstackTable } from "@tanstack/react-table";
-import type * as React from "react";
+import { type Table as TanstackTable, flexRender } from '@tanstack/react-table'
+import type * as React from 'react'
 
-import { DataTablePagination } from "@/components/data-table/data-table-pagination";
+import { DataTablePagination } from '@/components/data-table/data-table-pagination'
+import { DataTableSkeleton } from '@/components/data-table/data-table-skeleton'
 import {
   Table,
   TableBody,
@@ -9,14 +10,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { getCommonPinningStyles } from "@/lib/data-table";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/table'
+import { getCommonPinningStyles } from '@/lib/data-table'
+import { cn } from '@/lib/utils'
 
-interface DataTableProps<TData> extends React.ComponentProps<"div"> {
-  table: TanstackTable<TData>;
-  actionBar?: React.ReactNode;
-  onRowClick?: (row: TData) => void;
+interface DataTableProps<TData> extends React.ComponentProps<'div'> {
+  table: TanstackTable<TData>
+  actionBar?: React.ReactNode
+  onRowClick?: (row: TData) => void
+  loading?: boolean
 }
 
 export function DataTable<TData>({
@@ -25,20 +27,39 @@ export function DataTable<TData>({
   children,
   className,
   onRowClick,
+  loading = false,
   ...props
 }: DataTableProps<TData>) {
+  // Show skeleton while loading
+  if (loading) {
+    return (
+      <div
+        className={cn('flex w-full flex-col gap-2.5 overflow-auto', className)}
+        {...props}
+      >
+        {children}
+        <DataTableSkeleton
+          columnCount={table.getAllColumns().length}
+          rowCount={10}
+          withPagination={true}
+          withViewOptions={false}
+        />
+      </div>
+    )
+  }
+
   return (
     <div
-      className={cn("flex w-full flex-col gap-2.5 overflow-auto", className)}
+      className={cn('flex w-full flex-col gap-2.5 overflow-auto', className)}
       {...props}
     >
       {children}
       <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
+            {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
+                {headerGroup.headers.map(header => (
                   <TableHead
                     key={header.id}
                     colSpan={header.colSpan}
@@ -50,7 +71,7 @@ export function DataTable<TData>({
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext(),
+                          header.getContext()
                         )}
                   </TableHead>
                 ))}
@@ -59,11 +80,11 @@ export function DataTable<TData>({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map(row => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  onClick={(e) => {
+                  data-state={row.getIsSelected() && 'selected'}
+                  onClick={e => {
                     // Don't trigger row click if clicking on interactive elements
                     if (e.target instanceof Element) {
                       const target = e.target as Element
@@ -79,9 +100,11 @@ export function DataTable<TData>({
                     }
                     onRowClick?.(row.original)
                   }}
-                  className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+                  className={
+                    onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''
+                  }
                 >
-                  {row.getVisibleCells().map((cell) => (
+                  {row.getVisibleCells().map(cell => (
                     <TableCell
                       key={cell.id}
                       style={{
@@ -90,7 +113,7 @@ export function DataTable<TData>({
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext(),
+                        cell.getContext()
                       )}
                     </TableCell>
                   ))}
@@ -116,5 +139,5 @@ export function DataTable<TData>({
           actionBar}
       </div>
     </div>
-  );
+  )
 }

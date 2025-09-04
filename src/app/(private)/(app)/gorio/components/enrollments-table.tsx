@@ -22,7 +22,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { useEnrollments } from '@/hooks/use-enrollments'
-import type { Enrollment } from '@/types/course'
+import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import {
   type Column,
   type ColumnDef,
@@ -45,7 +45,6 @@ import {
   Phone,
   Text,
   User,
-  Users,
   XCircle,
 } from 'lucide-react'
 import * as React from 'react'
@@ -73,6 +72,26 @@ export function EnrollmentsTable({
     React.useState<Enrollment | null>(null)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
 
+  // Convert column filters to enrollment filters
+  const filters = React.useMemo(() => {
+    const statusFilter = columnFilters.find(filter => filter.id === 'status')
+    const candidateNameFilter = columnFilters.find(
+      filter => filter.id === 'candidateName'
+    )
+
+    // For single status filter, convert to array format if value exists and is not empty
+    const statusValue = statusFilter?.value as string
+    const statusArray =
+      statusValue && statusValue !== ''
+        ? [statusValue as EnrollmentStatus]
+        : undefined
+
+    return {
+      status: statusArray,
+      search: candidateNameFilter?.value as string,
+    }
+  }, [columnFilters])
+
   // Use the custom hook to fetch enrollments
   const {
     enrollments,
@@ -81,17 +100,23 @@ export function EnrollmentsTable({
     loading,
     error,
     updateEnrollmentStatus,
+    updateMultipleEnrollmentStatuses,
+    refetch,
   } = useEnrollments({
     courseId,
     page: pagination.pageIndex + 1,
     perPage: pagination.pageSize,
+    filters,
   })
 
   const handleConfirmEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
       const updated = await updateEnrollmentStatus(enrollment.id, 'confirmed')
       if (updated) {
-        setSelectedEnrollment(updated)
+        // Update the selected enrollment immediately with the new status
+        setSelectedEnrollment(prev =>
+          prev ? { ...prev, status: 'confirmed' } : prev
+        )
       }
     },
     [updateEnrollmentStatus]
@@ -99,13 +124,53 @@ export function EnrollmentsTable({
 
   const handleCancelEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
-      const updated = await updateEnrollmentStatus(enrollment.id, 'cancelled')
+      const updated = await updateEnrollmentStatus(enrollment.id, 'rejected')
       if (updated) {
-        setSelectedEnrollment(updated)
+        // Update the selected enrollment immediately with the new status
+        setSelectedEnrollment(prev =>
+          prev ? { ...prev, status: 'rejected' } : prev
+        )
       }
     },
     [updateEnrollmentStatus]
   )
+
+  const handleSetPendingEnrollment = React.useCallback(
+    async (enrollment: Enrollment) => {
+      const updated = await updateEnrollmentStatus(enrollment.id, 'pending')
+      if (updated) {
+        // Update the selected enrollment immediately with the new status
+        setSelectedEnrollment(prev =>
+          prev ? { ...prev, status: 'pending' } : prev
+        )
+      }
+    },
+    [updateEnrollmentStatus]
+  )
+
+  // Handle pagination changes
+  const handlePaginationChange = React.useCallback(
+    (
+      updater: PaginationState | ((prev: PaginationState) => PaginationState)
+    ) => {
+      const newPagination =
+        typeof updater === 'function' ? updater(pagination) : updater
+      setPagination(newPagination)
+    },
+    [pagination]
+  )
+
+  // Update selectedEnrollment when enrollments data changes
+  React.useEffect(() => {
+    if (selectedEnrollment && enrollments.length > 0) {
+      const updatedEnrollment = enrollments.find(
+        e => e.id === selectedEnrollment.id
+      )
+      if (updatedEnrollment) {
+        setSelectedEnrollment(updatedEnrollment)
+      }
+    }
+  }, [enrollments, selectedEnrollment])
 
   const handleRowClick = React.useCallback((enrollment: Enrollment) => {
     setSelectedEnrollment(enrollment)
@@ -153,7 +218,7 @@ export function EnrollmentsTable({
         ),
         meta: {
           label: 'Candidato',
-          placeholder: 'Buscar candidato...',
+          placeholder: 'Buscar candidato por nome, cpf ou email',
           variant: 'text',
           icon: User,
         },
@@ -176,7 +241,7 @@ export function EnrollmentsTable({
           variant: 'text',
           icon: Text,
         },
-        enableColumnFilter: true,
+        enableColumnFilter: false,
       },
       {
         id: 'email',
@@ -189,30 +254,6 @@ export function EnrollmentsTable({
             {cell.getValue<Enrollment['email']>()}
           </span>
         ),
-      },
-      {
-        id: 'age',
-        accessorKey: 'age',
-        header: ({ column }: { column: Column<Enrollment, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Idade" />
-        ),
-        cell: ({ cell }) => {
-          const age = cell.getValue<Enrollment['age']>()
-          return (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span>{age} anos</span>
-            </div>
-          )
-        },
-        meta: {
-          label: 'Idade',
-          variant: 'range',
-          range: [18, 80],
-          unit: 'anos',
-          icon: Users,
-        },
-        enableColumnFilter: true,
       },
       {
         id: 'enrollmentDate',
@@ -240,7 +281,7 @@ export function EnrollmentsTable({
           variant: 'dateRange',
           icon: Calendar,
         },
-        enableColumnFilter: true,
+        enableColumnFilter: false,
       },
       {
         id: 'status',
@@ -269,6 +310,12 @@ export function EnrollmentsTable({
               className: 'text-red-600 border-red-200 bg-red-50',
               icon: XCircle,
             },
+            rejected: {
+              label: 'Recusado',
+              variant: 'secondary' as const,
+              className: 'text-red-600 border-red-200 bg-red-50',
+              icon: XCircle,
+            },
           }
 
           const config = statusConfig[status]
@@ -283,15 +330,17 @@ export function EnrollmentsTable({
         },
         filterFn: (row, id, value) => {
           const rowValue = row.getValue(id) as string
-          return Array.isArray(value) && value.includes(rowValue)
+          return value === rowValue
         },
         meta: {
           label: 'Status',
-          variant: 'multiSelect',
+          variant: 'select',
           options: [
+            { label: 'Todos', value: '' },
             { label: 'Confirmado', value: 'confirmed' },
             { label: 'Pendente', value: 'pending' },
             { label: 'Cancelado', value: 'cancelled' },
+            { label: 'Recusado', value: 'rejected' },
           ],
         },
         enableColumnFilter: true,
@@ -311,13 +360,15 @@ export function EnrollmentsTable({
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
+    manualFiltering: true,
     pageCount: apiPagination?.totalPages || 0,
+    rowCount: apiPagination?.total || 0,
   })
 
   const handleBulkConfirmEnrollments = React.useCallback(async () => {
@@ -330,11 +381,13 @@ export function EnrollmentsTable({
       return
     }
 
-    // Confirm all selected enrollments
-    for (const enrollment of enrollmentsToConfirm) {
-      await updateEnrollmentStatus(enrollment.id, 'confirmed')
-    }
-  }, [table, updateEnrollmentStatus])
+    // Use bulk update API
+    const enrollmentIds = enrollmentsToConfirm.map(e => e.id)
+    await updateMultipleEnrollmentStatuses(enrollmentIds, 'confirmed')
+
+    // Clear selection after successful update
+    table.resetRowSelection()
+  }, [table, updateMultipleEnrollmentStatuses])
 
   const handleBulkSetPending = React.useCallback(async () => {
     const selectedRows = table.getFilteredSelectedRowModel().rows
@@ -346,11 +399,13 @@ export function EnrollmentsTable({
       return
     }
 
-    // Set all selected enrollments to pending
-    for (const enrollment of enrollmentsToSetPending) {
-      await updateEnrollmentStatus(enrollment.id, 'pending')
-    }
-  }, [table, updateEnrollmentStatus])
+    // Use bulk update API
+    const enrollmentIds = enrollmentsToSetPending.map(e => e.id)
+    await updateMultipleEnrollmentStatuses(enrollmentIds, 'pending')
+
+    // Clear selection after successful update
+    table.resetRowSelection()
+  }, [table, updateMultipleEnrollmentStatuses])
 
   const handleDownloadSpreadsheet = React.useCallback(() => {
     // Always export all enrollments, not just selected ones
@@ -360,28 +415,49 @@ export function EnrollmentsTable({
       return
     }
 
+    // Get all unique custom field titles
+    const allCustomFieldTitles = Array.from(
+      new Set(
+        enrollmentsToExport
+          .flatMap(enrollment => enrollment.customFields || [])
+          .map(field => field.title)
+      )
+    )
+
+    // Create CSV headers
+    const headers = [
+      'Nome',
+      'CPF',
+      'E-mail',
+      'Telefone',
+      'Data de Inscrição',
+      'Status',
+      'Motivo',
+      'Observações Administrativas',
+      ...allCustomFieldTitles,
+    ]
+
     // Create CSV content
     const csvContent = [
-      [
-        'Nome',
-        'CPF',
-        'E-mail',
-        'Idade',
-        'Telefone',
-        'Data de Inscrição',
-        'Status',
-        'Observações',
-      ],
-      ...enrollmentsToExport.map(enrollment => [
-        enrollment.candidateName,
-        enrollment.cpf,
-        enrollment.email,
-        enrollment.age.toString(),
-        enrollment.phone || '',
-        new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
-        enrollment.status,
-        enrollment.notes || '',
-      ]),
+      headers,
+      ...enrollmentsToExport.map(enrollment => {
+        const customFieldValues = allCustomFieldTitles.map(title => {
+          const field = enrollment.customFields?.find(f => f.title === title)
+          return field?.value || ''
+        })
+
+        return [
+          enrollment.candidateName,
+          enrollment.cpf,
+          enrollment.email,
+          enrollment.phone || '',
+          new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
+          enrollment.status,
+          enrollment.reason || '',
+          enrollment.notes || '',
+          ...customFieldValues,
+        ]
+      }),
     ]
       .map(row => row.map(field => `"${field}"`).join(','))
       .join('\n')
@@ -408,17 +484,19 @@ export function EnrollmentsTable({
     const selectedRows = table.getFilteredSelectedRowModel().rows
     const enrollmentsToCancel = selectedRows
       .map(row => row.original)
-      .filter(enrollment => enrollment.status !== 'cancelled')
+      .filter(enrollment => enrollment.status !== 'rejected')
 
     if (enrollmentsToCancel.length === 0) {
       return
     }
 
-    // Cancel all selected enrollments
-    for (const enrollment of enrollmentsToCancel) {
-      await updateEnrollmentStatus(enrollment.id, 'cancelled')
-    }
-  }, [table, updateEnrollmentStatus])
+    // Use bulk update API
+    const enrollmentIds = enrollmentsToCancel.map(e => e.id)
+    await updateMultipleEnrollmentStatuses(enrollmentIds, 'rejected')
+
+    // Clear selection after successful update
+    table.resetRowSelection()
+  }, [table, updateMultipleEnrollmentStatuses])
 
   // Show loading state
   if (loading && enrollments.length === 0) {
@@ -479,7 +557,7 @@ export function EnrollmentsTable({
       {/* Summary */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          {/* <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg">
               <Users className="w-5 h-5 text-blue-600" />
             </div>
@@ -489,7 +567,7 @@ export function EnrollmentsTable({
               </p>
               <p className="text-sm text-blue-600">Total de Vagas</p>
             </div>
-          </div>
+          </div> */}
 
           <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg">
@@ -523,11 +601,11 @@ export function EnrollmentsTable({
               <p className="text-2xl font-bold text-red-700">
                 {summary.cancelledCount}
               </p>
-              <p className="text-sm text-red-600">Cancelados</p>
+              <p className="text-sm text-red-600">Recusados</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          {/* <div className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <div className="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-lg">
               <User className="w-5 h-5 text-gray-600" />
             </div>
@@ -537,12 +615,12 @@ export function EnrollmentsTable({
               </p>
               <p className="text-sm text-gray-600">Vagas Restantes</p>
             </div>
-          </div>
+          </div> */}
         </div>
       )}
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent>
+        <SheetContent className="md:max-w-xl!">
           <SheetHeader>
             <SheetTitle>Detalhes da Inscrição</SheetTitle>
             <SheetDescription>
@@ -582,16 +660,9 @@ export function EnrollmentsTable({
                           <Label className="text-xs text-muted-foreground">
                             CPF
                           </Label>
-                          <p className="font-mono">{selectedEnrollment.cpf}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Users className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <Label className="text-xs text-muted-foreground">
-                            Idade
-                          </Label>
-                          <p>{selectedEnrollment.age} anos</p>
+                          <p className="font-mono text-sm">
+                            {selectedEnrollment.cpf}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -636,7 +707,7 @@ export function EnrollmentsTable({
                       </div>
                       <div className="flex items-center gap-3">
                         <div>
-                          <Label className="text-xs text-muted-foreground">
+                          <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                             Status
                           </Label>
                           <div className="mt-1">
@@ -655,6 +726,11 @@ export function EnrollmentsTable({
                                   className:
                                     'text-red-600 border-red-200 bg-red-50',
                                 },
+                                rejected: {
+                                  label: 'Recusado',
+                                  className:
+                                    'text-red-600 border-red-200 bg-red-50',
+                                },
                               }
                               const config =
                                 statusConfig[selectedEnrollment.status]
@@ -667,39 +743,71 @@ export function EnrollmentsTable({
                           </div>
                         </div>
                       </div>
-                      {selectedEnrollment.notes && (
+                      {selectedEnrollment.reason && (
                         <div className="flex items-start gap-3">
                           <div>
                             <Label className="text-xs text-muted-foreground">
-                              Observações
+                              Motivo
                             </Label>
                             <p className="text-sm mt-1">
-                              {selectedEnrollment.notes}
+                              {selectedEnrollment.reason}
                             </p>
                           </div>
                         </div>
                       )}
+                      {selectedEnrollment.customFields &&
+                        selectedEnrollment.customFields.length > 0 && (
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                              Informações Complementares
+                            </Label>
+                            {selectedEnrollment.customFields.map(field => (
+                              <div
+                                key={field.id}
+                                className="flex items-start gap-3"
+                              >
+                                <div className="flex-1">
+                                  <Label className="text-sm text-muted-foreground">
+                                    {field.title}
+                                    {field.required && (
+                                      <span className="text-red-500">*</span>
+                                    )}
+                                  </Label>
+                                  <p className="text-sm mt-1">{field.value}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>
               </div>
-              <SheetFooter className="flex-col gap-2 sm:flex-row">
+              <SheetFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
                 <Button
                   onClick={() => handleConfirmEnrollment(selectedEnrollment)}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:flex-1 bg-green-50 border border-green-200 text-green-700"
                   disabled={selectedEnrollment.status === 'confirmed'}
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Confirmar inscrição
                 </Button>
                 <Button
+                  onClick={() => handleSetPendingEnrollment(selectedEnrollment)}
+                  className="w-full sm:flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700"
+                  disabled={selectedEnrollment.status === 'pending'}
+                >
+                  <Clock className="mr-2 h-4 w-4" />
+                  Deixar pendente
+                </Button>
+                <Button
                   variant="destructive"
                   onClick={() => handleCancelEnrollment(selectedEnrollment)}
-                  className="w-full sm:w-auto"
-                  disabled={selectedEnrollment.status === 'cancelled'}
+                  className="w-full sm:flex-1 bg-red-50! border border-red-200 text-red-700"
+                  disabled={selectedEnrollment.status === 'rejected'}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
-                  Cancelar inscrição
+                  Recusar inscrição
                 </Button>
               </SheetFooter>
             </>
@@ -734,11 +842,11 @@ export function EnrollmentsTable({
             Exportar CSV
           </DataTableActionBarAction>
           <DataTableActionBarAction
-            tooltip="Cancelar inscrições selecionadas"
+            tooltip="Recusar inscrições selecionadas"
             onClick={handleBulkCancelEnrollments}
           >
             <XCircle className="mr-2 h-4 w-4" />
-            Cancelar inscrições
+            Recusar inscrições
           </DataTableActionBarAction>
         </DataTableActionBar>
       </DataTable>

@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 
 export interface CustomField {
   id: string
@@ -34,7 +35,7 @@ export function FieldsCreator({
     if (!newFieldTitle.trim()) return
 
     const newField: CustomField = {
-      id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: uuidv4(),
       title: newFieldTitle.trim(),
       required: newFieldRequired,
     }

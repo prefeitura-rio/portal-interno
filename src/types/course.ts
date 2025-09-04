@@ -1,10 +1,138 @@
+// API Response types based on actual API responses
+export interface ApiPagination {
+  limit: number
+  page: number
+  total: number
+  total_pages: number
+}
+
+export interface ApiCourse {
+  id: number
+  title: string
+  description: string
+  orgao?: {
+    id: number
+    nome: string
+  }
+  organization?: string // Keep for backward compatibility
+  modalidade:
+    | 'ONLINE'
+    | 'PRESENCIAL'
+    | 'SEMIPRESENCIAL'
+    | 'Remoto'
+    | 'Presencial'
+  status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled'
+  created_at: string
+  updated_at: string
+  enrollment_start_date?: string | null
+  enrollment_end_date?: string | null
+  // Additional fields that might be present
+  carga_horaria?: number
+  numero_vagas?: number
+  facilitador?: string
+  local_realizacao?: string
+  data_inicio?: string
+  data_termino?: string
+}
+
+export interface ApiCoursesResponse {
+  data: {
+    courses: ApiCourse[]
+    pagination: ApiPagination
+  }
+  success: boolean
+}
+
+export interface ApiDraftsResponse {
+  data: {
+    drafts: ApiCourse[]
+    pagination: ApiPagination
+  }
+  success: boolean
+}
+
+// Frontend types for the table
+export interface CourseListItem {
+  id: string
+  title: string
+  provider: string
+  duration: number
+  vacancies: number
+  status: CourseStatus
+  originalStatus?: CourseStatus // The actual status from API (for sending back)
+  created_at: Date
+  registration_start: Date | null
+  registration_end: Date | null
+  modalidade: string
+  organization: string
+}
+
 export type CourseStatus =
   | 'draft'
+  | 'opened'
+  | 'ABERTO'
+  | 'closed'
+  | 'canceled'
+  | 'CRIADO'
+  | 'ENCERRADO'
   | 'scheduled'
-  | 'receiving_registrations'
+  | 'accepting_enrollments'
   | 'in_progress'
   | 'finished'
-  | 'cancelled'
+
+export interface CourseStatusConfig {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  variant: 'default' | 'secondary' | 'destructive' | 'outline'
+  className: string
+}
+
+// Legacy types for backward compatibility (can be removed later)
+export interface Course {
+  id: string
+  title: string
+  description: string
+  organization: string
+  provider: string
+  orgao?: {
+    id: number
+    nome: string
+  }
+  modalidade: string
+  enrollmentStartDate: Date
+  enrollmentEndDate: Date
+  workload: string
+  duration: number
+  vacancies: number
+  targetAudience: string
+  prerequisites: string
+  hasCertificate: boolean
+  facilitator: string
+  objectives: string
+  expectedResults: string
+  programContent: string
+  methodology: string
+  resourcesUsed: string
+  materialUsed: string
+  teachingMaterial: string
+  locations: Array<{
+    id: string
+    address: string
+    neighborhood: string
+    vacancies: number
+    classStartDate: Date
+    classEndDate: Date
+    classTime: string
+    classDays: string
+  }>
+  institutionalLogo: string | null
+  coverImage: string | null
+  customFields: any[]
+  status: CourseStatus
+  originalStatus?: CourseStatus // The actual status from API (for sending back)
+  created_at: Date
+  updated_at: Date
+}
 
 export type CourseModality = 'Presencial' | 'Remoto' | 'Semipresencial'
 
@@ -21,54 +149,10 @@ export interface CourseLocation {
 
 export interface CustomField {
   id: string
-  label: string
+  title: string
   value: string
-  type: 'text' | 'number' | 'date' | 'select'
+  type?: 'text' | 'number' | 'date' | 'select'
   required: boolean
-}
-
-export interface Course {
-  id: string
-  title: string
-  description: string
-  organization: string
-  provider: string
-  modalidade: CourseModality
-  enrollmentStartDate: Date
-  enrollmentEndDate: Date
-  workload: string
-  duration: number // in hours
-  vacancies: number
-  targetAudience: string
-  prerequisites: string
-  hasCertificate: boolean
-  facilitator: string
-  objectives: string
-  expectedResults: string
-  programContent: string
-  methodology: string
-  resourcesUsed: string
-  materialUsed: string
-  teachingMaterial: string
-  locations: CourseLocation[]
-  institutionalLogo: string | null
-  coverImage: string | null
-  customFields: CustomField[]
-  status: CourseStatus
-  created_at: Date
-  updated_at: Date
-}
-
-export interface CourseListItem {
-  id: string
-  title: string
-  provider: string
-  duration: number
-  vacancies: number
-  status: CourseStatus
-  created_at: Date
-  registration_start: Date
-  registration_end: Date
 }
 
 export interface CourseFormData {
@@ -96,13 +180,6 @@ export interface CourseFormData {
   customFields: CustomField[]
 }
 
-export interface CourseStatusConfig {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  variant: 'default' | 'secondary' | 'outline' | 'destructive'
-  className: string
-}
-
 export interface CourseFilters {
   status?: CourseStatus[]
   provider?: string[]
@@ -121,7 +198,11 @@ export interface CourseFilters {
 }
 
 // Enrollment Types
-export type EnrollmentStatus = 'confirmed' | 'pending' | 'cancelled'
+export type EnrollmentStatus =
+  | 'confirmed'
+  | 'pending'
+  | 'cancelled'
+  | 'rejected'
 
 export interface Enrollment {
   id: string
@@ -129,12 +210,12 @@ export interface Enrollment {
   candidateName: string
   cpf: string
   email: string
-  age: number
   phone: string
   enrollmentDate: string
   status: EnrollmentStatus
   notes?: string
-  customFields?: Record<string, string>
+  reason?: string
+  customFields?: CustomField[]
   created_at: string
   updated_at: string
 }
