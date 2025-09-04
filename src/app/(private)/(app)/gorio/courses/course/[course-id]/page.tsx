@@ -338,6 +338,9 @@ export default function CourseDetailPage({
   // Helper function to build complete course data for API calls
   const buildCompleteUpdateData = (statusOverride?: string) => {
     if (!course) return {}
+    const instituicaoId = Number(
+      process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
+    )
 
     return {
       title: course.title,
@@ -347,7 +350,7 @@ export default function CourseDetailPage({
       enrollment_end_date:
         course.enrollment_end_date || course.enrollment_end_date,
       orgao_id: (course.orgao as any)?.id,
-      instituicao_id: 5,
+      instituicao_id: instituicaoId,
       modalidade: course.modalidade,
       theme: course.theme,
       workload: course.workload,

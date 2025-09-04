@@ -459,6 +459,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     )
     const [loadingOrgaos, setLoadingOrgaos] = useState(false)
 
+    const instituicaoId = Number(
+      process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
+    )
+
     // Dialog states
     const [confirmDialog, setConfirmDialog] = useState<{
       open: boolean
@@ -632,7 +636,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Add the new fields that should always be sent
         turno: 'LIVRE',
         formato_aula: data.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
-        instituicao_id: 5,
+        instituicao_id: instituicaoId,
         // Ensure status is always included if it exists
         ...(data.status && { status: data.status }),
       }

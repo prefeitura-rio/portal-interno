@@ -39,7 +39,8 @@ jobs:
           echo "TAG1=$TAG1" >> $GITHUB_ENV
           echo "TAG2=$TAG2" >> $GITHUB_ENV
 
-      - name: Build and Push Docker Image using Buildx
+      - name: Build and Push Docker Image for Staging
+        if: github.ref == 'refs/heads/staging'
         run: |
           docker buildx build \
             --platform linux/amd64 \
@@ -48,6 +49,21 @@ jobs:
             --build-arg NEXT_PUBLIC_IDENTIDADE_CARIOCA_REDIRECT_URI="https://admin.staging.app.dados.rio/api/auth/callback/keycloak" \
             --build-arg NEXT_PUBLIC_GOVBR_BASE_URL="https://sso.staging.acesso.gov.br/" \
             --build-arg NEXT_PUBLIC_COURSES_BASE_API_URL="https://services.staging.app.dados.rio/go" \
+            --build-arg NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT="5" \
+            --tag $IMAGE_NAME:$TAG1 \
+            --tag $IMAGE_NAME:$TAG2 \
+            --push .
+      - name: Build and Push Docker Image for Production
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_IDENTIDADE_CARIOCA_BASE_URL="https://auth-idrio.apps.rio.gov.br/auth/realms/idrio_cidadao/protocol/openid-connect" \
+            --build-arg NEXT_PUBLIC_IDENTIDADE_CARIOCA_CLIENT_ID="superapp.apps.rio.gov.br" \
+            --build-arg NEXT_PUBLIC_IDENTIDADE_CARIOCA_REDIRECT_URI="https://admin.pref.rio/api/auth/callback/keycloak" \
+            --build-arg NEXT_PUBLIC_GOVBR_BASE_URL="https://sso.acesso.gov.br/" \
+            --build-arg NEXT_PUBLIC_COURSES_BASE_API_URL="https://services.pref.rio/go" \
+            --build-arg NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT="1" \
             --tag $IMAGE_NAME:$TAG1 \
             --tag $IMAGE_NAME:$TAG2 \
             --push .
