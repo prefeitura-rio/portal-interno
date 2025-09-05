@@ -10,3 +10,19 @@ export function isJwtExpired(token: string): boolean {
     return false
   }
 }
+
+export function hasAdminLoginRole(token: string): boolean {
+  try {
+    const decoded: {
+      resource_access?: {
+        superapp?: {
+          roles?: string[]
+        }
+      }
+    } = jwtDecode(token)
+
+    return !!decoded.resource_access?.superapp?.roles?.includes('admin:login')
+  } catch {
+    return false
+  }
+}
