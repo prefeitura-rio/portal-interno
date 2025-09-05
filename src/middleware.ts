@@ -3,13 +3,19 @@ import {
   type NextRequest,
   NextResponse,
 } from 'next/server'
-import { handleExpiredToken, isJwtExpired } from './lib'
+import {
+  handleExpiredToken,
+  handleUnauthorizedUser,
+  hasAdminLoginRole,
+  isJwtExpired,
+} from './lib'
 
 const publicRoutes = [
   { path: '/description', whenAuthenticated: 'next' },
   { path: '/authentication-required/wallet', whenAuthenticated: 'redirect' },
   { path: '/manifest.json', whenAuthenticated: 'next' },
   { path: '/session-expired', whenAuthenticated: 'next' },
+  { path: '/unauthorized', whenAuthenticated: 'redirect' },
 ] as const
 
 function matchRoute(pathname: string, routePath: string): boolean {
@@ -53,7 +59,7 @@ export async function middleware(request: NextRequest) {
   ]
 
   const cspHeader = `
-    default-src 'self';
+    default-src 'self' https://*.googleapis.com/rj-escritorio-dev-public/;
     script-src ${scriptSrcDirectives.join(' ')};
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https://*.google-analytics.com https://*.googletagmanager.com https://www.googletagmanager.com https://static.hotjar.com https://script.hotjar.com https://flagcdn.com https://*.doubleclick.net https://*.apps.rio.gov.br https://*.googleapis.com/;
@@ -120,6 +126,15 @@ export async function middleware(request: NextRequest) {
       )
     }
 
+    // Check if user has admin:login role
+    if (!hasAdminLoginRole(authToken.value)) {
+      return await handleUnauthorizedUser(
+        request,
+        requestHeaders,
+        contentSecurityPolicyHeaderValue
+      )
+    }
+
     const response = NextResponse.next({
       request: {
         headers: requestHeaders,
@@ -139,6 +154,19 @@ export async function middleware(request: NextRequest) {
       return await handleExpiredToken(
         request,
         refreshToken?.value,
+        requestHeaders,
+        contentSecurityPolicyHeaderValue
+      )
+    }
+
+    // Check if user has admin:login role (except for session-expired and unauthorized pages)
+    if (
+      path !== '/session-expired' &&
+      path !== '/unauthorized' &&
+      !hasAdminLoginRole(authToken.value)
+    ) {
+      return await handleUnauthorizedUser(
+        request,
         requestHeaders,
         contentSecurityPolicyHeaderValue
       )
