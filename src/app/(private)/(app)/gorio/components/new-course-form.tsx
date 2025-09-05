@@ -118,9 +118,10 @@ const fullFormSchema = z
         nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       }),
       modalidade: z.literal('ONLINE'),
-      theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
-        required_error: 'Tema é obrigatório.',
-      }),
+      // theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
+      //   required_error: 'Tema é obrigatório.',
+      // }),
+      theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -191,9 +192,10 @@ const fullFormSchema = z
         nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       }),
       modalidade: z.enum(['PRESENCIAL', 'HIBRIDO']),
-      theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
-        required_error: 'Tema é obrigatório.',
-      }),
+      // theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
+      //   required_error: 'Tema é obrigatório.',
+      // }),
+      theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -280,6 +282,7 @@ const draftFormSchema = z.object({
     })
     .optional(),
   modalidade: z.enum(['PRESENCIAL', 'HIBRIDO', 'ONLINE']).optional(),
+  // theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
   theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
   workload: z.string().optional(),
   target_audience: z.string().optional(),
@@ -384,7 +387,7 @@ type BackendCourseData = {
   organization: string
   orgao_id: number | null
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
-  theme: string
+  theme?: string
   workload: string
   target_audience: string
   institutional_logo: string | null
@@ -488,7 +491,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
             orgao: initialData.orgao,
             modalidade: initialData.modalidade,
-            theme: initialData.theme || 'Educação',
+            theme: initialData.theme || undefined,
             workload: initialData.workload || '',
             target_audience: initialData.target_audience || '',
             pre_requisitos: initialData.pre_requisitos || '',
@@ -515,7 +518,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_end_date: new Date(),
             orgao: undefined,
             modalidade: undefined,
-            theme: 'Educação',
+            theme: undefined,
             locations: [],
             remote_class: undefined,
             workload: '',
@@ -615,7 +618,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Include orgao_id for backend compatibility
         orgao_id: data.orgao?.id || null,
         modalidade: data.modalidade,
-        theme: data.theme || 'Educação',
+        theme: data.theme || undefined,
         workload: data.workload,
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo,
@@ -663,7 +666,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           data.orgao ||
           (orgaos.length > 0 ? orgaos[0] : { id: 1, nome: 'Órgão Padrão' }),
         modalidade: modalidade as 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE',
-        theme: data.theme || 'Educação',
+        theme: data.theme || undefined,
         workload: data.workload,
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo || '',
@@ -1092,7 +1095,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 name="theme"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tema*</FormLabel>
+                    <FormLabel>Tema</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
