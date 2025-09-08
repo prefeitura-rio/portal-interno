@@ -645,7 +645,7 @@ export default function CourseDetailPage({
           </Breadcrumb>
 
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between md:flex-row flex-col gap-6">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
                 {course.title as string}
@@ -670,7 +670,7 @@ export default function CourseDetailPage({
                 </span>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
               {/* Show action buttons based on course status */}
               {!isEditing ? (
                 <>
@@ -682,6 +682,7 @@ export default function CourseDetailPage({
                       <Button
                         onClick={handleEdit}
                         disabled={activeTab === 'enrollments' || isLoading}
+                        className="w-full md:w-auto"
                       >
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
@@ -694,6 +695,7 @@ export default function CourseDetailPage({
                       variant="outline"
                       onClick={handleReopenCourse}
                       disabled={isLoading}
+                      className="w-full md:w-auto"
                     >
                       <ClipboardList className="mr-2 h-4 w-4" />
                       Reabrir Curso
@@ -706,6 +708,7 @@ export default function CourseDetailPage({
                       variant="outline"
                       onClick={handleCloseCourse}
                       disabled={isLoading}
+                      className="w-full md:w-auto"
                     >
                       <Flag className="mr-2 h-4 w-4" />
                       Fechar Curso
@@ -718,6 +721,7 @@ export default function CourseDetailPage({
                       variant="destructive"
                       onClick={handleCancelCourse}
                       disabled={isLoading}
+                      className="w-full md:w-auto"
                     >
                       <Ban className="mr-2 h-4 w-4" />
                       Cancelar Curso
@@ -726,7 +730,11 @@ export default function CourseDetailPage({
 
                   {/* Delete Draft button - only show for draft courses */}
                   {isDraft && (
-                    <Button variant="destructive" onClick={handleDeleteDraft}>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteDraft}
+                      className="w-full md:w-auto"
+                    >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Excluir rascunho
                     </Button>
@@ -738,6 +746,7 @@ export default function CourseDetailPage({
                     <Button
                       onClick={handlePublishFromHeader}
                       disabled={isLoading}
+                      className="w-full md:w-auto"
                     >
                       <Save className="mr-2 h-4 w-4" />
                       Salvar e Publicar
@@ -747,11 +756,16 @@ export default function CourseDetailPage({
                     variant="outline"
                     onClick={handleSaveDraftFromHeader}
                     disabled={isLoading}
+                    className="w-full md:w-auto"
                   >
                     <Save className="mr-2 h-4 w-4" />
                     {isDraft ? 'Salvar Rascunho' : 'Salvar'}
                   </Button>
-                  <Button variant="outline" onClick={handleCancel}>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancel}
+                    className="w-full md:w-auto"
+                  >
                     <X className="mr-2 h-4 w-4" />
                     Cancelar
                   </Button>

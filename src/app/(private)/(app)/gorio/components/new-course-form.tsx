@@ -38,6 +38,7 @@ import {
   formatDateTimeToUTC,
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
@@ -455,6 +456,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     ref
   ) => {
     const router = useRouter()
+    const isMobile = useIsMobile()
+
+    // Function to truncate text for mobile
+    const truncateText = (text: string, maxLength = 36) => {
+      if (isMobile && text.length > maxLength) {
+        return `${text.substring(0, maxLength)}...`
+      }
+      return text
+    }
 
     // State for organizations
     const [orgaos, setOrgaos] = useState<Array<{ id: number; nome: string }>>(
@@ -1069,7 +1079,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                   ? 'Nenhuma organização encontrada'
                                   : 'Selecione um órgão'
                             }
-                          />
+                          >
+                            {field.value?.nome &&
+                              truncateText(field.value.nome)}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       {!loadingOrgaos && orgaos.length > 0 && (
@@ -1153,10 +1166,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               {/* Conditional rendering based on modalidade */}
               {modalidade === 'ONLINE' && (
                 <Card className="-mt-2">
-                  <CardHeader>
-                    <CardTitle>Informações das Aulas Remotas</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                  <div>
+                    <CardTitle className="px-2! md:px-4! flex flex-start">
+                      Informações das Aulas Remotas
+                    </CardTitle>
+                  </div>
+                  <CardContent className="space-y-4 px-2 md:px-4">
                     <FormField
                       control={form.control}
                       name="remote_class.vacancies"
