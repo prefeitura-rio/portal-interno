@@ -15,7 +15,7 @@ const publicRoutes = [
   { path: '/authentication-required/wallet', whenAuthenticated: 'redirect' },
   { path: '/manifest.json', whenAuthenticated: 'next' },
   { path: '/session-expired', whenAuthenticated: 'next' },
-  { path: '/unauthorized', whenAuthenticated: 'redirect' },
+  { path: '/unauthorized', whenAuthenticated: 'next' },
 ] as const
 
 function matchRoute(pathname: string, routePath: string): boolean {
