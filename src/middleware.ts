@@ -149,6 +149,20 @@ export async function middleware(request: NextRequest) {
 
   // Handle case where user has auth token but is accessing a public route
   if (authToken && publicRoute) {
+    // Skip token validation for special error pages to prevent redirect loops
+    if (path === '/session-expired' || path === '/unauthorized') {
+      const response = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      })
+      response.headers.set(
+        'Content-Security-Policy',
+        contentSecurityPolicyHeaderValue
+      )
+      return response
+    }
+
     // Check if JWT is expired even for public routes when user is authenticated
     if (isJwtExpired(authToken.value)) {
       return await handleExpiredToken(
@@ -159,12 +173,8 @@ export async function middleware(request: NextRequest) {
       )
     }
 
-    // Check if user has admin:login role (except for session-expired and unauthorized pages)
-    if (
-      path !== '/session-expired' &&
-      path !== '/unauthorized' &&
-      !hasAdminLoginRole(authToken.value)
-    ) {
+    // Check if user has admin:login role
+    if (!hasAdminLoginRole(authToken.value)) {
       return await handleUnauthorizedUser(
         request,
         requestHeaders,
