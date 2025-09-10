@@ -62,12 +62,17 @@ const COURSE_FINISHED_STATUSES = ['finished', 'ENCERRADO'] as const
 const certificateSchema = z.object({
   certificateUrl: z
     .string()
-    .min(1, 'URL do certificado é obrigatória')
-    .url('URL do certificado deve ser válida')
+    .optional()
     .refine(
       (url) => {
-        // Validação adicional para URLs de certificados comuns
-        return VALID_CERTIFICATE_EXTENSIONS.some(ext => url.toLowerCase().includes(ext))
+        // Se a URL for fornecida, deve ser válida
+        if (!url || url.trim() === '') return true
+        try {
+          new URL(url)
+          return VALID_CERTIFICATE_EXTENSIONS.some(ext => url.toLowerCase().includes(ext))
+        } catch {
+          return false
+        }
       },
       `URL deve apontar para um arquivo de certificado válido (${VALID_CERTIFICATE_EXTENSIONS.join(', ').toUpperCase()})`
     ),
@@ -266,26 +271,12 @@ export function EnrollmentsTable({
 
   /**
    * Marca uma inscrição como concluída
-   * Valida certificado se necessário e atualiza o status
+   * Atualiza o status para concluded
    * @param enrollment - Inscrição a ser marcada como concluída
    */
   const handleConcludedCourse = React.useCallback(
     async (enrollment: Enrollment) => {
       try {
-        // Se o curso tem certificado, valida o campo
-        if (hasCertificate) {
-          const isValid = await certificateForm.trigger()
-          if (!isValid) {
-            return
-          }
-          
-          // Atualiza a inscrição com a URL do certificado
-          const certificateUrl = certificateForm.getValues('certificateUrl')
-          setSelectedEnrollment(prev =>
-            prev ? { ...prev, certificateUrl } : prev
-          )
-        }
-
         const updated = await updateEnrollmentStatus(enrollment.id, 'concluded')
         if (updated) {
           setSelectedEnrollment(prev =>
@@ -297,7 +288,7 @@ export function EnrollmentsTable({
         // Aqui você pode adicionar um toast de erro se necessário
       }
     },
-    [updateEnrollmentStatus, hasCertificate, certificateForm]
+    [updateEnrollmentStatus]
   )
 
   const handleSetPendingEnrollment = React.useCallback(
@@ -968,8 +959,7 @@ export function EnrollmentsTable({
                       <div>
                         <Label className={`text-sm font-medium uppercase tracking-wide ${
                           !isCourseFinished || 
-                          selectedEnrollment.status === 'concluded' || 
-                          selectedEnrollment.status !== 'approved'
+                          selectedEnrollment.status !== 'concluded'
                             ? 'text-muted-foreground'
                             : 'text-foreground'
                         }`}>
@@ -982,8 +972,7 @@ export function EnrollmentsTable({
                           placeholder="https://exemplo.com/certificado.pdf"
                           disabled={
                             !isCourseFinished || 
-                            selectedEnrollment.status === 'concluded' || 
-                            selectedEnrollment.status !== 'approved'
+                            selectedEnrollment.status !== 'concluded'
                           }
                           className={certificateForm.formState.errors.certificateUrl ? 'border-red-500' : ''}
                           aria-label="URL do certificado de conclusão"
@@ -999,14 +988,14 @@ export function EnrollmentsTable({
                             O campo será habilitado quando o curso terminar
                           </p>
                         )}
-                        {selectedEnrollment.status === 'concluded' && (
+                        {isCourseFinished && selectedEnrollment.status !== 'concluded' && (
                           <p id="certificate-help" className="text-sm text-muted-foreground mt-1">
-                            Esta inscrição já foi concluída
+                            O campo será habilitado quando a inscrição for marcada como concluída
                           </p>
                         )}
-                        {selectedEnrollment.status !== 'approved' && selectedEnrollment.status !== 'concluded' && (
+                        {isCourseFinished && selectedEnrollment.status === 'concluded' && (
                           <p id="certificate-help" className="text-sm text-muted-foreground mt-1">
-                            Apenas inscrições confirmadas podem ser marcadas como concluídas
+                            Insira a URL do certificado de conclusão
                           </p>
                         )}
                       </div>
@@ -1061,9 +1050,7 @@ export function EnrollmentsTable({
                   }
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  {hasCertificate
-                    ? 'Marcar como concluído e enviar certificado'
-                    : 'Marcar como concluído'}
+                    Marcar como concluído
                 </Button>
               </SheetFooter>
             </>
