@@ -1,18 +1,18 @@
 import {
-    getApiV1CoursesCourseIdEnrollments,
-    putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus,
-    putApiV1CoursesCourseIdEnrollmentsStatus,
+  getApiV1CoursesCourseIdEnrollments,
+  putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus,
+  putApiV1CoursesCourseIdEnrollmentsStatus,
 } from '@/http/inscricoes/inscricoes'
 import type {
-    ModelsEnrollmentStatusUpdateRequest,
-    ModelsInscricao,
-    ModelsStatusInscricao,
+  ModelsEnrollmentStatusUpdateRequest,
+  ModelsInscricao,
+  ModelsStatusInscricao,
 } from '@/http/models'
 import type {
-    Enrollment,
-    EnrollmentResponse,
-    EnrollmentStatus,
-    EnrollmentSummary,
+  Enrollment,
+  EnrollmentResponse,
+  EnrollmentStatus,
+  EnrollmentSummary,
 } from '@/types/course'
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -83,6 +83,7 @@ function convertApiEnrollmentToFrontend(
     customFields: Array.isArray(apiEnrollment.custom_fields)
       ? apiEnrollment.custom_fields
       : [],
+    certificateUrl: apiEnrollment.certificate_url as string | undefined,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     updated_at:
@@ -349,3 +350,4 @@ export async function PUT(
     )
   }
 }
+

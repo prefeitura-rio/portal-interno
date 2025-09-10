@@ -40,6 +40,7 @@ import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -53,6 +54,7 @@ import {
 } from '@/components/ui/sheet'
 import { useEnrollments } from '@/hooks/use-enrollments'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
+import { toast } from 'sonner'
 
 // Constantes para validação de certificados
 const VALID_CERTIFICATE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx'] as const
@@ -121,6 +123,10 @@ export function EnrollmentsTable({
   const [selectedEnrollment, setSelectedEnrollment] =
     React.useState<Enrollment | null>(null)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
+  const [confirmDialog, setConfirmDialog] = React.useState({
+    open: false,
+    type: 'remove_concluded' as const,
+  })
 
   // Hook do formulário para validação do certificado
   const certificateForm = useForm<CertificateFormData>({
@@ -235,6 +241,7 @@ export function EnrollmentsTable({
     error,
     updateEnrollmentStatus,
     updateMultipleEnrollmentStatuses,
+    updateEnrollmentCertificate,
     refetch,
   } = useEnrollments({
     courseId,
@@ -245,12 +252,20 @@ export function EnrollmentsTable({
 
   const handleConfirmEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
-      const updated = await updateEnrollmentStatus(enrollment.id, 'approved')
-      if (updated) {
-        // Update the selected enrollment immediately with the new status
-        setSelectedEnrollment(prev =>
-          prev ? { ...prev, status: 'approved' } : prev
-        )
+      try {
+        const updated = await updateEnrollmentStatus(enrollment.id, 'approved')
+        if (updated) {
+          // Update the selected enrollment immediately with the new status
+          setSelectedEnrollment(prev =>
+            prev ? { ...prev, status: 'approved' } : prev
+          )
+          toast.success('Inscrição confirmada com sucesso!')
+        }
+      } catch (error) {
+        console.error('Erro ao confirmar inscrição:', error)
+        toast.error('Erro ao confirmar inscrição', {
+          description: error instanceof Error ? error.message : 'Erro inesperado',
+        })
       }
     },
     [updateEnrollmentStatus]
@@ -258,12 +273,20 @@ export function EnrollmentsTable({
 
   const handleCancelEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
-      const updated = await updateEnrollmentStatus(enrollment.id, 'rejected')
-      if (updated) {
-        // Update the selected enrollment immediately with the new status
-        setSelectedEnrollment(prev =>
-          prev ? { ...prev, status: 'rejected' } : prev
-        )
+      try {
+        const updated = await updateEnrollmentStatus(enrollment.id, 'rejected')
+        if (updated) {
+          // Update the selected enrollment immediately with the new status
+          setSelectedEnrollment(prev =>
+            prev ? { ...prev, status: 'rejected' } : prev
+          )
+          toast.success('Inscrição recusada!')
+        }
+      } catch (error) {
+        console.error('Erro ao recusar inscrição:', error)
+        toast.error('Erro ao recusar inscrição', {
+          description: error instanceof Error ? error.message : 'Erro inesperado',
+        })
       }
     },
     [updateEnrollmentStatus]
@@ -282,48 +305,123 @@ export function EnrollmentsTable({
           setSelectedEnrollment(prev =>
             prev ? { ...prev, status: 'concluded' } : prev
           )
+          toast.success('Inscrição marcada como concluída!')
         }
       } catch (error) {
         console.error('Erro ao marcar inscrição como concluída:', error)
-        // Aqui você pode adicionar um toast de erro se necessário
+        toast.error('Erro ao marcar inscrição como concluída', {
+          description: error instanceof Error ? error.message : 'Erro inesperado',
+        })
       }
     },
     [updateEnrollmentStatus]
   )
 
   /**
-   * Remove o status de concluído de uma inscrição
-   * Atualiza o status para approved
+   * Mostra modal de confirmação para remover status de concluído
    * @param enrollment - Inscrição a ter o status de concluído removido
    */
   const handleRemoveConcludedStatus = React.useCallback(
+    (enrollment: Enrollment) => {
+      setConfirmDialog({
+        open: true,
+        type: 'remove_concluded',
+      })
+    },
+    []
+  )
+
+  /**
+   * Confirma a remoção do status de concluído e remove o certificado
+   * @param enrollment - Inscrição a ter o status de concluído removido
+   */
+  const confirmRemoveConcludedStatus = React.useCallback(
     async (enrollment: Enrollment) => {
       try {
+        // Remove o status de concluído
         const updated = await updateEnrollmentStatus(enrollment.id, 'approved')
         if (updated) {
+          // Remove o certificado também
+          if (enrollment.certificateUrl) {
+            await updateEnrollmentCertificate(enrollment.id, '')
+          }
+          
           setSelectedEnrollment(prev =>
-            prev ? { ...prev, status: 'approved' } : prev
+            prev ? { ...prev, status: 'approved', certificateUrl: undefined } : prev
           )
+          
+          // Reset do formulário de certificado
+          certificateForm.reset({
+            certificateUrl: '',
+          })
+          
+          toast.success('Status de concluído removido e certificado excluído!')
         }
       } catch (error) {
         console.error('Erro ao remover status de concluído:', error)
-        // Aqui você pode adicionar um toast de erro se necessário
+        toast.error('Erro ao remover status de concluído', {
+          description: error instanceof Error ? error.message : 'Erro inesperado',
+        })
+      }
+    },
+    [updateEnrollmentStatus, updateEnrollmentCertificate, certificateForm]
+  )
+
+  const handleSetPendingEnrollment = React.useCallback(
+    async (enrollment: Enrollment) => {
+      try {
+        const updated = await updateEnrollmentStatus(enrollment.id, 'pending')
+        if (updated) {
+          // Update the selected enrollment immediately with the new status
+          setSelectedEnrollment(prev =>
+            prev ? { ...prev, status: 'pending' } : prev
+          )
+          toast.success('Inscrição definida como pendente!')
+        }
+      } catch (error) {
+        console.error('Erro ao definir inscrição como pendente:', error)
+        toast.error('Erro ao definir inscrição como pendente', {
+          description: error instanceof Error ? error.message : 'Erro inesperado',
+        })
       }
     },
     [updateEnrollmentStatus]
   )
 
-  const handleSetPendingEnrollment = React.useCallback(
-    async (enrollment: Enrollment) => {
-      const updated = await updateEnrollmentStatus(enrollment.id, 'pending')
-      if (updated) {
-        // Update the selected enrollment immediately with the new status
-        setSelectedEnrollment(prev =>
-          prev ? { ...prev, status: 'pending' } : prev
-        )
+  /**
+   * Salva a URL do certificado de uma inscrição
+   * @param enrollment - Inscrição para salvar o certificado
+   * @param certificateUrl - URL do certificado
+   */
+  const handleSaveCertificate = React.useCallback(
+    async (enrollment: Enrollment, certificateUrl: string) => {
+      try {
+        const updated = await updateEnrollmentCertificate(enrollment.id, certificateUrl)
+        if (updated) {
+          // Update the selected enrollment immediately with the new certificate URL
+          setSelectedEnrollment(prev =>
+            prev ? { ...prev, certificateUrl } : prev
+          )
+          // Reset form to show success state
+          certificateForm.reset({
+            certificateUrl: certificateUrl,
+          })
+          
+          // Show success toast
+          if (certificateUrl.trim() === '') {
+            toast.success('Certificado removido com sucesso!')
+          } else {
+            toast.success('Certificado salvo com sucesso!')
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao salvar certificado:', error)
+        toast.error('Erro ao salvar certificado', {
+          description: error instanceof Error ? error.message : 'Erro inesperado',
+        })
       }
     },
-    [updateEnrollmentStatus]
+    [updateEnrollmentCertificate, certificateForm]
   )
 
   // Handle pagination changes
@@ -561,39 +659,59 @@ export function EnrollmentsTable({
   })
 
   const handleBulkConfirmEnrollments = React.useCallback(async () => {
-    const selectedRows = table.getFilteredSelectedRowModel().rows
-    const enrollmentsToConfirm = selectedRows
-      .map(row => row.original)
-      .filter(enrollment => enrollment.status !== 'approved')
+    try {
+      const selectedRows = table.getFilteredSelectedRowModel().rows
+      const enrollmentsToConfirm = selectedRows
+        .map(row => row.original)
+        .filter(enrollment => enrollment.status !== 'approved')
 
-    if (enrollmentsToConfirm.length === 0) {
-      return
+      if (enrollmentsToConfirm.length === 0) {
+        return
+      }
+
+      // Use bulk update API
+      const enrollmentIds = enrollmentsToConfirm.map(e => e.id)
+      const success = await updateMultipleEnrollmentStatuses(enrollmentIds, 'approved')
+
+      if (success) {
+        // Clear selection after successful update
+        table.resetRowSelection()
+        toast.success(`${enrollmentsToConfirm.length} inscrição(ões) confirmada(s) com sucesso!`)
+      }
+    } catch (error) {
+      console.error('Erro ao confirmar inscrições em lote:', error)
+      toast.error('Erro ao confirmar inscrições', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
     }
-
-    // Use bulk update API
-    const enrollmentIds = enrollmentsToConfirm.map(e => e.id)
-    await updateMultipleEnrollmentStatuses(enrollmentIds, 'approved')
-
-    // Clear selection after successful update
-    table.resetRowSelection()
   }, [table, updateMultipleEnrollmentStatuses])
 
   const handleBulkSetPending = React.useCallback(async () => {
-    const selectedRows = table.getFilteredSelectedRowModel().rows
-    const enrollmentsToSetPending = selectedRows
-      .map(row => row.original)
-      .filter(enrollment => enrollment.status !== 'pending')
+    try {
+      const selectedRows = table.getFilteredSelectedRowModel().rows
+      const enrollmentsToSetPending = selectedRows
+        .map(row => row.original)
+        .filter(enrollment => enrollment.status !== 'pending')
 
-    if (enrollmentsToSetPending.length === 0) {
-      return
+      if (enrollmentsToSetPending.length === 0) {
+        return
+      }
+
+      // Use bulk update API
+      const enrollmentIds = enrollmentsToSetPending.map(e => e.id)
+      const success = await updateMultipleEnrollmentStatuses(enrollmentIds, 'pending')
+
+      if (success) {
+        // Clear selection after successful update
+        table.resetRowSelection()
+        toast.success(`${enrollmentsToSetPending.length} inscrição(ões) definida(s) como pendente(s)!`)
+      }
+    } catch (error) {
+      console.error('Erro ao definir inscrições como pendentes em lote:', error)
+      toast.error('Erro ao definir inscrições como pendentes', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
     }
-
-    // Use bulk update API
-    const enrollmentIds = enrollmentsToSetPending.map(e => e.id)
-    await updateMultipleEnrollmentStatuses(enrollmentIds, 'pending')
-
-    // Clear selection after successful update
-    table.resetRowSelection()
   }, [table, updateMultipleEnrollmentStatuses])
 
   const handleDownloadSpreadsheet = React.useCallback(() => {
@@ -670,39 +788,59 @@ export function EnrollmentsTable({
   }, [enrollments, courseId, courseTitle])
 
   const handleBulkCancelEnrollments = React.useCallback(async () => {
-    const selectedRows = table.getFilteredSelectedRowModel().rows
-    const enrollmentsToCancel = selectedRows
-      .map(row => row.original)
-      .filter(enrollment => enrollment.status !== 'rejected')
+    try {
+      const selectedRows = table.getFilteredSelectedRowModel().rows
+      const enrollmentsToCancel = selectedRows
+        .map(row => row.original)
+        .filter(enrollment => enrollment.status !== 'rejected')
 
-    if (enrollmentsToCancel.length === 0) {
-      return
+      if (enrollmentsToCancel.length === 0) {
+        return
+      }
+
+      // Use bulk update API
+      const enrollmentIds = enrollmentsToCancel.map(e => e.id)
+      const success = await updateMultipleEnrollmentStatuses(enrollmentIds, 'rejected')
+
+      if (success) {
+        // Clear selection after successful update
+        table.resetRowSelection()
+        toast.success(`${enrollmentsToCancel.length} inscrição(ões) recusada(s) com sucesso!`)
+      }
+    } catch (error) {
+      console.error('Erro ao recusar inscrições em lote:', error)
+      toast.error('Erro ao recusar inscrições', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
     }
-
-    // Use bulk update API
-    const enrollmentIds = enrollmentsToCancel.map(e => e.id)
-    await updateMultipleEnrollmentStatuses(enrollmentIds, 'rejected')
-
-    // Clear selection after successful update
-    table.resetRowSelection()
   }, [table, updateMultipleEnrollmentStatuses])
 
   const handleBulkConcludeEnrollments = React.useCallback(async () => {
-    const selectedRows = table.getFilteredSelectedRowModel().rows
-    const enrollmentsToConclude = selectedRows
-      .map(row => row.original)
-      .filter(enrollment => enrollment.status !== 'concluded')
+    try {
+      const selectedRows = table.getFilteredSelectedRowModel().rows
+      const enrollmentsToConclude = selectedRows
+        .map(row => row.original)
+        .filter(enrollment => enrollment.status !== 'concluded')
 
-    if (enrollmentsToConclude.length === 0) {
-      return
+      if (enrollmentsToConclude.length === 0) {
+        return
+      }
+
+      // Use bulk update API
+      const enrollmentIds = enrollmentsToConclude.map(e => e.id)
+      const success = await updateMultipleEnrollmentStatuses(enrollmentIds, 'concluded')
+
+      if (success) {
+        // Clear selection after successful update
+        table.resetRowSelection()
+        toast.success(`${enrollmentsToConclude.length} inscrição(ões) marcada(s) como concluída(s)!`)
+      }
+    } catch (error) {
+      console.error('Erro ao marcar inscrições como concluídas em lote:', error)
+      toast.error('Erro ao marcar inscrições como concluídas', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
     }
-
-    // Use bulk update API
-    const enrollmentIds = enrollmentsToConclude.map(e => e.id)
-    await updateMultipleEnrollmentStatuses(enrollmentIds, 'concluded')
-
-    // Clear selection after successful update
-    table.resetRowSelection()
   }, [table, updateMultipleEnrollmentStatuses])
 
   // Show loading state
@@ -1018,18 +1156,57 @@ export function EnrollmentsTable({
                           URL para o certificado de conclusão da formação
                         </Label>
                       </div>
-                      <div className="w-full">
-                        <Input
-                          {...certificateForm.register('certificateUrl')}
-                          placeholder="https://exemplo.com/certificado.pdf"
-                          disabled={
-                            !isCourseFinished || 
-                            selectedEnrollment.status !== 'concluded'
-                          }
-                          className={certificateForm.formState.errors.certificateUrl ? 'border-red-500' : ''}
-                          aria-label="URL do certificado de conclusão"
-                          aria-describedby="certificate-help"
-                        />
+                      <div className="w-full space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            {...certificateForm.register('certificateUrl')}
+                            placeholder="https://exemplo.com/certificado.pdf"
+                            disabled={
+                              !isCourseFinished || 
+                              selectedEnrollment.status !== 'concluded'
+                            }
+                            className={certificateForm.formState.errors.certificateUrl ? 'border-red-500' : ''}
+                            aria-label="URL do certificado de conclusão"
+                            aria-describedby="certificate-help"
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              const formData = certificateForm.getValues()
+                              if (formData.certificateUrl !== undefined) {
+                                handleSaveCertificate(selectedEnrollment, formData.certificateUrl)
+                              }
+                            }}
+                            disabled={
+                              !isCourseFinished || 
+                              selectedEnrollment.status !== 'concluded' ||
+                              !certificateForm.formState.isValid
+                            }
+                            size="sm"
+                            className="whitespace-nowrap"
+                          >
+                            Salvar
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              handleSaveCertificate(selectedEnrollment, '')
+                              certificateForm.reset({
+                                certificateUrl: '',
+                              })
+                            }}
+                            disabled={
+                              !isCourseFinished || 
+                              selectedEnrollment.status !== 'concluded' ||
+                              !selectedEnrollment.certificateUrl
+                            }
+                            size="sm"
+                            variant="outline"
+                            className="whitespace-nowrap text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            Remover
+                          </Button>
+                        </div>
                         {certificateForm.formState.errors.certificateUrl && (
                           <p className="text-sm text-red-500 mt-1">
                             {certificateForm.formState.errors.certificateUrl.message}
@@ -1047,8 +1224,23 @@ export function EnrollmentsTable({
                         )}
                         {isCourseFinished && selectedEnrollment.status === 'concluded' && (
                           <p id="certificate-help" className="text-sm text-muted-foreground mt-1">
-                            Insira a URL do certificado de conclusão
+                            Insira a URL do certificado de conclusão e clique em "Salvar"
                           </p>
+                        )}
+                        {selectedEnrollment.certificateUrl && (
+                          <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                            <p className="text-sm text-green-800">
+                              <strong>Certificado salvo:</strong>{' '}
+                              <a 
+                                href={selectedEnrollment.certificateUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-green-600 hover:text-green-800 underline"
+                              >
+                                {selectedEnrollment.certificateUrl}
+                              </a>
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1169,6 +1361,26 @@ export function EnrollmentsTable({
           </DataTableActionBarAction>
         </DataTableActionBar>
       </DataTable>
+
+      {/* Modal de confirmação para remover status de concluído */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
+        title="Remover Status de Concluído"
+        description={
+          selectedEnrollment?.certificateUrl
+            ? `Tem certeza que deseja remover o status de concluído de "${selectedEnrollment.candidateName}"? Esta ação também removerá o certificado salvo e não pode ser desfeita.`
+            : `Tem certeza que deseja remover o status de concluído de "${selectedEnrollment?.candidateName}"? Esta ação não pode ser desfeita.`
+        }
+        confirmText="Remover Status"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={() => {
+          if (selectedEnrollment) {
+            confirmRemoveConcludedStatus(selectedEnrollment)
+          }
+        }}
+      />
     </div>
   )
 }
