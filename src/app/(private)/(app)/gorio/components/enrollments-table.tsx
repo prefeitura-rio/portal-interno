@@ -11,6 +11,7 @@ import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
@@ -111,11 +112,11 @@ export function EnrollmentsTable({
 
   const handleConfirmEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
-      const updated = await updateEnrollmentStatus(enrollment.id, 'confirmed')
+      const updated = await updateEnrollmentStatus(enrollment.id, 'approved')
       if (updated) {
         // Update the selected enrollment immediately with the new status
         setSelectedEnrollment(prev =>
-          prev ? { ...prev, status: 'confirmed' } : prev
+          prev ? { ...prev, status: 'approved' } : prev
         )
       }
     },
@@ -129,6 +130,18 @@ export function EnrollmentsTable({
         // Update the selected enrollment immediately with the new status
         setSelectedEnrollment(prev =>
           prev ? { ...prev, status: 'rejected' } : prev
+        )
+      }
+    },
+    [updateEnrollmentStatus]
+  )
+
+  const handleConcludedCourse = React.useCallback(
+    async (enrollment: Enrollment) => {
+      const updated = await updateEnrollmentStatus(enrollment.id, 'concluded')
+      if (updated) {
+        setSelectedEnrollment(prev =>
+          prev ? { ...prev, status: 'pending' } : prev
         )
       }
     },
@@ -292,7 +305,7 @@ export function EnrollmentsTable({
         cell: ({ cell }) => {
           const status = cell.getValue<Enrollment['status']>()
           const statusConfig = {
-            confirmed: {
+            approved: {
               label: 'Confirmado',
               variant: 'default' as const,
               className: 'bg-green-100 text-green-800',
@@ -316,6 +329,12 @@ export function EnrollmentsTable({
               className: 'text-red-600 border-red-200 bg-red-50',
               icon: XCircle,
             },
+            concluded: {
+              label: 'Concluído',
+              variant: 'default' as const,
+              className: 'bg-blue-100 text-blue-800',
+              icon: CheckCircle,
+            },
           }
 
           const config = statusConfig[status]
@@ -337,10 +356,11 @@ export function EnrollmentsTable({
           variant: 'select',
           options: [
             { label: 'Todos', value: '' },
-            { label: 'Confirmado', value: 'confirmed' },
+            { label: 'Confirmado', value: 'approved' },
             { label: 'Pendente', value: 'pending' },
             { label: 'Cancelado', value: 'cancelled' },
             { label: 'Recusado', value: 'rejected' },
+            { label: 'Concluído', value: 'concluded' },
           ],
         },
         enableColumnFilter: true,
@@ -375,7 +395,7 @@ export function EnrollmentsTable({
     const selectedRows = table.getFilteredSelectedRowModel().rows
     const enrollmentsToConfirm = selectedRows
       .map(row => row.original)
-      .filter(enrollment => enrollment.status !== 'confirmed')
+      .filter(enrollment => enrollment.status !== 'approved')
 
     if (enrollmentsToConfirm.length === 0) {
       return
@@ -383,7 +403,7 @@ export function EnrollmentsTable({
 
     // Use bulk update API
     const enrollmentIds = enrollmentsToConfirm.map(e => e.id)
-    await updateMultipleEnrollmentStatuses(enrollmentIds, 'confirmed')
+    await updateMultipleEnrollmentStatuses(enrollmentIds, 'approved')
 
     // Clear selection after successful update
     table.resetRowSelection()
@@ -629,7 +649,7 @@ export function EnrollmentsTable({
           </SheetHeader>
           {selectedEnrollment && (
             <>
-              <div className="flex-1 overflow-y-auto py-6 px-4">
+              <div className="flex-1 overflow-y-auto py-6 pt-0 px-4">
                 <div className="space-y-6">
                   {/* Candidate Info */}
                   <div className="space-y-4">
@@ -713,7 +733,7 @@ export function EnrollmentsTable({
                           <div className="mt-1">
                             {(() => {
                               const statusConfig = {
-                                confirmed: {
+                                approved: {
                                   label: 'Confirmado',
                                   className: 'bg-green-100 text-green-800',
                                 },
@@ -730,6 +750,11 @@ export function EnrollmentsTable({
                                   label: 'Recusado',
                                   className:
                                     'text-red-600 border-red-200 bg-red-50',
+                                },
+                                concluded: {
+                                  label: 'Concluído',
+                                  className:
+                                    'text-blue-600 border-blue-200 bg-blue-50',
                                 },
                               }
                               const config =
@@ -781,33 +806,62 @@ export function EnrollmentsTable({
                         )}
                     </div>
                   </div>
+                  <div className="flex items-start flex-col gap-3">
+                        <div>
+                          <Label className="text-sm font-medium text-foreground uppercase tracking-wide">
+                            URL para o certificado de conclusão da formação
+                          </Label>
+                         </div>
+                        <Input
+                          value={selectedEnrollment.certificateUrl}
+                          onChange={e =>
+                            setSelectedEnrollment({
+                              ...selectedEnrollment,
+                              certificateUrl: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
                 </div>
+
               </div>
-              <SheetFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+              <SheetFooter className="flex-col gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
+                  <Button
+                    onClick={() => handleConfirmEnrollment(selectedEnrollment)}
+                    className="w-full bg-green-50 border border-green-200 text-green-700"
+                    disabled={selectedEnrollment.status === 'approved'}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Confirmar inscrição
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      handleSetPendingEnrollment(selectedEnrollment)
+                    }
+                    className="w-full bg-yellow-50 border border-yellow-200 text-yellow-700"
+                    disabled={selectedEnrollment.status === 'pending'}
+                  >
+                    <Clock className="mr-2 h-4 w-4" />
+                    Deixar pendente
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleCancelEnrollment(selectedEnrollment)}
+                    className="w-full bg-red-50! border border-red-200 text-red-700"
+                    disabled={selectedEnrollment.status === 'rejected'}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Recusar inscrição
+                  </Button>
+                </div>
                 <Button
-                  onClick={() => handleConfirmEnrollment(selectedEnrollment)}
-                  className="w-full sm:flex-1 bg-green-50 border border-green-200 text-green-700"
-                  disabled={selectedEnrollment.status === 'confirmed'}
+                  onClick={() => handleConcludedCourse(selectedEnrollment)}
+                  className="w-full bg-blue-50! border border-blue-200 text-blue-700"
+                  disabled={selectedEnrollment.status === 'concluded'}
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Confirmar inscrição
-                </Button>
-                <Button
-                  onClick={() => handleSetPendingEnrollment(selectedEnrollment)}
-                  className="w-full sm:flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700"
-                  disabled={selectedEnrollment.status === 'pending'}
-                >
-                  <Clock className="mr-2 h-4 w-4" />
-                  Deixar pendente
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => handleCancelEnrollment(selectedEnrollment)}
-                  className="w-full sm:flex-1 bg-red-50! border border-red-200 text-red-700"
-                  disabled={selectedEnrollment.status === 'rejected'}
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Recusar inscrição
+                 Marcar como concluído
                 </Button>
               </SheetFooter>
             </>

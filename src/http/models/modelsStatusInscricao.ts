@@ -15,4 +15,5 @@ export const ModelsStatusInscricao = {
   StatusInscricaoApproved: 'approved',
   StatusInscricaoRejected: 'rejected',
   StatusInscricaoCancelled: 'cancelled',
+  StatusInscricaoConcluded: 'concluded',
 } as const;

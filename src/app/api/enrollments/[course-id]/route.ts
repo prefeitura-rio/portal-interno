@@ -22,13 +22,15 @@ function convertApiStatusToFrontend(
 ): EnrollmentStatus {
   switch (status) {
     case 'approved':
-      return 'confirmed'
+      return 'approved'
     case 'pending':
       return 'pending'
     case 'cancelled':
       return 'cancelled'
     case 'rejected':
       return 'rejected'
+    case 'concluded':
+      return 'concluded'
     default:
       return 'pending'
   }
@@ -39,7 +41,7 @@ function convertFrontendStatusToApi(
   status: EnrollmentStatus
 ): ModelsStatusInscricao {
   switch (status) {
-    case 'confirmed':
+    case 'approved':
       return 'approved'
     case 'pending':
       return 'pending'
@@ -112,7 +114,7 @@ export async function GET(
     if (statusParam && statusParam.trim() !== '') {
       // Convert frontend status to API status
       switch (statusParam.trim()) {
-        case 'confirmed':
+        case 'approved':
           status = 'approved'
           break
         case 'pending':
