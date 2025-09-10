@@ -1,18 +1,18 @@
 import {
-  getApiV1CoursesCourseIdEnrollments,
-  putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus,
-  putApiV1CoursesCourseIdEnrollmentsStatus,
+    getApiV1CoursesCourseIdEnrollments,
+    putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus,
+    putApiV1CoursesCourseIdEnrollmentsStatus,
 } from '@/http/inscricoes/inscricoes'
 import type {
-  ModelsEnrollmentStatusUpdateRequest,
-  ModelsInscricao,
-  ModelsStatusInscricao,
+    ModelsEnrollmentStatusUpdateRequest,
+    ModelsInscricao,
+    ModelsStatusInscricao,
 } from '@/http/models'
 import type {
-  Enrollment,
-  EnrollmentResponse,
-  EnrollmentStatus,
-  EnrollmentSummary,
+    Enrollment,
+    EnrollmentResponse,
+    EnrollmentStatus,
+    EnrollmentSummary,
 } from '@/types/course'
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -49,6 +49,8 @@ function convertFrontendStatusToApi(
       return 'rejected'
     case 'cancelled':
       return 'cancelled'
+    case 'concluded':
+      return 'concluded'
     default:
       return 'pending'
   }
@@ -188,6 +190,7 @@ export async function GET(
         // cancelledCount:
         //   (apiSummary?.cancelled || 0) + (apiSummary?.rejected || 0),
         cancelledCount: apiSummary?.rejected || 0,
+        concludedCount: apiSummary?.concluded || 0,
         remainingVacancies: Math.max(
           0,
           (apiSummary?.total || 100) - (apiSummary?.approved || 0)

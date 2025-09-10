@@ -772,6 +772,18 @@ export function EnrollmentsTable({
             </div>
           </div>
 
+          <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-blue-700">
+                {summary.concludedCount}
+              </p>
+              <p className="text-sm text-blue-600">Concluídos</p>
+            </div>
+          </div>
+
           {/* <div className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <div className="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-lg">
               <User className="w-5 h-5 text-gray-600" />

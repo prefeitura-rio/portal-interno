@@ -227,6 +227,7 @@ export interface EnrollmentSummary {
   confirmedCount: number
   pendingCount: number
   cancelledCount: number
+  concludedCount: number
   remainingVacancies: number
 }
 
