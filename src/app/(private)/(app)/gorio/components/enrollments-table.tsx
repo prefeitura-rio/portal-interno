@@ -1,29 +1,9 @@
 'use client'
 
-import { DataTable } from '@/components/data-table/data-table'
-import {
-  DataTableActionBar,
-  DataTableActionBarAction,
-  DataTableActionBarSelection,
-} from '@/components/data-table/data-table-action-bar'
-import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
-import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import { useEnrollments } from '@/hooks/use-enrollments'
-import type { Enrollment, EnrollmentStatus } from '@/types/course'
+import * as React from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import {
   type Column,
   type ColumnDef,
@@ -48,16 +28,80 @@ import {
   User,
   XCircle,
 } from 'lucide-react'
-import * as React from 'react'
 
+import { DataTable } from '@/components/data-table/data-table'
+import {
+  DataTableActionBar,
+  DataTableActionBarAction,
+  DataTableActionBarSelection,
+} from '@/components/data-table/data-table-action-bar'
+import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
+import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { useEnrollments } from '@/hooks/use-enrollments'
+import type { Enrollment, EnrollmentStatus } from '@/types/course'
+
+// Constantes para validação de certificados
+const VALID_CERTIFICATE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx'] as const
+const COURSE_FINISHED_STATUSES = ['finished', 'ENCERRADO'] as const
+
+// Schema de validação para o certificado
+const certificateSchema = z.object({
+  certificateUrl: z
+    .string()
+    .min(1, 'URL do certificado é obrigatória')
+    .url('URL do certificado deve ser válida')
+    .refine(
+      (url) => {
+        // Validação adicional para URLs de certificados comuns
+        return VALID_CERTIFICATE_EXTENSIONS.some(ext => url.toLowerCase().includes(ext))
+      },
+      `URL deve apontar para um arquivo de certificado válido (${VALID_CERTIFICATE_EXTENSIONS.join(', ').toUpperCase()})`
+    ),
+})
+
+type CertificateFormData = z.infer<typeof certificateSchema>
+
+/**
+ * Props do componente EnrollmentsTable
+ */
 interface EnrollmentsTableProps {
+  /** ID do curso */
   courseId: string
+  /** Título do curso para exibição */
   courseTitle?: string
+  /** Dados do curso necessários para validações */
+  course?: {
+    /** Se o curso oferece certificado */
+    has_certificate?: boolean
+    /** Localizações do curso (para cursos presenciais) */
+    locations?: Array<{ class_end_date?: string }>
+    /** Classe remota do curso (para cursos online) */
+    remote_class?: { class_end_date?: string }
+    /** Modalidade do curso (ONLINE, PRESENCIAL, etc.) */
+    modalidade?: string
+    /** Status atual do curso */
+    status?: string
+  }
 }
 
 export function EnrollmentsTable({
   courseId,
   courseTitle,
+  course,
 }: EnrollmentsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'enrollmentDate', desc: true },
@@ -72,6 +116,90 @@ export function EnrollmentsTable({
   const [selectedEnrollment, setSelectedEnrollment] =
     React.useState<Enrollment | null>(null)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
+
+  // Hook do formulário para validação do certificado
+  const certificateForm = useForm<CertificateFormData>({
+    resolver: zodResolver(certificateSchema),
+    defaultValues: {
+      certificateUrl: '',
+    },
+  })
+
+  /**
+   * Calcula a data de término do curso baseado na modalidade
+   * Para cursos online: usa remote_class.class_end_date
+   * Para cursos presenciais: usa a data mais recente de locations
+   * @returns Data de término do curso ou null se não encontrada
+   */
+  const getCourseEndDate = React.useMemo(() => {
+    if (!course) return null
+
+    const classEndDates: Date[] = []
+
+    // Para cursos ONLINE/Remoto
+    if (
+      (course.modalidade === 'ONLINE' || course.modalidade === 'Remoto') &&
+      course.remote_class?.class_end_date
+    ) {
+      const endDate = new Date(course.remote_class.class_end_date)
+      if (!isNaN(endDate.getTime())) {
+        classEndDates.push(endDate)
+      }
+    }
+
+    // Para cursos PRESENCIAL/Presencial/SEMIPRESENCIAL
+    if (
+      (course.modalidade === 'PRESENCIAL' ||
+        course.modalidade === 'Presencial' ||
+        course.modalidade === 'SEMIPRESENCIAL') &&
+      course.locations
+    ) {
+      course.locations.forEach(location => {
+        if (location.class_end_date) {
+          const endDate = new Date(location.class_end_date)
+          if (!isNaN(endDate.getTime())) {
+            classEndDates.push(endDate)
+          }
+        }
+      })
+    }
+
+    // Retorna a data de término mais recente
+    if (classEndDates.length > 0) {
+      return new Date(Math.max(...classEndDates.map(d => d.getTime())))
+    }
+
+    return null
+  }, [course])
+
+  /**
+   * Estados do curso calculados e memoizados para performance
+   * Inclui verificação de término por data e por status
+   */
+  const courseStates = React.useMemo(() => {
+    const courseEndDate = getCourseEndDate
+    const now = new Date()
+    const isCourseFinishedByDate = courseEndDate ? now > courseEndDate : false
+    const isCourseFinishedByStatus = course?.status ? COURSE_FINISHED_STATUSES.includes(course.status as any) : false
+    const isCourseFinished = isCourseFinishedByDate || isCourseFinishedByStatus
+    const hasCertificate = course?.has_certificate || false
+
+    return {
+      courseEndDate,
+      isCourseFinishedByDate,
+      isCourseFinishedByStatus,
+      isCourseFinished,
+      hasCertificate,
+    }
+  }, [getCourseEndDate, course?.status, course?.has_certificate])
+
+  const {
+    courseEndDate,
+    isCourseFinishedByDate,
+    isCourseFinishedByStatus,
+    isCourseFinished,
+    hasCertificate,
+  } = courseStates
 
   // Convert column filters to enrollment filters
   const filters = React.useMemo(() => {
@@ -136,16 +264,40 @@ export function EnrollmentsTable({
     [updateEnrollmentStatus]
   )
 
+  /**
+   * Marca uma inscrição como concluída
+   * Valida certificado se necessário e atualiza o status
+   * @param enrollment - Inscrição a ser marcada como concluída
+   */
   const handleConcludedCourse = React.useCallback(
     async (enrollment: Enrollment) => {
-      const updated = await updateEnrollmentStatus(enrollment.id, 'concluded')
-      if (updated) {
-        setSelectedEnrollment(prev =>
-          prev ? { ...prev, status: 'pending' } : prev
-        )
+      try {
+        // Se o curso tem certificado, valida o campo
+        if (hasCertificate) {
+          const isValid = await certificateForm.trigger()
+          if (!isValid) {
+            return
+          }
+          
+          // Atualiza a inscrição com a URL do certificado
+          const certificateUrl = certificateForm.getValues('certificateUrl')
+          setSelectedEnrollment(prev =>
+            prev ? { ...prev, certificateUrl } : prev
+          )
+        }
+
+        const updated = await updateEnrollmentStatus(enrollment.id, 'concluded')
+        if (updated) {
+          setSelectedEnrollment(prev =>
+            prev ? { ...prev, status: 'concluded' } : prev
+          )
+        }
+      } catch (error) {
+        console.error('Erro ao marcar inscrição como concluída:', error)
+        // Aqui você pode adicionar um toast de erro se necessário
       }
     },
-    [updateEnrollmentStatus]
+    [updateEnrollmentStatus, hasCertificate, certificateForm]
   )
 
   const handleSetPendingEnrollment = React.useCallback(
@@ -188,7 +340,11 @@ export function EnrollmentsTable({
   const handleRowClick = React.useCallback((enrollment: Enrollment) => {
     setSelectedEnrollment(enrollment)
     setIsSheetOpen(true)
-  }, [])
+    // Reset do formulário de certificado quando uma nova inscrição é selecionada
+    certificateForm.reset({
+      certificateUrl: enrollment.certificateUrl || '',
+    })
+  }, [certificateForm])
 
   const columns = React.useMemo<ColumnDef<Enrollment>[]>(
     () => [
@@ -806,22 +962,45 @@ export function EnrollmentsTable({
                         )}
                     </div>
                   </div>
-                  <div className="flex items-start flex-col gap-3">
-                        <div>
-                          <Label className="text-sm font-medium text-foreground uppercase tracking-wide">
-                            URL para o certificado de conclusão da formação
-                          </Label>
-                         </div>
-                        <Input
-                          value={selectedEnrollment.certificateUrl}
-                          onChange={e =>
-                            setSelectedEnrollment({
-                              ...selectedEnrollment,
-                              certificateUrl: e.target.value,
-                            })
-                          }
-                        />
+                  {/* Campo de certificado - só aparece se o curso tem certificado */}
+                  {hasCertificate && (
+                    <div className="flex items-start flex-col gap-3">
+                      <div>
+                        <Label className={`text-sm font-medium uppercase tracking-wide ${
+                          !isCourseFinished || selectedEnrollment.status === 'concluded'
+                            ? 'text-muted-foreground'
+                            : 'text-foreground'
+                        }`}>
+                          URL para o certificado de conclusão da formação
+                        </Label>
                       </div>
+                      <div className="w-full">
+                        <Input
+                          {...certificateForm.register('certificateUrl')}
+                          placeholder="https://exemplo.com/certificado.pdf"
+                          disabled={!isCourseFinished || selectedEnrollment.status === 'concluded'}
+                          className={certificateForm.formState.errors.certificateUrl ? 'border-red-500' : ''}
+                          aria-label="URL do certificado de conclusão"
+                          aria-describedby="certificate-help"
+                        />
+                        {certificateForm.formState.errors.certificateUrl && (
+                          <p className="text-sm text-red-500 mt-1">
+                            {certificateForm.formState.errors.certificateUrl.message}
+                          </p>
+                        )}
+                        {!isCourseFinished && (
+                          <p id="certificate-help" className="text-sm text-muted-foreground mt-1">
+                            O campo será habilitado quando o curso terminar
+                          </p>
+                        )}
+                        {selectedEnrollment.status === 'concluded' && (
+                          <p id="certificate-help" className="text-sm text-muted-foreground mt-1">
+                            Esta inscrição já foi concluída
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
               </div>
@@ -830,7 +1009,9 @@ export function EnrollmentsTable({
                   <Button
                     onClick={() => handleConfirmEnrollment(selectedEnrollment)}
                     className="w-full bg-green-50 border border-green-200 text-green-700"
-                    disabled={selectedEnrollment.status === 'approved'}
+                    disabled={
+                      selectedEnrollment.status === 'approved' || isCourseFinished
+                    }
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />
                     Confirmar inscrição
@@ -840,7 +1021,9 @@ export function EnrollmentsTable({
                       handleSetPendingEnrollment(selectedEnrollment)
                     }
                     className="w-full bg-yellow-50 border border-yellow-200 text-yellow-700"
-                    disabled={selectedEnrollment.status === 'pending'}
+                    disabled={
+                      selectedEnrollment.status === 'pending' || isCourseFinished
+                    }
                   >
                     <Clock className="mr-2 h-4 w-4" />
                     Deixar pendente
@@ -849,7 +1032,9 @@ export function EnrollmentsTable({
                     variant="destructive"
                     onClick={() => handleCancelEnrollment(selectedEnrollment)}
                     className="w-full bg-red-50! border border-red-200 text-red-700"
-                    disabled={selectedEnrollment.status === 'rejected'}
+                    disabled={
+                      selectedEnrollment.status === 'rejected' || isCourseFinished
+                    }
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Recusar inscrição
@@ -858,10 +1043,14 @@ export function EnrollmentsTable({
                 <Button
                   onClick={() => handleConcludedCourse(selectedEnrollment)}
                   className="w-full bg-blue-50! border border-blue-200 text-blue-700"
-                  disabled={selectedEnrollment.status === 'concluded'}
+                  disabled={
+                    selectedEnrollment.status === 'concluded' || !isCourseFinished
+                  }
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
-                 Marcar como concluído
+                  {hasCertificate
+                    ? 'Marcar como concluído e enviar certificado'
+                    : 'Marcar como concluído'}
                 </Button>
               </SheetFooter>
             </>

@@ -827,6 +827,13 @@ export default function CourseDetailPage({
               <EnrollmentsTable
                 courseId={courseId?.toString() || ''}
                 courseTitle={course?.title as string}
+                course={{
+                  has_certificate: course?.has_certificate as boolean | undefined,
+                  locations: course?.locations as Array<{ class_end_date?: string }> | undefined,
+                  remote_class: course?.remote_class as { class_end_date?: string } | undefined,
+                  modalidade: course?.modalidade as string | undefined,
+                  status: course?.status as string | undefined,
+                }}
               />
             </TabsContent>
           </Tabs>
