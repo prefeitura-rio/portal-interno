@@ -291,6 +291,28 @@ export function EnrollmentsTable({
     [updateEnrollmentStatus]
   )
 
+  /**
+   * Remove o status de concluído de uma inscrição
+   * Atualiza o status para approved
+   * @param enrollment - Inscrição a ter o status de concluído removido
+   */
+  const handleRemoveConcludedStatus = React.useCallback(
+    async (enrollment: Enrollment) => {
+      try {
+        const updated = await updateEnrollmentStatus(enrollment.id, 'approved')
+        if (updated) {
+          setSelectedEnrollment(prev =>
+            prev ? { ...prev, status: 'approved' } : prev
+          )
+        }
+      } catch (error) {
+        console.error('Erro ao remover status de concluído:', error)
+        // Aqui você pode adicionar um toast de erro se necessário
+      }
+    },
+    [updateEnrollmentStatus]
+  )
+
   const handleSetPendingEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
       const updated = await updateEnrollmentStatus(enrollment.id, 'pending')
@@ -660,6 +682,24 @@ export function EnrollmentsTable({
     // Use bulk update API
     const enrollmentIds = enrollmentsToCancel.map(e => e.id)
     await updateMultipleEnrollmentStatuses(enrollmentIds, 'rejected')
+
+    // Clear selection after successful update
+    table.resetRowSelection()
+  }, [table, updateMultipleEnrollmentStatuses])
+
+  const handleBulkConcludeEnrollments = React.useCallback(async () => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows
+    const enrollmentsToConclude = selectedRows
+      .map(row => row.original)
+      .filter(enrollment => enrollment.status !== 'concluded')
+
+    if (enrollmentsToConclude.length === 0) {
+      return
+    }
+
+    // Use bulk update API
+    const enrollmentIds = enrollmentsToConclude.map(e => e.id)
+    await updateMultipleEnrollmentStatuses(enrollmentIds, 'concluded')
 
     // Clear selection after successful update
     table.resetRowSelection()
@@ -1053,16 +1093,29 @@ export function EnrollmentsTable({
                   </Button>
                 </div>
                 <Button
-                  onClick={() => handleConcludedCourse(selectedEnrollment)}
-                  className="w-full bg-blue-50! border border-blue-200 text-blue-700"
-                  disabled={
-                    selectedEnrollment.status === 'concluded' || 
-                    !isCourseFinished || 
-                    selectedEnrollment.status !== 'approved'
+                  onClick={() => 
+                    selectedEnrollment.status === 'concluded' 
+                      ? handleRemoveConcludedStatus(selectedEnrollment)
+                      : handleConcludedCourse(selectedEnrollment)
                   }
+                  className={`w-full ${
+                    selectedEnrollment.status === 'concluded'
+                      ? 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100'
+                      : 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100'
+                  }`}
+                  disabled={!isCourseFinished}
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                    Marcar como concluído
+                  {selectedEnrollment.status === 'concluded' ? (
+                    <>
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Remover status de concluído
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Marcar como concluído
+                    </>
+                  )}
                 </Button>
               </SheetFooter>
             </>
@@ -1078,30 +1131,41 @@ export function EnrollmentsTable({
           <DataTableActionBarAction
             tooltip="Confirmar todas as inscrições selecionadas"
             onClick={handleBulkConfirmEnrollments}
+            disabled={isCourseFinished}
           >
             <CheckCircle className="mr-2 h-4 w-4" />
-            Confirmar todas as inscrições
+            Confirmar inscrições
           </DataTableActionBarAction>
           <DataTableActionBarAction
             tooltip="Definir todas as inscrições selecionadas como pendentes"
             onClick={handleBulkSetPending}
+            disabled={isCourseFinished}
           >
             <Clock className="mr-2 h-4 w-4" />
             Definir como pendentes
           </DataTableActionBarAction>
           <DataTableActionBarAction
+            tooltip="Recusar inscrições selecionadas"
+            onClick={handleBulkCancelEnrollments}
+            disabled={isCourseFinished}
+          >
+            <XCircle className="mr-2 h-4 w-4" />
+            Recusar inscrições
+          </DataTableActionBarAction>
+          <DataTableActionBarAction
+            tooltip="Marcar todas as inscrições selecionadas como concluídas"
+            onClick={handleBulkConcludeEnrollments}
+            disabled={!isCourseFinished}
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Marcar como concluído
+          </DataTableActionBarAction>
+           <DataTableActionBarAction
             tooltip="Exportar inscrições selecionadas para CSV"
             onClick={handleDownloadSpreadsheet}
           >
             <FileDown className="mr-2 h-4 w-4" />
             Exportar CSV
-          </DataTableActionBarAction>
-          <DataTableActionBarAction
-            tooltip="Recusar inscrições selecionadas"
-            onClick={handleBulkCancelEnrollments}
-          >
-            <XCircle className="mr-2 h-4 w-4" />
-            Recusar inscrições
           </DataTableActionBarAction>
         </DataTableActionBar>
       </DataTable>
