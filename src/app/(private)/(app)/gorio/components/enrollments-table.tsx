@@ -967,7 +967,9 @@ export function EnrollmentsTable({
                     <div className="flex items-start flex-col gap-3">
                       <div>
                         <Label className={`text-sm font-medium uppercase tracking-wide ${
-                          !isCourseFinished || selectedEnrollment.status === 'concluded'
+                          !isCourseFinished || 
+                          selectedEnrollment.status === 'concluded' || 
+                          selectedEnrollment.status !== 'approved'
                             ? 'text-muted-foreground'
                             : 'text-foreground'
                         }`}>
@@ -978,7 +980,11 @@ export function EnrollmentsTable({
                         <Input
                           {...certificateForm.register('certificateUrl')}
                           placeholder="https://exemplo.com/certificado.pdf"
-                          disabled={!isCourseFinished || selectedEnrollment.status === 'concluded'}
+                          disabled={
+                            !isCourseFinished || 
+                            selectedEnrollment.status === 'concluded' || 
+                            selectedEnrollment.status !== 'approved'
+                          }
                           className={certificateForm.formState.errors.certificateUrl ? 'border-red-500' : ''}
                           aria-label="URL do certificado de conclusão"
                           aria-describedby="certificate-help"
@@ -996,6 +1002,11 @@ export function EnrollmentsTable({
                         {selectedEnrollment.status === 'concluded' && (
                           <p id="certificate-help" className="text-sm text-muted-foreground mt-1">
                             Esta inscrição já foi concluída
+                          </p>
+                        )}
+                        {selectedEnrollment.status !== 'approved' && selectedEnrollment.status !== 'concluded' && (
+                          <p id="certificate-help" className="text-sm text-muted-foreground mt-1">
+                            Apenas inscrições confirmadas podem ser marcadas como concluídas
                           </p>
                         )}
                       </div>
@@ -1044,7 +1055,9 @@ export function EnrollmentsTable({
                   onClick={() => handleConcludedCourse(selectedEnrollment)}
                   className="w-full bg-blue-50! border border-blue-200 text-blue-700"
                   disabled={
-                    selectedEnrollment.status === 'concluded' || !isCourseFinished
+                    selectedEnrollment.status === 'concluded' || 
+                    !isCourseFinished || 
+                    selectedEnrollment.status !== 'approved'
                   }
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
