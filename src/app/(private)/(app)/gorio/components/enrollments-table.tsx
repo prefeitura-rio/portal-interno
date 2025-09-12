@@ -1149,7 +1149,7 @@ export function EnrollmentsTable({
                           </div>
                         </div>
                       </div>
-                      {selectedEnrollment.reason && (
+                      {/* {selectedEnrollment.reason && (
                         <div className="flex items-start gap-3">
                           <div>
                             <Label className="text-xs text-muted-foreground">
@@ -1160,7 +1160,7 @@ export function EnrollmentsTable({
                             </p>
                           </div>
                         </div>
-                      )}
+                      )} */}
                       {selectedEnrollment.customFields &&
                         selectedEnrollment.customFields.length > 0 && (
                           <div className="space-y-3">
