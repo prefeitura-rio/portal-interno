@@ -57,7 +57,14 @@ import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import { toast } from 'sonner'
 
 // Constantes para validação de certificados
-const VALID_CERTIFICATE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx'] as const
+const VALID_CERTIFICATE_EXTENSIONS = [
+  '.pdf',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.doc',
+  '.docx',
+] as const
 const COURSE_FINISHED_STATUSES = ['finished', 'ENCERRADO'] as const
 
 // Schema de validação para o certificado
@@ -66,12 +73,14 @@ const certificateSchema = z.object({
     .string()
     .optional()
     .refine(
-      (url) => {
+      url => {
         // Se a URL for fornecida, deve ser válida
         if (!url || url.trim() === '') return true
         try {
           new URL(url)
-          return VALID_CERTIFICATE_EXTENSIONS.some(ext => url.toLowerCase().includes(ext))
+          return VALID_CERTIFICATE_EXTENSIONS.some(ext =>
+            url.toLowerCase().includes(ext)
+          )
         } catch {
           return false
         }
@@ -153,7 +162,7 @@ export function EnrollmentsTable({
       course.remote_class?.class_end_date
     ) {
       const endDate = new Date(course.remote_class.class_end_date)
-      if (!isNaN(endDate.getTime())) {
+      if (!Number.isNaN(endDate.getTime())) {
         classEndDates.push(endDate)
       }
     }
@@ -165,14 +174,14 @@ export function EnrollmentsTable({
         course.modalidade === 'SEMIPRESENCIAL') &&
       course.locations
     ) {
-      course.locations.forEach(location => {
+      for (const location of course.locations) {
         if (location.class_end_date) {
           const endDate = new Date(location.class_end_date)
-          if (!isNaN(endDate.getTime())) {
+          if (!Number.isNaN(endDate.getTime())) {
             classEndDates.push(endDate)
           }
         }
-      })
+      }
     }
 
     // Retorna a data de término mais recente
@@ -191,7 +200,9 @@ export function EnrollmentsTable({
     const courseEndDate = getCourseEndDate
     const now = new Date()
     const isCourseFinishedByDate = courseEndDate ? now > courseEndDate : false
-    const isCourseFinishedByStatus = course?.status ? COURSE_FINISHED_STATUSES.includes(course.status as any) : false
+    const isCourseFinishedByStatus = course?.status
+      ? COURSE_FINISHED_STATUSES.includes(course.status as any)
+      : false
     const isCourseFinished = isCourseFinishedByDate || isCourseFinishedByStatus
     const hasCertificate = course?.has_certificate || false
 
@@ -264,7 +275,8 @@ export function EnrollmentsTable({
       } catch (error) {
         console.error('Erro ao confirmar inscrição:', error)
         toast.error('Erro ao confirmar inscrição', {
-          description: error instanceof Error ? error.message : 'Erro inesperado',
+          description:
+            error instanceof Error ? error.message : 'Erro inesperado',
         })
       }
     },
@@ -285,7 +297,8 @@ export function EnrollmentsTable({
       } catch (error) {
         console.error('Erro ao recusar inscrição:', error)
         toast.error('Erro ao recusar inscrição', {
-          description: error instanceof Error ? error.message : 'Erro inesperado',
+          description:
+            error instanceof Error ? error.message : 'Erro inesperado',
         })
       }
     },
@@ -310,7 +323,8 @@ export function EnrollmentsTable({
       } catch (error) {
         console.error('Erro ao marcar inscrição como concluída:', error)
         toast.error('Erro ao marcar inscrição como concluída', {
-          description: error instanceof Error ? error.message : 'Erro inesperado',
+          description:
+            error instanceof Error ? error.message : 'Erro inesperado',
         })
       }
     },
@@ -345,22 +359,25 @@ export function EnrollmentsTable({
           if (enrollment.certificateUrl) {
             await updateEnrollmentCertificate(enrollment.id, '')
           }
-          
+
           setSelectedEnrollment(prev =>
-            prev ? { ...prev, status: 'approved', certificateUrl: undefined } : prev
+            prev
+              ? { ...prev, status: 'approved', certificateUrl: undefined }
+              : prev
           )
-          
+
           // Reset do formulário de certificado
           certificateForm.reset({
             certificateUrl: '',
           })
-          
+
           toast.success('Status de concluído removido e certificado excluído!')
         }
       } catch (error) {
         console.error('Erro ao remover status de concluído:', error)
         toast.error('Erro ao remover status de concluído', {
-          description: error instanceof Error ? error.message : 'Erro inesperado',
+          description:
+            error instanceof Error ? error.message : 'Erro inesperado',
         })
       }
     },
@@ -381,7 +398,8 @@ export function EnrollmentsTable({
       } catch (error) {
         console.error('Erro ao definir inscrição como pendente:', error)
         toast.error('Erro ao definir inscrição como pendente', {
-          description: error instanceof Error ? error.message : 'Erro inesperado',
+          description:
+            error instanceof Error ? error.message : 'Erro inesperado',
         })
       }
     },
@@ -396,7 +414,10 @@ export function EnrollmentsTable({
   const handleSaveCertificate = React.useCallback(
     async (enrollment: Enrollment, certificateUrl: string) => {
       try {
-        const updated = await updateEnrollmentCertificate(enrollment.id, certificateUrl)
+        const updated = await updateEnrollmentCertificate(
+          enrollment.id,
+          certificateUrl
+        )
         if (updated) {
           // Update the selected enrollment immediately with the new certificate URL
           setSelectedEnrollment(prev =>
@@ -406,7 +427,7 @@ export function EnrollmentsTable({
           certificateForm.reset({
             certificateUrl: certificateUrl,
           })
-          
+
           // Show success toast
           if (certificateUrl.trim() === '') {
             toast.success('Certificado removido com sucesso!')
@@ -417,7 +438,8 @@ export function EnrollmentsTable({
       } catch (error) {
         console.error('Erro ao salvar certificado:', error)
         toast.error('Erro ao salvar certificado', {
-          description: error instanceof Error ? error.message : 'Erro inesperado',
+          description:
+            error instanceof Error ? error.message : 'Erro inesperado',
         })
       }
     },
@@ -448,14 +470,17 @@ export function EnrollmentsTable({
     }
   }, [enrollments, selectedEnrollment])
 
-  const handleRowClick = React.useCallback((enrollment: Enrollment) => {
-    setSelectedEnrollment(enrollment)
-    setIsSheetOpen(true)
-    // Reset do formulário de certificado quando uma nova inscrição é selecionada
-    certificateForm.reset({
-      certificateUrl: enrollment.certificateUrl || '',
-    })
-  }, [certificateForm])
+  const handleRowClick = React.useCallback(
+    (enrollment: Enrollment) => {
+      setSelectedEnrollment(enrollment)
+      setIsSheetOpen(true)
+      // Reset do formulário de certificado quando uma nova inscrição é selecionada
+      certificateForm.reset({
+        certificateUrl: enrollment.certificateUrl || '',
+      })
+    },
+    [certificateForm]
+  )
 
   const columns = React.useMemo<ColumnDef<Enrollment>[]>(
     () => [
@@ -671,12 +696,17 @@ export function EnrollmentsTable({
 
       // Use bulk update API
       const enrollmentIds = enrollmentsToConfirm.map(e => e.id)
-      const success = await updateMultipleEnrollmentStatuses(enrollmentIds, 'approved')
+      const success = await updateMultipleEnrollmentStatuses(
+        enrollmentIds,
+        'approved'
+      )
 
       if (success) {
         // Clear selection after successful update
         table.resetRowSelection()
-        toast.success(`${enrollmentsToConfirm.length} inscrição(ões) confirmada(s) com sucesso!`)
+        toast.success(
+          `${enrollmentsToConfirm.length} inscrição(ões) confirmada(s) com sucesso!`
+        )
       }
     } catch (error) {
       console.error('Erro ao confirmar inscrições em lote:', error)
@@ -699,12 +729,17 @@ export function EnrollmentsTable({
 
       // Use bulk update API
       const enrollmentIds = enrollmentsToSetPending.map(e => e.id)
-      const success = await updateMultipleEnrollmentStatuses(enrollmentIds, 'pending')
+      const success = await updateMultipleEnrollmentStatuses(
+        enrollmentIds,
+        'pending'
+      )
 
       if (success) {
         // Clear selection after successful update
         table.resetRowSelection()
-        toast.success(`${enrollmentsToSetPending.length} inscrição(ões) definida(s) como pendente(s)!`)
+        toast.success(
+          `${enrollmentsToSetPending.length} inscrição(ões) definida(s) como pendente(s)!`
+        )
       }
     } catch (error) {
       console.error('Erro ao definir inscrições como pendentes em lote:', error)
@@ -739,8 +774,6 @@ export function EnrollmentsTable({
       'Telefone',
       'Data de Inscrição',
       'Status',
-      'Motivo',
-      'Observações Administrativas',
       ...allCustomFieldTitles,
     ]
 
@@ -760,8 +793,6 @@ export function EnrollmentsTable({
           enrollment.phone || '',
           new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
           enrollment.status,
-          enrollment.reason || '',
-          enrollment.notes || '',
           ...customFieldValues,
         ]
       }),
@@ -769,8 +800,11 @@ export function EnrollmentsTable({
       .map(row => row.map(field => `"${field}"`).join(','))
       .join('\n')
 
-    // Create and download file
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    // Create and download file with proper UTF-8 BOM for Excel compatibility
+    const BOM = '\uFEFF'
+    const blob = new Blob([BOM + csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
@@ -800,12 +834,17 @@ export function EnrollmentsTable({
 
       // Use bulk update API
       const enrollmentIds = enrollmentsToCancel.map(e => e.id)
-      const success = await updateMultipleEnrollmentStatuses(enrollmentIds, 'rejected')
+      const success = await updateMultipleEnrollmentStatuses(
+        enrollmentIds,
+        'rejected'
+      )
 
       if (success) {
         // Clear selection after successful update
         table.resetRowSelection()
-        toast.success(`${enrollmentsToCancel.length} inscrição(ões) recusada(s) com sucesso!`)
+        toast.success(
+          `${enrollmentsToCancel.length} inscrição(ões) recusada(s) com sucesso!`
+        )
       }
     } catch (error) {
       console.error('Erro ao recusar inscrições em lote:', error)
@@ -828,12 +867,17 @@ export function EnrollmentsTable({
 
       // Use bulk update API
       const enrollmentIds = enrollmentsToConclude.map(e => e.id)
-      const success = await updateMultipleEnrollmentStatuses(enrollmentIds, 'concluded')
+      const success = await updateMultipleEnrollmentStatuses(
+        enrollmentIds,
+        'concluded'
+      )
 
       if (success) {
         // Clear selection after successful update
         table.resetRowSelection()
-        toast.success(`${enrollmentsToConclude.length} inscrição(ões) marcada(s) como concluída(s)!`)
+        toast.success(
+          `${enrollmentsToConclude.length} inscrição(ões) marcada(s) como concluída(s)!`
+        )
       }
     } catch (error) {
       console.error('Erro ao marcar inscrições como concluídas em lote:', error)
@@ -1147,12 +1191,14 @@ export function EnrollmentsTable({
                   {hasCertificate && (
                     <div className="flex items-start flex-col gap-3">
                       <div>
-                        <Label className={`text-sm font-medium uppercase tracking-wide ${
-                          !isCourseFinished || 
-                          selectedEnrollment.status !== 'concluded'
-                            ? 'text-muted-foreground'
-                            : 'text-foreground'
-                        }`}>
+                        <Label
+                          className={`text-sm font-medium uppercase tracking-wide ${
+                            !isCourseFinished ||
+                            selectedEnrollment.status !== 'concluded'
+                              ? 'text-muted-foreground'
+                              : 'text-foreground'
+                          }`}
+                        >
                           URL para o certificado de conclusão da formação
                         </Label>
                       </div>
@@ -1162,10 +1208,14 @@ export function EnrollmentsTable({
                             {...certificateForm.register('certificateUrl')}
                             placeholder="https://exemplo.com/certificado.pdf"
                             disabled={
-                              !isCourseFinished || 
+                              !isCourseFinished ||
                               selectedEnrollment.status !== 'concluded'
                             }
-                            className={certificateForm.formState.errors.certificateUrl ? 'border-red-500' : ''}
+                            className={
+                              certificateForm.formState.errors.certificateUrl
+                                ? 'border-red-500'
+                                : ''
+                            }
                             aria-label="URL do certificado de conclusão"
                             aria-describedby="certificate-help"
                           />
@@ -1174,11 +1224,14 @@ export function EnrollmentsTable({
                             onClick={() => {
                               const formData = certificateForm.getValues()
                               if (formData.certificateUrl !== undefined) {
-                                handleSaveCertificate(selectedEnrollment, formData.certificateUrl)
+                                handleSaveCertificate(
+                                  selectedEnrollment,
+                                  formData.certificateUrl
+                                )
                               }
                             }}
                             disabled={
-                              !isCourseFinished || 
+                              !isCourseFinished ||
                               selectedEnrollment.status !== 'concluded' ||
                               !certificateForm.formState.isValid
                             }
@@ -1196,7 +1249,7 @@ export function EnrollmentsTable({
                               })
                             }}
                             disabled={
-                              !isCourseFinished || 
+                              !isCourseFinished ||
                               selectedEnrollment.status !== 'concluded' ||
                               !selectedEnrollment.certificateUrl
                             }
@@ -1209,31 +1262,47 @@ export function EnrollmentsTable({
                         </div>
                         {certificateForm.formState.errors.certificateUrl && (
                           <p className="text-sm text-red-500 mt-1">
-                            {certificateForm.formState.errors.certificateUrl.message}
+                            {
+                              certificateForm.formState.errors.certificateUrl
+                                .message
+                            }
                           </p>
                         )}
                         {!isCourseFinished && (
-                          <p id="certificate-help" className="text-sm text-muted-foreground mt-1">
+                          <p
+                            id="certificate-help"
+                            className="text-sm text-muted-foreground mt-1"
+                          >
                             O campo será habilitado quando o curso terminar
                           </p>
                         )}
-                        {isCourseFinished && selectedEnrollment.status !== 'concluded' && (
-                          <p id="certificate-help" className="text-sm text-muted-foreground mt-1">
-                            O campo será habilitado quando a inscrição for marcada como concluída
-                          </p>
-                        )}
-                        {isCourseFinished && selectedEnrollment.status === 'concluded' && (
-                          <p id="certificate-help" className="text-sm text-muted-foreground mt-1">
-                            Insira a URL do certificado de conclusão e clique em "Salvar"
-                          </p>
-                        )}
+                        {isCourseFinished &&
+                          selectedEnrollment.status !== 'concluded' && (
+                            <p
+                              id="certificate-help"
+                              className="text-sm text-muted-foreground mt-1"
+                            >
+                              O campo será habilitado quando a inscrição for
+                              marcada como concluída
+                            </p>
+                          )}
+                        {isCourseFinished &&
+                          selectedEnrollment.status === 'concluded' && (
+                            <p
+                              id="certificate-help"
+                              className="text-sm text-muted-foreground mt-1"
+                            >
+                              Insira a URL do certificado de conclusão e clique
+                              em "Salvar"
+                            </p>
+                          )}
                         {selectedEnrollment.certificateUrl && (
                           <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
                             <p className="text-sm text-green-800">
                               <strong>Certificado salvo:</strong>{' '}
-                              <a 
-                                href={selectedEnrollment.certificateUrl} 
-                                target="_blank" 
+                              <a
+                                href={selectedEnrollment.certificateUrl}
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-green-600 hover:text-green-800 underline"
                               >
@@ -1246,7 +1315,6 @@ export function EnrollmentsTable({
                     </div>
                   )}
                 </div>
-
               </div>
               <SheetFooter className="flex-col gap-2">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
@@ -1254,7 +1322,8 @@ export function EnrollmentsTable({
                     onClick={() => handleConfirmEnrollment(selectedEnrollment)}
                     className="w-full bg-green-50 border border-green-200 text-green-700"
                     disabled={
-                      selectedEnrollment.status === 'approved' || isCourseFinished
+                      selectedEnrollment.status === 'approved' ||
+                      isCourseFinished
                     }
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />
@@ -1266,7 +1335,8 @@ export function EnrollmentsTable({
                     }
                     className="w-full bg-yellow-50 border border-yellow-200 text-yellow-700"
                     disabled={
-                      selectedEnrollment.status === 'pending' || isCourseFinished
+                      selectedEnrollment.status === 'pending' ||
+                      isCourseFinished
                     }
                   >
                     <Clock className="mr-2 h-4 w-4" />
@@ -1277,7 +1347,8 @@ export function EnrollmentsTable({
                     onClick={() => handleCancelEnrollment(selectedEnrollment)}
                     className="w-full bg-red-50! border border-red-200 text-red-700"
                     disabled={
-                      selectedEnrollment.status === 'rejected' || isCourseFinished
+                      selectedEnrollment.status === 'rejected' ||
+                      isCourseFinished
                     }
                   >
                     <XCircle className="mr-2 h-4 w-4" />
@@ -1285,8 +1356,8 @@ export function EnrollmentsTable({
                   </Button>
                 </div>
                 <Button
-                  onClick={() => 
-                    selectedEnrollment.status === 'concluded' 
+                  onClick={() =>
+                    selectedEnrollment.status === 'concluded'
                       ? handleRemoveConcludedStatus(selectedEnrollment)
                       : handleConcludedCourse(selectedEnrollment)
                   }
@@ -1352,7 +1423,7 @@ export function EnrollmentsTable({
             <CheckCircle className="mr-2 h-4 w-4" />
             Marcar como concluído
           </DataTableActionBarAction>
-           <DataTableActionBarAction
+          <DataTableActionBarAction
             tooltip="Exportar inscrições selecionadas para CSV"
             onClick={handleDownloadSpreadsheet}
           >
