@@ -22,13 +22,15 @@ function convertApiStatusToFrontend(
 ): EnrollmentStatus {
   switch (status) {
     case 'approved':
-      return 'confirmed'
+      return 'approved'
     case 'pending':
       return 'pending'
     case 'cancelled':
       return 'cancelled'
     case 'rejected':
       return 'rejected'
+    case 'concluded':
+      return 'concluded'
     default:
       return 'pending'
   }
@@ -39,7 +41,7 @@ function convertFrontendStatusToApi(
   status: EnrollmentStatus
 ): ModelsStatusInscricao {
   switch (status) {
-    case 'confirmed':
+    case 'approved':
       return 'approved'
     case 'pending':
       return 'pending'
@@ -47,6 +49,8 @@ function convertFrontendStatusToApi(
       return 'rejected'
     case 'cancelled':
       return 'cancelled'
+    case 'concluded':
+      return 'concluded'
     default:
       return 'pending'
   }
@@ -79,6 +83,7 @@ function convertApiEnrollmentToFrontend(
     customFields: Array.isArray(apiEnrollment.custom_fields)
       ? apiEnrollment.custom_fields
       : [],
+    certificateUrl: apiEnrollment.certificate_url as string | undefined,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     updated_at:
@@ -112,7 +117,7 @@ export async function GET(
     if (statusParam && statusParam.trim() !== '') {
       // Convert frontend status to API status
       switch (statusParam.trim()) {
-        case 'confirmed':
+        case 'approved':
           status = 'approved'
           break
         case 'pending':
@@ -186,6 +191,7 @@ export async function GET(
         // cancelledCount:
         //   (apiSummary?.cancelled || 0) + (apiSummary?.rejected || 0),
         cancelledCount: apiSummary?.rejected || 0,
+        concludedCount: apiSummary?.concluded || 0,
         remainingVacancies: Math.max(
           0,
           (apiSummary?.total || 100) - (apiSummary?.approved || 0)
@@ -344,3 +350,4 @@ export async function PUT(
     )
   }
 }
+

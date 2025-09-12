@@ -9,6 +9,8 @@ import type {
   DeleteApiV1CoursesCourseIdEnrollmentsEnrollmentId200,
   GetApiV1CoursesCourseIdEnrollments200,
   GetApiV1CoursesCourseIdEnrollmentsParams,
+  ModelsCertificateUpdateRequest,
+  ModelsCertificateUpdateResponse,
   ModelsEnrollmentStatusUpdateRequest,
   ModelsEnrollmentStatusUpdateResponse,
   ModelsErrorResponse,
@@ -232,6 +234,50 @@ export const deleteApiV1CoursesCourseIdEnrollmentsEnrollmentId = async (courseId
     method: 'DELETE'
     
     
+  }
+);}
+
+
+/**
+ * Adiciona ou atualiza a URL do certificado de uma inscrição
+ * @summary Atualizar certificado de inscrição
+ */
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponse200 = {
+  data: ModelsCertificateUpdateResponse
+  status: 200
+}
+
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+    
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponseComposite = putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponse200 | putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponse400;
+    
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponse = putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponseComposite & {
+  headers: Headers;
+}
+
+export const getPutApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateUrl = (courseId: number,
+    enrollmentId: string,) => {
+
+
+  
+
+  return `/api/v1/courses/${courseId}/enrollments/${enrollmentId}/certificate`
+}
+
+export const putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificate = async (courseId: number,
+    enrollmentId: string,
+    modelsCertificateUpdateRequest: ModelsCertificateUpdateRequest, options?: RequestInit): Promise<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponse> => {
+  
+  return customFetch<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponse>(getPutApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateUrl(courseId,enrollmentId),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      modelsCertificateUpdateRequest,)
   }
 );}
 

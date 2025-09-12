@@ -37,6 +37,10 @@ interface UseEnrollmentsReturn {
     status: EnrollmentStatus,
     notes?: string
   ) => Promise<boolean>
+  updateEnrollmentCertificate: (
+    enrollmentId: string,
+    certificateUrl: string
+  ) => Promise<Enrollment | null>
 }
 
 export function useEnrollments({
@@ -194,6 +198,48 @@ export function useEnrollments({
     [courseId, fetchEnrollments]
   )
 
+  const updateEnrollmentCertificate = useCallback(
+    async (
+      enrollmentId: string,
+      certificateUrl: string
+    ): Promise<Enrollment | null> => {
+      try {
+        const response = await fetch(
+          `/api/enrollments/${courseId}/certificate?enrollmentId=${enrollmentId}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ certificate_url: certificateUrl }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`Failed to update certificate: ${response.statusText}`)
+        }
+
+        const updatedEnrollment: Enrollment = await response.json()
+
+        // Update local state
+        setEnrollments(prev =>
+          prev.map(enrollment =>
+            enrollment.id === enrollmentId ? updatedEnrollment : enrollment
+          )
+        )
+
+        return updatedEnrollment
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to update certificate'
+        )
+        console.error('Error updating certificate:', err)
+        return null
+      }
+    },
+    [courseId]
+  )
+
   useEffect(() => {
     if (autoFetch) {
       fetchEnrollments()
@@ -209,5 +255,6 @@ export function useEnrollments({
     refetch: fetchEnrollments,
     updateEnrollmentStatus,
     updateMultipleEnrollmentStatuses,
+    updateEnrollmentCertificate,
   }
 }

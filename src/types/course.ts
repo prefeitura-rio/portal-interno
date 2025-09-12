@@ -199,10 +199,11 @@ export interface CourseFilters {
 
 // Enrollment Types
 export type EnrollmentStatus =
-  | 'confirmed'
+  | 'approved'
   | 'pending'
   | 'cancelled'
   | 'rejected'
+  | 'concluded'
 
 export interface Enrollment {
   id: string
@@ -218,6 +219,7 @@ export interface Enrollment {
   customFields?: CustomField[]
   created_at: string
   updated_at: string
+  certificateUrl?: string
 }
 
 export interface EnrollmentSummary {
@@ -225,6 +227,7 @@ export interface EnrollmentSummary {
   confirmedCount: number
   pendingCount: number
   cancelledCount: number
+  concludedCount: number
   remainingVacancies: number
 }
 

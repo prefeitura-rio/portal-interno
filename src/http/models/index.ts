@@ -44,6 +44,8 @@ export * from './modelsAcessibilidade';
 export * from './modelsAcessibilidadeBody';
 export * from './modelsCategoria';
 export * from './modelsCategoriaBody';
+export * from './modelsCertificateUpdateRequest';
+export * from './modelsCertificateUpdateResponse';
 export * from './modelsCurso';
 export * from './modelsCursoBody';
 export * from './modelsEmprego';
