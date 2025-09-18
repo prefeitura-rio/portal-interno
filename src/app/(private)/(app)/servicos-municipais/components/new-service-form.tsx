@@ -131,6 +131,7 @@ export function NewServiceForm({
   const [pendingFormData, setPendingFormData] =
     useState<ServiceFormData | null>(null)
   const [digitalChannels, setDigitalChannels] = useState<string[]>([''])
+  const [channelErrors, setChannelErrors] = useState<string[]>([''])
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
@@ -143,12 +144,15 @@ export function NewServiceForm({
 
   const addDigitalChannel = () => {
     setDigitalChannels([...digitalChannels, ''])
+    setChannelErrors([...channelErrors, ''])
   }
 
   const removeDigitalChannel = (index: number) => {
     if (digitalChannels.length > 1) {
       const newChannels = digitalChannels.filter((_, i) => i !== index)
+      const newErrors = channelErrors.filter((_, i) => i !== index)
       setDigitalChannels(newChannels)
+      setChannelErrors(newErrors)
       form.setValue(
         'digitalChannels',
         newChannels.filter(channel => channel.trim() !== '')
@@ -158,21 +162,49 @@ export function NewServiceForm({
 
   const updateDigitalChannel = (index: number, value: string) => {
     const newChannels = [...digitalChannels]
+    const newErrors = [...channelErrors]
+    
     newChannels[index] = value
+    
+    // Validate URL
+    if (value.trim() !== '') {
+      try {
+        new URL(value)
+        newErrors[index] = ''
+      } catch {
+        newErrors[index] = 'URL inválida'
+      }
+    } else {
+      newErrors[index] = ''
+    }
+    
     setDigitalChannels(newChannels)
-    form.setValue(
-      'digitalChannels',
-      newChannels.filter(channel => channel.trim() !== '')
-    )
+    setChannelErrors(newErrors)
+    
+    // Only include valid URLs in form data
+    const validChannels = newChannels
+      .filter(channel => channel.trim() !== '')
+      .filter(channel => {
+        try {
+          new URL(channel)
+          return true
+        } catch {
+          return false
+        }
+      })
+    
+    form.setValue('digitalChannels', validChannels)
   }
 
   const handleSendToEditClick = (data: ServiceFormData) => {
-    setPendingFormData(data)
+    const processedData = preprocessFormData(data)
+    setPendingFormData(processedData)
     setShowSendToEditDialog(true)
   }
 
   const handlePublishClick = (data: ServiceFormData) => {
-    setPendingFormData(data)
+    const processedData = preprocessFormData(data)
+    setPendingFormData(processedData)
     setShowPublishDialog(true)
   }
 
@@ -204,12 +236,32 @@ export function NewServiceForm({
     }
   }
 
+  const preprocessFormData = (data: ServiceFormData): ServiceFormData => {
+    // Filter out empty and invalid digital channels
+    const validChannels = digitalChannels
+      .filter(channel => channel.trim() !== '')
+      .filter(channel => {
+        try {
+          new URL(channel)
+          return true
+        } catch {
+          return false
+        }
+      })
+
+    return {
+      ...data,
+      digitalChannels: validChannels.length > 0 ? validChannels : undefined,
+    }
+  }
+
   const handleSubmit = async (data: ServiceFormData) => {
     try {
-      console.log('Service form data:', data)
+      const processedData = preprocessFormData(data)
+      console.log('Service form data:', processedData)
 
       if (onSubmit) {
-        await onSubmit(data)
+        await onSubmit(processedData)
       } else {
         // Default behavior - show success message
         toast.success('Serviço criado com sucesso!')
@@ -696,29 +748,37 @@ export function NewServiceForm({
                   <FormLabel>Canais digitais</FormLabel>
                   <div className="space-y-3 mt-2">
                     {digitalChannels.map((channel, index) => (
-                      <div key={index} className="flex gap-2 items-start">
-                        <div className="flex-1">
-                          <Input
-                            placeholder="http://exemplo.com"
-                            value={channel}
-                            onChange={e =>
-                              updateDigitalChannel(index, e.target.value)
-                            }
-                            disabled={isLoading}
-                          />
+                      <div key={index} className="space-y-2">
+                        <div className="flex gap-2 items-start">
+                          <div className="flex-1">
+                            <Input
+                              placeholder="http://exemplo.com"
+                              value={channel}
+                              onChange={e =>
+                                updateDigitalChannel(index, e.target.value)
+                              }
+                              disabled={isLoading}
+                              className={channelErrors[index] ? 'border-red-500' : ''}
+                            />
+                            {channelErrors[index] && (
+                              <p className="text-sm text-red-500 mt-1">
+                                {channelErrors[index]}
+                              </p>
+                            )}
+                          </div>
+                          {index > 0 && (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              onClick={() => removeDigitalChannel(index)}
+                              disabled={isLoading}
+                              className="shrink-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
-                        {index > 0 && (
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => removeDigitalChannel(index)}
-                            disabled={isLoading}
-                            className="shrink-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
                       </div>
                     ))}
                     <Button
