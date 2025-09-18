@@ -1,6 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -91,6 +92,9 @@ const serviceFormSchema = z.object({
         'Instruções para o solicitante não pode exceder 1000 caracteres.',
     })
     .optional(),
+  digitalChannels: z
+    .array(z.string().url({ message: 'URL inválida.' }))
+    .optional(),
 })
 
 type ServiceFormData = z.infer<typeof serviceFormSchema>
@@ -109,6 +113,7 @@ const defaultValues: ServiceFormData = {
   fullDescription: '',
   requiredDocuments: '',
   instructionsForRequester: '',
+  digitalChannels: [],
 }
 
 interface NewServiceFormProps {
@@ -123,8 +128,10 @@ export function NewServiceForm({
   const router = useRouter()
   const [showSendToEditDialog, setShowSendToEditDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
-  const [pendingFormData, setPendingFormData] = useState<ServiceFormData | null>(null)
-  
+  const [pendingFormData, setPendingFormData] =
+    useState<ServiceFormData | null>(null)
+  const [digitalChannels, setDigitalChannels] = useState<string[]>([''])
+
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
     defaultValues,
@@ -132,6 +139,31 @@ export function NewServiceForm({
 
   const handleCancel = () => {
     router.push('/servicos-municipais/servicos')
+  }
+
+  const addDigitalChannel = () => {
+    setDigitalChannels([...digitalChannels, ''])
+  }
+
+  const removeDigitalChannel = (index: number) => {
+    if (digitalChannels.length > 1) {
+      const newChannels = digitalChannels.filter((_, i) => i !== index)
+      setDigitalChannels(newChannels)
+      form.setValue(
+        'digitalChannels',
+        newChannels.filter(channel => channel.trim() !== '')
+      )
+    }
+  }
+
+  const updateDigitalChannel = (index: number, value: string) => {
+    const newChannels = [...digitalChannels]
+    newChannels[index] = value
+    setDigitalChannels(newChannels)
+    form.setValue(
+      'digitalChannels',
+      newChannels.filter(channel => channel.trim() !== '')
+    )
   }
 
   const handleSendToEditClick = (data: ServiceFormData) => {
@@ -146,7 +178,7 @@ export function NewServiceForm({
 
   const handleConfirmSendToEdit = async () => {
     if (!pendingFormData) return
-    
+
     try {
       console.log('Enviando serviço para edição:', pendingFormData)
       // TODO: Implementar função de enviar para edição
@@ -160,7 +192,7 @@ export function NewServiceForm({
 
   const handleConfirmPublish = async () => {
     if (!pendingFormData) return
-    
+
     try {
       console.log('Publicando serviço:', pendingFormData)
       // TODO: Implementar função de publicar serviço
@@ -523,10 +555,7 @@ export function NewServiceForm({
                   </FormItem>
                 )}
               />
-            </div>
 
-            {/* Right Column */}
-            <div className="space-y-6">
               <FormField
                 control={form.control}
                 name="serviceTime"
@@ -550,7 +579,7 @@ export function NewServiceForm({
                 name="serviceCost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Custo do serviço - se houver</FormLabel>
+                    <FormLabel>Custo do serviço (se houver)</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Ex: R$ 50,00, Taxa municipal"
@@ -581,7 +610,10 @@ export function NewServiceForm({
                   </FormItem>
                 )}
               />
+            </div>
 
+            {/* Right Column */}
+            <div className="space-y-6">
               <FormField
                 control={form.control}
                 name="requestResult"
@@ -657,6 +689,50 @@ export function NewServiceForm({
                   </FormItem>
                 )}
               />
+
+              {/* Digital Channels Section */}
+              <div className="space-y-4">
+                <div>
+                  <FormLabel>Canais digitais</FormLabel>
+                  <div className="space-y-3 mt-2">
+                    {digitalChannels.map((channel, index) => (
+                      <div key={index} className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          <Input
+                            placeholder="http://exemplo.com"
+                            value={channel}
+                            onChange={e =>
+                              updateDigitalChannel(index, e.target.value)
+                            }
+                            disabled={isLoading}
+                          />
+                        </div>
+                        {index > 0 && (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => removeDigitalChannel(index)}
+                            disabled={isLoading}
+                            className="shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addDigitalChannel}
+                      disabled={isLoading}
+                      className="w-full"
+                    >
+                      Adicionar campo adicional +
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

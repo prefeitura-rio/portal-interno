@@ -95,7 +95,7 @@ export function getMenuList(pathname: string): Group[] {
       ],
     },
     {
-      groupLabel: 'Settings',
+      groupLabel: 'Configurações',
       menus: [
         // {
         //   href: '/users',
@@ -104,7 +104,7 @@ export function getMenuList(pathname: string): Group[] {
         // },
         {
           href: '/account',
-          label: 'Account',
+          label: 'Minha conta',
           icon: Settings,
         },
       ],
