@@ -1,5 +1,6 @@
 import {
   Briefcase,
+  FolderKanban,
   GraduationCap,
   LayoutGrid,
   type LucideIcon,
@@ -68,6 +69,26 @@ export function getMenuList(pathname: string): Group[] {
             {
               href: '/gorio/jobs/new',
               label: 'Nova Vaga',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      groupLabel: 'Serviços municipais',
+      menus: [
+        {
+          href: '',
+          label: 'Serviços municipais',
+          icon: FolderKanban,
+          submenus: [
+            {
+              href: '/servicos-municipais/servicos',
+              label: 'Serviços',
+            },
+            {
+              href: '/servicos-municipais/servicos/new',
+              label: 'Novo Serviço',
             },
           ],
         },
