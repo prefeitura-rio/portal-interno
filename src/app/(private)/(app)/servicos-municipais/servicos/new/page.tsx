@@ -8,6 +8,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import Link from 'next/link'
+import { NewServiceForm } from '../../components/new-service-form'
 
 export default function NewServicePage() {
   return (
@@ -31,9 +32,13 @@ export default function NewServicePage() {
           </Breadcrumb>
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Novo serviço</h2>
-            <p className="text-muted-foreground">Crie um novo serviço</p>
+            <p className="text-muted-foreground">
+              Crie um novo serviço municipal
+            </p>
           </div>
         </div>
+
+        <NewServiceForm />
       </div>
     </ContentLayout>
   )
