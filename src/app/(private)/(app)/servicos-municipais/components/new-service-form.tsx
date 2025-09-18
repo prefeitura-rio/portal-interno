@@ -163,9 +163,9 @@ export function NewServiceForm({
   const updateDigitalChannel = (index: number, value: string) => {
     const newChannels = [...digitalChannels]
     const newErrors = [...channelErrors]
-    
+
     newChannels[index] = value
-    
+
     // Validate URL
     if (value.trim() !== '') {
       try {
@@ -177,10 +177,10 @@ export function NewServiceForm({
     } else {
       newErrors[index] = ''
     }
-    
+
     setDigitalChannels(newChannels)
     setChannelErrors(newErrors)
-    
+
     // Only include valid URLs in form data
     const validChannels = newChannels
       .filter(channel => channel.trim() !== '')
@@ -192,7 +192,7 @@ export function NewServiceForm({
           return false
         }
       })
-    
+
     form.setValue('digitalChannels', validChannels)
   }
 
@@ -745,7 +745,15 @@ export function NewServiceForm({
               {/* Digital Channels Section */}
               <div className="space-y-4">
                 <div>
-                  <FormLabel>Canais digitais</FormLabel>
+                  <FormLabel
+                    className={
+                      channelErrors.some(error => error)
+                        ? 'text-destructive'
+                        : ''
+                    }
+                  >
+                    Canais digitais
+                  </FormLabel>
                   <div className="space-y-3 mt-2">
                     {digitalChannels.map((channel, index) => (
                       <div key={index} className="space-y-2">
@@ -758,10 +766,12 @@ export function NewServiceForm({
                                 updateDigitalChannel(index, e.target.value)
                               }
                               disabled={isLoading}
-                              className={channelErrors[index] ? 'border-red-500' : ''}
+                              className={
+                                channelErrors[index] ? 'border-destructive' : ''
+                              }
                             />
                             {channelErrors[index] && (
-                              <p className="text-sm text-red-500 mt-1">
+                              <p className="text-sm text-destructive mt-1">
                                 {channelErrors[index]}
                               </p>
                             )}
