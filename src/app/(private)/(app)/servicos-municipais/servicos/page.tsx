@@ -58,12 +58,14 @@ export default function ServicesPage() {
                 Listagem dos serviços municipais
               </p>
             </div>
-            <Link href="/servicos-municipais/servicos/new">
-              <Button className="cursor-pointer">
-                <BookPlus className="mr-2 h-4 w-4" />
-                Novo serviço
-              </Button>
-            </Link>
+            {isAdmin && (
+              <Link href="/servicos-municipais/servicos/new">
+                <Button className="cursor-pointer">
+                  <BookPlus className="mr-2 h-4 w-4" />
+                  Novo serviço
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
         <div className="flex flex-col pb-4">
