@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { SECRETARIAS } from '@/lib/secretarias'
 import { toast } from 'sonner'
 
 // Define the schema for service form validation
@@ -297,172 +298,15 @@ export function NewServiceForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="smcc">
-                          Secretaria Municipal da Casa Civil
-                        </SelectItem>
-                        <SelectItem value="smcg">
-                          Secretaria Municipal de Coordenação Governamental -
-                          SMCG
-                        </SelectItem>
-                        <SelectItem value="cgm">
-                          Controladoria Geral do Município - CGM
-                        </SelectItem>
-                        <SelectItem value="pgm">
-                          Procuradoria Geral do Município - PGM
-                        </SelectItem>
-                        <SelectItem value="smf">
-                          Secretaria Municipal de Fazenda - SMF
-                        </SelectItem>
-                        <SelectItem value="smit">
-                          Secretaria Municipal de Integridade, Transparência e
-                          Proteção de Dados - SMIT
-                        </SelectItem>
-                        <SelectItem value="smdu">
-                          Secretaria Municipal de Desenvolvimento Urbano e
-                          Licenciamento - SMDU
-                        </SelectItem>
-                        <SelectItem value="smde">
-                          Secretaria Municipal de Desenvolvimento Econômico –
-                          SMDE
-                        </SelectItem>
-                        <SelectItem value="smi">
-                          Secretaria Municipal de Infraestrutura - SMI
-                        </SelectItem>
-                        <SelectItem value="seop">
-                          Secretaria Municipal de Ordem Pública - SEOP
-                        </SelectItem>
-                        <SelectItem value="seconserva">
-                          Secretaria Municipal de Conservação - SECONSERVA
-                        </SelectItem>
-                        <SelectItem value="sme">
-                          Secretaria Municipal de Educação - SME
-                        </SelectItem>
-                        <SelectItem value="smas">
-                          Secretaria Municipal de Assistência Social - SMAS
-                        </SelectItem>
-                        <SelectItem value="smtr">
-                          Secretaria Municipal de Transportes - SMTR
-                        </SelectItem>
-                        <SelectItem value="sms">
-                          Secretaria Municipal de Saúde - SMS
-                        </SelectItem>
-                        <SelectItem value="semesqv">
-                          Secretaria Mun. do Envelhecimento Saudável e Qualidade
-                          de Vida - SEMESQV
-                        </SelectItem>
-                        <SelectItem value="smel">
-                          Secretaria de Esportes - SMEL
-                        </SelectItem>
-                        <SelectItem value="juv-rio">
-                          Secretaria Especial da Juventude Carioca - JUV-RIO
-                        </SelectItem>
-                        <SelectItem value="seac-rio">
-                          Secretaria Especial de Ação Comunitária - SEAC-RIO
-                        </SelectItem>
-                        <SelectItem value="seim">
-                          Secretaria Especial de Integração Metropolitana - SEIM
-                        </SelectItem>
-                        <SelectItem value="spm-rio">
-                          Secretaria Especial de Políticas para Mulheres e
-                          Cuidados - SPM-RIO
-                        </SelectItem>
-                        <SelectItem value="smpd">
-                          Secretaria Municipal da Pessoa com Deficiência - SMPD
-                        </SelectItem>
-                        <SelectItem value="smct">
-                          Secretaria Municipal de Ciência, Tecnologia e Inovação
-                          - SMCT
-                        </SelectItem>
-                        <SelectItem value="smc">
-                          Secretaria Municipal de Cultura - SMC
-                        </SelectItem>
-                        <SelectItem value="smh">
-                          Secretaria Municipal de Habitação - SMH
-                        </SelectItem>
-                        <SelectItem value="smac">
-                          Secretaria Municipal do Ambiente e Clima - SMAC
-                        </SelectItem>
-                        <SelectItem value="smpda">
-                          Secretaria Municipal de Proteção e Defesa dos Animais
-                          - SMPDA
-                        </SelectItem>
-                        <SelectItem value="smte">
-                          Secretaria Municipal de Trabalho e Renda - SMTE
-                        </SelectItem>
-                        <SelectItem value="ses-rio">
-                          Secretaria Especial de Economia Solidária - SES-RIO
-                        </SelectItem>
-                        <SelectItem value="smtur-rio">
-                          Secretaria Municipal de Turismo - SMTUR-RIO
-                        </SelectItem>
-                        <SelectItem value="secid">
-                          Secretaria Especial de Cidadania e Família - SECID
-                        </SelectItem>
-                        <SelectItem value="rioeventos">
-                          Empresa de Eventos do Município do Rio de Janeiro -
-                          RIOEVENTOS
-                        </SelectItem>
-                        <SelectItem value="cet-rio">
-                          Companhia de Engenharia de Tráfego do RJ - CET-Rio
-                        </SelectItem>
-                        <SelectItem value="rioluz">
-                          Companhia Municipal de Energia e Iluminação - RIOLUZ
-                        </SelectItem>
-                        <SelectItem value="comlurb">
-                          Companhia Municipal de Limpeza Urbana – COMLURB
-                        </SelectItem>
-                        <SelectItem value="riotur">
-                          Empresa de Turismo do Município do Rio de Janeiro -
-                          RIOTUR
-                        </SelectItem>
-                        <SelectItem value="riofilme">
-                          Empresa Distribuidora de Filmes S.A. - RIOFILME
-                        </SelectItem>
-                        <SelectItem value="ic">
-                          Empresa Municipal de Artes Gráficas - Imprensa da
-                          Cidade - IC
-                        </SelectItem>
-                        <SelectItem value="iplanrio">
-                          Empresa Municipal de Informática - IPLANRIO
-                        </SelectItem>
-                        <SelectItem value="multirio">
-                          Empresa Municipal de Multimeios Ltda. - MULTIRIO
-                        </SelectItem>
-                        <SelectItem value="rio-urbe">
-                          Empresa Municipal de Urbanização - RIO-URBE
-                        </SelectItem>
-                        <SelectItem value="riosaude">
-                          Empresa Pública de Saúde do Rio de Janeiro – RioSaúde
-                        </SelectItem>
-                        <SelectItem value="gm-rio">
-                          Guarda Municipal do Rio de Janeiro - GM-Rio
-                        </SelectItem>
-                        <SelectItem value="previ-rio">
-                          Instituto de Previdência e Assistência - PREVI-RIO
-                        </SelectItem>
-                        <SelectItem value="ipp">
-                          Instituto Municipal de Urbanismo Pereira Passos - IPP
-                        </SelectItem>
-                        <SelectItem value="irph">
-                          Instituto Rio Patrimônio da Humanidade - IRPH
-                        </SelectItem>
-                        <SelectItem value="fundacao-cidade-artes">
-                          Fundação Cidade das Artes
-                        </SelectItem>
-                        <SelectItem value="rio-aguas">
-                          Fundação Instituto das Águas do Município do Rio de
-                          Janeiro - RIO-ÁGUAS
-                        </SelectItem>
-                        <SelectItem value="geo-rio">
-                          Fundação Instituto de Geotécnica do Município do Rio
-                          de Janeiro – GEO-RIO
-                        </SelectItem>
-                        <SelectItem value="fpj">
-                          Fundação Parques e Jardins - FPJ
-                        </SelectItem>
-                        <SelectItem value="planetario">
-                          Fundação Planetário da Cidade do Rio de Janeiro
-                        </SelectItem>
+                        {SECRETARIAS.map(secretaria => (
+                          <SelectItem
+                            key={secretaria.value}
+                            value={secretaria.value}
+                          >
+                            {secretaria.label}
+                            {secretaria.sigla ? ` - ${secretaria.sigla}` : ''}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
