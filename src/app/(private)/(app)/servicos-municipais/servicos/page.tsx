@@ -72,7 +72,7 @@ export default function ServicesPage() {
             options={SECRETARIAS}
             value={selectedSecretaria}
             onValueChange={setSelectedSecretaria}
-            placeholder="Selecione uma secretaria"
+            placeholder="Todas as secretarias"
             searchPlaceholder="Buscar secretaria..."
             emptyMessage="Nenhuma secretaria encontrada."
             className="md:w-auto h-14!"
