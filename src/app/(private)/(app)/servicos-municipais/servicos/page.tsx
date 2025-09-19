@@ -10,14 +10,8 @@ import {
 
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { Combobox } from '@/components/ui/combobox'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SECRETARIAS } from '@/lib/secretarias'
 import { BookPlus } from 'lucide-react'
@@ -26,6 +20,7 @@ import { useEffect, useState } from 'react'
 
 export default function ServicesPage() {
   const [activeTab, setActiveTab] = useState('published')
+  const [selectedSecretaria, setSelectedSecretaria] = useState<string>('')
 
   // Mock da role do usuário - true = admin, false = usuário comum
   const isAdmin = false
@@ -72,20 +67,16 @@ export default function ServicesPage() {
           </div>
         </div>
         <div className="flex flex-col pb-4">
-          <Select>
-            <Label className="py-4">Selecione uma secretaria</Label>
-            <SelectTrigger className="md:w-100 w-full h-15!">
-              <SelectValue placeholder="Selecione uma secretaria" />
-            </SelectTrigger>
-            <SelectContent>
-              {SECRETARIAS.map(secretaria => (
-                <SelectItem key={secretaria.value} value={secretaria.value}>
-                  {secretaria.label}
-                  {secretaria.sigla ? ` - ${secretaria.sigla}` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label className="py-4">Selecione uma secretaria</Label>
+          <Combobox
+            options={SECRETARIAS}
+            value={selectedSecretaria}
+            onValueChange={setSelectedSecretaria}
+            placeholder="Selecione uma secretaria"
+            searchPlaceholder="Buscar secretaria..."
+            emptyMessage="Nenhuma secretaria encontrada."
+            className="md:w-auto h-14!"
+          />
         </div>
         <Tabs
           value={activeTab}
