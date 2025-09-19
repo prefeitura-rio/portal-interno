@@ -159,9 +159,10 @@ export function Combobox({
               {options.map(option => (
                 <CommandItem
                   key={option.value}
-                  value={option.value}
-                  onSelect={currentValue => {
-                    onValueChange?.(currentValue === value ? '' : currentValue)
+                  value={option.label}
+                  onSelect={() => {
+                    const newValue = option.value === value ? '' : option.value
+                    onValueChange?.(newValue)
                     setOpen(false)
                   }}
                   className="flex items-center gap-2"
