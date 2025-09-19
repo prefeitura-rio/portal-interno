@@ -20,6 +20,9 @@ import type {
 } from '@/types/service'
 import { useRouter, useSearchParams } from 'next/navigation'
 
+import { Combobox } from '@/components/ui/combobox'
+import { Label } from '@/components/ui/label'
+import { SECRETARIAS } from '@/lib/secretarias'
 import {
   type Column,
   type ColumnDef,
@@ -71,7 +74,7 @@ const mockServices: ServiceListItem[] = [
   {
     id: '1',
     title: 'Solicitação de Alvará de Funcionamento',
-    managingOrgan: 'Secretaria Municipal de Fazenda',
+    managingOrgan: 'Secretaria Municipal da Casa Civil',
     published_at: new Date('2024-01-15'),
     last_update: new Date('2024-01-20'),
     status: 'published',
@@ -79,7 +82,7 @@ const mockServices: ServiceListItem[] = [
   {
     id: '2',
     title: 'Cadastro de Microempreendedor Individual',
-    managingOrgan: 'Secretaria Municipal de Desenvolvimento Econômico',
+    managingOrgan: 'Secretaria Municipal de Coordenação Governamental',
     published_at: null,
     last_update: new Date('2024-01-18'),
     status: 'waiting_approval',
@@ -87,7 +90,7 @@ const mockServices: ServiceListItem[] = [
   {
     id: '3',
     title: 'Licença para Eventos Públicos',
-    managingOrgan: 'Secretaria Municipal de Ordem Pública',
+    managingOrgan: 'Controladoria Geral do Município',
     published_at: new Date('2024-01-10'),
     last_update: new Date('2024-01-22'),
     status: 'published',
@@ -95,7 +98,8 @@ const mockServices: ServiceListItem[] = [
   {
     id: '4',
     title: 'Certidão de Tempo de Contribuição',
-    managingOrgan: 'Secretaria Municipal de Administração',
+    managingOrgan:
+      'Secretaria Municipal de Desenvolvimento Urbano e Licenciamento',
     published_at: null,
     last_update: new Date('2024-01-19'),
     status: 'in_edition',
@@ -103,7 +107,8 @@ const mockServices: ServiceListItem[] = [
   {
     id: '5',
     title: 'Isenção de IPTU para Idosos',
-    managingOrgan: 'Secretaria Municipal de Fazenda',
+    managingOrgan:
+      'Secretaria Municipal de Integridade, Transparência e Proteção de Dados',
     published_at: new Date('2024-01-12'),
     last_update: new Date('2024-01-21'),
     status: 'published',
@@ -111,7 +116,7 @@ const mockServices: ServiceListItem[] = [
   {
     id: '6',
     title: 'Cadastro de Beneficiário de Programa Social',
-    managingOrgan: 'Secretaria Municipal de Assistência Social',
+    managingOrgan: 'Secretaria Municipal de Ordem Pública',
     published_at: null,
     last_update: new Date('2024-01-17'),
     status: 'waiting_approval',
@@ -119,7 +124,7 @@ const mockServices: ServiceListItem[] = [
   {
     id: '7',
     title: 'Autorização para Obra em Via Pública',
-    managingOrgan: 'Secretaria Municipal de Obras',
+    managingOrgan: 'Secretaria Municipal de Ordem Pública',
     published_at: null,
     last_update: new Date('2024-01-16'),
     status: 'in_edition',
@@ -127,7 +132,7 @@ const mockServices: ServiceListItem[] = [
   {
     id: '8',
     title: 'Cartão de Estacionamento para PcD',
-    managingOrgan: 'Secretaria Municipal de Transportes',
+    managingOrgan: 'Secretaria Municipal de Ordem Pública',
     published_at: new Date('2024-01-08'),
     last_update: new Date('2024-01-23'),
     status: 'published',
@@ -159,6 +164,7 @@ export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
   const [loading, setLoading] = React.useState(false)
   const [initialLoading, setInitialLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState('')
+  const [selectedSecretaria, setSelectedSecretaria] = React.useState('')
 
   // Filter services based on active tab
   const filteredServices = React.useMemo(() => {
@@ -175,6 +181,18 @@ export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
       )
     }
 
+    // Filter by selected secretaria
+    if (selectedSecretaria) {
+      const secretaria = SECRETARIAS.find(s => s.value === selectedSecretaria)
+      if (secretaria) {
+        filtered = filtered.filter(service =>
+          service.managingOrgan
+            .toLowerCase()
+            .includes(secretaria.label.toLowerCase())
+        )
+      }
+    }
+
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
@@ -186,7 +204,7 @@ export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
     }
 
     return filtered
-  }, [activeTab, searchQuery])
+  }, [activeTab, selectedSecretaria, searchQuery])
 
   // Simulate loading
   React.useEffect(() => {
@@ -229,6 +247,13 @@ export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
     },
     [router, searchParams]
   )
+
+  // Handle secretaria changes
+  const handleSecretariaChange = React.useCallback((value: string) => {
+    setSelectedSecretaria(value)
+    // Reset to first page when changing secretaria
+    setPagination(prev => ({ ...prev, pageIndex: 0 }))
+  }, [])
 
   // Define table columns
   const columns = React.useMemo<ColumnDef<ServiceListItem>[]>(() => {
@@ -362,15 +387,13 @@ export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
                     Visualizar
                   </Link>
                 </DropdownMenuItem>
-                {isAdmin && (
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/servicos-municipais/servicos/${service.id}/edit`}
-                    >
-                      Editar
-                    </Link>
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={`/servicos-municipais/servicos/${service.id}/edit`}
+                  >
+                    Editar
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )
@@ -378,7 +401,7 @@ export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
         size: 32,
       },
     ]
-  }, [isAdmin])
+  }, [])
 
   const table = useReactTable({
     data: services,
@@ -412,6 +435,18 @@ export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col pb-4">
+        <Label className="py-4">Selecione uma secretaria</Label>
+        <Combobox
+          options={SECRETARIAS}
+          value={selectedSecretaria}
+          onValueChange={handleSecretariaChange}
+          placeholder="Todas as secretarias"
+          searchPlaceholder="Buscar secretaria..."
+          emptyMessage="Nenhuma secretaria encontrada."
+          className="md:w-auto h-14!"
+        />
+      </div>
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
