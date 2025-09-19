@@ -11,6 +11,7 @@ type Submenu = {
   href: string
   label: string
   active?: boolean
+  role?: string
 }
 
 type Menu = {
@@ -89,6 +90,7 @@ export function getMenuList(pathname: string): Group[] {
             {
               href: '/servicos-municipais/servicos/new',
               label: 'Novo Serviço',
+              role: 'admin',
             },
           ],
         },
