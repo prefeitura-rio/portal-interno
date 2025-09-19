@@ -1,5 +1,6 @@
 import {
   Briefcase,
+  FolderKanban,
   GraduationCap,
   LayoutGrid,
   type LucideIcon,
@@ -74,7 +75,27 @@ export function getMenuList(pathname: string): Group[] {
       ],
     },
     {
-      groupLabel: 'Settings',
+      groupLabel: 'Serviços municipais',
+      menus: [
+        {
+          href: '',
+          label: 'Serviços municipais',
+          icon: FolderKanban,
+          submenus: [
+            {
+              href: '/servicos-municipais/servicos',
+              label: 'Serviços',
+            },
+            {
+              href: '/servicos-municipais/servicos/new',
+              label: 'Novo Serviço',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      groupLabel: 'Configurações',
       menus: [
         // {
         //   href: '/users',
@@ -83,7 +104,7 @@ export function getMenuList(pathname: string): Group[] {
         // },
         {
           href: '/account',
-          label: 'Account',
+          label: 'Minha conta',
           icon: Settings,
         },
       ],
