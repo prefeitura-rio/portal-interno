@@ -143,7 +143,7 @@ interface ServicesDataTableProps {
   isAdmin?: boolean
 }
 
-export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
+export function ServicesDataTable({ isAdmin = true }: ServicesDataTableProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -452,16 +452,12 @@ export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
         onValueChange={handleTabChange}
         className="space-y-4"
       >
-        <TabsList
-          className={`grid w-full ${isAdmin ? 'grid-cols-2' : 'grid-cols-3'}`}
-        >
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="published">Publicados</TabsTrigger>
           <TabsTrigger value="in_edition">Em edição</TabsTrigger>
-          {!isAdmin && (
-            <TabsTrigger value="waiting_approval">
-              Aguardando aprovação
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="waiting_approval">
+            {isAdmin ? 'Pronto para aprovação' : 'Em aprovação'}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="published" className="space-y-4">
@@ -488,7 +484,7 @@ export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
           </DataTable>
         </TabsContent>
 
-        {!isAdmin && (
+        {isAdmin && (
           <TabsContent value="waiting_approval" className="space-y-4">
             <DataTable
               table={table}
