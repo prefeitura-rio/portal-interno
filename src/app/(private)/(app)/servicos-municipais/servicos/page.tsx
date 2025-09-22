@@ -16,7 +16,7 @@ import { ServicesDataTable } from '../components/services-data-table'
 
 export default function ServicesPage() {
   // Mock da role do usuário - true = admin, false = usuário comum
-  const isAdmin = true
+  const isAdmin = false
 
   return (
     <ContentLayout title="Gestão de Serviços Municipais">

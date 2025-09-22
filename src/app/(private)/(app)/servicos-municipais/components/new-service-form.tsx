@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -120,24 +120,46 @@ const defaultValues: ServiceFormData = {
 interface NewServiceFormProps {
   onSubmit?: (data: ServiceFormData) => void
   isLoading?: boolean
+  readOnly?: boolean
+  initialData?: Partial<ServiceFormData>
 }
 
 export function NewServiceForm({
   onSubmit,
   isLoading = false,
+  readOnly = false,
+  initialData,
 }: NewServiceFormProps) {
   const router = useRouter()
   const [showSendToEditDialog, setShowSendToEditDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
   const [pendingFormData, setPendingFormData] =
     useState<ServiceFormData | null>(null)
-  const [digitalChannels, setDigitalChannels] = useState<string[]>([''])
-  const [channelErrors, setChannelErrors] = useState<string[]>([''])
+  const [digitalChannels, setDigitalChannels] = useState<string[]>(
+    initialData?.digitalChannels || ['']
+  )
+  const [channelErrors, setChannelErrors] = useState<string[]>(
+    initialData?.digitalChannels?.map(() => '') || ['']
+  )
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
-    defaultValues,
+    defaultValues: initialData
+      ? { ...defaultValues, ...initialData }
+      : defaultValues,
   })
+
+  // Update form values when initialData changes
+  React.useEffect(() => {
+    if (initialData) {
+      Object.keys(initialData).forEach(key => {
+        const value = initialData[key as keyof ServiceFormData]
+        if (value !== undefined) {
+          form.setValue(key as keyof ServiceFormData, value)
+        }
+      })
+    }
+  }, [initialData, form])
 
   const handleCancel = () => {
     router.push('/servicos-municipais/servicos')
@@ -290,7 +312,7 @@ export function NewServiceForm({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      disabled={isLoading}
+                      disabled={isLoading || readOnly}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -323,7 +345,7 @@ export function NewServiceForm({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      disabled={isLoading}
+                      disabled={isLoading || readOnly}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -361,7 +383,7 @@ export function NewServiceForm({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      disabled={isLoading}
+                      disabled={isLoading || readOnly}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -407,7 +429,7 @@ export function NewServiceForm({
                       <Input
                         placeholder="Nome do serviço municipal"
                         {...field}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -426,7 +448,7 @@ export function NewServiceForm({
                         className="min-h-[100px]"
                         placeholder="Descreva resumidamente o serviço oferecido"
                         {...field}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -444,7 +466,7 @@ export function NewServiceForm({
                       <Input
                         placeholder="Ex: Não atende casos emergenciais"
                         {...field}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -462,7 +484,7 @@ export function NewServiceForm({
                       <Input
                         placeholder="Ex: 5 dias úteis, Imediato, 30 dias"
                         {...field}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -480,7 +502,7 @@ export function NewServiceForm({
                       <Input
                         placeholder="Ex: R$ 50,00, Taxa municipal"
                         {...field}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -497,7 +519,7 @@ export function NewServiceForm({
                       <Checkbox
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
@@ -521,7 +543,7 @@ export function NewServiceForm({
                         className="min-h-[100px]"
                         placeholder="Descreva o que o cidadão receberá após a solicitação"
                         {...field}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -540,7 +562,7 @@ export function NewServiceForm({
                         className="min-h-[120px]"
                         placeholder="Descrição detalhada do serviço, seus objetivos e benefícios"
                         {...field}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -559,7 +581,7 @@ export function NewServiceForm({
                         className="min-h-[100px]"
                         placeholder="Liste os documentos necessários para solicitar o serviço"
                         {...field}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -578,7 +600,7 @@ export function NewServiceForm({
                         className="min-h-[100px]"
                         placeholder="Instruções passo a passo para o cidadão"
                         {...field}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -609,7 +631,7 @@ export function NewServiceForm({
                               onChange={e =>
                                 updateDigitalChannel(index, e.target.value)
                               }
-                              disabled={isLoading}
+                              disabled={isLoading || readOnly}
                               className={
                                 channelErrors[index] ? 'border-destructive' : ''
                               }
@@ -620,7 +642,7 @@ export function NewServiceForm({
                               </p>
                             )}
                           </div>
-                          {index > 0 && (
+                          {index > 0 && !readOnly && (
                             <Button
                               type="button"
                               variant="destructive"
@@ -635,15 +657,17 @@ export function NewServiceForm({
                         </div>
                       </div>
                     ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={addDigitalChannel}
-                      disabled={isLoading}
-                      className="w-full"
-                    >
-                      Adicionar campo adicional +
-                    </Button>
+                    {!readOnly && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addDigitalChannel}
+                        disabled={isLoading}
+                        className="w-full"
+                      >
+                        Adicionar campo adicional +
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -651,34 +675,36 @@ export function NewServiceForm({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col gap-3 pt-6">
-            <Button
-              type="button"
-              variant="destructive"
-              className="w-full"
-              onClick={handleCancel}
-              disabled={isLoading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={form.handleSubmit(handleSendToEditClick)}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Enviando...' : 'Enviar para edição'}
-            </Button>
-            <Button
-              type="button"
-              className="w-full"
-              onClick={form.handleSubmit(handlePublishClick)}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Publicando...' : 'Publicar serviço'}
-            </Button>
-          </div>
+          {!readOnly && (
+            <div className="flex flex-col gap-3 pt-6">
+              <Button
+                type="button"
+                variant="destructive"
+                className="w-full"
+                onClick={handleCancel}
+                disabled={isLoading}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={form.handleSubmit(handleSendToEditClick)}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Enviando...' : 'Enviar para edição'}
+              </Button>
+              <Button
+                type="button"
+                className="w-full"
+                onClick={form.handleSubmit(handlePublishClick)}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Publicando...' : 'Publicar serviço'}
+              </Button>
+            </div>
+          )}
         </form>
       </Form>
 

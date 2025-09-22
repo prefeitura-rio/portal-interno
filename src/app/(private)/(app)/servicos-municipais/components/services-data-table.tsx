@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import { mockServicesListItems } from '@/lib/mock-services'
+import { getSecretariaByValue } from '@/lib/secretarias'
 import type {
   ServiceListItem,
   ServiceStatus,
@@ -69,81 +71,11 @@ const statusConfig: Record<ServiceStatus, ServiceStatusConfig> = {
   },
 }
 
-// Mock data for services
-const mockServices: ServiceListItem[] = [
-  {
-    id: '1',
-    title: 'Solicitação de Alvará de Funcionamento',
-    managingOrgan: 'Secretaria Municipal da Casa Civil',
-    published_at: new Date('2024-01-15'),
-    last_update: new Date('2024-01-20'),
-    status: 'published',
-  },
-  {
-    id: '2',
-    title: 'Cadastro de Microempreendedor Individual',
-    managingOrgan: 'Secretaria Municipal de Coordenação Governamental',
-    published_at: null,
-    last_update: new Date('2024-01-18'),
-    status: 'waiting_approval',
-  },
-  {
-    id: '3',
-    title: 'Licença para Eventos Públicos',
-    managingOrgan: 'Controladoria Geral do Município',
-    published_at: new Date('2024-01-10'),
-    last_update: new Date('2024-01-22'),
-    status: 'published',
-  },
-  {
-    id: '4',
-    title: 'Certidão de Tempo de Contribuição',
-    managingOrgan:
-      'Secretaria Municipal de Desenvolvimento Urbano e Licenciamento',
-    published_at: null,
-    last_update: new Date('2024-01-19'),
-    status: 'in_edition',
-  },
-  {
-    id: '5',
-    title: 'Isenção de IPTU para Idosos',
-    managingOrgan:
-      'Secretaria Municipal de Integridade, Transparência e Proteção de Dados',
-    published_at: new Date('2024-01-12'),
-    last_update: new Date('2024-01-21'),
-    status: 'published',
-  },
-  {
-    id: '6',
-    title: 'Cadastro de Beneficiário de Programa Social',
-    managingOrgan: 'Secretaria Municipal de Ordem Pública',
-    published_at: null,
-    last_update: new Date('2024-01-17'),
-    status: 'waiting_approval',
-  },
-  {
-    id: '7',
-    title: 'Autorização para Obra em Via Pública',
-    managingOrgan: 'Secretaria Municipal de Ordem Pública',
-    published_at: null,
-    last_update: new Date('2024-01-16'),
-    status: 'in_edition',
-  },
-  {
-    id: '8',
-    title: 'Cartão de Estacionamento para PcD',
-    managingOrgan: 'Secretaria Municipal de Ordem Pública',
-    published_at: new Date('2024-01-08'),
-    last_update: new Date('2024-01-23'),
-    status: 'published',
-  },
-]
-
 interface ServicesDataTableProps {
   isAdmin?: boolean
 }
 
-export function ServicesDataTable({ isAdmin = true }: ServicesDataTableProps) {
+export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -168,7 +100,7 @@ export function ServicesDataTable({ isAdmin = true }: ServicesDataTableProps) {
 
   // Filter services based on active tab
   const filteredServices = React.useMemo(() => {
-    let filtered = mockServices
+    let filtered = mockServicesListItems
 
     // Filter by tab (status)
     if (activeTab === 'published') {
@@ -183,24 +115,23 @@ export function ServicesDataTable({ isAdmin = true }: ServicesDataTableProps) {
 
     // Filter by selected secretaria
     if (selectedSecretaria) {
-      const secretaria = SECRETARIAS.find(s => s.value === selectedSecretaria)
-      if (secretaria) {
-        filtered = filtered.filter(service =>
-          service.managingOrgan
-            .toLowerCase()
-            .includes(secretaria.label.toLowerCase())
-        )
-      }
+      filtered = filtered.filter(
+        service => service.managingOrgan === selectedSecretaria
+      )
     }
 
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
-      filtered = filtered.filter(
-        service =>
+      filtered = filtered.filter(service => {
+        const secretaria = getSecretariaByValue(service.managingOrgan)
+        const secretariaLabel = secretaria?.label || service.managingOrgan
+
+        return (
           service.title.toLowerCase().includes(query) ||
-          service.managingOrgan.toLowerCase().includes(query)
-      )
+          secretariaLabel.toLowerCase().includes(query)
+        )
+      })
     }
 
     return filtered
@@ -286,14 +217,19 @@ export function ServicesDataTable({ isAdmin = true }: ServicesDataTableProps) {
         header: ({ column }: { column: Column<ServiceListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Secretaria" />
         ),
-        cell: ({ cell }) => (
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <span className="max-w-[200px] truncate">
-              {cell.getValue<ServiceListItem['managingOrgan']>()}
-            </span>
-          </div>
-        ),
+        cell: ({ cell }) => {
+          const managingOrganValue =
+            cell.getValue<ServiceListItem['managingOrgan']>()
+          const secretaria = getSecretariaByValue(managingOrganValue)
+          const displayName = secretaria?.label || managingOrganValue
+
+          return (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="max-w-[200px] truncate">{displayName}</span>
+            </div>
+          )
+        },
         enableColumnFilter: false,
       },
       {
@@ -383,15 +319,10 @@ export function ServicesDataTable({ isAdmin = true }: ServicesDataTableProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link href={`/servicos-municipais/servicos/${service.id}`}>
-                    Visualizar
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
                   <Link
-                    href={`/servicos-municipais/servicos/${service.id}/edit`}
+                    href={`/servicos-municipais/servicos/servico/${service.id}`}
                   >
-                    Editar
+                    Visualizar
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -465,7 +396,7 @@ export function ServicesDataTable({ isAdmin = true }: ServicesDataTableProps) {
             table={table}
             loading={loading}
             onRowClick={service => {
-              window.location.href = `/servicos-municipais/servicos/${service.id}`
+              window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
             }}
           >
             <DataTableToolbar table={table} />
@@ -477,26 +408,24 @@ export function ServicesDataTable({ isAdmin = true }: ServicesDataTableProps) {
             table={table}
             loading={loading}
             onRowClick={service => {
-              window.location.href = `/servicos-municipais/servicos/${service.id}`
+              window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
             }}
           >
             <DataTableToolbar table={table} />
           </DataTable>
         </TabsContent>
 
-        {isAdmin && (
-          <TabsContent value="waiting_approval" className="space-y-4">
-            <DataTable
-              table={table}
-              loading={loading}
-              onRowClick={service => {
-                window.location.href = `/servicos-municipais/servicos/${service.id}`
-              }}
-            >
-              <DataTableToolbar table={table} />
-            </DataTable>
-          </TabsContent>
-        )}
+        <TabsContent value="waiting_approval" className="space-y-4">
+          <DataTable
+            table={table}
+            loading={loading}
+            onRowClick={service => {
+              window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
+            }}
+          >
+            <DataTableToolbar table={table} />
+          </DataTable>
+        </TabsContent>
       </Tabs>
     </div>
   )

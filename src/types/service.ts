@@ -21,3 +21,26 @@ export interface ServiceFilters {
   managingOrgan?: string[]
   search?: string
 }
+
+// Service model that matches the form structure
+export interface Service {
+  id: string
+  managingOrgan: string
+  serviceCategory: string
+  targetAudience: string
+  title: string
+  shortDescription: string
+  whatServiceDoesNotCover?: string
+  serviceTime?: string
+  serviceCost?: string
+  isFree?: boolean
+  requestResult?: string
+  fullDescription?: string
+  requiredDocuments?: string
+  instructionsForRequester?: string
+  digitalChannels?: string[]
+  status: ServiceStatus
+  published_at?: Date | null
+  last_update: Date
+  created_at: Date
+}
