@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import { useIsAdmin } from '@/hooks/use-user-role'
 import { mockServicesListItems } from '@/lib/mock-services'
 import { getSecretariaByValue } from '@/lib/secretarias'
 import type {
@@ -71,13 +72,10 @@ const statusConfig: Record<ServiceStatus, ServiceStatusConfig> = {
   },
 }
 
-interface ServicesDataTableProps {
-  isAdmin?: boolean
-}
-
-export function ServicesDataTable({ isAdmin = false }: ServicesDataTableProps) {
+export function ServicesDataTable() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const isAdmin = useIsAdmin()
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'last_update', desc: true },
