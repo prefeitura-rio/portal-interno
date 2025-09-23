@@ -1,4 +1,12 @@
-export { hasAdminLoginRole, isJwtExpired } from './jwt-utils'
+export {
+  getUserRole,
+  hasAdminLoginRole,
+  hasElevatedPermissions,
+  hasRole,
+  isAdmin,
+  isJwtExpired,
+  type UserRole,
+} from './jwt-utils'
 export {
   handleExpiredToken,
   handleUnauthorizedUser,

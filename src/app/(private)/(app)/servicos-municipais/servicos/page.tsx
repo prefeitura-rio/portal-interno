@@ -7,6 +7,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { useHasElevatedPermissions } from '@/hooks/use-user-role'
 
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
@@ -15,8 +16,8 @@ import Link from 'next/link'
 import { ServicesDataTable } from '../components/services-data-table'
 
 export default function ServicesPage() {
-  // Mock da role do usuário - true = admin, false = usuário comum
-  const isAdmin = false
+  // Use role-based access control instead of hardcoded value
+  const hasElevatedPermissions = useHasElevatedPermissions()
 
   return (
     <ContentLayout title="Gestão de Serviços Municipais">
@@ -41,7 +42,7 @@ export default function ServicesPage() {
                 plataforma.
               </p>
             </div>
-            {isAdmin && (
+            {hasElevatedPermissions && (
               <Link href="/servicos-municipais/servicos/new">
                 <Button className="cursor-pointer">
                   <BookPlus className="mr-2 h-4 w-4" />
@@ -52,7 +53,7 @@ export default function ServicesPage() {
           </div>
         </div>
 
-        <ServicesDataTable isAdmin={isAdmin} />
+        <ServicesDataTable />
       </div>
     </ContentLayout>
   )
