@@ -11,7 +11,7 @@ import type {
   ModelsErrorResponse,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna lista paginada de inscrições realizadas por um usuário (identificado pelo CPF), incluindo certificate_url
@@ -72,7 +72,7 @@ export const getApiV1EnrollmentsUserCpf = async (
   params?: GetApiV1EnrollmentsUserCpfParams,
   options?: RequestInit
 ): Promise<getApiV1EnrollmentsUserCpfResponse> => {
-  return customFetch<getApiV1EnrollmentsUserCpfResponse>(
+  return customFetchGoRio<getApiV1EnrollmentsUserCpfResponse>(
     getGetApiV1EnrollmentsUserCpfUrl(cpf, params),
     {
       ...options,

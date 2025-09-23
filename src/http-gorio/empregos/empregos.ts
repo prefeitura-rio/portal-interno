@@ -14,7 +14,7 @@ import type {
   ModelsErrorResponse,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna uma lista paginada de empregos com filtros opcionais
@@ -58,10 +58,13 @@ export const getApiV1Empregos = async (
   params?: GetApiV1EmpregosParams,
   options?: RequestInit
 ): Promise<getApiV1EmpregosResponse> => {
-  return customFetch<getApiV1EmpregosResponse>(getGetApiV1EmpregosUrl(params), {
-    ...options,
-    method: 'GET',
-  })
+  return customFetchGoRio<getApiV1EmpregosResponse>(
+    getGetApiV1EmpregosUrl(params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
 }
 
 /**
@@ -100,12 +103,15 @@ export const postApiV1Empregos = async (
   modelsEmpregoBody: ModelsEmpregoBody,
   options?: RequestInit
 ): Promise<postApiV1EmpregosResponse> => {
-  return customFetch<postApiV1EmpregosResponse>(getPostApiV1EmpregosUrl(), {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(modelsEmpregoBody),
-  })
+  return customFetchGoRio<postApiV1EmpregosResponse>(
+    getPostApiV1EmpregosUrl(),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsEmpregoBody),
+    }
+  )
 }
 
 /**
@@ -150,10 +156,13 @@ export const getApiV1EmpregosId = async (
   id: number,
   options?: RequestInit
 ): Promise<getApiV1EmpregosIdResponse> => {
-  return customFetch<getApiV1EmpregosIdResponse>(getGetApiV1EmpregosIdUrl(id), {
-    ...options,
-    method: 'GET',
-  })
+  return customFetchGoRio<getApiV1EmpregosIdResponse>(
+    getGetApiV1EmpregosIdUrl(id),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
 }
 
 /**
@@ -193,12 +202,15 @@ export const putApiV1EmpregosId = async (
   modelsEmpregoBody: ModelsEmpregoBody,
   options?: RequestInit
 ): Promise<putApiV1EmpregosIdResponse> => {
-  return customFetch<putApiV1EmpregosIdResponse>(getPutApiV1EmpregosIdUrl(id), {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(modelsEmpregoBody),
-  })
+  return customFetchGoRio<putApiV1EmpregosIdResponse>(
+    getPutApiV1EmpregosIdUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsEmpregoBody),
+    }
+  )
 }
 
 /**
@@ -238,7 +250,7 @@ export const deleteApiV1EmpregosId = async (
   id: number,
   options?: RequestInit
 ): Promise<deleteApiV1EmpregosIdResponse> => {
-  return customFetch<deleteApiV1EmpregosIdResponse>(
+  return customFetchGoRio<deleteApiV1EmpregosIdResponse>(
     getDeleteApiV1EmpregosIdUrl(id),
     {
       ...options,

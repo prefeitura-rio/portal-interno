@@ -14,7 +14,7 @@ import type {
   ModelsOrgaoBody,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna uma lista paginada de órgãos
@@ -58,10 +58,13 @@ export const getApiV1Orgaos = async (
   params?: GetApiV1OrgaosParams,
   options?: RequestInit
 ): Promise<getApiV1OrgaosResponse> => {
-  return customFetch<getApiV1OrgaosResponse>(getGetApiV1OrgaosUrl(params), {
-    ...options,
-    method: 'GET',
-  })
+  return customFetchGoRio<getApiV1OrgaosResponse>(
+    getGetApiV1OrgaosUrl(params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
 }
 
 /**
@@ -100,7 +103,7 @@ export const postApiV1Orgaos = async (
   modelsOrgaoBody: ModelsOrgaoBody,
   options?: RequestInit
 ): Promise<postApiV1OrgaosResponse> => {
-  return customFetch<postApiV1OrgaosResponse>(getPostApiV1OrgaosUrl(), {
+  return customFetchGoRio<postApiV1OrgaosResponse>(getPostApiV1OrgaosUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -150,10 +153,13 @@ export const getApiV1OrgaosId = async (
   id: number,
   options?: RequestInit
 ): Promise<getApiV1OrgaosIdResponse> => {
-  return customFetch<getApiV1OrgaosIdResponse>(getGetApiV1OrgaosIdUrl(id), {
-    ...options,
-    method: 'GET',
-  })
+  return customFetchGoRio<getApiV1OrgaosIdResponse>(
+    getGetApiV1OrgaosIdUrl(id),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
 }
 
 /**
@@ -193,12 +199,15 @@ export const putApiV1OrgaosId = async (
   modelsOrgaoBody: ModelsOrgaoBody,
   options?: RequestInit
 ): Promise<putApiV1OrgaosIdResponse> => {
-  return customFetch<putApiV1OrgaosIdResponse>(getPutApiV1OrgaosIdUrl(id), {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(modelsOrgaoBody),
-  })
+  return customFetchGoRio<putApiV1OrgaosIdResponse>(
+    getPutApiV1OrgaosIdUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsOrgaoBody),
+    }
+  )
 }
 
 /**
@@ -238,7 +247,7 @@ export const deleteApiV1OrgaosId = async (
   id: number,
   options?: RequestInit
 ): Promise<deleteApiV1OrgaosIdResponse> => {
-  return customFetch<deleteApiV1OrgaosIdResponse>(
+  return customFetchGoRio<deleteApiV1OrgaosIdResponse>(
     getDeleteApiV1OrgaosIdUrl(id),
     {
       ...options,

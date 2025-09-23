@@ -53,7 +53,7 @@ const getHeaders = async (headers?: HeadersInit): Promise<HeadersInit> => {
   }
 }
 
-export const customFetch = async <T>(
+export const customFetchGoRio = async <T>(
   url: string,
   options: RequestInit
 ): Promise<T> => {

@@ -19,7 +19,7 @@ import type {
   PutApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusBody,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna lista paginada de inscrições de um curso específico
@@ -74,7 +74,7 @@ export const getApiV1CoursesCourseIdEnrollments = async (
   params?: GetApiV1CoursesCourseIdEnrollmentsParams,
   options?: RequestInit
 ): Promise<getApiV1CoursesCourseIdEnrollmentsResponse> => {
-  return customFetch<getApiV1CoursesCourseIdEnrollmentsResponse>(
+  return customFetchGoRio<getApiV1CoursesCourseIdEnrollmentsResponse>(
     getGetApiV1CoursesCourseIdEnrollmentsUrl(courseId, params),
     {
       ...options,
@@ -127,7 +127,7 @@ export const postApiV1CoursesCourseIdEnrollments = async (
   modelsInscricao: ModelsInscricao,
   options?: RequestInit
 ): Promise<postApiV1CoursesCourseIdEnrollmentsResponse> => {
-  return customFetch<postApiV1CoursesCourseIdEnrollmentsResponse>(
+  return customFetchGoRio<postApiV1CoursesCourseIdEnrollmentsResponse>(
     getPostApiV1CoursesCourseIdEnrollmentsUrl(courseId),
     {
       ...options,
@@ -178,7 +178,7 @@ export const putApiV1CoursesCourseIdEnrollmentsStatus = async (
   modelsEnrollmentStatusUpdateRequest: ModelsEnrollmentStatusUpdateRequest,
   options?: RequestInit
 ): Promise<putApiV1CoursesCourseIdEnrollmentsStatusResponse> => {
-  return customFetch<putApiV1CoursesCourseIdEnrollmentsStatusResponse>(
+  return customFetchGoRio<putApiV1CoursesCourseIdEnrollmentsStatusResponse>(
     getPutApiV1CoursesCourseIdEnrollmentsStatusUrl(courseId),
     {
       ...options,
@@ -242,7 +242,7 @@ export const getApiV1CoursesCourseIdEnrollmentsEnrollmentId = async (
   enrollmentId: string,
   options?: RequestInit
 ): Promise<getApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse> => {
-  return customFetch<getApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse>(
+  return customFetchGoRio<getApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse>(
     getGetApiV1CoursesCourseIdEnrollmentsEnrollmentIdUrl(
       courseId,
       enrollmentId
@@ -301,7 +301,7 @@ export const deleteApiV1CoursesCourseIdEnrollmentsEnrollmentId = async (
   enrollmentId: string,
   options?: RequestInit
 ): Promise<deleteApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse> => {
-  return customFetch<deleteApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse>(
+  return customFetchGoRio<deleteApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse>(
     getDeleteApiV1CoursesCourseIdEnrollmentsEnrollmentIdUrl(
       courseId,
       enrollmentId
@@ -372,7 +372,7 @@ export const putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificate = async (
   modelsCertificateUpdateRequest: ModelsCertificateUpdateRequest,
   options?: RequestInit
 ): Promise<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponse> => {
-  return customFetch<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponse>(
+  return customFetchGoRio<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateResponse>(
     getPutApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateUrl(
       courseId,
       enrollmentId
@@ -434,7 +434,7 @@ export const putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus = async (
   putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusBody: PutApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusBody,
   options?: RequestInit
 ): Promise<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse> => {
-  return customFetch<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse>(
+  return customFetchGoRio<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse>(
     getPutApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusUrl(
       courseId,
       enrollmentId

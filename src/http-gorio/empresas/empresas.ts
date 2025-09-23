@@ -14,7 +14,7 @@ import type {
   ModelsErrorResponse,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna uma lista paginada de empresas
@@ -58,10 +58,13 @@ export const getApiV1Empresas = async (
   params?: GetApiV1EmpresasParams,
   options?: RequestInit
 ): Promise<getApiV1EmpresasResponse> => {
-  return customFetch<getApiV1EmpresasResponse>(getGetApiV1EmpresasUrl(params), {
-    ...options,
-    method: 'GET',
-  })
+  return customFetchGoRio<getApiV1EmpresasResponse>(
+    getGetApiV1EmpresasUrl(params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
 }
 
 /**
@@ -100,12 +103,15 @@ export const postApiV1Empresas = async (
   modelsEmpresaBody: ModelsEmpresaBody,
   options?: RequestInit
 ): Promise<postApiV1EmpresasResponse> => {
-  return customFetch<postApiV1EmpresasResponse>(getPostApiV1EmpresasUrl(), {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(modelsEmpresaBody),
-  })
+  return customFetchGoRio<postApiV1EmpresasResponse>(
+    getPostApiV1EmpresasUrl(),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsEmpresaBody),
+    }
+  )
 }
 
 /**
@@ -150,10 +156,13 @@ export const getApiV1EmpresasId = async (
   id: number,
   options?: RequestInit
 ): Promise<getApiV1EmpresasIdResponse> => {
-  return customFetch<getApiV1EmpresasIdResponse>(getGetApiV1EmpresasIdUrl(id), {
-    ...options,
-    method: 'GET',
-  })
+  return customFetchGoRio<getApiV1EmpresasIdResponse>(
+    getGetApiV1EmpresasIdUrl(id),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
 }
 
 /**
@@ -193,12 +202,15 @@ export const putApiV1EmpresasId = async (
   modelsEmpresaBody: ModelsEmpresaBody,
   options?: RequestInit
 ): Promise<putApiV1EmpresasIdResponse> => {
-  return customFetch<putApiV1EmpresasIdResponse>(getPutApiV1EmpresasIdUrl(id), {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(modelsEmpresaBody),
-  })
+  return customFetchGoRio<putApiV1EmpresasIdResponse>(
+    getPutApiV1EmpresasIdUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsEmpresaBody),
+    }
+  )
 }
 
 /**
@@ -238,7 +250,7 @@ export const deleteApiV1EmpresasId = async (
   id: number,
   options?: RequestInit
 ): Promise<deleteApiV1EmpresasIdResponse> => {
-  return customFetch<deleteApiV1EmpresasIdResponse>(
+  return customFetchGoRio<deleteApiV1EmpresasIdResponse>(
     getDeleteApiV1EmpresasIdUrl(id),
     {
       ...options,

@@ -7,7 +7,7 @@
  */
 import type { GetHealth200 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna o status de saúde da API v1
@@ -31,7 +31,7 @@ export const getGetHealthUrl = () => {
 export const getHealth = async (
   options?: RequestInit
 ): Promise<getHealthResponse> => {
-  return customFetch<getHealthResponse>(getGetHealthUrl(), {
+  return customFetchGoRio<getHealthResponse>(getGetHealthUrl(), {
     ...options,
     method: 'GET',
   })

@@ -14,7 +14,7 @@ import type {
   ModelsEscolaridadeBody,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna uma lista paginada de escolaridades
@@ -61,7 +61,7 @@ export const getApiV1Escolaridades = async (
   params?: GetApiV1EscolaridadesParams,
   options?: RequestInit
 ): Promise<getApiV1EscolaridadesResponse> => {
-  return customFetch<getApiV1EscolaridadesResponse>(
+  return customFetchGoRio<getApiV1EscolaridadesResponse>(
     getGetApiV1EscolaridadesUrl(params),
     {
       ...options,
@@ -107,7 +107,7 @@ export const postApiV1Escolaridades = async (
   modelsEscolaridadeBody: ModelsEscolaridadeBody,
   options?: RequestInit
 ): Promise<postApiV1EscolaridadesResponse> => {
-  return customFetch<postApiV1EscolaridadesResponse>(
+  return customFetchGoRio<postApiV1EscolaridadesResponse>(
     getPostApiV1EscolaridadesUrl(),
     {
       ...options,
@@ -161,7 +161,7 @@ export const getApiV1EscolaridadesId = async (
   id: number,
   options?: RequestInit
 ): Promise<getApiV1EscolaridadesIdResponse> => {
-  return customFetch<getApiV1EscolaridadesIdResponse>(
+  return customFetchGoRio<getApiV1EscolaridadesIdResponse>(
     getGetApiV1EscolaridadesIdUrl(id),
     {
       ...options,
@@ -208,7 +208,7 @@ export const putApiV1EscolaridadesId = async (
   modelsEscolaridadeBody: ModelsEscolaridadeBody,
   options?: RequestInit
 ): Promise<putApiV1EscolaridadesIdResponse> => {
-  return customFetch<putApiV1EscolaridadesIdResponse>(
+  return customFetchGoRio<putApiV1EscolaridadesIdResponse>(
     getPutApiV1EscolaridadesIdUrl(id),
     {
       ...options,
@@ -256,7 +256,7 @@ export const deleteApiV1EscolaridadesId = async (
   id: number,
   options?: RequestInit
 ): Promise<deleteApiV1EscolaridadesIdResponse> => {
-  return customFetch<deleteApiV1EscolaridadesIdResponse>(
+  return customFetchGoRio<deleteApiV1EscolaridadesIdResponse>(
     getDeleteApiV1EscolaridadesIdUrl(id),
     {
       ...options,

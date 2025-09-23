@@ -14,7 +14,7 @@ import type {
   ModelsErrorResponse,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna uma lista paginada de categorias
@@ -58,7 +58,7 @@ export const getApiV1Categorias = async (
   params?: GetApiV1CategoriasParams,
   options?: RequestInit
 ): Promise<getApiV1CategoriasResponse> => {
-  return customFetch<getApiV1CategoriasResponse>(
+  return customFetchGoRio<getApiV1CategoriasResponse>(
     getGetApiV1CategoriasUrl(params),
     {
       ...options,
@@ -104,12 +104,15 @@ export const postApiV1Categorias = async (
   modelsCategoriaBody: ModelsCategoriaBody,
   options?: RequestInit
 ): Promise<postApiV1CategoriasResponse> => {
-  return customFetch<postApiV1CategoriasResponse>(getPostApiV1CategoriasUrl(), {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(modelsCategoriaBody),
-  })
+  return customFetchGoRio<postApiV1CategoriasResponse>(
+    getPostApiV1CategoriasUrl(),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsCategoriaBody),
+    }
+  )
 }
 
 /**
@@ -155,7 +158,7 @@ export const getApiV1CategoriasId = async (
   id: number,
   options?: RequestInit
 ): Promise<getApiV1CategoriasIdResponse> => {
-  return customFetch<getApiV1CategoriasIdResponse>(
+  return customFetchGoRio<getApiV1CategoriasIdResponse>(
     getGetApiV1CategoriasIdUrl(id),
     {
       ...options,
@@ -202,7 +205,7 @@ export const putApiV1CategoriasId = async (
   modelsCategoriaBody: ModelsCategoriaBody,
   options?: RequestInit
 ): Promise<putApiV1CategoriasIdResponse> => {
-  return customFetch<putApiV1CategoriasIdResponse>(
+  return customFetchGoRio<putApiV1CategoriasIdResponse>(
     getPutApiV1CategoriasIdUrl(id),
     {
       ...options,
@@ -250,7 +253,7 @@ export const deleteApiV1CategoriasId = async (
   id: number,
   options?: RequestInit
 ): Promise<deleteApiV1CategoriasIdResponse> => {
-  return customFetch<deleteApiV1CategoriasIdResponse>(
+  return customFetchGoRio<deleteApiV1CategoriasIdResponse>(
     getDeleteApiV1CategoriasIdUrl(id),
     {
       ...options,

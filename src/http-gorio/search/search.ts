@@ -13,7 +13,7 @@ import type {
   ModelsSearchParameters,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Busca documentos em uma coleção
@@ -58,7 +58,7 @@ export const postApiV1TypesenseCollectionsCollectionDocumentsSearch = async (
   modelsSearchParameters: ModelsSearchParameters,
   options?: RequestInit
 ): Promise<postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse> => {
-  return customFetch<postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse>(
+  return customFetchGoRio<postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse>(
     getPostApiV1TypesenseCollectionsCollectionDocumentsSearchUrl(collection),
     {
       ...options,
@@ -106,7 +106,7 @@ export const postApiV1TypesenseMultiSearch = async (
   modelsMultiCollectionSearchParameters: ModelsMultiCollectionSearchParameters,
   options?: RequestInit
 ): Promise<postApiV1TypesenseMultiSearchResponse> => {
-  return customFetch<postApiV1TypesenseMultiSearchResponse>(
+  return customFetchGoRio<postApiV1TypesenseMultiSearchResponse>(
     getPostApiV1TypesenseMultiSearchUrl(),
     {
       ...options,

@@ -14,7 +14,7 @@ import type {
   ModelsErrorResponse,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna uma lista paginada de acessibilidades
@@ -61,7 +61,7 @@ export const getApiV1Acessibilidades = async (
   params?: GetApiV1AcessibilidadesParams,
   options?: RequestInit
 ): Promise<getApiV1AcessibilidadesResponse> => {
-  return customFetch<getApiV1AcessibilidadesResponse>(
+  return customFetchGoRio<getApiV1AcessibilidadesResponse>(
     getGetApiV1AcessibilidadesUrl(params),
     {
       ...options,
@@ -107,7 +107,7 @@ export const postApiV1Acessibilidades = async (
   modelsAcessibilidadeBody: ModelsAcessibilidadeBody,
   options?: RequestInit
 ): Promise<postApiV1AcessibilidadesResponse> => {
-  return customFetch<postApiV1AcessibilidadesResponse>(
+  return customFetchGoRio<postApiV1AcessibilidadesResponse>(
     getPostApiV1AcessibilidadesUrl(),
     {
       ...options,
@@ -161,7 +161,7 @@ export const getApiV1AcessibilidadesId = async (
   id: number,
   options?: RequestInit
 ): Promise<getApiV1AcessibilidadesIdResponse> => {
-  return customFetch<getApiV1AcessibilidadesIdResponse>(
+  return customFetchGoRio<getApiV1AcessibilidadesIdResponse>(
     getGetApiV1AcessibilidadesIdUrl(id),
     {
       ...options,
@@ -208,7 +208,7 @@ export const putApiV1AcessibilidadesId = async (
   modelsAcessibilidadeBody: ModelsAcessibilidadeBody,
   options?: RequestInit
 ): Promise<putApiV1AcessibilidadesIdResponse> => {
-  return customFetch<putApiV1AcessibilidadesIdResponse>(
+  return customFetchGoRio<putApiV1AcessibilidadesIdResponse>(
     getPutApiV1AcessibilidadesIdUrl(id),
     {
       ...options,
@@ -256,7 +256,7 @@ export const deleteApiV1AcessibilidadesId = async (
   id: number,
   options?: RequestInit
 ): Promise<deleteApiV1AcessibilidadesIdResponse> => {
-  return customFetch<deleteApiV1AcessibilidadesIdResponse>(
+  return customFetchGoRio<deleteApiV1AcessibilidadesIdResponse>(
     getDeleteApiV1AcessibilidadesIdUrl(id),
     {
       ...options,

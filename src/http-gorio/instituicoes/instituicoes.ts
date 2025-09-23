@@ -14,7 +14,7 @@ import type {
   ModelsInstituicaoEnsinoBody,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna uma lista paginada de instituições
@@ -61,7 +61,7 @@ export const getApiV1Instituicoes = async (
   params?: GetApiV1InstituicoesParams,
   options?: RequestInit
 ): Promise<getApiV1InstituicoesResponse> => {
-  return customFetch<getApiV1InstituicoesResponse>(
+  return customFetchGoRio<getApiV1InstituicoesResponse>(
     getGetApiV1InstituicoesUrl(params),
     {
       ...options,
@@ -107,7 +107,7 @@ export const postApiV1Instituicoes = async (
   modelsInstituicaoEnsinoBody: ModelsInstituicaoEnsinoBody,
   options?: RequestInit
 ): Promise<postApiV1InstituicoesResponse> => {
-  return customFetch<postApiV1InstituicoesResponse>(
+  return customFetchGoRio<postApiV1InstituicoesResponse>(
     getPostApiV1InstituicoesUrl(),
     {
       ...options,
@@ -161,7 +161,7 @@ export const getApiV1InstituicoesId = async (
   id: number,
   options?: RequestInit
 ): Promise<getApiV1InstituicoesIdResponse> => {
-  return customFetch<getApiV1InstituicoesIdResponse>(
+  return customFetchGoRio<getApiV1InstituicoesIdResponse>(
     getGetApiV1InstituicoesIdUrl(id),
     {
       ...options,
@@ -208,7 +208,7 @@ export const putApiV1InstituicoesId = async (
   modelsInstituicaoEnsinoBody: ModelsInstituicaoEnsinoBody,
   options?: RequestInit
 ): Promise<putApiV1InstituicoesIdResponse> => {
-  return customFetch<putApiV1InstituicoesIdResponse>(
+  return customFetchGoRio<putApiV1InstituicoesIdResponse>(
     getPutApiV1InstituicoesIdUrl(id),
     {
       ...options,
@@ -256,7 +256,7 @@ export const deleteApiV1InstituicoesId = async (
   id: number,
   options?: RequestInit
 ): Promise<deleteApiV1InstituicoesIdResponse> => {
-  return customFetch<deleteApiV1InstituicoesIdResponse>(
+  return customFetchGoRio<deleteApiV1InstituicoesIdResponse>(
     getDeleteApiV1InstituicoesIdUrl(id),
     {
       ...options,

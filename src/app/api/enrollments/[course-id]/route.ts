@@ -2,12 +2,12 @@ import {
   getApiV1CoursesCourseIdEnrollments,
   putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus,
   putApiV1CoursesCourseIdEnrollmentsStatus,
-} from '@/http/inscricoes/inscricoes'
+} from '@/http-gorio/inscricoes/inscricoes'
 import type {
   ModelsEnrollmentStatusUpdateRequest,
   ModelsInscricao,
   ModelsStatusInscricao,
-} from '@/http/models'
+} from '@/http-gorio/models'
 import type {
   Enrollment,
   EnrollmentResponse,
@@ -350,4 +350,3 @@ export async function PUT(
     )
   }
 }
-

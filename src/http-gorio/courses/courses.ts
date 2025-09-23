@@ -21,7 +21,7 @@ import type {
   PutApiV1CoursesCourseId200,
 } from '.././models'
 
-import { customFetch } from '../../../custom-fetch'
+import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
  * Retorna lista paginada de cursos criados (status: "opened", "closed", "canceled")
@@ -55,20 +55,23 @@ export const getGetApiV1CoursesUrl = (params?: GetApiV1CoursesParams) => {
   })
 
   const stringifiedParams = normalizedParams.toString()
-  //forced
+
   return stringifiedParams.length > 0
-    ? `/api/public/courses?${stringifiedParams}`
-    : `/api/public/courses`
+    ? `/api/v1/courses?${stringifiedParams}`
+    : `/api/v1/courses`
 }
 
 export const getApiV1Courses = async (
   params?: GetApiV1CoursesParams,
   options?: RequestInit
 ): Promise<getApiV1CoursesResponse> => {
-  return customFetch<getApiV1CoursesResponse>(getGetApiV1CoursesUrl(params), {
-    ...options,
-    method: 'GET',
-  })
+  return customFetchGoRio<getApiV1CoursesResponse>(
+    getGetApiV1CoursesUrl(params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
 }
 
 /**
@@ -107,7 +110,7 @@ export const postApiV1Courses = async (
   modelsCursoBody: ModelsCursoBody,
   options?: RequestInit
 ): Promise<postApiV1CoursesResponse> => {
-  return customFetch<postApiV1CoursesResponse>(getPostApiV1CoursesUrl(), {
+  return customFetchGoRio<postApiV1CoursesResponse>(getPostApiV1CoursesUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -152,7 +155,7 @@ export const postApiV1CoursesDraft = async (
   modelsCursoBody: ModelsCursoBody,
   options?: RequestInit
 ): Promise<postApiV1CoursesDraftResponse> => {
-  return customFetch<postApiV1CoursesDraftResponse>(
+  return customFetchGoRio<postApiV1CoursesDraftResponse>(
     getPostApiV1CoursesDraftUrl(),
     {
       ...options,
@@ -208,7 +211,7 @@ export const getApiV1CoursesDrafts = async (
   params?: GetApiV1CoursesDraftsParams,
   options?: RequestInit
 ): Promise<getApiV1CoursesDraftsResponse> => {
-  return customFetch<getApiV1CoursesDraftsResponse>(
+  return customFetchGoRio<getApiV1CoursesDraftsResponse>(
     getGetApiV1CoursesDraftsUrl(params),
     {
       ...options,
@@ -253,14 +256,14 @@ export type getApiV1CoursesCourseIdResponse =
   }
 
 export const getGetApiV1CoursesCourseIdUrl = (courseId: number) => {
-  return `/api/public/courses/${courseId}` //forced
+  return `/api/v1/courses/${courseId}`
 }
 
 export const getApiV1CoursesCourseId = async (
   courseId: number,
   options?: RequestInit
 ): Promise<getApiV1CoursesCourseIdResponse> => {
-  return customFetch<getApiV1CoursesCourseIdResponse>(
+  return customFetchGoRio<getApiV1CoursesCourseIdResponse>(
     getGetApiV1CoursesCourseIdUrl(courseId),
     {
       ...options,
@@ -313,7 +316,7 @@ export const putApiV1CoursesCourseId = async (
   modelsCursoBody: ModelsCursoBody,
   options?: RequestInit
 ): Promise<putApiV1CoursesCourseIdResponse> => {
-  return customFetch<putApiV1CoursesCourseIdResponse>(
+  return customFetchGoRio<putApiV1CoursesCourseIdResponse>(
     getPutApiV1CoursesCourseIdUrl(courseId),
     {
       ...options,
@@ -367,7 +370,7 @@ export const deleteApiV1CoursesCourseId = async (
   courseId: number,
   options?: RequestInit
 ): Promise<deleteApiV1CoursesCourseIdResponse> => {
-  return customFetch<deleteApiV1CoursesCourseIdResponse>(
+  return customFetchGoRio<deleteApiV1CoursesCourseIdResponse>(
     getDeleteApiV1CoursesCourseIdUrl(courseId),
     {
       ...options,
@@ -429,7 +432,7 @@ export const getApiV1UsersUserIdCourses = async (
   params?: GetApiV1UsersUserIdCoursesParams,
   options?: RequestInit
 ): Promise<getApiV1UsersUserIdCoursesResponse> => {
-  return customFetch<getApiV1UsersUserIdCoursesResponse>(
+  return customFetchGoRio<getApiV1UsersUserIdCoursesResponse>(
     getGetApiV1UsersUserIdCoursesUrl(userId, params),
     {
       ...options,
