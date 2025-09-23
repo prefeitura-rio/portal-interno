@@ -122,6 +122,9 @@ interface NewServiceFormProps {
   isLoading?: boolean
   readOnly?: boolean
   initialData?: Partial<ServiceFormData>
+  userRole?: string | null
+  serviceStatus?: string
+  onSendToApproval?: () => void
 }
 
 export function NewServiceForm({
@@ -129,10 +132,15 @@ export function NewServiceForm({
   isLoading = false,
   readOnly = false,
   initialData,
+  userRole,
+  serviceStatus,
+  onSendToApproval,
 }: NewServiceFormProps) {
   const router = useRouter()
   const [showSendToEditDialog, setShowSendToEditDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
+  const [showSendToApprovalDialog, setShowSendToApprovalDialog] =
+    useState(false)
   const [pendingFormData, setPendingFormData] =
     useState<ServiceFormData | null>(null)
   const [digitalChannels, setDigitalChannels] = useState<string[]>(
@@ -231,6 +239,12 @@ export function NewServiceForm({
     setShowPublishDialog(true)
   }
 
+  const handleSendToApprovalClick = (data: ServiceFormData) => {
+    const processedData = preprocessFormData(data)
+    setPendingFormData(processedData)
+    setShowSendToApprovalDialog(true)
+  }
+
   const handleConfirmSendToEdit = async () => {
     if (!pendingFormData) return
 
@@ -239,6 +253,7 @@ export function NewServiceForm({
       // TODO: Implementar função de enviar para edição
       toast.success('Serviço enviado para edição!')
       setPendingFormData(null)
+      router.push('/servicos-municipais/servicos?tab=in_edition')
     } catch (error) {
       console.error('Error sending service to edit:', error)
       toast.error('Erro ao enviar serviço para edição. Tente novamente.')
@@ -253,9 +268,26 @@ export function NewServiceForm({
       // TODO: Implementar função de publicar serviço
       toast.success('Serviço publicado com sucesso!')
       setPendingFormData(null)
+      router.push('/servicos-municipais/servicos?tab=published')
     } catch (error) {
       console.error('Error publishing service:', error)
       toast.error('Erro ao publicar serviço. Tente novamente.')
+    }
+  }
+
+  const handleConfirmSendToApproval = async () => {
+    if (!pendingFormData) return
+
+    try {
+      console.log('Enviando serviço para aprovação:', pendingFormData)
+      if (onSendToApproval) {
+        onSendToApproval()
+      }
+      setPendingFormData(null)
+      setShowSendToApprovalDialog(false)
+    } catch (error) {
+      console.error('Error sending service to approval:', error)
+      toast.error('Erro ao enviar serviço para aprovação. Tente novamente.')
     }
   }
 
@@ -293,6 +325,55 @@ export function NewServiceForm({
     } catch (error) {
       console.error('Error creating service:', error)
       toast.error('Erro ao criar serviço. Tente novamente.')
+    }
+  }
+
+  // Function to determine which buttons should be shown based on user role and service status
+  const getFormButtonConfiguration = () => {
+    if (!userRole) {
+      // Default configuration when user role is not available
+      return {
+        showSendToEdit: true,
+        showPublish: true,
+      }
+    }
+
+    const isAdminOrGeral = userRole === 'admin' || userRole === 'geral'
+    const isEditor = userRole === 'editor'
+
+    if (isAdminOrGeral) {
+      // Admin and geral users behavior based on status
+      if (serviceStatus === 'in_edition') {
+        return {
+          showSendToEdit: false, // Don't show "Enviar para edição" button for "Em Edição" status
+          showPublish: true,
+        }
+      }
+      return {
+        showSendToEdit: true,
+        showPublish: true,
+      }
+    }
+
+    if (isEditor) {
+      // Editor users behavior based on status
+      if (serviceStatus === 'in_edition') {
+        return {
+          showSendToEdit: false, // Don't show "Enviar para edição" button for "Em Edição" status
+          showPublish: false, // Don't show "Salvar e publicar", will show "Enviar para aprovação" instead
+          showSendToApproval: true,
+        }
+      }
+      return {
+        showSendToEdit: true,
+        showPublish: false, // Editors can't publish directly
+        showSendToApproval: true,
+      }
+    }
+
+    return {
+      showSendToEdit: true,
+      showPublish: true,
     }
   }
 
@@ -686,23 +767,46 @@ export function NewServiceForm({
               >
                 Cancelar
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={form.handleSubmit(handleSendToEditClick)}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Enviando...' : 'Enviar para edição'}
-              </Button>
-              <Button
-                type="button"
-                className="w-full"
-                onClick={form.handleSubmit(handlePublishClick)}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Publicando...' : 'Publicar serviço'}
-              </Button>
+              {(() => {
+                const buttonConfig = getFormButtonConfiguration()
+
+                return (
+                  <>
+                    {buttonConfig.showSendToEdit && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={form.handleSubmit(handleSendToEditClick)}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Enviando...' : 'Enviar para edição'}
+                      </Button>
+                    )}
+                    {buttonConfig.showSendToApproval && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={form.handleSubmit(handleSendToApprovalClick)}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Enviando...' : 'Enviar para aprovação'}
+                      </Button>
+                    )}
+                    {buttonConfig.showPublish && (
+                      <Button
+                        type="button"
+                        className="w-full"
+                        onClick={form.handleSubmit(handlePublishClick)}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Publicando...' : 'Salvar e publicar'}
+                      </Button>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           )}
         </form>
@@ -730,6 +834,18 @@ export function NewServiceForm({
         cancelText="Cancelar"
         variant="default"
         onConfirm={handleConfirmPublish}
+      />
+
+      {/* Modal de confirmação para enviar para aprovação */}
+      <ConfirmDialog
+        open={showSendToApprovalDialog}
+        onOpenChange={setShowSendToApprovalDialog}
+        title="Enviar para aprovação"
+        description="Tem certeza que deseja enviar este serviço para aprovação? Ele ficará disponível para o grupo de administradores revisar."
+        confirmText="Enviar para aprovação"
+        cancelText="Cancelar"
+        variant="default"
+        onConfirm={handleConfirmSendToApproval}
       />
     </div>
   )

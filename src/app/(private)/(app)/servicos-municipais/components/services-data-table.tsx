@@ -228,6 +228,12 @@ export function ServicesDataTable() {
             </div>
           )
         },
+        meta: {
+          label: 'Secretaria',
+          placeholder: 'Buscar secretaria...',
+          variant: 'text',
+          icon: Building2,
+        },
         enableColumnFilter: false,
       },
       {
@@ -255,6 +261,11 @@ export function ServicesDataTable() {
             </div>
           )
         },
+        meta: {
+          label: 'Publicado em',
+          variant: 'dateRange',
+          icon: Calendar,
+        },
         enableColumnFilter: false,
       },
       {
@@ -278,6 +289,11 @@ export function ServicesDataTable() {
             </div>
           )
         },
+        meta: {
+          label: 'Última modificação',
+          variant: 'dateRange',
+          icon: Calendar,
+        },
         enableColumnFilter: false,
       },
       {
@@ -300,6 +316,11 @@ export function ServicesDataTable() {
               {config.label}
             </Badge>
           )
+        },
+        meta: {
+          label: 'Status',
+          variant: 'select',
+          icon: CheckCircle,
         },
         enableColumnFilter: false,
       },

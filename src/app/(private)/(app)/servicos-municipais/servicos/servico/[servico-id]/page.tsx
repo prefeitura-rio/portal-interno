@@ -11,8 +11,10 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useService } from '@/hooks/use-service'
+import { useUserRole } from '@/hooks/use-user-role'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -52,6 +54,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [servicoId, setServicoId] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showSendToEditDialog, setShowSendToEditDialog] = useState(false)
+  const [showApproveDialog, setShowApproveDialog] = useState(false)
+  const [showSendToApprovalDialog, setShowSendToApprovalDialog] =
+    useState(false)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
 
   useEffect(() => {
     params.then(({ 'servico-id': id }) => {
@@ -60,6 +67,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }, [params])
 
   const { service, loading, error, refetch } = useService(servicoId)
+  const userRole = useUserRole()
 
   const handleEdit = () => {
     setIsEditing(true)
@@ -78,6 +86,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       console.log('Saving service:', data)
       toast.success('Serviço salvo com sucesso!')
       setIsEditing(false)
+      setShowSaveDialog(false)
       refetch()
     } catch (error) {
       console.error('Error saving service:', error)
@@ -85,6 +94,120 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleSaveClick = () => {
+    setShowSaveDialog(true)
+  }
+
+  const handleSendToEdit = async () => {
+    try {
+      setIsSaving(true)
+      // TODO: Implement send to edit functionality
+      console.log('Sending service to edit:', servicoId)
+      toast.success('Serviço enviado para edição!')
+      setShowSendToEditDialog(false)
+      refetch()
+    } catch (error) {
+      console.error('Error sending service to edit:', error)
+      toast.error('Erro ao enviar serviço para edição. Tente novamente.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleApproveAndPublish = async () => {
+    try {
+      setIsSaving(true)
+      // TODO: Implement approve and publish functionality
+      console.log('Approving and publishing service:', servicoId)
+      toast.success('Serviço aprovado e publicado com sucesso!')
+      setShowApproveDialog(false)
+      refetch()
+    } catch (error) {
+      console.error('Error approving and publishing service:', error)
+      toast.error('Erro ao aprovar e publicar serviço. Tente novamente.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSendToApproval = async () => {
+    try {
+      setIsSaving(true)
+      // TODO: Implement send to approval functionality
+      console.log('Sending service to approval:', servicoId)
+      toast.success('Serviço enviado para aprovação!')
+      setShowSendToApprovalDialog(false)
+      setIsEditing(false)
+      refetch()
+    } catch (error) {
+      console.error('Error sending service to approval:', error)
+      toast.error('Erro ao enviar serviço para aprovação. Tente novamente.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Function to determine which buttons should be shown based on user role and service status
+  const getButtonConfiguration = () => {
+    if (!service || !userRole)
+      return { showEdit: false, showAdditionalButtons: [] }
+
+    const isAdminOrGeral = userRole === 'admin' || userRole === 'geral'
+    const isEditor = userRole === 'editor'
+    const { status } = service
+
+    if (isAdminOrGeral) {
+      switch (status) {
+        case 'published':
+          return { showEdit: true, showAdditionalButtons: [] }
+        case 'in_edition':
+          return { showEdit: true, showAdditionalButtons: [] }
+        case 'waiting_approval':
+          return {
+            showEdit: true,
+            showAdditionalButtons: [
+              {
+                label: 'Enviar para edição',
+                action: () => setShowSendToEditDialog(true),
+                variant: 'outline' as const,
+              },
+              {
+                label: 'Aprovar e publicar',
+                action: () => setShowApproveDialog(true),
+                variant: 'default' as const,
+              },
+            ],
+          }
+        default:
+          return { showEdit: true, showAdditionalButtons: [] }
+      }
+    }
+
+    if (isEditor) {
+      switch (status) {
+        case 'published':
+          return { showEdit: false, showAdditionalButtons: [] }
+        case 'in_edition':
+          return { showEdit: true, showAdditionalButtons: [] }
+        case 'waiting_approval':
+          return {
+            showEdit: true,
+            showAdditionalButtons: [
+              {
+                label: 'Enviar para edição',
+                action: () => setShowSendToEditDialog(true),
+                variant: 'outline' as const,
+              },
+            ],
+          }
+        default:
+          return { showEdit: false, showAdditionalButtons: [] }
+      }
+    }
+
+    return { showEdit: false, showAdditionalButtons: [] }
   }
 
   if (loading) {
@@ -190,36 +313,61 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
               </div>
             </div>
             <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-              {!isEditing ? (
-                <Button
-                  onClick={handleEdit}
-                  disabled={loading}
-                  className="w-full md:w-auto"
-                >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Editar
-                </Button>
-              ) : (
-                <div className="flex gap-2 w-full md:w-auto">
-                  <Button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="flex-1 md:flex-none"
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    {isSaving ? 'Salvando...' : 'Salvar'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                    className="flex-1 md:flex-none"
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    Cancelar
-                  </Button>
-                </div>
-              )}
+              {(() => {
+                const buttonConfig = getButtonConfiguration()
+
+                if (!isEditing) {
+                  return (
+                    <>
+                      {buttonConfig.showEdit && (
+                        <Button
+                          onClick={handleEdit}
+                          disabled={loading}
+                          className="w-full md:w-auto"
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </Button>
+                      )}
+                      {buttonConfig.showAdditionalButtons.map(
+                        (button, index) => (
+                          <Button
+                            key={index}
+                            variant={button.variant}
+                            onClick={button.action}
+                            disabled={loading || isSaving}
+                            className="w-full md:w-auto"
+                          >
+                            {button.label}
+                          </Button>
+                        )
+                      )}
+                    </>
+                  )
+                }
+
+                return (
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <Button
+                      onClick={handleSaveClick}
+                      disabled={isSaving}
+                      className="flex-1 md:flex-none"
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      {isSaving ? 'Salvando...' : 'Salvar edição'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                      className="flex-1 md:flex-none"
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Cancelar
+                    </Button>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>
@@ -228,6 +376,9 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           readOnly={!isEditing}
           isLoading={isSaving}
           onSubmit={isEditing ? handleSave : undefined}
+          userRole={userRole}
+          serviceStatus={service.status}
+          onSendToApproval={handleSendToApproval}
           initialData={{
             managingOrgan: service.managingOrgan,
             serviceCategory: service.serviceCategory,
@@ -244,6 +395,51 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             instructionsForRequester: service.instructionsForRequester,
             digitalChannels: service.digitalChannels,
           }}
+        />
+
+        {/* Confirmation Dialogs */}
+        <ConfirmDialog
+          open={showSendToEditDialog}
+          onOpenChange={setShowSendToEditDialog}
+          title="Enviar para edição"
+          description="Tem certeza que deseja enviar este serviço para edição? O status será alterado para 'Em edição'."
+          confirmText="Enviar para edição"
+          cancelText="Cancelar"
+          variant="default"
+          onConfirm={handleSendToEdit}
+        />
+
+        <ConfirmDialog
+          open={showApproveDialog}
+          onOpenChange={setShowApproveDialog}
+          title="Aprovar e publicar"
+          description="Tem certeza que deseja aprovar e publicar este serviço? Ele ficará disponível no pref.rio para todos os cidadãos."
+          confirmText="Aprovar e publicar"
+          cancelText="Cancelar"
+          variant="default"
+          onConfirm={handleApproveAndPublish}
+        />
+
+        <ConfirmDialog
+          open={showSendToApprovalDialog}
+          onOpenChange={setShowSendToApprovalDialog}
+          title="Enviar para aprovação"
+          description="Tem certeza que deseja enviar este serviço para aprovação? Ele ficará disponível para o grupo de administradores revisar."
+          confirmText="Enviar para aprovação"
+          cancelText="Cancelar"
+          variant="default"
+          onConfirm={handleSendToApproval}
+        />
+
+        <ConfirmDialog
+          open={showSaveDialog}
+          onOpenChange={setShowSaveDialog}
+          title="Salvar edição"
+          description="Tem certeza que deseja salvar as alterações realizadas no serviço?"
+          confirmText="Salvar alterações"
+          cancelText="Cancelar"
+          variant="default"
+          onConfirm={() => handleSave({})}
         />
       </div>
     </ContentLayout>
