@@ -709,12 +709,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         pre_requisitos: data.pre_requisitos,
         has_certificate: Boolean(data.pre_requisitos?.trim()),
 
-        // External partner fields
+        // External partner fields - clear when not external partner
         is_external_partner: data.is_external_partner,
-        external_partner_name: data.external_partner_name,
-        external_partner_url: data.external_partner_url,
-        external_partner_logo_url: data.external_partner_logo_url,
-        external_partner_contact: data.external_partner_contact,
+        external_partner_name: data.is_external_partner ? data.external_partner_name : '',
+        external_partner_url: data.is_external_partner ? data.external_partner_url : '',
+        external_partner_logo_url: data.is_external_partner ? data.external_partner_logo_url : '',
+        external_partner_contact: data.is_external_partner ? data.external_partner_contact : '',
 
         facilitator: data.facilitator,
         objectives: data.objectives,
@@ -764,12 +764,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         cover_image: data.cover_image || '',
         pre_requisitos: data.pre_requisitos,
 
-        // External partner fields
+        // External partner fields - clear when not external partner
         is_external_partner: data.is_external_partner,
-        external_partner_name: data.external_partner_name,
-        external_partner_url: data.external_partner_url,
-        external_partner_logo_url: data.external_partner_logo_url,
-        external_partner_contact: data.external_partner_contact,
+        external_partner_name: data.is_external_partner ? data.external_partner_name : '',
+        external_partner_url: data.is_external_partner ? data.external_partner_url : '',
+        external_partner_logo_url: data.is_external_partner ? data.external_partner_logo_url : '',
+        external_partner_contact: data.is_external_partner ? data.external_partner_contact : '',
 
         facilitator: data.facilitator,
         objectives: data.objectives,
