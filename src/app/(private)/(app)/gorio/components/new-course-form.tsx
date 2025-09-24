@@ -85,7 +85,7 @@ const remoteClassSchema = z.object({
 })
 
 // Custom validation function for Google Cloud Storage URLs
-const validateGoogleCloudStorageURL = (url: string) => {
+const validateGoogleCloudStorageURL = (url: string | undefined) => {
   // Allow empty or undefined URLs for drafts
   if (!url || url.trim() === '') {
     return true
@@ -156,7 +156,13 @@ const fullFormSchema = z
       is_external_partner: z.boolean().optional(),
       external_partner_name: z.string().optional(),
       external_partner_url: z.string().url().optional().or(z.literal('')),
-      external_partner_logo_url: z.string().url().optional().or(z.literal('')),
+      external_partner_logo_url: z
+        .string()
+        .url().optional()
+        .or(z.literal(''))
+        .refine(validateGoogleCloudStorageURL, {
+          message: 'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
       external_partner_contact: z.string().optional(),
 
       facilitator: z.string().optional(),
@@ -237,7 +243,13 @@ const fullFormSchema = z
       is_external_partner: z.boolean().optional(),
       external_partner_name: z.string().optional(),
       external_partner_url: z.string().url().optional().or(z.literal('')),
-      external_partner_logo_url: z.string().url().optional().or(z.literal('')),
+      external_partner_logo_url: z
+        .string()
+        .url().optional()
+        .or(z.literal(''))
+        .refine(validateGoogleCloudStorageURL, {
+          message: 'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
       external_partner_contact: z.string().optional(),
 
       facilitator: z.string().optional(),
@@ -343,7 +355,12 @@ const draftFormSchema = z.object({
   is_external_partner: z.boolean().optional(),
   external_partner_name: z.string().optional(),
   external_partner_url: z.string().optional(),
-  external_partner_logo_url: z.string().optional(),
+  external_partner_logo_url: z
+    .string()
+    .refine(validateGoogleCloudStorageURL, {
+      message: 'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+    })
+    .optional(),
   external_partner_contact: z.string().optional(),
 
   facilitator: z.string().optional(),
@@ -1271,14 +1288,46 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                           <FormLabel>
                             URL para a logo do parceiro externo
                           </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="https://"
-                              type="url"
-                              {...field}
-                              disabled={isReadOnly}
-                            />
-                          </FormControl>
+                          <div className="flex items-start gap-4">
+                            <div className="flex-1">
+                              <FormControl>
+                                <Input
+                                  placeholder="https://"
+                                  type="url"
+                                  {...field}
+                                  disabled={isReadOnly}
+                                />
+                              </FormControl>
+                            </div>
+                            {field.value && (
+                              <div className="flex-shrink-0">
+                                <div className="w-16 h-16 border border-gray-200 rounded-md overflow-hidden bg-gray-50 flex items-center justify-center">
+                                  <img
+                                    key={field.value} // Force re-render when URL changes
+                                    src={field.value}
+                                    alt="Preview da logo do parceiro"
+                                    className="max-w-full max-h-full object-contain"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement
+                                      target.style.display = 'none'
+                                      const errorText = target.nextElementSibling as HTMLElement
+                                      if (errorText) {
+                                        errorText.textContent = 'Erro ao carregar'
+                                        errorText.style.display = 'block'
+                                      }
+                                    }}
+                                    onLoad={(e) => {
+                                      const target = e.target as HTMLImageElement
+                                      target.style.display = 'block'
+                                      const errorText = target.nextElementSibling as HTMLElement
+                                      if (errorText) errorText.style.display = 'none'
+                                    }}
+                                  />
+                                  <span className="text-xs text-gray-500" style={{ display: 'none' }}>Erro ao carregar</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
