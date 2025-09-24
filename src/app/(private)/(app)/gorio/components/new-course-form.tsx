@@ -173,7 +173,7 @@ const fullFormSchema = z
             id: z.string(),
             title: z.string(),
             required: z.boolean(),
-            field_type: z.string().optional(),
+            field_type: z.enum(['text', 'number', 'email', 'date', 'select', 'textarea', 'checkbox', 'radio']).optional(),
           })
         )
         .optional(),
@@ -254,7 +254,7 @@ const fullFormSchema = z
             id: z.string(),
             title: z.string(),
             required: z.boolean(),
-            field_type: z.string().optional(),
+            field_type: z.enum(['text', 'number', 'email', 'date', 'select', 'textarea', 'checkbox', 'radio']).optional(),
           })
         )
         .optional(),

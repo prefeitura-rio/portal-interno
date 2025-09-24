@@ -191,6 +191,7 @@ export function transformApiCourseToCourse(apiCourse: any): any {
       return modalidade
     })(),
     orgao: courseData.orgao || null,
+    orgao_id: courseData.orgao_id || courseData.orgao?.id || null,
     // Ensure organization field is properly mapped from orgao.nome or existing organization
     organization: courseData.orgao?.nome || courseData.organization || '',
     enrollment_start_date:

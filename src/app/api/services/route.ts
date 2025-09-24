@@ -105,7 +105,7 @@ export async function GET(request: Request) {
           id: convertedService.id,
           title: convertedService.title,
           managingOrgan: convertedService.managingOrgan,
-          published_at: convertedService.published_at,
+          published_at: convertedService.published_at ?? null,
           last_update: convertedService.last_update,
           status: convertedService.status,
         }

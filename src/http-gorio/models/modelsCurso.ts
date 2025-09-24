@@ -5,7 +5,106 @@
  * API de serviços para aplicativos da Prefeitura do Rio
  * OpenAPI spec version: 1.0
  */
+import type { ModelsFormatoAula } from './modelsFormatoAula'
+import type { ModelsModalidade } from './modelsModalidade'
+import type { ModelsStatusCurso } from './modelsStatusCurso'
+import type { ModelsTurno } from './modelsTurno'
+
+//forced
+export type CustomFieldType = 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio'
+
+export interface ModelsCustomField { //forced
+  id: string
+  curso_id: number
+  title: string
+  field_type: CustomFieldType
+  required: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ModelsRemoteClass { //forced
+  id: string
+  curso_id: number
+  vacancies: number
+  class_start_date: string
+  class_end_date: string
+  class_time: string
+  class_days: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ModelsLocation { //forced
+  id: string
+  curso_id: number
+  address: string
+  neighborhood: string
+  vacancies: number
+  class_start_date: string
+  class_end_date: string
+  class_time: string
+  class_days: string
+  created_at: string
+  updated_at: string
+}
 
 export interface ModelsCurso {
-  [key: string]: unknown
+  carga_horaria?: number
+  certificacao_oferecida?: boolean
+  contato_duvidas?: string
+  cover_image?: string
+  created_at?: string
+  data_inicio?: string
+  data_limite_inscricoes?: string
+  data_termino?: string
+  description?: string
+  enrollment_end_date?: string
+  enrollment_start_date?: string
+  expected_results?: string
+  external_partner_contact?: string
+  external_partner_logo_url?: string
+  external_partner_name?: string
+  external_partner_url?: string
+  facilitator?: string
+  formato_aula?: ModelsFormatoAula
+  /** Optional fields matching specification */
+  has_certificate?: boolean
+  id?: number
+  instituicao_id?: number
+  institutional_logo?: string
+  /** External partner fields */
+  is_external_partner?: boolean
+  link_inscricao?: string
+  local_realizacao?: string
+  material_used?: string
+  methodology?: string
+  modalidade?: ModelsModalidade
+  numero_vagas?: number
+  objectives?: string
+  organization?: string
+  /** Legacy and additional fields */
+  orgao_id?: number
+  /** Unified field for prerequisites - using single JSON tag */
+  pre_requisitos?: string
+  program_content?: string
+  resources_used?: string
+  status?: ModelsStatusCurso
+  target_audience?: string
+  teaching_material?: string
+  theme?: string
+  /** Core fields (always required) */
+  title?: string
+  turno?: ModelsTurno
+  updated_at?: string
+  workload?: string
+
+  //forced
+  custom_fields?: ModelsCustomField[]
+  remote_class?: ModelsRemoteClass
+  orgao?: {
+    id: number
+    nome: string
+  }
+  locations?: ModelsLocation[]
 }

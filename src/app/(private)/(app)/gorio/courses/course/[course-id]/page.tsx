@@ -226,7 +226,7 @@ export default function CourseDetailPage({
         orgao_id:
           (data.orgao as any)?.id ||
           data.orgao_id ||
-          (course?.orgao as any)?.id,
+          course?.orgao_id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -278,7 +278,7 @@ export default function CourseDetailPage({
         orgao_id:
           (data.orgao as any)?.id ||
           data.orgao_id ||
-          (course?.orgao as any)?.id,
+          course?.orgao_id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -335,12 +335,41 @@ export default function CourseDetailPage({
     })
   }
 
+  // Helper function to transform locations to API format
+  const transformLocationsToApiFormat = (locations: any[]) => {
+    return locations.map(location => ({
+      id: location.id,
+      address: location.address,
+      neighborhood: location.neighborhood,
+      vacancies: location.vacancies,
+      class_start_date: location.classStartDate 
+        ? new Date(location.classStartDate).toISOString()
+        : location.class_start_date,
+      class_end_date: location.classEndDate 
+        ? new Date(location.classEndDate).toISOString()
+        : location.class_end_date,
+      class_time: location.classTime || location.class_time,
+      class_days: location.classDays || location.class_days,
+    }))
+  }
+
   // Helper function to build complete course data for API calls
   const buildCompleteUpdateData = (statusOverride?: string) => {
     if (!course) return {}
     const instituicaoId = Number(
       process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
     )
+
+    // Debug logging for course data
+    console.log('Course data for buildCompleteUpdateData:', {
+      orgao_id: course.orgao_id,
+      orgao: course.orgao,
+      status: course.status,
+      statusOverride,
+    })
+
+    // Transform locations to API format
+    const transformedLocations = course.locations ? transformLocationsToApiFormat(course.locations) : []
 
     return {
       title: course.title,
@@ -349,7 +378,7 @@ export default function CourseDetailPage({
         course.enrollment_start_date || course.enrollment_start_date,
       enrollment_end_date:
         course.enrollment_end_date || course.enrollment_end_date,
-      orgao_id: (course.orgao as any)?.id,
+      orgao_id: course.orgao_id,
       instituicao_id: instituicaoId,
       modalidade: course.modalidade,
       theme: course.theme,
@@ -357,7 +386,7 @@ export default function CourseDetailPage({
       target_audience: course.target_audience,
       institutional_logo: course.institutional_logo,
       cover_image: course.cover_image,
-      pre_requisitos: course.pre_requisitos || course.prerequisites,
+      pre_requisitos: course.pre_requisitos || course.pre_requisitos,
       has_certificate: course.has_certificate,
       facilitator: course.facilitator,
       objectives: course.objectives,
@@ -368,12 +397,12 @@ export default function CourseDetailPage({
       material_used: course.material_used,
       teaching_material: course.teaching_material,
       custom_fields: course.custom_fields || [],
-      locations: course.locations || [],
+      locations: transformedLocations,
       remote_class: course.remote_class,
       turno: 'LIVRE',
       formato_aula: course.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
       status: statusOverride || course.status,
-      organization: course.organization || (course.orgao as any)?.nome,
+      organization: course.organization || course.orgao?.nome,
     }
   }
 
@@ -383,6 +412,8 @@ export default function CourseDetailPage({
 
       // Build complete course data with canceled status
       const cancelData = buildCompleteUpdateData('canceled')
+      
+      console.log('Cancel course data to be sent:', JSON.stringify(cancelData, null, 2))
 
       const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',

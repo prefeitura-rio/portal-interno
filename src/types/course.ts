@@ -138,6 +138,7 @@ export type CourseModality = 'Presencial' | 'Remoto' | 'Semipresencial'
 
 export interface CourseLocation {
   id: string
+  curso_id?: number
   address: string
   neighborhood: string
   vacancies: number
@@ -147,12 +148,35 @@ export interface CourseLocation {
   classDays: string
 }
 
+export type CustomFieldType = 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio'
+
 export interface CustomField {
   id: string
+  curso_id?: number
   title: string
-  value: string
-  type?: 'text' | 'number' | 'date' | 'select'
+  field_type: CustomFieldType
   required: boolean
+  created_at?: string
+  updated_at?: string
+  // For form usage - value field
+  value?: string
+}
+
+export interface RemoteClass {
+  id?: string
+  curso_id?: number
+  vacancies: number
+  class_start_date: string
+  class_end_date: string
+  class_time: string
+  class_days: string
+  created_at?: string
+  updated_at?: string
+  // For form usage - using camelCase for form compatibility
+  classStartDate?: Date
+  classEndDate?: Date
+  classTime?: string
+  classDays?: string
 }
 
 export interface CourseFormData {
