@@ -14,7 +14,7 @@ Frontend → /api/courses/drafts → getApiV1CoursesDrafts() → External API
 
 ### Key Components
 - **Route Handlers**: Next.js 15 API routes in `/api/courses/` and `/api/courses/drafts/`
-- **API Client**: Generated functions from `@/http/courses/courses.ts` (Orval)
+- **API Client**: Generated functions from `@/http-gorio/courses/courses.ts` (Orval)
 - **Custom Fetch**: `custom-fetch.ts` handles authentication and base URL configuration
 - **Data Transformers**: `@/lib/api-transformers.ts` converts API responses to frontend format
 

@@ -1,16 +1,13 @@
 import {
-    getApiV1CoursesCourseIdEnrollments,
-    putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificate,
-} from '@/http/inscricoes/inscricoes'
+  getApiV1CoursesCourseIdEnrollments,
+  putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificate,
+} from '@/http-gorio/inscricoes/inscricoes'
 import type {
-    ModelsCertificateUpdateRequest,
-    ModelsInscricao,
-    ModelsStatusInscricao,
-} from '@/http/models'
-import type {
-    Enrollment,
-    EnrollmentStatus,
-} from '@/types/course'
+  ModelsCertificateUpdateRequest,
+  ModelsInscricao,
+  ModelsStatusInscricao,
+} from '@/http-gorio/models'
+import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import { type NextRequest, NextResponse } from 'next/server'
 
 // Helper function to convert API status to frontend status
@@ -100,11 +97,12 @@ export async function PUT(
     }
 
     // Call the API to update certificate
-    const response = await putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificate(
-      Number.parseInt(courseId, 10),
-      enrollmentId,
-      certificateRequest
-    )
+    const response =
+      await putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificate(
+        Number.parseInt(courseId, 10),
+        enrollmentId,
+        certificateRequest
+      )
 
     if (response.status === 200) {
       // Get the updated enrollment data
@@ -115,13 +113,17 @@ export async function PUT(
 
       if (enrollmentResponse.status === 200) {
         const apiData = enrollmentResponse.data as any
-        if (apiData.data?.enrollments && Array.isArray(apiData.data.enrollments)) {
+        if (
+          apiData.data?.enrollments &&
+          Array.isArray(apiData.data.enrollments)
+        ) {
           const updatedApiEnrollment = apiData.data.enrollments.find(
             (e: any) => e.id === enrollmentId
           )
-          
+
           if (updatedApiEnrollment) {
-            const updatedEnrollment = convertApiEnrollmentToFrontend(updatedApiEnrollment)
+            const updatedEnrollment =
+              convertApiEnrollmentToFrontend(updatedApiEnrollment)
             return NextResponse.json(updatedEnrollment)
           }
         }
