@@ -39,6 +39,7 @@ export interface Service {
   requiredDocuments?: string
   instructionsForRequester?: string
   digitalChannels?: string[]
+  physicalChannels?: string[]
   status: ServiceStatus
   published_at?: Date | null
   last_update: Date

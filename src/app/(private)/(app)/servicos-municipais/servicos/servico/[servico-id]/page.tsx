@@ -394,6 +394,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             requiredDocuments: service.requiredDocuments,
             instructionsForRequester: service.instructionsForRequester,
             digitalChannels: service.digitalChannels,
+            physicalChannels: service.physicalChannels,
           }}
         />
 

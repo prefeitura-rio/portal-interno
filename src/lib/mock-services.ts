@@ -4,26 +4,31 @@ import type { Service, ServiceListItem } from '@/types/service'
 export const mockServices: Service[] = [
   {
     id: '1',
-    managingOrgan: 'smcc',
-    serviceCategory: 'licencas',
-    targetAudience: 'empresarios',
-    title: 'Solicitação de Alvará de Funcionamento',
-    shortDescription:
+    managingOrgan: 'smcc', //orgao_gestor: string[]
+    serviceCategory: 'licencas', //tema_geral: string
+    targetAudience: 'empresarios', //publico_especifico: string[]
+    title: 'Solicitação de Alvará de Funcionamento', //nome_servico: string
+    shortDescription: //resumo: string
       'Solicite o alvará de funcionamento para estabelecimentos comerciais e industriais no município.',
-    whatServiceDoesNotCover: 'Não atende casos de emergência ou urgência',
-    serviceTime: '15 dias úteis',
-    serviceCost: 'R$ 150,00',
+    whatServiceDoesNotCover: 'Não atende casos de emergência ou urgência', //servico_nao_cobre: string
+    serviceTime: '15 dias úteis', //tempo_de_atendimento: string
+    serviceCost: 'R$ 150,00', //custo_servico: string
     isFree: false,
-    requestResult: 'Alvará de funcionamento emitido e disponível para download',
-    fullDescription:
+    requestResult: 'Alvará de funcionamento emitido e disponível para download', //resultado_solicitacao: string
+    fullDescription: //descricao_completa: string
       'O alvará de funcionamento é um documento obrigatório para o funcionamento de estabelecimentos comerciais, industriais e de prestação de serviços. Este serviço permite que empresários e empreendedores solicitem a autorização necessária para iniciar suas atividades no município.',
-    requiredDocuments:
+    requiredDocuments: //documentos_necessarios: string[]
       'RG, CPF, Comprovante de endereço, Contrato de locação ou escritura, Projeto arquitetônico aprovado',
-    instructionsForRequester:
+    instructionsForRequester: //instrucoes_solicitante: string
       '1. Acesse o portal de serviços\n2. Preencha o formulário online\n3. Anexe os documentos necessários\n4. Aguarde a análise do pedido\n5. Receba o alvará por email',
     digitalChannels: [
+      //canais_digitais: string[]
       'https://www.rio.rj.gov.br/alvara',
       'https://app.rio.rj.gov.br/servicos',
+    ],
+    physicalChannels: [
+      'Rua da Alfândega, 123 - Centro - RJ',
+      'Av. Rio Branco, 456 - Centro - RJ',
     ],
     status: 'published',
     published_at: new Date('2024-01-15'),
@@ -49,6 +54,7 @@ export const mockServices: Service[] = [
     instructionsForRequester:
       '1. Acesse o portal do MEI\n2. Preencha o formulário de cadastro\n3. Anexe os documentos\n4. Pague a taxa (se aplicável)\n5. Receba o certificado',
     digitalChannels: ['https://www.rio.rj.gov.br/mei'],
+    physicalChannels: ['Praça da Cidadania, 789 - Centro - RJ'],
     status: 'waiting_approval',
     published_at: null,
     last_update: new Date('2024-01-18'),
@@ -74,6 +80,7 @@ export const mockServices: Service[] = [
     instructionsForRequester:
       '1. Preencha o formulário de solicitação\n2. Anexe os documentos necessários\n3. Aguarde a análise\n4. Pague a taxa\n5. Receba a licença',
     digitalChannels: ['https://www.rio.rj.gov.br/eventos'],
+    physicalChannels: ['Av. Presidente Vargas, 321 - Centro - RJ'],
     status: 'published',
     published_at: new Date('2024-01-10'),
     last_update: new Date('2024-01-22'),
@@ -99,6 +106,7 @@ export const mockServices: Service[] = [
     instructionsForRequester:
       '1. Acesse o portal de serviços\n2. Preencha o formulário\n3. Anexe os documentos\n4. Pague a taxa\n5. Receba a certidão',
     digitalChannels: ['https://www.rio.rj.gov.br/certidoes'],
+    physicalChannels: ['Rua Buenos Aires, 654 - Centro - RJ'],
     status: 'in_edition',
     published_at: null,
     last_update: new Date('2024-01-19'),
@@ -124,6 +132,7 @@ export const mockServices: Service[] = [
     instructionsForRequester:
       '1. Acesse o portal de serviços\n2. Preencha o formulário\n3. Anexe os documentos\n4. Aguarde a análise\n5. Receba a confirmação',
     digitalChannels: ['https://www.rio.rj.gov.br/iptu'],
+    physicalChannels: ['Rua da Assembleia, 987 - Centro - RJ'],
     status: 'published',
     published_at: new Date('2024-01-12'),
     last_update: new Date('2024-01-21'),
@@ -149,6 +158,7 @@ export const mockServices: Service[] = [
     instructionsForRequester:
       '1. Acesse o portal de serviços\n2. Preencha o formulário\n3. Anexe os documentos\n4. Aguarde a análise\n5. Receba o resultado',
     digitalChannels: ['https://www.rio.rj.gov.br/assistencia'],
+    physicalChannels: ['Av. Erasmo Braga, 147 - Centro - RJ'],
     status: 'waiting_approval',
     published_at: null,
     last_update: new Date('2024-01-17'),
@@ -174,6 +184,7 @@ export const mockServices: Service[] = [
     instructionsForRequester:
       '1. Acesse o portal de serviços\n2. Preencha o formulário\n3. Anexe os documentos\n4. Pague a taxa\n5. Aguarde a análise\n6. Receba a autorização',
     digitalChannels: ['https://www.rio.rj.gov.br/obras'],
+    physicalChannels: ['Rua Mexico, 258 - Centro - RJ'],
     status: 'in_edition',
     published_at: null,
     last_update: new Date('2024-01-16'),
@@ -199,6 +210,7 @@ export const mockServices: Service[] = [
     instructionsForRequester:
       '1. Acesse o portal de serviços\n2. Preencha o formulário\n3. Anexe os documentos\n4. Aguarde a análise\n5. Receba o cartão',
     digitalChannels: ['https://www.rio.rj.gov.br/pcd'],
+    physicalChannels: ['Av. Churchill, 369 - Centro - RJ'],
     status: 'published',
     published_at: new Date('2024-01-08'),
     last_update: new Date('2024-01-23'),
@@ -224,6 +236,7 @@ export const mockServices: Service[] = [
     instructionsForRequester:
       '1. Acesse o portal de bolsas\n2. Preencha o formulário\n3. Anexe os documentos\n4. Aguarde a análise\n5. Receba o resultado',
     digitalChannels: ['https://www.rio.rj.gov.br/bolsas'],
+    physicalChannels: ['Rua Afonso Cavalcanti, 741 - Cidade Nova - RJ'],
     status: 'waiting_approval',
     published_at: null,
     last_update: new Date('2024-01-14'),
@@ -248,6 +261,9 @@ export const mockServices: Service[] = [
     instructionsForRequester:
       '1. Acesse o portal de saúde\n2. Selecione a especialidade\n3. Escolha data e horário\n4. Confirme o agendamento\n5. Receba a confirmação',
     digitalChannels: ['https://www.rio.rj.gov.br/saude'],
+    physicalChannels: [
+      'Av. Brigadeiro Trompowsky, 852 - Ilha do Governador - RJ',
+    ],
     status: 'waiting_approval',
     published_at: null,
     last_update: new Date('2024-01-13'),
@@ -273,6 +289,7 @@ export const mockServices: Service[] = [
     instructionsForRequester:
       '1. Acesse o portal de transportes\n2. Preencha o formulário\n3. Anexe os documentos\n4. Aguarde a análise técnica\n5. Receba o resultado',
     digitalChannels: ['https://www.rio.rj.gov.br/transporte'],
+    physicalChannels: ['Av. Presidente Antônio Carlos, 963 - Centro - RJ'],
     status: 'waiting_approval',
     published_at: null,
     last_update: new Date('2024-01-11'),
