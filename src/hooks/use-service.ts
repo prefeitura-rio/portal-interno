@@ -24,13 +24,15 @@ export function useService(serviceId: string | null): UseServiceReturn {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`/api/services/${serviceId}`)
+      const response = await fetch(`/api/services/${serviceId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Service not found')
-        }
-        throw new Error('Failed to fetch service')
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data = await response.json()
@@ -41,6 +43,7 @@ export function useService(serviceId: string | null): UseServiceReturn {
 
       setService(data.service)
     } catch (err) {
+      console.error('Error fetching service:', err)
       setError(err instanceof Error ? err.message : 'An error occurred')
       setService(null)
     } finally {

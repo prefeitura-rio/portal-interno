@@ -1,4 +1,4 @@
-import { getApiV1Orgaos } from '@/http/orgaos/orgaos'
+import { getApiV1Orgaos } from '@/http-gorio/orgaos/orgaos'
 import { NextResponse } from 'next/server'
 
 export async function GET() {

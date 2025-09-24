@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import { useServices } from '@/hooks/use-services'
 import { useIsAdmin } from '@/hooks/use-user-role'
-import { mockServicesListItems } from '@/lib/mock-services'
 import { getSecretariaByValue } from '@/lib/secretarias'
 import type {
   ServiceListItem,
@@ -58,7 +58,7 @@ const statusConfig: Record<ServiceStatus, ServiceStatusConfig> = {
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
-  waiting_approval: {
+  awaiting_approval: {
     icon: Clock,
     label: 'Aguardando aprovação',
     variant: 'outline',
@@ -89,63 +89,35 @@ export function ServicesDataTable() {
   })
 
   // Get active tab from search params, default to 'published'
-  const activeTab = searchParams.get('tab') || 'published'
-  const [services, setServices] = React.useState<ServiceListItem[]>([])
-  const [loading, setLoading] = React.useState(false)
-  const [initialLoading, setInitialLoading] = React.useState(true)
+  const activeTab = (searchParams.get('tab') || 'published') as ServiceStatus
   const [searchQuery, setSearchQuery] = React.useState('')
   const [selectedSecretaria, setSelectedSecretaria] = React.useState('')
 
-  // Filter services based on active tab
-  const filteredServices = React.useMemo(() => {
-    let filtered = mockServicesListItems
+  // Use the services hook to fetch data from API
+  const {
+    services,
+    loading,
+    error,
+    pagination: apiPagination,
+    refetch,
+  } = useServices({
+    page: pagination.pageIndex + 1, // API uses 1-based pagination
+    perPage: pagination.pageSize,
+    search: searchQuery,
+    status: activeTab,
+    managingOrgan: selectedSecretaria,
+  })
 
-    // Filter by tab (status)
-    if (activeTab === 'published') {
-      filtered = filtered.filter(service => service.status === 'published')
-    } else if (activeTab === 'in_edition') {
-      filtered = filtered.filter(service => service.status === 'in_edition')
-    } else if (activeTab === 'waiting_approval') {
-      filtered = filtered.filter(
-        service => service.status === 'waiting_approval'
-      )
-    }
-
-    // Filter by selected secretaria
-    if (selectedSecretaria) {
-      filtered = filtered.filter(
-        service => service.managingOrgan === selectedSecretaria
-      )
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim()
-      filtered = filtered.filter(service => {
-        const secretaria = getSecretariaByValue(service.managingOrgan)
-        const secretariaLabel = secretaria?.label || service.managingOrgan
-
-        return (
-          service.title.toLowerCase().includes(query) ||
-          secretariaLabel.toLowerCase().includes(query)
-        )
-      })
-    }
-
-    return filtered
-  }, [activeTab, selectedSecretaria, searchQuery])
-
-  // Simulate loading
+  // Update pagination when API pagination changes
   React.useEffect(() => {
-    setLoading(true)
-    const timer = setTimeout(() => {
-      setServices(filteredServices)
-      setLoading(false)
-      setInitialLoading(false)
-    }, 300)
-
-    return () => clearTimeout(timer)
-  }, [filteredServices])
+    if (apiPagination) {
+      setPagination(prev => ({
+        ...prev,
+        pageIndex: apiPagination.page - 1, // Convert back to 0-based for UI
+        pageSize: apiPagination.per_page,
+      }))
+    }
+  }, [apiPagination])
 
   // Debounced search function
   const debouncedSearch = useDebouncedCallback((query: string) => {
@@ -364,15 +336,39 @@ export function ServicesDataTable() {
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onPaginationChange: setPagination,
+    onPaginationChange: updater => {
+      setPagination(updater)
+      // The useServices hook will automatically refetch when pagination changes
+    },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    manualPagination: false,
-    manualFiltering: false,
+    manualPagination: true, // Enable manual pagination for API
+    manualFiltering: true, // Enable manual filtering for API
+    pageCount: apiPagination?.total_pages ?? -1, // Set total pages from API
   })
 
-  if (initialLoading) {
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-destructive mb-2">Erro ao carregar serviços</p>
+          <p className="text-muted-foreground text-sm">{error}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading state during initial load
+  if (loading && services.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -405,7 +401,7 @@ export function ServicesDataTable() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="published">Publicados</TabsTrigger>
           <TabsTrigger value="in_edition">Em edição</TabsTrigger>
-          <TabsTrigger value="waiting_approval">
+          <TabsTrigger value="awaiting_approval">
             {isAdmin ? 'Pronto para aprovação' : 'Em aprovação'}
           </TabsTrigger>
         </TabsList>
@@ -434,7 +430,7 @@ export function ServicesDataTable() {
           </DataTable>
         </TabsContent>
 
-        <TabsContent value="waiting_approval" className="space-y-4">
+        <TabsContent value="awaiting_approval" className="space-y-4">
           <DataTable
             table={table}
             loading={loading}

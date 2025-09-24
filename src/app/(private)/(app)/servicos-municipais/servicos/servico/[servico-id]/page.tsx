@@ -32,7 +32,7 @@ const statusConfig: Record<string, ServiceStatusConfig> = {
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
-  waiting_approval: {
+  awaiting_approval: {
     icon: Clock,
     label: 'Aguardando aprovação',
     variant: 'outline',
@@ -164,7 +164,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           return { showEdit: true, showAdditionalButtons: [] }
         case 'in_edition':
           return { showEdit: true, showAdditionalButtons: [] }
-        case 'waiting_approval':
+        case 'awaiting_approval':
           return {
             showEdit: true,
             showAdditionalButtons: [
@@ -191,7 +191,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           return { showEdit: false, showAdditionalButtons: [] }
         case 'in_edition':
           return { showEdit: true, showAdditionalButtons: [] }
-        case 'waiting_approval':
+        case 'awaiting_approval':
           return {
             showEdit: true,
             showAdditionalButtons: [
@@ -394,6 +394,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             requiredDocuments: service.requiredDocuments,
             instructionsForRequester: service.instructionsForRequester,
             digitalChannels: service.digitalChannels,
+            physicalChannels: service.physicalChannels,
           }}
         />
 

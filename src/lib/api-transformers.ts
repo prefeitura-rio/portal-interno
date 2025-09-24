@@ -140,6 +140,9 @@ export function transformApiCourseToCourseListItem(
     modalidade: apiCourse.modalidade,
     organization:
       apiCourse.orgao?.nome || apiCourse.organization || 'Não informado',
+    // Include external partner info if available (for potential future use)
+    is_external_partner: apiCourse.is_external_partner,
+    external_partner_name: apiCourse.external_partner_name,
   }
 }
 

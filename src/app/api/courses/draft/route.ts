@@ -1,5 +1,5 @@
-import { postApiV1CoursesDraft } from '@/http/courses/courses'
-import type { ModelsCursoBody } from '@/http/models/modelsCursoBody'
+import { postApiV1CoursesDraft } from '@/http-gorio/courses/courses'
+import type { ModelsCursoBody } from '@/http-gorio/models/modelsCursoBody'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
