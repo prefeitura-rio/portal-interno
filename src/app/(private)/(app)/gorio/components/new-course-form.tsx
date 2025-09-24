@@ -284,6 +284,26 @@ const fullFormSchema = z
       path: ['modalidade'],
     }
   )
+  .refine(
+    data => {
+      if (!data.is_external_partner) return true
+      return data.external_partner_name?.trim()
+    },
+    {
+      message: 'Nome do parceiro externo é obrigatório.',
+      path: ['external_partner_name'],
+    }
+  )
+  .refine(
+    data => {
+      if (!data.is_external_partner) return true
+      return data.external_partner_url?.trim()
+    },
+    {
+      message: 'URL do parceiro externo é obrigatória.',
+      path: ['external_partner_url'],
+    }
+  )
 
 // Create a minimal schema for draft validation (only basic field presence)
 const draftFormSchema = z.object({
@@ -1213,6 +1233,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               placeholder="Ex. PUC RJ"
                               {...field}
                               disabled={isReadOnly}
+                              required={form.watch('is_external_partner')}
                             />
                           </FormControl>
                           <FormMessage />
@@ -1234,6 +1255,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               type="url"
                               {...field}
                               disabled={isReadOnly}
+                              required={form.watch('is_external_partner')}
                             />
                           </FormControl>
                           <FormMessage />
