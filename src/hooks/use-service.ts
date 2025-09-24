@@ -1,4 +1,3 @@
-import { fetchServiceById } from '@/lib/api-service-adapter'
 import type { Service } from '@/types/service'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -25,12 +24,26 @@ export function useService(serviceId: string | null): UseServiceReturn {
       setLoading(true)
       setError(null)
 
-      // Simulate API delay only in mock mode
-      await new Promise(resolve => setTimeout(resolve, 300))
+      const response = await fetch(`/api/services/${serviceId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      const foundService = await fetchServiceById(serviceId)
-      setService(foundService)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch service')
+      }
+
+      setService(data.service)
     } catch (err) {
+      console.error('Error fetching service:', err)
       setError(err instanceof Error ? err.message : 'An error occurred')
       setService(null)
     } finally {

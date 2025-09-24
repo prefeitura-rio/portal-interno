@@ -17,11 +17,11 @@ const getBody = <T>(c: Response | Request): Promise<T> => {
 
 // NOTE: Update just base url
 const getUrl = (contextUrl: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
+  const baseUrl = process.env.NEXT_PUBLIC_BUSCA_SEARCH_API_URL
 
   if (!baseUrl) {
     throw new Error(
-      'NEXT_PUBLIC_COURSES_BASE_API_URL environment variable is not set.'
+      'NEXT_PUBLIC_BUSCA_SEARCH_API_URL environment variable is not set.'
     )
   }
 
@@ -65,7 +65,8 @@ export const customFetchBuscaSearch = async <T>(
     headers: requestHeaders,
   }
 
-  console.log('RequestInit:', requestInit)
+  console.log('🌍 Complete Backend URL:', requestUrl)
+  console.log('📦 RequestInit:', requestInit)
 
   const response = await fetch(requestUrl, requestInit)
   const data = await getBody<T>(response)
