@@ -96,6 +96,9 @@ const serviceFormSchema = z.object({
   digitalChannels: z
     .array(z.string().url({ message: 'URL inválida.' }))
     .optional(),
+  physicalChannels: z
+    .array(z.string().min(1, { message: 'Endereço não pode estar vazio.' }))
+    .optional(),
 })
 
 type ServiceFormData = z.infer<typeof serviceFormSchema>
@@ -115,6 +118,7 @@ const defaultValues: ServiceFormData = {
   requiredDocuments: '',
   instructionsForRequester: '',
   digitalChannels: [],
+  physicalChannels: [],
 }
 
 interface NewServiceFormProps {
@@ -148,6 +152,12 @@ export function NewServiceForm({
   )
   const [channelErrors, setChannelErrors] = useState<string[]>(
     initialData?.digitalChannels?.map(() => '') || ['']
+  )
+  const [physicalChannels, setPhysicalChannels] = useState<string[]>(
+    initialData?.physicalChannels || ['']
+  )
+  const [physicalChannelErrors, setPhysicalChannelErrors] = useState<string[]>(
+    initialData?.physicalChannels?.map(() => '') || ['']
   )
 
   const form = useForm<ServiceFormData>({
@@ -191,6 +201,24 @@ export function NewServiceForm({
     }
   }
 
+  const addPhysicalChannel = () => {
+    setPhysicalChannels([...physicalChannels, ''])
+    setPhysicalChannelErrors([...physicalChannelErrors, ''])
+  }
+
+  const removePhysicalChannel = (index: number) => {
+    if (physicalChannels.length > 1) {
+      const newChannels = physicalChannels.filter((_, i) => i !== index)
+      const newErrors = physicalChannelErrors.filter((_, i) => i !== index)
+      setPhysicalChannels(newChannels)
+      setPhysicalChannelErrors(newErrors)
+      form.setValue(
+        'physicalChannels',
+        newChannels.filter(channel => channel.trim() !== '')
+      )
+    }
+  }
+
   const updateDigitalChannel = (index: number, value: string) => {
     const newChannels = [...digitalChannels]
     const newErrors = [...channelErrors]
@@ -225,6 +253,34 @@ export function NewServiceForm({
       })
 
     form.setValue('digitalChannels', validChannels)
+  }
+
+  const updatePhysicalChannel = (index: number, value: string) => {
+    const newChannels = [...physicalChannels]
+    const newErrors = [...physicalChannelErrors]
+
+    newChannels[index] = value
+
+    // Validate address (simple validation - not empty)
+    if (value.trim() !== '') {
+      if (value.trim().length < 5) {
+        newErrors[index] = 'Endereço muito curto'
+      } else {
+        newErrors[index] = ''
+      }
+    } else {
+      newErrors[index] = ''
+    }
+
+    setPhysicalChannels(newChannels)
+    setPhysicalChannelErrors(newErrors)
+
+    // Only include valid addresses in form data
+    const validChannels = newChannels
+      .filter(channel => channel.trim() !== '')
+      .filter(channel => channel.trim().length >= 5)
+
+    form.setValue('physicalChannels', validChannels)
   }
 
   const handleSendToEditClick = (data: ServiceFormData) => {
@@ -293,7 +349,7 @@ export function NewServiceForm({
 
   const preprocessFormData = (data: ServiceFormData): ServiceFormData => {
     // Filter out empty and invalid digital channels
-    const validChannels = digitalChannels
+    const validDigitalChannels = digitalChannels
       .filter(channel => channel.trim() !== '')
       .filter(channel => {
         try {
@@ -304,9 +360,17 @@ export function NewServiceForm({
         }
       })
 
+    // Filter out empty and invalid physical channels
+    const validPhysicalChannels = physicalChannels
+      .filter(channel => channel.trim() !== '')
+      .filter(channel => channel.trim().length >= 5)
+
     return {
       ...data,
-      digitalChannels: validChannels.length > 0 ? validChannels : undefined,
+      digitalChannels:
+        validDigitalChannels.length > 0 ? validDigitalChannels : undefined,
+      physicalChannels:
+        validPhysicalChannels.length > 0 ? validPhysicalChannels : undefined,
     }
   }
 
@@ -743,6 +807,72 @@ export function NewServiceForm({
                         type="button"
                         variant="outline"
                         onClick={addDigitalChannel}
+                        disabled={isLoading}
+                        className="w-full"
+                      >
+                        Adicionar campo adicional +
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Physical Channels Section */}
+              <div className="space-y-4">
+                <div>
+                  <FormLabel
+                    className={
+                      physicalChannelErrors.some(error => error)
+                        ? 'text-destructive'
+                        : ''
+                    }
+                  >
+                    Canais presenciais
+                  </FormLabel>
+                  <div className="space-y-3 mt-2">
+                    {physicalChannels.map((channel, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex gap-2 items-start">
+                          <div className="flex-1">
+                            <Input
+                              placeholder="Ex: Rua das Flores, 123 - Centro"
+                              value={channel}
+                              onChange={e =>
+                                updatePhysicalChannel(index, e.target.value)
+                              }
+                              disabled={isLoading || readOnly}
+                              className={
+                                physicalChannelErrors[index]
+                                  ? 'border-destructive'
+                                  : ''
+                              }
+                            />
+                            {physicalChannelErrors[index] && (
+                              <p className="text-sm text-destructive mt-1">
+                                {physicalChannelErrors[index]}
+                              </p>
+                            )}
+                          </div>
+                          {index > 0 && !readOnly && (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              onClick={() => removePhysicalChannel(index)}
+                              disabled={isLoading}
+                              className="shrink-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {!readOnly && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addPhysicalChannel}
                         disabled={isLoading}
                         className="w-full"
                       >
