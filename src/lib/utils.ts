@@ -194,6 +194,12 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     orgao_id: courseData.orgao_id || courseData.orgao?.id || null,
     // Ensure organization field is properly mapped from orgao.nome or existing organization
     organization: courseData.orgao?.nome || courseData.organization || '',
+    // External partner fields
+    is_external_partner: courseData.is_external_partner || false,
+    external_partner_name: courseData.external_partner_name || '',
+    external_partner_url: courseData.external_partner_url || '',
+    external_partner_logo_url: courseData.external_partner_logo_url || '',
+    external_partner_contact: courseData.external_partner_contact || '',
     enrollment_start_date:
       safeParseDate(courseData.enrollment_start_date) ||
       safeParseDate(courseData.data_inicio) ||
