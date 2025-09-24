@@ -24,6 +24,8 @@ export interface ModelsPrefRioService {
   id?: string
   instrucoes_solicitante?: string
   last_update?: number
+  published_at?: number
+  is_free?: boolean
   legislacao_relacionada?: string[]
   /** @maxLength 255 */
   nome_servico: string

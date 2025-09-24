@@ -58,7 +58,7 @@ const statusConfig: Record<ServiceStatus, ServiceStatusConfig> = {
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
-  waiting_approval: {
+  awaiting_approval: {
     icon: Clock,
     label: 'Aguardando aprovação',
     variant: 'outline',
@@ -105,9 +105,9 @@ export function ServicesDataTable() {
       filtered = filtered.filter(service => service.status === 'published')
     } else if (activeTab === 'in_edition') {
       filtered = filtered.filter(service => service.status === 'in_edition')
-    } else if (activeTab === 'waiting_approval') {
+    } else if (activeTab === 'awaiting_approval') {
       filtered = filtered.filter(
-        service => service.status === 'waiting_approval'
+        service => service.status === 'awaiting_approval'
       )
     }
 
@@ -405,7 +405,7 @@ export function ServicesDataTable() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="published">Publicados</TabsTrigger>
           <TabsTrigger value="in_edition">Em edição</TabsTrigger>
-          <TabsTrigger value="waiting_approval">
+          <TabsTrigger value="awaiting_approval">
             {isAdmin ? 'Pronto para aprovação' : 'Em aprovação'}
           </TabsTrigger>
         </TabsList>
@@ -434,7 +434,7 @@ export function ServicesDataTable() {
           </DataTable>
         </TabsContent>
 
-        <TabsContent value="waiting_approval" className="space-y-4">
+        <TabsContent value="awaiting_approval" className="space-y-4">
           <DataTable
             table={table}
             loading={loading}
