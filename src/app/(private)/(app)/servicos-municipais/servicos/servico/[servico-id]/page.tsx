@@ -14,7 +14,9 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useService } from '@/hooks/use-service'
+import { useServiceOperations } from '@/hooks/use-service-operations'
 import { useUserRole } from '@/hooks/use-user-role'
+import { transformToApiRequest } from '@/lib/service-data-transformer'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -59,6 +61,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [showSendToApprovalDialog, setShowSendToApprovalDialog] =
     useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [pendingFormData, setPendingFormData] = useState<any>(null)
 
   useEffect(() => {
     params.then(({ 'servico-id': id }) => {
@@ -67,6 +70,13 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }, [params])
 
   const { service, loading, error, refetch } = useService(servicoId)
+  const {
+    updateService,
+    publishService,
+    unpublishService,
+    deleteService,
+    loading: operationLoading,
+  } = useServiceOperations()
   const userRole = useUserRole()
 
   const handleEdit = () => {
@@ -80,13 +90,15 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }
 
   const handleSave = async (data: any) => {
+    if (!servicoId) return
+
     try {
       setIsSaving(true)
-      // TODO: Implement save functionality
-      console.log('Saving service:', data)
-      toast.success('Serviço salvo com sucesso!')
+      const apiData = transformToApiRequest(data)
+      await updateService(servicoId, apiData)
       setIsEditing(false)
       setShowSaveDialog(false)
+      setPendingFormData(null)
       refetch()
     } catch (error) {
       console.error('Error saving service:', error)
@@ -96,16 +108,24 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     }
   }
 
-  const handleSaveClick = () => {
+  const handleSaveClick = (data: any) => {
+    setPendingFormData(data)
     setShowSaveDialog(true)
   }
 
+  const handleConfirmSave = () => {
+    if (pendingFormData) {
+      handleSave(pendingFormData)
+    }
+  }
+
   const handleSendToEdit = async () => {
+    if (!servicoId || !service) return
+
     try {
       setIsSaving(true)
-      // TODO: Implement send to edit functionality
-      console.log('Sending service to edit:', servicoId)
-      toast.success('Serviço enviado para edição!')
+      // Unpublish the service (set status to 0 - draft/in_edition)
+      await unpublishService(servicoId)
       setShowSendToEditDialog(false)
       refetch()
     } catch (error) {
@@ -117,11 +137,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }
 
   const handleApproveAndPublish = async () => {
+    if (!servicoId) return
+
     try {
       setIsSaving(true)
-      // TODO: Implement approve and publish functionality
-      console.log('Approving and publishing service:', servicoId)
-      toast.success('Serviço aprovado e publicado com sucesso!')
+      await publishService(servicoId)
       setShowApproveDialog(false)
       refetch()
     } catch (error) {
@@ -133,10 +153,15 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }
 
   const handleSendToApproval = async () => {
+    if (!servicoId || !service) return
+
     try {
       setIsSaving(true)
-      // TODO: Implement send to approval functionality
-      console.log('Sending service to approval:', servicoId)
+      // Set awaiting_approval flag - this might need special handling in the API
+      const apiData = transformToApiRequest(service)
+      apiData.awaiting_approval = true
+      await updateService(servicoId, apiData)
+
       toast.success('Serviço enviado para aprovação!')
       setShowSendToApprovalDialog(false)
       setIsEditing(false)
@@ -322,7 +347,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                       {buttonConfig.showEdit && (
                         <Button
                           onClick={handleEdit}
-                          disabled={loading}
+                          disabled={loading || operationLoading}
                           className="w-full md:w-auto"
                         >
                           <Edit className="mr-2 h-4 w-4" />
@@ -335,7 +360,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                             key={index}
                             variant={button.variant}
                             onClick={button.action}
-                            disabled={loading || isSaving}
+                            disabled={loading || operationLoading || isSaving}
                             className="w-full md:w-auto"
                           >
                             {button.label}
@@ -349,9 +374,19 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                 return (
                   <div className="flex gap-2 w-full md:w-auto">
                     <Button
-                      onClick={handleSaveClick}
-                      disabled={isSaving}
+                      type="button"
+                      form="service-edit-form"
+                      disabled={isSaving || operationLoading}
                       className="flex-1 md:flex-none"
+                      onClick={() => {
+                        // We'll use form.handleSubmit to trigger validation and get data
+                        const formElement = document.getElementById(
+                          'service-edit-form'
+                        ) as HTMLFormElement
+                        if (formElement) {
+                          formElement.requestSubmit()
+                        }
+                      }}
                     >
                       <Save className="mr-2 h-4 w-4" />
                       {isSaving ? 'Salvando...' : 'Salvar edição'}
@@ -359,7 +394,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                     <Button
                       variant="outline"
                       onClick={handleCancel}
-                      disabled={isSaving}
+                      disabled={isSaving || operationLoading}
                       className="flex-1 md:flex-none"
                     >
                       <X className="mr-2 h-4 w-4" />
@@ -374,11 +409,12 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
         <NewServiceForm
           readOnly={!isEditing}
-          isLoading={isSaving}
-          onSubmit={isEditing ? handleSave : undefined}
+          isLoading={isSaving || operationLoading}
+          onSubmit={isEditing ? handleSaveClick : undefined}
           userRole={userRole}
           serviceStatus={service.status}
           onSendToApproval={handleSendToApproval}
+          serviceId={servicoId || undefined}
           initialData={{
             managingOrgan: service.managingOrgan,
             serviceCategory: service.serviceCategory,
@@ -395,6 +431,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             instructionsForRequester: service.instructionsForRequester,
             digitalChannels: service.digitalChannels,
             physicalChannels: service.physicalChannels,
+            legislacaoRelacionada: service.legislacaoRelacionada,
           }}
         />
 
@@ -440,7 +477,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           confirmText="Salvar alterações"
           cancelText="Cancelar"
           variant="default"
-          onConfirm={() => handleSave({})}
+          onConfirm={handleConfirmSave}
         />
       </div>
     </ContentLayout>

@@ -1,10 +1,13 @@
 import {
   getApiV1AdminServices,
   getGetApiV1AdminServicesUrl,
+  postApiV1AdminServices,
 } from '@/http-busca-search/admin/admin'
 import type { GetApiV1AdminServicesParams } from '@/http-busca-search/models/getApiV1AdminServicesParams'
+import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import type { ServiceListItem, ServiceStatus } from '@/types/service'
 import { convertApiToFrontend } from '@/types/service'
+import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -72,7 +75,7 @@ export async function GET(request: Request) {
     console.log('🌐 External API URL (relative path):', externalApiUrl)
 
     // Show what the complete URL will be (baseUrl + path)
-    const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
+    const baseUrl = process.env.NEXT_PUBLIC_BUSCA_SEARCH_API_URL
     console.log('🔗 Base URL from env:', baseUrl)
 
     if (baseUrl) {
@@ -135,6 +138,59 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         error: 'Failed to fetch services',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+
+    console.log('🚀 Creating service with data:', body)
+
+    // Validate required fields
+    if (!body.nome_servico || !body.resumo || !body.orgao_gestor) {
+      return NextResponse.json(
+        { error: 'Required fields missing: nome_servico, resumo, orgao_gestor' },
+        { status: 400 }
+      )
+    }
+
+    const serviceRequest: ModelsPrefRioServiceRequest = {
+      ...body,
+      status: body.status ?? 0, // Default to draft
+    }
+
+    // Call the external API to create the service
+    const response = await postApiV1AdminServices(serviceRequest)
+
+    if (response.status === 201) {
+      console.log('Service created successfully:', response.data)
+
+      // Revalidate cache tags for services
+      revalidateTag('services')
+
+      // Convert API response to frontend format
+      const service = convertApiToFrontend(response.data)
+
+      return NextResponse.json({
+        service,
+        success: true,
+      })
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create service' },
+      { status: response.status }
+    )
+  } catch (error) {
+    console.error('Error creating service:', error)
+    return NextResponse.json(
+      {
+        error: 'Failed to create service',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
