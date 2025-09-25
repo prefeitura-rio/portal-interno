@@ -539,7 +539,11 @@ export function NewServiceForm({
   return (
     <div className="space-y-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <form
+          id="service-edit-form"
+          onSubmit={form.handleSubmit(handleSubmit)}
+          className="space-y-6"
+        >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="space-y-6">

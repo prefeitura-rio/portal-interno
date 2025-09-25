@@ -18,6 +18,7 @@ export interface ServiceFormData {
   instructionsForRequester?: string
   digitalChannels?: string[]
   physicalChannels?: string[]
+  legislacaoRelacionada?: string[]
 }
 
 /**
@@ -39,6 +40,7 @@ export function transformToApiRequest(formData: ServiceFormData): ModelsPrefRioS
     documentos_necessarios: formData.requiredDocuments ? [formData.requiredDocuments] : undefined,
     canais_digitais: formData.digitalChannels?.filter(channel => channel.trim() !== ''),
     canais_presenciais: formData.physicalChannels?.filter(channel => channel.trim() !== ''),
+    legislacao_relacionada: formData.legislacaoRelacionada?.filter(legislacao => legislacao.trim() !== ''),
     status: 0, // Default to draft status
   }
 }
@@ -63,6 +65,7 @@ export function transformFromApiResponse(apiService: ModelsPrefRioService): Serv
     requiredDocuments: apiService.documentos_necessarios?.join('\n'),
     digitalChannels: apiService.canais_digitais || [],
     physicalChannels: apiService.canais_presenciais || [],
+    legislacaoRelacionada: apiService.legislacao_relacionada || [],
     status: getStatusFromNumber(apiService.status),
     isFree: apiService.is_free,
     created_at: apiService.created_at ? new Date(apiService.created_at * 1000) : new Date(),
@@ -106,6 +109,7 @@ export function transformToFormData(service: Service): ServiceFormData {
     instructionsForRequester: service.instructionsForRequester,
     digitalChannels: service.digitalChannels,
     physicalChannels: service.physicalChannels,
+    legislacaoRelacionada: service.legislacaoRelacionada,
   }
 }
 
