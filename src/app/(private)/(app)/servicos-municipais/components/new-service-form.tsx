@@ -27,9 +27,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useServiceOperations } from '@/hooks/use-service-operations'
 import { SECRETARIAS } from '@/lib/secretarias'
 import { transformToApiRequest } from '@/lib/service-data-transformer'
-import { useServiceOperations } from '@/hooks/use-service-operations'
 import { toast } from 'sonner'
 
 // Define the schema for service form validation
@@ -149,7 +149,12 @@ export function NewServiceForm({
   serviceId,
 }: NewServiceFormProps) {
   const router = useRouter()
-  const { createService, updateService, publishService, loading: operationLoading } = useServiceOperations()
+  const {
+    createService,
+    updateService,
+    publishService,
+    loading: operationLoading,
+  } = useServiceOperations()
   const [showSendToEditDialog, setShowSendToEditDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
   const [showSendToApprovalDialog, setShowSendToApprovalDialog] =
@@ -463,7 +468,6 @@ export function NewServiceForm({
   const handleSubmit = async (data: ServiceFormData) => {
     try {
       const processedData = preprocessFormData(data)
-      console.log('Service form data:', processedData)
 
       if (onSubmit) {
         await onSubmit(processedData)
@@ -483,7 +487,11 @@ export function NewServiceForm({
       }
     } catch (error) {
       console.error('Error saving service:', error)
-      toast.error(serviceId ? 'Erro ao atualizar serviço. Tente novamente.' : 'Erro ao criar serviço. Tente novamente.')
+      toast.error(
+        serviceId
+          ? 'Erro ao atualizar serviço. Tente novamente.'
+          : 'Erro ao criar serviço. Tente novamente.'
+      )
     }
   }
 
@@ -1075,7 +1083,9 @@ export function NewServiceForm({
                         onClick={form.handleSubmit(handleSendToEditClick)}
                         disabled={isLoading || operationLoading}
                       >
-                        {(isLoading || operationLoading) ? 'Enviando...' : 'Enviar para edição'}
+                        {isLoading || operationLoading
+                          ? 'Enviando...'
+                          : 'Enviar para edição'}
                       </Button>
                     )}
                     {buttonConfig.showSendToApproval && (
@@ -1086,7 +1096,9 @@ export function NewServiceForm({
                         onClick={form.handleSubmit(handleSendToApprovalClick)}
                         disabled={isLoading || operationLoading}
                       >
-                        {(isLoading || operationLoading) ? 'Enviando...' : 'Enviar para aprovação'}
+                        {isLoading || operationLoading
+                          ? 'Enviando...'
+                          : 'Enviar para aprovação'}
                       </Button>
                     )}
                     {buttonConfig.showPublish && (
@@ -1096,7 +1108,9 @@ export function NewServiceForm({
                         onClick={form.handleSubmit(handlePublishClick)}
                         disabled={isLoading || operationLoading}
                       >
-                        {(isLoading || operationLoading) ? 'Publicando...' : 'Salvar e publicar'}
+                        {isLoading || operationLoading
+                          ? 'Publicando...'
+                          : 'Salvar e publicar'}
                       </Button>
                     )}
                   </>

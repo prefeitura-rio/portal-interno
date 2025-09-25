@@ -1,4 +1,7 @@
-import type { ModelsPrefRioService, ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
+import type {
+  ModelsPrefRioService,
+  ModelsPrefRioServiceRequest,
+} from '@/http-busca-search/models'
 import type { Service, ServiceListItem } from '@/types/service'
 
 // ServiceFormData type from the form component
@@ -24,8 +27,10 @@ export interface ServiceFormData {
 /**
  * Transform frontend form data to API request format
  */
-export function transformToApiRequest(formData: ServiceFormData): ModelsPrefRioServiceRequest {
-  return {
+export function transformToApiRequest(
+  formData: ServiceFormData
+): ModelsPrefRioServiceRequest & { is_free?: boolean } {
+  const apiRequest = {
     nome_servico: formData.title,
     resumo: formData.shortDescription,
     descricao_completa: formData.fullDescription || '',
@@ -37,18 +42,31 @@ export function transformToApiRequest(formData: ServiceFormData): ModelsPrefRioS
     resultado_solicitacao: formData.requestResult || '',
     servico_nao_cobre: formData.whatServiceDoesNotCover,
     instrucoes_solicitante: formData.instructionsForRequester,
-    documentos_necessarios: formData.requiredDocuments ? [formData.requiredDocuments] : undefined,
-    canais_digitais: formData.digitalChannels?.filter(channel => channel.trim() !== ''),
-    canais_presenciais: formData.physicalChannels?.filter(channel => channel.trim() !== ''),
-    legislacao_relacionada: formData.legislacaoRelacionada?.filter(legislacao => legislacao.trim() !== ''),
+    documentos_necessarios: formData.requiredDocuments
+      ? [formData.requiredDocuments]
+      : undefined,
+    canais_digitais: formData.digitalChannels?.filter(
+      channel => channel.trim() !== ''
+    ),
+    canais_presenciais: formData.physicalChannels?.filter(
+      channel => channel.trim() !== ''
+    ),
+    legislacao_relacionada: formData.legislacaoRelacionada?.filter(
+      legislacao => legislacao.trim() !== ''
+    ),
+    is_free: formData.isFree,
     status: 0, // Default to draft status
   }
+
+  return apiRequest
 }
 
 /**
  * Transform API response to frontend service format
  */
-export function transformFromApiResponse(apiService: ModelsPrefRioService): Service {
+export function transformFromApiResponse(
+  apiService: ModelsPrefRioService
+): Service {
   return {
     id: apiService.id || '',
     title: apiService.nome_servico,
@@ -68,9 +86,13 @@ export function transformFromApiResponse(apiService: ModelsPrefRioService): Serv
     legislacaoRelacionada: apiService.legislacao_relacionada || [],
     status: getStatusFromNumber(apiService.status),
     isFree: apiService.is_free,
-    created_at: apiService.created_at ? new Date(apiService.created_at * 1000) : new Date(),
-    last_update: new Date(apiService.last_update || Date.now() / 1000 * 1000),
-    published_at: apiService.published_at ? new Date(apiService.published_at * 1000) : undefined,
+    created_at: apiService.created_at
+      ? new Date(apiService.created_at * 1000)
+      : new Date(),
+    last_update: new Date(apiService.last_update || (Date.now() / 1000) * 1000),
+    published_at: apiService.published_at
+      ? new Date(apiService.published_at * 1000)
+      : null,
     author: apiService.autor,
   }
 }
@@ -78,14 +100,18 @@ export function transformFromApiResponse(apiService: ModelsPrefRioService): Serv
 /**
  * Transform API response to frontend service list item format
  */
-export function transformToServiceListItem(apiService: ModelsPrefRioService): ServiceListItem {
+export function transformToServiceListItem(
+  apiService: ModelsPrefRioService
+): ServiceListItem {
   return {
     id: apiService.id || '',
     title: apiService.nome_servico,
     managingOrgan: apiService.orgao_gestor?.[0] || '',
     status: getStatusFromNumber(apiService.status),
-    last_update: new Date(apiService.last_update || Date.now() / 1000 * 1000),
-    published_at: apiService.published_at ? new Date(apiService.published_at * 1000) : undefined,
+    last_update: new Date(apiService.last_update || (Date.now() / 1000) * 1000),
+    published_at: apiService.published_at
+      ? new Date(apiService.published_at * 1000)
+      : null,
   }
 }
 
@@ -116,11 +142,12 @@ export function transformToFormData(service: Service): ServiceFormData {
 /**
  * Convert numeric status to string status
  */
-function getStatusFromNumber(status?: number): 'published' | 'in_edition' | 'awaiting_approval' {
+function getStatusFromNumber(
+  status?: number
+): 'published' | 'in_edition' | 'awaiting_approval' {
   switch (status) {
     case 1:
       return 'published'
-    case 0:
     default:
       return 'in_edition'
   }
@@ -129,12 +156,12 @@ function getStatusFromNumber(status?: number): 'published' | 'in_edition' | 'awa
 /**
  * Convert string status to numeric status
  */
-export function getNumberFromStatus(status: 'published' | 'in_edition' | 'awaiting_approval'): number {
+export function getNumberFromStatus(
+  status: 'published' | 'in_edition' | 'awaiting_approval'
+): number {
   switch (status) {
     case 'published':
       return 1
-    case 'in_edition':
-    case 'awaiting_approval':
     default:
       return 0
   }
