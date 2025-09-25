@@ -112,12 +112,13 @@ export function useServiceOperations(): UseServiceOperationsReturn {
       setLoading(true)
       setError(null)
 
-      console.log('Publishing service:', id)
+      console.log('📤 Publishing service:', id)
 
       const response = await fetch(`/api/services/${id}/publish`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
       })
 
@@ -131,11 +132,13 @@ export function useServiceOperations(): UseServiceOperationsReturn {
         throw new Error(result.error || 'Falha ao publicar serviço')
       }
 
+      console.log('✅ Service published successfully:', result.service?.id)
       toast.success('Serviço publicado com sucesso!')
       return result.service
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Erro ao publicar serviço'
+      console.error('❌ Error publishing service:', err)
       setError(errorMessage)
       toast.error(errorMessage)
       throw err
@@ -149,12 +152,13 @@ export function useServiceOperations(): UseServiceOperationsReturn {
       setLoading(true)
       setError(null)
 
-      console.log('Unpublishing service:', id)
+      console.log('📤 Unpublishing service:', id)
 
       const response = await fetch(`/api/services/${id}/unpublish`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
       })
 
@@ -168,11 +172,13 @@ export function useServiceOperations(): UseServiceOperationsReturn {
         throw new Error(result.error || 'Falha ao despublicar serviço')
       }
 
+      console.log('✅ Service unpublished successfully:', result.service?.id)
       toast.success('Serviço despublicado com sucesso!')
       return result.service
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Erro ao despublicar serviço'
+      console.error('❌ Error unpublishing service:', err)
       setError(errorMessage)
       toast.error(errorMessage)
       throw err

@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
-import { useServices } from '@/hooks/use-services'
 import { useServiceOperations } from '@/hooks/use-service-operations'
+import { useServices } from '@/hooks/use-services'
 import { useIsAdmin } from '@/hooks/use-user-role'
 import { getSecretariaByValue } from '@/lib/secretarias'
 import type {
@@ -82,7 +82,12 @@ export function ServicesDataTable() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isAdmin = useIsAdmin()
-  const { publishService, unpublishService, deleteService, loading: operationLoading } = useServiceOperations()
+  const {
+    publishService,
+    unpublishService,
+    deleteService,
+    loading: operationLoading,
+  } = useServiceOperations()
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'last_update', desc: true },
@@ -116,6 +121,11 @@ export function ServicesDataTable() {
   const activeTab = (searchParams.get('tab') || 'published') as ServiceStatus
   const [searchQuery, setSearchQuery] = React.useState('')
   const [selectedSecretaria, setSelectedSecretaria] = React.useState('')
+  const [lastRefreshTimestamp, setLastRefreshTimestamp] = React.useState(
+    Date.now()
+  )
+  const [isRefreshingAfterOperation, setIsRefreshingAfterOperation] =
+    React.useState(false)
 
   // Use the services hook to fetch data from API
   const {
@@ -181,74 +191,113 @@ export function ServicesDataTable() {
   }, [])
 
   // Helper function to open confirmation dialog
-  const openConfirmDialog = React.useCallback((config: {
-    title: string
-    description: string
-    confirmText: string
-    variant?: 'default' | 'destructive'
-    onConfirm: () => void
-  }) => {
-    setConfirmDialog({
-      open: true,
-      title: config.title,
-      description: config.description,
-      confirmText: config.confirmText,
-      variant: config.variant || 'default',
-      onConfirm: config.onConfirm,
-    })
-  }, [])
+  const openConfirmDialog = React.useCallback(
+    (config: {
+      title: string
+      description: string
+      confirmText: string
+      variant?: 'default' | 'destructive'
+      onConfirm: () => void
+    }) => {
+      setConfirmDialog({
+        open: true,
+        title: config.title,
+        description: config.description,
+        confirmText: config.confirmText,
+        variant: config.variant || 'default',
+        onConfirm: config.onConfirm,
+      })
+    },
+    []
+  )
 
   // Handle quick actions
-  const handlePublishService = React.useCallback((serviceId: string, serviceName: string) => {
-    openConfirmDialog({
-      title: 'Publicar Serviço',
-      description: `Tem certeza que deseja publicar o serviço "${serviceName}"? Ele ficará disponível para todos os cidadãos.`,
-      confirmText: 'Publicar',
-      variant: 'default',
-      onConfirm: async () => {
-        try {
-          await publishService(serviceId)
-          await refetch()
-        } catch (error) {
-          console.error('Error publishing service:', error)
-        }
-      },
-    })
-  }, [openConfirmDialog, publishService, refetch])
+  const handlePublishService = React.useCallback(
+    (serviceId: string, serviceName: string) => {
+      openConfirmDialog({
+        title: 'Publicar Serviço',
+        description: `Tem certeza que deseja publicar o serviço "${serviceName}"? Ele ficará disponível para todos os cidadãos.`,
+        confirmText: 'Publicar',
+        variant: 'default',
+        onConfirm: async () => {
+          try {
+            setIsRefreshingAfterOperation(true)
+            console.log('🔄 Starting publish service operation...')
+            await publishService(serviceId)
+            // Add a small delay to ensure API changes are processed
+            await new Promise(resolve => setTimeout(resolve, 500))
+            console.log('🔄 Refetching services after publish...')
+            setLastRefreshTimestamp(Date.now())
+            await refetch()
+            console.log('✅ Services list refreshed after publish')
+          } catch (error) {
+            console.error('❌ Error in publish service flow:', error)
+          } finally {
+            setIsRefreshingAfterOperation(false)
+          }
+        },
+      })
+    },
+    [openConfirmDialog, publishService, refetch]
+  )
 
-  const handleUnpublishService = React.useCallback((serviceId: string, serviceName: string) => {
-    openConfirmDialog({
-      title: 'Despublicar Serviço',
-      description: `Tem certeza que deseja despublicar o serviço "${serviceName}"? Ele deixará de estar disponível para os cidadãos.`,
-      confirmText: 'Despublicar',
-      variant: 'default',
-      onConfirm: async () => {
-        try {
-          await unpublishService(serviceId)
-          await refetch()
-        } catch (error) {
-          console.error('Error unpublishing service:', error)
-        }
-      },
-    })
-  }, [openConfirmDialog, unpublishService, refetch])
+  const handleUnpublishService = React.useCallback(
+    (serviceId: string, serviceName: string) => {
+      openConfirmDialog({
+        title: 'Despublicar Serviço',
+        description: `Tem certeza que deseja despublicar o serviço "${serviceName}"? Ele deixará de estar disponível para os cidadãos.`,
+        confirmText: 'Despublicar',
+        variant: 'default',
+        onConfirm: async () => {
+          try {
+            setIsRefreshingAfterOperation(true)
+            console.log('🔄 Starting unpublish service operation...')
+            await unpublishService(serviceId)
+            // Add a small delay to ensure API changes are processed
+            await new Promise(resolve => setTimeout(resolve, 500))
+            console.log('🔄 Refetching services after unpublish...')
+            setLastRefreshTimestamp(Date.now())
+            await refetch()
+            console.log('✅ Services list refreshed after unpublish')
+          } catch (error) {
+            console.error('❌ Error in unpublish service flow:', error)
+          } finally {
+            setIsRefreshingAfterOperation(false)
+          }
+        },
+      })
+    },
+    [openConfirmDialog, unpublishService, refetch]
+  )
 
-  const handleDeleteService = React.useCallback((serviceId: string, serviceName: string) => {
-    openConfirmDialog({
-      title: 'Excluir Serviço',
-      description: `Tem certeza que deseja excluir o serviço "${serviceName}"? Esta ação não pode ser desfeita.`,
-      confirmText: 'Excluir',
-      variant: 'destructive',
-      onConfirm: async () => {
-        try {
-          await deleteService(serviceId)
-          await refetch()
-        } catch (error) {
-          console.error('Error deleting service:', error)
-        }
-      },
-    })
-  }, [openConfirmDialog, deleteService, refetch])
+  const handleDeleteService = React.useCallback(
+    (serviceId: string, serviceName: string) => {
+      openConfirmDialog({
+        title: 'Excluir Serviço',
+        description: `Tem certeza que deseja excluir o serviço "${serviceName}"? Esta ação não pode ser desfeita.`,
+        confirmText: 'Excluir',
+        variant: 'destructive',
+        onConfirm: async () => {
+          try {
+            setIsRefreshingAfterOperation(true)
+            console.log('🔄 Starting delete service operation...')
+            await deleteService(serviceId)
+            // Add a small delay to ensure API changes are processed
+            await new Promise(resolve => setTimeout(resolve, 500))
+            console.log('🔄 Refetching services after delete...')
+            setLastRefreshTimestamp(Date.now())
+            await refetch()
+            console.log('✅ Services list refreshed after delete')
+          } catch (error) {
+            console.error('❌ Error in delete service flow:', error)
+          } finally {
+            setIsRefreshingAfterOperation(false)
+          }
+        },
+      })
+    },
+    [openConfirmDialog, deleteService, refetch]
+  )
 
   // Define table columns
   const columns = React.useMemo<ColumnDef<ServiceListItem>[]>(() => {
@@ -425,29 +474,33 @@ export function ServicesDataTable() {
                     <>
                       {service.status === 'published' ? (
                         <DropdownMenuItem
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation()
                             handleUnpublishService(service.id, service.title)
                           }}
-                          disabled={operationLoading}
+                          disabled={
+                            operationLoading || isRefreshingAfterOperation
+                          }
                         >
                           <Square className="mr-2 h-4 w-4" />
                           Despublicar
                         </DropdownMenuItem>
                       ) : (
                         <DropdownMenuItem
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation()
                             handlePublishService(service.id, service.title)
                           }}
-                          disabled={operationLoading}
+                          disabled={
+                            operationLoading || isRefreshingAfterOperation
+                          }
                         >
                           <Play className="mr-2 h-4 w-4" />
                           Publicar
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation()
                           handleDeleteService(service.id, service.title)
                         }}
@@ -467,7 +520,14 @@ export function ServicesDataTable() {
         size: 32,
       },
     ]
-  }, [isAdmin, operationLoading, handlePublishService, handleUnpublishService, handleDeleteService])
+  }, [
+    isAdmin,
+    operationLoading,
+    isRefreshingAfterOperation,
+    handlePublishService,
+    handleUnpublishService,
+    handleDeleteService,
+  ])
 
   const table = useReactTable({
     data: services,
@@ -553,7 +613,7 @@ export function ServicesDataTable() {
         <TabsContent value="published" className="space-y-4">
           <DataTable
             table={table}
-            loading={loading}
+            loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
               window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
             }}
@@ -565,7 +625,7 @@ export function ServicesDataTable() {
         <TabsContent value="in_edition" className="space-y-4">
           <DataTable
             table={table}
-            loading={loading}
+            loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
               window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
             }}
@@ -577,7 +637,7 @@ export function ServicesDataTable() {
         <TabsContent value="awaiting_approval" className="space-y-4">
           <DataTable
             table={table}
-            loading={loading}
+            loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
               window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
             }}
@@ -590,7 +650,7 @@ export function ServicesDataTable() {
       {/* Confirmation Dialog */}
       <ConfirmDialog
         open={confirmDialog.open}
-        onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}
+        onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
         title={confirmDialog.title}
         description={confirmDialog.description}
         confirmText={confirmDialog.confirmText}
