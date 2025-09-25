@@ -70,7 +70,13 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }, [params])
 
   const { service, loading, error, refetch } = useService(servicoId)
-  const { updateService, publishService, unpublishService, deleteService, loading: operationLoading } = useServiceOperations()
+  const {
+    updateService,
+    publishService,
+    unpublishService,
+    deleteService,
+    loading: operationLoading,
+  } = useServiceOperations()
   const userRole = useUserRole()
 
   const handleEdit = () => {
@@ -374,7 +380,9 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                       className="flex-1 md:flex-none"
                       onClick={() => {
                         // We'll use form.handleSubmit to trigger validation and get data
-                        const formElement = document.getElementById('service-edit-form') as HTMLFormElement
+                        const formElement = document.getElementById(
+                          'service-edit-form'
+                        ) as HTMLFormElement
                         if (formElement) {
                           formElement.requestSubmit()
                         }
