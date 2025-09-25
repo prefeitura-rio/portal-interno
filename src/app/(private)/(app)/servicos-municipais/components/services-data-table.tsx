@@ -16,7 +16,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import { useServices } from '@/hooks/use-services'
-import { useIsAdmin } from '@/hooks/use-user-role'
+import {
+  useHasElevatedPermissions,
+  useIsAdmin,
+  useUserRole,
+} from '@/hooks/use-user-role'
 import { getSecretariaByValue } from '@/lib/secretarias'
 import type {
   ServiceListItem,
@@ -82,6 +86,8 @@ export function ServicesDataTable() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isAdmin = useIsAdmin()
+  const hasElevatedPermissions = useHasElevatedPermissions()
+  const userRole = useUserRole()
   const {
     publishService,
     unpublishService,
@@ -443,6 +449,24 @@ export function ServicesDataTable() {
         id: 'actions',
         cell: function Cell({ row }) {
           const service = row.original
+
+          // Helper function to check if user can edit the service
+          const canEditService = () => {
+            if (!userRole) return false
+
+            // Admin and geral users can always edit services
+            if (userRole === 'admin' || userRole === 'geral') {
+              return true
+            }
+
+            // Editor users can only edit services that are not published
+            if (userRole === 'editor') {
+              return service.status !== 'published'
+            }
+
+            return false
+          }
+
           return (
             <div className="flex items-center gap-2">
               {/* More actions dropdown */}
@@ -462,14 +486,16 @@ export function ServicesDataTable() {
                       Visualizar
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/servicos-municipais/servicos/servico/${service.id}`}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
-                    </Link>
-                  </DropdownMenuItem>
+                  {canEditService() && (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href={`/servicos-municipais/servicos/servico/${service.id}`}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   {isAdmin && (
                     <>
                       {service.status === 'published' ? (
@@ -522,6 +548,7 @@ export function ServicesDataTable() {
     ]
   }, [
     isAdmin,
+    userRole,
     operationLoading,
     isRefreshingAfterOperation,
     handlePublishService,

@@ -184,6 +184,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     const { status } = service
 
     if (isAdminOrGeral) {
+      // Admin and geral users can edit services in any status
       switch (status) {
         case 'published':
           return { showEdit: true, showAdditionalButtons: [] }
@@ -211,8 +212,10 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     }
 
     if (isEditor) {
+      // Editor users have restricted permissions
       switch (status) {
         case 'published':
+          // CRITICAL: Editors cannot edit published services
           return { showEdit: false, showAdditionalButtons: [] }
         case 'in_edition':
           return { showEdit: true, showAdditionalButtons: [] }
@@ -232,6 +235,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       }
     }
 
+    // For any other roles or unknown roles, no edit permissions
     return { showEdit: false, showAdditionalButtons: [] }
   }
 
