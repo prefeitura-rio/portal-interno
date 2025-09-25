@@ -124,8 +124,12 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
     try {
       setIsSaving(true)
-      // Unpublish the service (set status to 0 - draft/in_edition)
-      await unpublishService(servicoId)
+      // Set status to 0 (draft/in_edition) and awaiting_approval to false
+      const apiData = transformToApiRequest(service)
+      apiData.status = 0 // Set to draft/in_edition status
+      apiData.awaiting_approval = false // Remove from awaiting approval
+
+      await updateService(servicoId, apiData)
       setShowSendToEditDialog(false)
       refetch()
     } catch (error) {
