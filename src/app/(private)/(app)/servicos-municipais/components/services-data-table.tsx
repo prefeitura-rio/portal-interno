@@ -5,6 +5,7 @@ import { DataTableColumnHeader } from '@/components/data-table/data-table-column
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useServices } from '@/hooks/use-services'
+import { useServiceOperations } from '@/hooks/use-service-operations'
 import { useIsAdmin } from '@/hooks/use-user-role'
 import { getSecretariaByValue } from '@/lib/secretarias'
 import type {
@@ -43,9 +45,13 @@ import {
   CheckCircle,
   Clock,
   Edit,
+  Eye,
   FileText,
   MoreHorizontal,
+  Play,
+  Square,
   Text,
+  Trash2,
 } from 'lucide-react'
 import Link from 'next/link'
 import * as React from 'react'
@@ -76,6 +82,7 @@ export function ServicesDataTable() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isAdmin = useIsAdmin()
+  const { publishService, unpublishService, deleteService, loading: operationLoading } = useServiceOperations()
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'last_update', desc: true },
@@ -86,6 +93,23 @@ export function ServicesDataTable() {
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
+  })
+
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    open: boolean
+    title: string
+    description: string
+    confirmText: string
+    variant: 'default' | 'destructive'
+    onConfirm: () => void
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    confirmText: '',
+    variant: 'default',
+    onConfirm: () => {},
   })
 
   // Get active tab from search params, default to 'published'
@@ -155,6 +179,76 @@ export function ServicesDataTable() {
     // Reset to first page when changing secretaria
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
   }, [])
+
+  // Helper function to open confirmation dialog
+  const openConfirmDialog = React.useCallback((config: {
+    title: string
+    description: string
+    confirmText: string
+    variant?: 'default' | 'destructive'
+    onConfirm: () => void
+  }) => {
+    setConfirmDialog({
+      open: true,
+      title: config.title,
+      description: config.description,
+      confirmText: config.confirmText,
+      variant: config.variant || 'default',
+      onConfirm: config.onConfirm,
+    })
+  }, [])
+
+  // Handle quick actions
+  const handlePublishService = React.useCallback((serviceId: string, serviceName: string) => {
+    openConfirmDialog({
+      title: 'Publicar Serviço',
+      description: `Tem certeza que deseja publicar o serviço "${serviceName}"? Ele ficará disponível para todos os cidadãos.`,
+      confirmText: 'Publicar',
+      variant: 'default',
+      onConfirm: async () => {
+        try {
+          await publishService(serviceId)
+          await refetch()
+        } catch (error) {
+          console.error('Error publishing service:', error)
+        }
+      },
+    })
+  }, [openConfirmDialog, publishService, refetch])
+
+  const handleUnpublishService = React.useCallback((serviceId: string, serviceName: string) => {
+    openConfirmDialog({
+      title: 'Despublicar Serviço',
+      description: `Tem certeza que deseja despublicar o serviço "${serviceName}"? Ele deixará de estar disponível para os cidadãos.`,
+      confirmText: 'Despublicar',
+      variant: 'default',
+      onConfirm: async () => {
+        try {
+          await unpublishService(serviceId)
+          await refetch()
+        } catch (error) {
+          console.error('Error unpublishing service:', error)
+        }
+      },
+    })
+  }, [openConfirmDialog, unpublishService, refetch])
+
+  const handleDeleteService = React.useCallback((serviceId: string, serviceName: string) => {
+    openConfirmDialog({
+      title: 'Excluir Serviço',
+      description: `Tem certeza que deseja excluir o serviço "${serviceName}"? Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          await deleteService(serviceId)
+          await refetch()
+        } catch (error) {
+          console.error('Error deleting service:', error)
+        }
+      },
+    })
+  }, [openConfirmDialog, deleteService, refetch])
 
   // Define table columns
   const columns = React.useMemo<ColumnDef<ServiceListItem>[]>(() => {
@@ -301,29 +395,79 @@ export function ServicesDataTable() {
         cell: function Cell({ row }) {
           const service = row.original
           return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Abrir menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link
-                    href={`/servicos-municipais/servicos/servico/${service.id}`}
-                  >
-                    Visualizar
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2">
+              {/* More actions dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Abrir menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href={`/servicos-municipais/servicos/servico/${service.id}`}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Visualizar
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href={`/servicos-municipais/servicos/servico/${service.id}`}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar
+                    </Link>
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      {service.status === 'published' ? (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleUnpublishService(service.id, service.title)
+                          }}
+                          disabled={operationLoading}
+                        >
+                          <Square className="mr-2 h-4 w-4" />
+                          Despublicar
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handlePublishService(service.id, service.title)
+                          }}
+                          disabled={operationLoading}
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Publicar
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteService(service.id, service.title)
+                        }}
+                        disabled={operationLoading}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )
         },
         size: 32,
       },
     ]
-  }, [])
+  }, [isAdmin, operationLoading, handlePublishService, handleUnpublishService, handleDeleteService])
 
   const table = useReactTable({
     data: services,
@@ -442,6 +586,18 @@ export function ServicesDataTable() {
           </DataTable>
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmText={confirmDialog.confirmText}
+        cancelText="Cancelar"
+        variant={confirmDialog.variant}
+        onConfirm={confirmDialog.onConfirm}
+      />
     </div>
   )
 }

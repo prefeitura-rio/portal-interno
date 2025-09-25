@@ -44,12 +44,12 @@ export function useServices(params: UseServicesParams = {}): UseServicesReturn {
     total_pages: number
   } | null>(null)
 
-  const fetchServices = useCallback(async () => {
+  const fetchServices = useCallback(async (forceRefresh = false) => {
     try {
       setLoading(true)
       setError(null)
 
-      // Build query parameters
+      // Build query parameters for internal API route
       const searchParams = new URLSearchParams()
 
       if (params.page) {
@@ -72,15 +72,22 @@ export function useServices(params: UseServicesParams = {}): UseServicesReturn {
         searchParams.append('managing_organ', params.managingOrgan.trim())
       }
 
+      // Add cache-busting parameter for force refresh
+      if (forceRefresh) {
+        searchParams.append('_t', Date.now().toString())
+      }
+
       const url = `/api/services?${searchParams.toString()}`
 
-      console.log('Fetching services from:', url)
+      console.log('Fetching services from internal API:', url)
 
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        // Disable caching for force refresh
+        ...(forceRefresh && { cache: 'no-store' }),
       })
 
       if (!response.ok) {
@@ -115,11 +122,15 @@ export function useServices(params: UseServicesParams = {}): UseServicesReturn {
     fetchServices()
   }, [fetchServices])
 
+  const refetch = useCallback(async () => {
+    await fetchServices(true) // Force refresh with cache busting
+  }, [fetchServices])
+
   return {
     services,
     loading,
     error,
     pagination,
-    refetch: fetchServices,
+    refetch,
   }
 }
