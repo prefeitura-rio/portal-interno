@@ -29,7 +29,10 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import { SECRETARIAS } from '@/lib/secretarias'
-import { transformToApiRequest } from '@/lib/service-data-transformer'
+import {
+  getCurrentTimestamp,
+  transformToApiRequest,
+} from '@/lib/service-data-transformer'
 import { toast } from 'sonner'
 
 // Define the schema for service form validation
@@ -394,17 +397,15 @@ export function NewServiceForm({
     try {
       const apiData = transformToApiRequest(pendingFormData)
 
+      // Set status to published and add published_at timestamp
+      apiData.status = 1
+      ;(apiData as any).published_at = getCurrentTimestamp()
+
       let savedService
       if (serviceId) {
         savedService = await updateService(serviceId, apiData)
       } else {
         savedService = await createService(apiData)
-      }
-
-      // After saving, publish the service
-      const serviceIdToPublish = serviceId || savedService.id
-      if (serviceIdToPublish) {
-        await publishService(serviceIdToPublish)
       }
 
       setPendingFormData(null)

@@ -25,6 +25,13 @@ export interface ServiceFormData {
 }
 
 /**
+ * Get current Unix timestamp for published_at field
+ */
+export function getCurrentTimestamp(): number {
+  return Math.floor(Date.now() / 1000)
+}
+
+/**
  * Transform frontend form data to API request format
  */
 export function transformToApiRequest(
