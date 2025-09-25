@@ -376,6 +376,7 @@ export function NewServiceForm({
     try {
       const apiData = transformToApiRequest(pendingFormData)
       apiData.status = 0 // Set to draft/in_edition status
+      apiData.awaiting_approval = false // Remove from awaiting approval
 
       if (serviceId) {
         await updateService(serviceId, apiData)

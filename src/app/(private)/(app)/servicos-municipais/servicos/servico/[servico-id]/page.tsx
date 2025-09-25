@@ -90,11 +90,37 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }
 
   const handleSave = async (data: any) => {
-    if (!servicoId) return
+    if (!servicoId || !service) return
 
     try {
       setIsSaving(true)
+
+      // First, fetch the current service data from the API to get the original status values
+      const currentServiceResponse = await fetch(`/api/services/${servicoId}`)
+      const currentServiceData = await currentServiceResponse.json()
+
+      if (!currentServiceData.success) {
+        throw new Error('Failed to fetch current service status')
+      }
+
       const apiData = transformToApiRequest(data)
+
+      // Use the convertFrontendToApi to get the correct API representation
+      // but preserve the original status and awaiting_approval from the current API state
+      const currentService = currentServiceData.service
+
+      // Preserve the current status and awaiting_approval when just saving edits
+      if (currentService.status === 'published') {
+        apiData.status = 1 // Keep as published
+        apiData.awaiting_approval = false
+      } else if (currentService.status === 'awaiting_approval') {
+        apiData.status = 0 // Keep as draft
+        apiData.awaiting_approval = true // Preserve awaiting approval status
+      } else {
+        apiData.status = 0 // Keep as draft/in_edition
+        apiData.awaiting_approval = false
+      }
+
       await updateService(servicoId, apiData)
       setIsEditing(false)
       setShowSaveDialog(false)
@@ -124,8 +150,12 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
     try {
       setIsSaving(true)
-      // Unpublish the service (set status to 0 - draft/in_edition)
-      await unpublishService(servicoId)
+      // Set status to 0 (draft/in_edition) and awaiting_approval to false
+      const apiData = transformToApiRequest(service)
+      apiData.status = 0 // Set to draft/in_edition status
+      apiData.awaiting_approval = false // Remove from awaiting approval
+
+      await updateService(servicoId, apiData)
       setShowSendToEditDialog(false)
       refetch()
     } catch (error) {
