@@ -73,8 +73,31 @@ export function getMenuList(pathname: string): Group[] {
         },
       ],
     },
+    // {
+    //   groupLabel: 'Serviços municipais',
+    //   menus: [
+    //     {
+    //       href: '',
+    //       label: 'Serviços municipais',
+    //       icon: FolderKanban,
+    //       allowedRoles: ['admin', 'geral', 'editor'],
+    //       submenus: [
+    //         {
+    //           href: '/servicos-municipais/servicos',
+    //           label: 'Serviços',
+    //           allowedRoles: ['admin', 'geral', 'editor'],
+    //         },
+    //         {
+    //           href: '/servicos-municipais/servicos/new',
+    //           label: 'Novo Serviço',
+    //           allowedRoles: ['admin', 'geral'],
+    //         },
+    //       ],
+    //     },
+    //   ],
+    // },
     {
-      groupLabel: 'Settings',
+      groupLabel: 'Configurações',
       menus: [
         // {
         //   href: '/users',
