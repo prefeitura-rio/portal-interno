@@ -368,8 +368,8 @@ export default function CourseDetailPage({
     return {
       title: course.title,
       description: course.description,
-      enrollment_start_date: course.enrollment_start_date || (course.enrollmentStartDate ? new Date(course.enrollmentStartDate).toISOString() : undefined),
-      enrollment_end_date: course.enrollment_end_date || (course.enrollmentEndDate ? new Date(course.enrollmentEndDate).toISOString() : undefined),
+      enrollment_start_date: (course as any).enrollment_start_date || (course.enrollmentStartDate ? new Date(course.enrollmentStartDate).toISOString() : undefined),
+      enrollment_end_date: (course as any).enrollment_end_date || (course.enrollmentEndDate ? new Date(course.enrollmentEndDate).toISOString() : undefined),
       orgao_id: course.orgao_id,
       instituicao_id: instituicaoId,
       modalidade: course.modalidade,

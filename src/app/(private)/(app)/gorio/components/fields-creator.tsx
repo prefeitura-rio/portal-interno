@@ -33,7 +33,7 @@ import {
 import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
-export type CustomFieldType = 'text' | 'select' | 'multiselect' | 'radio'
+export type CustomFieldType = 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio' | 'multiselect'
 
 export interface CustomFieldOption {
   id: string

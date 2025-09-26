@@ -798,7 +798,7 @@ export function EnrollmentsTable({
 
             case 'multiselect': {
               // For multiple selection, the value might be a comma-separated list of option IDs
-              const selectedOptionIds = field.value.split(',').filter(Boolean)
+              const selectedOptionIds = field.value?.split(',').filter(Boolean) || []
               const selectedOptions = field.options?.filter(option =>
                 selectedOptionIds.includes(option.id)
               )
@@ -1230,8 +1230,8 @@ export function EnrollmentsTable({
                                         case 'multiselect': {
                                           // For multiple selection, the value might be a comma-separated list of option IDs
                                           const selectedOptionIds = field.value
-                                            .split(',')
-                                            .filter(Boolean)
+                                            ?.split(',')
+                                            .filter(Boolean) || []
                                           const selectedOptions =
                                             field.options?.filter(option =>
                                               selectedOptionIds.includes(

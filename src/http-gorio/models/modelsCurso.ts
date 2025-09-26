@@ -10,11 +10,10 @@ import type { ModelsModalidade } from './modelsModalidade'
 import type { ModelsStatusCurso } from './modelsStatusCurso'
 import type { ModelsTurno } from './modelsTurno'
 
-<<<<<<< HEAD
-//forced
-export type CustomFieldType = 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio'
+// Custom field types for external courses
+export type CustomFieldType = 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio' | 'multiselect'
 
-export interface ModelsCustomField { //forced
+export interface ModelsCustomField {
   id: string
   curso_id: number
   title: string
@@ -22,9 +21,13 @@ export interface ModelsCustomField { //forced
   required: boolean
   created_at: string
   updated_at: string
+  options?: Array<{
+    id: string
+    value: string
+  }>
 }
 
-export interface ModelsRemoteClass { //forced
+export interface ModelsRemoteClass {
   id: string
   curso_id: number
   vacancies: number
@@ -36,7 +39,7 @@ export interface ModelsRemoteClass { //forced
   updated_at: string
 }
 
-export interface ModelsLocation { //forced
+export interface ModelsLocation {
   id: string
   curso_id: number
   address: string
@@ -49,9 +52,6 @@ export interface ModelsLocation { //forced
   created_at: string
   updated_at: string
 }
-
-=======
->>>>>>> 2854b42448ceb777164a2aef9c2950795a60d058
 export interface ModelsCurso {
   carga_horaria?: number
   certificacao_oferecida?: boolean
@@ -101,9 +101,8 @@ export interface ModelsCurso {
   turno?: ModelsTurno
   updated_at?: string
   workload?: string
-<<<<<<< HEAD
 
-  //forced
+  // External course fields
   custom_fields?: ModelsCustomField[]
   remote_class?: ModelsRemoteClass
   orgao?: {
@@ -111,6 +110,4 @@ export interface ModelsCurso {
     nome: string
   }
   locations?: ModelsLocation[]
-=======
->>>>>>> 2854b42448ceb777164a2aef9c2950795a60d058
 }
