@@ -48,7 +48,6 @@ import {
   ClipboardList,
   FileText,
   Flag,
-  Handshake,
   MoreHorizontal,
   Play,
   Text,
@@ -365,35 +364,12 @@ export default function Courses() {
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Quem oferece" />
         ),
-        cell: ({ cell, row }) => {
-          const isExternalPartner = row.original.is_external_partner
-          const provider = cell.getValue<CourseListItem['provider']>()
-          const externalPartnerName = row.original.external_partner_name
-          
-          // Use external partner name if it's a partnership and the name exists
-          const displayName = isExternalPartner && externalPartnerName ? externalPartnerName : provider
-          
-          return (
-            <div className="flex items-center gap-2">
-              {isExternalPartner ? (
-                <Handshake className="h-4 w-4 text-blue-200" />
-              ) : (
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-              )}
-              <div className="flex items-center gap-2 max-w-[300px] truncate">
-                {isExternalPartner && (
-                  <Badge 
-                    variant="secondary" 
-                    className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 border-blue-200"
-                  >
-                    Parceria
-                  </Badge>
-                )}
-                <span className="max-w-[300px] truncate">{displayName}</span>
-              </div>
-            </div>
-          )
-        },
+        cell: ({ cell }) => (
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <span>{cell.getValue<CourseListItem['provider']>()}</span>
+          </div>
+        ),
         meta: {
           label: 'Quem oferece',
           placeholder: 'Buscar ofertante...',

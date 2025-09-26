@@ -20,9 +20,6 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "complexity": {
-        "noForEach": "off"
-      },
       "recommended": true,
       "a11y": {
         "noSvgWithoutTitle": "off",
@@ -31,8 +28,7 @@
         "useKeyWithClickEvents": "off"
       },
       "style": {
-        "noNonNullAssertion": "off",
-        "noUnusedTemplateLiteral": "off"
+        "noNonNullAssertion": "off"
       },
       "suspicious": {
         "noArrayIndexKey": "off",
@@ -51,7 +47,8 @@
       "next-env.d.ts",
       "node_modules/**",
       "package-lock.json",
-      "openapi.yaml"
+      "openapi.yaml",
+      "src/http/**"
     ]
   }
 }

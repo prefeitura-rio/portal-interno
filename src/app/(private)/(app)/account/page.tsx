@@ -1,45 +1,10 @@
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { getUserRole } from '@/lib/jwt-utils'
 import { getUserInfoFromToken } from '@/lib/user-info'
-import { cookies } from 'next/headers'
 
 export default async function Account() {
   const userInfo = await getUserInfoFromToken()
-
-  // Get user role from HTTP-only cookie
-  const cookieStore = await cookies()
-  const accessToken = cookieStore.get('access_token')
-  const userRole = accessToken ? getUserRole(accessToken.value) : null
-
-  // Map role to display name
-  const getRoleDisplayName = (role: string | null) => {
-    switch (role) {
-      case 'admin':
-        return 'Administrador'
-      case 'geral':
-        return 'Gerente'
-      case 'editor':
-        return 'Editor'
-      default:
-        return 'Usuário'
-    }
-  }
-
-  // Map role to permissions
-  const getRolePermissions = (role: string | null) => {
-    switch (role) {
-      case 'admin':
-        return 'Acesso Total'
-      case 'geral':
-        return 'Leitura e Escrita'
-      case 'editor':
-        return 'Somente Edição'
-      default:
-        return 'Somente Leitura'
-    }
-  }
 
   return (
     <ContentLayout title="Conta">
@@ -76,9 +41,7 @@ export default async function Account() {
                 <p className="text-sm font-medium text-muted-foreground">
                   Função
                 </p>
-                <p className="text-lg font-semibold">
-                  {getRoleDisplayName(userRole)}
-                </p>
+                <p className="text-lg font-semibold">Administrador</p>
               </div>
             </div>
 
@@ -87,17 +50,19 @@ export default async function Account() {
                 Permissões
               </p>
               <div className="mt-2">
-                <Badge
-                  variant={
-                    userRole === 'admin'
-                      ? 'default'
-                      : userRole === 'geral'
-                        ? 'secondary'
-                        : 'outline'
-                  }
-                  className="text-sm"
-                >
-                  {getRolePermissions(userRole)}
+                <Badge variant="secondary" className="text-sm">
+                  Leitura e Escrita
+                </Badge>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <p className="text-sm font-medium text-muted-foreground">
+                Módulos
+              </p>
+              <div className="mt-2">
+                <Badge variant="outline" className="text-sm">
+                  GO Rio
                 </Badge>
               </div>
             </div>
