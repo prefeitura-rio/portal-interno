@@ -223,10 +223,7 @@ export default function CourseDetailPage({
         // Ensure organization is synced with orgao.nome
         organization:
           data.orgao?.nome || data.organization || course?.organization,
-        orgao_id:
-          (data.orgao as any)?.id ||
-          data.orgao_id ||
-          (course?.orgao as any)?.id,
+        orgao_id: (data.orgao as any)?.id || data.orgao_id || course?.orgao_id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -275,10 +272,7 @@ export default function CourseDetailPage({
         // Ensure organization is synced with orgao.nome
         organization:
           data.orgao?.nome || data.organization || course?.organization,
-        orgao_id:
-          (data.orgao as any)?.id ||
-          data.orgao_id ||
-          (course?.orgao as any)?.id,
+        orgao_id: (data.orgao as any)?.id || data.orgao_id || course?.orgao_id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -335,6 +329,24 @@ export default function CourseDetailPage({
     })
   }
 
+  // Helper function to transform locations to API format
+  const transformLocationsToApiFormat = (locations: any[]) => {
+    return locations.map(location => ({
+      id: location.id,
+      address: location.address,
+      neighborhood: location.neighborhood,
+      vacancies: location.vacancies,
+      class_start_date: location.classStartDate 
+        ? new Date(location.classStartDate).toISOString()
+        : location.class_start_date,
+      class_end_date: location.classEndDate 
+        ? new Date(location.classEndDate).toISOString()
+        : location.class_end_date,
+      class_time: location.classTime || location.class_time,
+      class_days: location.classDays || location.class_days,
+    }))
+  }
+
   // Helper function to build complete course data for API calls
   const buildCompleteUpdateData = (statusOverride?: string) => {
     if (!course) return {}
@@ -342,38 +354,53 @@ export default function CourseDetailPage({
       process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
     )
 
+    // Debug logging for course data
+    console.log('Course data for buildCompleteUpdateData:', {
+      orgao_id: course.orgao_id,
+      orgao: course.orgao,
+      status: course.status,
+      statusOverride,
+    })
+
+    // Transform locations to API format
+    const transformedLocations = course.locations ? transformLocationsToApiFormat(course.locations) : []
+
     return {
       title: course.title,
       description: course.description,
-      enrollment_start_date:
-        course.enrollment_start_date || course.enrollment_start_date,
-      enrollment_end_date:
-        course.enrollment_end_date || course.enrollment_end_date,
-      orgao_id: (course.orgao as any)?.id,
+      enrollment_start_date: (course as any).enrollment_start_date || (course.enrollmentStartDate ? new Date(course.enrollmentStartDate).toISOString() : undefined),
+      enrollment_end_date: (course as any).enrollment_end_date || (course.enrollmentEndDate ? new Date(course.enrollmentEndDate).toISOString() : undefined),
+      orgao_id: course.orgao_id,
       instituicao_id: instituicaoId,
       modalidade: course.modalidade,
       theme: course.theme,
       workload: course.workload,
-      target_audience: course.target_audience,
-      institutional_logo: course.institutional_logo,
-      cover_image: course.cover_image,
+      target_audience: course.target_audience || course.targetAudience,
+      institutional_logo: course.institutional_logo || course.institutionalLogo,
+      cover_image: course.cover_image || course.coverImage,
       pre_requisitos: course.pre_requisitos || course.prerequisites,
-      has_certificate: course.has_certificate,
+      has_certificate: course.has_certificate || course.hasCertificate,
+      // External partner fields
+      is_external_partner: course.is_external_partner,
+      external_partner_name: course.external_partner_name,
+      external_partner_url: course.external_partner_url,
+      external_partner_logo_url: course.external_partner_logo_url,
+      external_partner_contact: course.external_partner_contact,
       facilitator: course.facilitator,
       objectives: course.objectives,
-      expected_results: course.expected_results,
-      program_content: course.program_content,
+      expected_results: course.expectedResults,
+      program_content: course.programContent,
       methodology: course.methodology,
-      resources_used: course.resources_used,
-      material_used: course.material_used,
-      teaching_material: course.teaching_material,
-      custom_fields: course.custom_fields || [],
-      locations: course.locations || [],
+      resources_used: course.resources_used || course.resourcesUsed,
+      material_used: course.material_used || course.materialUsed,
+      teaching_material: course.teaching_material || course.teachingMaterial,
+      custom_fields: course.custom_fields || course.customFields || [],
+      locations: transformedLocations || (course as any).locations || [],
       remote_class: course.remote_class,
       turno: 'LIVRE',
       formato_aula: course.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
       status: statusOverride || course.status,
-      organization: course.organization || (course.orgao as any)?.nome,
+      organization: course.organization || course.orgao?.nome,
     }
   }
 
@@ -383,6 +410,8 @@ export default function CourseDetailPage({
 
       // Build complete course data with canceled status
       const cancelData = buildCompleteUpdateData('canceled')
+      
+      console.log('Cancel course data to be sent:', JSON.stringify(cancelData, null, 2))
 
       const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
@@ -661,7 +690,7 @@ export default function CourseDetailPage({
                 <span className="text-sm text-muted-foreground">
                   Criado em{' '}
                   {format(
-                    (course.created_at as string) || new Date(),
+                    new Date(course.created_at) || new Date(),
                     'dd/MM/yyyy',
                     {
                       locale: ptBR,
@@ -828,9 +857,15 @@ export default function CourseDetailPage({
                 courseId={courseId?.toString() || ''}
                 courseTitle={course?.title as string}
                 course={{
-                  has_certificate: course?.has_certificate as boolean | undefined,
-                  locations: course?.locations as Array<{ class_end_date?: string }> | undefined,
-                  remote_class: course?.remote_class as { class_end_date?: string } | undefined,
+                  has_certificate: course?.has_certificate as
+                    | boolean
+                    | undefined,
+                  locations: (course as any)?.locations as
+                    | Array<{ class_end_date?: string }>
+                    | undefined,
+                  remote_class: (course as any)?.remote_class as
+                    | { class_end_date?: string }
+                    | undefined,
                   modalidade: course?.modalidade as string | undefined,
                   status: course?.status as string | undefined,
                 }}

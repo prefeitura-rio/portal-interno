@@ -2,7 +2,7 @@ import {
   deleteApiV1CoursesCourseId,
   getApiV1CoursesCourseId,
   putApiV1CoursesCourseId,
-} from '@/http/courses/courses'
+} from '@/http-gorio/courses/courses'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
