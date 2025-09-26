@@ -1,4 +1,4 @@
-import type { ModelsCurso } from '@/http/models'
+import type { ModelsCurso } from '@/http-gorio/models'
 import { transformApiCourseToCourse } from '@/lib/utils'
 import { useCallback, useEffect, useState } from 'react'
 

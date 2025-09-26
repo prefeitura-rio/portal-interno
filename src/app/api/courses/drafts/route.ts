@@ -1,4 +1,4 @@
-import { getApiV1CoursesDrafts } from '@/http/courses/courses'
+import { getApiV1CoursesDrafts } from '@/http-gorio/courses/courses'
 import { transformApiCourseToCourseListItem } from '@/lib/api-transformers'
 import type { CourseListItem } from '@/types/course'
 import { NextResponse } from 'next/server'
