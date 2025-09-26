@@ -187,18 +187,23 @@ export interface CourseLocation {
   classDays: string
 }
 
-export type CustomFieldType = 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio'
+export type CustomFieldType = 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio' | 'multiselect'
+
+export interface CustomFieldOption {
+  id: string
+  value: string
+}
 
 export interface CustomField {
   id: string
   curso_id?: number
   title: string
-  field_type: CustomFieldType
+  value?: string
+  field_type?: CustomFieldType
   required: boolean
+  options?: CustomFieldOption[]
   created_at?: string
   updated_at?: string
-  // For form usage - value field
-  value?: string
 }
 
 export interface RemoteClass {

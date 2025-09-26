@@ -10,6 +10,7 @@ import type { ModelsModalidade } from './modelsModalidade'
 import type { ModelsStatusCurso } from './modelsStatusCurso'
 import type { ModelsTurno } from './modelsTurno'
 
+<<<<<<< HEAD
 //forced
 export type CustomFieldType = 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio'
 
@@ -49,6 +50,8 @@ export interface ModelsLocation { //forced
   updated_at: string
 }
 
+=======
+>>>>>>> 2854b42448ceb777164a2aef9c2950795a60d058
 export interface ModelsCurso {
   carga_horaria?: number
   certificacao_oferecida?: boolean
@@ -98,6 +101,7 @@ export interface ModelsCurso {
   turno?: ModelsTurno
   updated_at?: string
   workload?: string
+<<<<<<< HEAD
 
   //forced
   custom_fields?: ModelsCustomField[]
@@ -107,4 +111,6 @@ export interface ModelsCurso {
     nome: string
   }
   locations?: ModelsLocation[]
+=======
+>>>>>>> 2854b42448ceb777164a2aef9c2950795a60d058
 }

@@ -8,9 +8,9 @@ export async function POST(request: Request) {
     const body: ModelsCursoBody = await request.json()
 
     // Validate required fields
-    if (!body.title || !body.orgao) {
+    if (!body.title || !body.orgao_id) {
       return NextResponse.json(
-        { error: 'Title and orgao are required' },
+        { error: 'Title and orgao_id are required' },
         { status: 400 }
       )
     }
