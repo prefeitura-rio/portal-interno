@@ -4,13 +4,11 @@ import {
   NextResponse,
 } from 'next/server'
 import {
-  getUserRole,
   handleExpiredToken,
   handleUnauthorizedUser,
   hasAdminLoginRole,
   isJwtExpired,
 } from './lib'
-import { hasRouteAccess } from './lib/route-permissions'
 
 const publicRoutes = [
   { path: '/description', whenAuthenticated: 'next' },
@@ -137,16 +135,6 @@ export async function middleware(request: NextRequest) {
       )
     }
 
-    // Check role-based route access
-    const userRole = getUserRole(authToken.value)
-    if (!hasRouteAccess(path, userRole)) {
-      return await handleUnauthorizedUser(
-        request,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
-    }
-
     const response = NextResponse.next({
       request: {
         headers: requestHeaders,
@@ -187,16 +175,6 @@ export async function middleware(request: NextRequest) {
 
     // Check if user has admin:login role
     if (!hasAdminLoginRole(authToken.value)) {
-      return await handleUnauthorizedUser(
-        request,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
-    }
-
-    // Check role-based route access (even for public routes when authenticated)
-    const userRole = getUserRole(authToken.value)
-    if (!hasRouteAccess(path, userRole)) {
       return await handleUnauthorizedUser(
         request,
         requestHeaders,

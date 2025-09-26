@@ -14,8 +14,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useLogout } from '@/hooks/use-logout'
-import { useUserRoleWithLoading } from '@/hooks/use-user-role'
-import { getFilteredMenuList } from '@/lib/menu-list'
+import { getMenuList } from '@/lib/menu-list'
 import { cn } from '@/lib/utils'
 
 interface MenuProps {
@@ -24,22 +23,8 @@ interface MenuProps {
 
 export function Menu({ isOpen }: MenuProps) {
   const pathname = usePathname()
-  const { userRole, loading: roleLoading } = useUserRoleWithLoading()
-  const menuList = getFilteredMenuList(pathname, userRole)
-  const { isLoading: logoutLoading, handleLogout } = useLogout()
-
-  // Show loading state while fetching user role
-  if (roleLoading) {
-    return (
-      <ScrollArea className="[&>div>div[style]]:!block">
-        <nav className="mt-8 h-full w-full">
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        </nav>
-      </ScrollArea>
-    )
-  }
+  const menuList = getMenuList(pathname)
+  const { isLoading, handleLogout } = useLogout()
 
   return (
     <ScrollArea className="[&>div>div[style]]:!block">
@@ -142,7 +127,7 @@ export function Menu({ isOpen }: MenuProps) {
                     onClick={handleLogout}
                     variant="outline"
                     className="w-full justify-center h-10 mt-5"
-                    disabled={logoutLoading}
+                    disabled={isLoading}
                   >
                     <span className={cn(isOpen === false ? '' : '')}>
                       <LogOut size={18} />
@@ -153,13 +138,13 @@ export function Menu({ isOpen }: MenuProps) {
                         isOpen === false ? 'opacity-0 hidden' : 'opacity-100'
                       )}
                     >
-                      {logoutLoading ? 'Saindo...' : 'Sair'}
+                      {isLoading ? 'Saindo...' : 'Sair'}
                     </p>
                   </Button>
                 </TooltipTrigger>
                 {isOpen === false && (
                   <TooltipContent side="right">
-                    {logoutLoading ? 'Saindo...' : 'Sair'}
+                    {isLoading ? 'Saindo...' : 'Sair'}
                   </TooltipContent>
                 )}
               </Tooltip>
