@@ -226,7 +226,7 @@ export default function CourseDetailPage({
         orgao_id:
           (data.orgao as any)?.id ||
           data.orgao_id ||
-          (course?.orgao as any)?.id,
+          course?.orgao_id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -278,7 +278,7 @@ export default function CourseDetailPage({
         orgao_id:
           (data.orgao as any)?.id ||
           data.orgao_id ||
-          (course?.orgao as any)?.id,
+          course?.orgao_id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -349,7 +349,7 @@ export default function CourseDetailPage({
         course.enrollment_start_date || course.enrollment_start_date,
       enrollment_end_date:
         course.enrollment_end_date || course.enrollment_end_date,
-      orgao_id: (course.orgao as any)?.id,
+      orgao_id: course.orgao_id,
       instituicao_id: instituicaoId,
       modalidade: course.modalidade,
       theme: course.theme,
@@ -357,7 +357,7 @@ export default function CourseDetailPage({
       target_audience: course.target_audience,
       institutional_logo: course.institutional_logo,
       cover_image: course.cover_image,
-      pre_requisitos: course.pre_requisitos || course.prerequisites,
+      pre_requisitos: course.pre_requisitos,
       has_certificate: course.has_certificate,
       facilitator: course.facilitator,
       objectives: course.objectives,
@@ -367,13 +367,13 @@ export default function CourseDetailPage({
       resources_used: course.resources_used,
       material_used: course.material_used,
       teaching_material: course.teaching_material,
-      custom_fields: course.custom_fields || [],
-      locations: course.locations || [],
-      remote_class: course.remote_class,
+      custom_fields: (course as any).custom_fields || [],
+      locations: (course as any).locations || [],
+      remote_class: (course as any).remote_class,
       turno: 'LIVRE',
       formato_aula: course.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
       status: statusOverride || course.status,
-      organization: course.organization || (course.orgao as any)?.nome,
+      organization: course.organization,
     }
   }
 
@@ -829,8 +829,8 @@ export default function CourseDetailPage({
                 courseTitle={course?.title as string}
                 course={{
                   has_certificate: course?.has_certificate as boolean | undefined,
-                  locations: course?.locations as Array<{ class_end_date?: string }> | undefined,
-                  remote_class: course?.remote_class as { class_end_date?: string } | undefined,
+                  locations: (course as any)?.locations as Array<{ class_end_date?: string }> | undefined,
+                  remote_class: (course as any)?.remote_class as { class_end_date?: string } | undefined,
                   modalidade: course?.modalidade as string | undefined,
                   status: course?.status as string | undefined,
                 }}
