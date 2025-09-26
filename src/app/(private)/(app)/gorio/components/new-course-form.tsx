@@ -179,7 +179,17 @@ const fullFormSchema = z
             id: z.string(),
             title: z.string(),
             required: z.boolean(),
-            field_type: z.enum(['text', 'number', 'email', 'date', 'select', 'textarea', 'checkbox', 'radio']).optional(),
+            field_type: z
+              .enum(['text', 'number', 'email', 'date', 'select', 'textarea', 'checkbox', 'radio', 'multiselect'])
+              .default('text'),
+            options: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  value: z.string(),
+                })
+              )
+              .optional(),
           })
         )
         .optional(),
@@ -266,7 +276,17 @@ const fullFormSchema = z
             id: z.string(),
             title: z.string(),
             required: z.boolean(),
-            field_type: z.enum(['text', 'number', 'email', 'date', 'select', 'textarea', 'checkbox', 'radio']).optional(),
+            field_type: z
+              .enum(['text', 'number', 'email', 'date', 'select', 'textarea', 'checkbox', 'radio', 'multiselect'])
+              .default('text'),
+            options: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  value: z.string(),
+                })
+              )
+              .optional(),
           })
         )
         .optional(),
@@ -377,7 +397,17 @@ const draftFormSchema = z.object({
         id: z.string(),
         title: z.string(),
         required: z.boolean(),
-        field_type: z.string().optional(),
+        field_type: z
+          .enum(['text', 'select', 'multiselect', 'radio'])
+          .default('text'),
+        options: z
+          .array(
+            z.object({
+              id: z.string(),
+              value: z.string(),
+            })
+          )
+          .optional(),
       })
     )
     .optional(),

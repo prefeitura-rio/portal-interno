@@ -15,7 +15,7 @@ Frontend → /api/courses/drafts → getApiV1CoursesDrafts() → External API
 ### Key Components
 - **Route Handlers**: Next.js 15 API routes in `/api/courses/` and `/api/courses/drafts/`
 - **API Client**: Generated functions from `@/http-gorio/courses/courses.ts` (Orval)
-- **Custom Fetch**: `custom-fetch.ts` handles authentication and base URL configuration
+- **Custom Fetch**: `custom-fetch-gorio.ts` handles authentication and base URL configuration
 - **Data Transformers**: `@/lib/api-transformers.ts` converts API responses to frontend format
 
 ## API Endpoints
@@ -144,7 +144,7 @@ interface CourseListItem {
 
 ### Transformation Process
 1. **Route Handler** receives request and calls external API via `getApiV1Courses()` or `getApiV1CoursesDrafts()`
-2. **API Client** (`custom-fetch.ts`) handles authentication and base URL configuration
+2. **API Client** (`custom-fetch-gorio.ts`) handles authentication and base URL configuration
 3. **Response Processing** extracts courses array from various possible response structures
 4. **Data Transformation** converts each course using `transformApiCourseToCourseListItem()`
 5. **Error Handling** provides fallback values if transformation fails
@@ -191,7 +191,7 @@ All API endpoints include comprehensive error handling:
 - **Console Logging**: Extensive debugging information for troubleshooting
 
 ### API Client Level
-- **Authentication**: Automatic token handling via `custom-fetch.ts`
+- **Authentication**: Automatic token handling via `custom-fetch-gorio.ts`
 - **Base URL Configuration**: Environment variable validation
 - **Request/Response Logging**: Detailed request flow information
 
@@ -213,7 +213,7 @@ console.error('Error transforming course:', course, error)
 
 ## Security
 
-- **Authentication**: Tokens are automatically included via cookies through `custom-fetch.ts`
+- **Authentication**: Tokens are automatically included via cookies through `custom-fetch-gorio.ts`
 - **Input Validation**: Query parameters are validated and sanitized
 - **Error Handling**: Proper error responses prevent information leakage
 - **Environment Variables**: Base URL configuration via `NEXT_PUBLIC_COURSES_BASE_API_URL`
@@ -255,7 +255,7 @@ console.log('Extracted pagination:', pagination)
 // Transformation logs
 console.error('Error transforming course:', course, error)
 
-// API client logs (from custom-fetch.ts)
+// API client logs (from custom-fetch-gorio.ts)
 console.log('RequestInit:', requestInit)
 ```
 
@@ -276,7 +276,7 @@ console.log('RequestInit:', requestInit)
 ### Caching Strategy
 - **Client-Side Caching**: React state management for course data
 - **No Server-Side Caching**: Route handlers are stateless for real-time data
-- **API Client Reuse**: Leverages existing `custom-fetch.ts` infrastructure
+- **API Client Reuse**: Leverages existing `custom-fetch-gorio.ts` infrastructure
 
 ### Error Resilience
 - **Graceful Degradation**: Fallback values when transformation fails
