@@ -42,10 +42,12 @@ export interface Service {
   instructionsForRequester?: string // Maps to instrucoes_solicitante: string
   digitalChannels?: string[] // Maps to canais_digitais: string[]
   physicalChannels?: string[] // Maps to canais_presenciais: string[]
+  legislacaoRelacionada?: string[] // Maps to legislacao_relacionada: string[]
   status: ServiceStatus // Derived from status: number + awaiting_approval: boolean
   published_at?: Date | null // Convert from published_at: number
   last_update: Date // Convert from last_update: number
   created_at: Date // Convert from created_at: number
+  author?: string // Maps to autor: string
 }
 
 // API Response model (exact match with ModelsPrefRioService)
@@ -112,6 +114,7 @@ export const convertApiToFrontend = (
     instructionsForRequester: apiService.instrucoes_solicitante,
     digitalChannels: apiService.canais_digitais,
     physicalChannels: apiService.canais_presenciais,
+    legislacaoRelacionada: apiService.legislacao_relacionada,
     status,
     published_at: apiService.published_at
       ? new Date(apiService.published_at * 1000)
@@ -149,6 +152,7 @@ export const convertFrontendToApi = (
     awaiting_approval: awaitingApproval,
     canais_digitais: frontendService.digitalChannels,
     canais_presenciais: frontendService.physicalChannels,
+    legislacao_relacionada: frontendService.legislacaoRelacionada,
     created_at: Math.floor(frontendService.created_at.getTime() / 1000),
     custo_servico: frontendService.serviceCost || '',
     descricao_completa: frontendService.fullDescription || '',

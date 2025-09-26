@@ -27,7 +27,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useServiceOperations } from '@/hooks/use-service-operations'
 import { SECRETARIAS } from '@/lib/secretarias'
+import {
+  getCurrentTimestamp,
+  transformToApiRequest,
+} from '@/lib/service-data-transformer'
 import { toast } from 'sonner'
 
 // Define the schema for service form validation
@@ -99,6 +104,9 @@ const serviceFormSchema = z.object({
   physicalChannels: z
     .array(z.string().min(1, { message: 'Endereço não pode estar vazio.' }))
     .optional(),
+  legislacaoRelacionada: z
+    .array(z.string().min(1, { message: 'Legislação não pode estar vazia.' }))
+    .optional(),
 })
 
 type ServiceFormData = z.infer<typeof serviceFormSchema>
@@ -119,6 +127,7 @@ const defaultValues: ServiceFormData = {
   instructionsForRequester: '',
   digitalChannels: [],
   physicalChannels: [],
+  legislacaoRelacionada: [],
 }
 
 interface NewServiceFormProps {
@@ -129,6 +138,7 @@ interface NewServiceFormProps {
   userRole?: string | null
   serviceStatus?: string
   onSendToApproval?: () => void
+  serviceId?: string // For editing existing services
 }
 
 export function NewServiceForm({
@@ -139,8 +149,15 @@ export function NewServiceForm({
   userRole,
   serviceStatus,
   onSendToApproval,
+  serviceId,
 }: NewServiceFormProps) {
   const router = useRouter()
+  const {
+    createService,
+    updateService,
+    publishService,
+    loading: operationLoading,
+  } = useServiceOperations()
   const [showSendToEditDialog, setShowSendToEditDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
   const [showSendToApprovalDialog, setShowSendToApprovalDialog] =
@@ -158,6 +175,12 @@ export function NewServiceForm({
   )
   const [physicalChannelErrors, setPhysicalChannelErrors] = useState<string[]>(
     initialData?.physicalChannels?.map(() => '') || ['']
+  )
+  const [legislacaoRelacionada, setLegislacaoRelacionada] = useState<string[]>(
+    initialData?.legislacaoRelacionada || ['']
+  )
+  const [legislacaoErrors, setLegislacaoErrors] = useState<string[]>(
+    initialData?.legislacaoRelacionada?.map(() => '') || ['']
   )
 
   const form = useForm<ServiceFormData>({
@@ -283,6 +306,52 @@ export function NewServiceForm({
     form.setValue('physicalChannels', validChannels)
   }
 
+  const addLegislacao = () => {
+    setLegislacaoRelacionada([...legislacaoRelacionada, ''])
+    setLegislacaoErrors([...legislacaoErrors, ''])
+  }
+
+  const removeLegislacao = (index: number) => {
+    if (legislacaoRelacionada.length > 1) {
+      const newLegislacoes = legislacaoRelacionada.filter((_, i) => i !== index)
+      const newErrors = legislacaoErrors.filter((_, i) => i !== index)
+      setLegislacaoRelacionada(newLegislacoes)
+      setLegislacaoErrors(newErrors)
+      form.setValue(
+        'legislacaoRelacionada',
+        newLegislacoes.filter(legislacao => legislacao.trim() !== '')
+      )
+    }
+  }
+
+  const updateLegislacao = (index: number, value: string) => {
+    const newLegislacoes = [...legislacaoRelacionada]
+    const newErrors = [...legislacaoErrors]
+
+    newLegislacoes[index] = value
+
+    // Validate legislation (simple validation - not empty and minimum length)
+    if (value.trim() !== '') {
+      if (value.trim().length < 5) {
+        newErrors[index] = 'Legislação muito curta'
+      } else {
+        newErrors[index] = ''
+      }
+    } else {
+      newErrors[index] = ''
+    }
+
+    setLegislacaoRelacionada(newLegislacoes)
+    setLegislacaoErrors(newErrors)
+
+    // Only include valid legislations in form data
+    const validLegislacoes = newLegislacoes
+      .filter(legislacao => legislacao.trim() !== '')
+      .filter(legislacao => legislacao.trim().length >= 5)
+
+    form.setValue('legislacaoRelacionada', validLegislacoes)
+  }
+
   const handleSendToEditClick = (data: ServiceFormData) => {
     const processedData = preprocessFormData(data)
     setPendingFormData(processedData)
@@ -305,9 +374,16 @@ export function NewServiceForm({
     if (!pendingFormData) return
 
     try {
-      console.log('Enviando serviço para edição:', pendingFormData)
-      // TODO: Implementar função de enviar para edição
-      toast.success('Serviço enviado para edição!')
+      const apiData = transformToApiRequest(pendingFormData)
+      apiData.status = 0 // Set to draft/in_edition status
+      apiData.awaiting_approval = false // Remove from awaiting approval
+
+      if (serviceId) {
+        await updateService(serviceId, apiData)
+      } else {
+        await createService(apiData)
+      }
+
       setPendingFormData(null)
       router.push('/servicos-municipais/servicos?tab=in_edition')
     } catch (error) {
@@ -320,9 +396,19 @@ export function NewServiceForm({
     if (!pendingFormData) return
 
     try {
-      console.log('Publicando serviço:', pendingFormData)
-      // TODO: Implementar função de publicar serviço
-      toast.success('Serviço publicado com sucesso!')
+      const apiData = transformToApiRequest(pendingFormData)
+
+      // Set status to published and add published_at timestamp
+      apiData.status = 1
+      ;(apiData as any).published_at = getCurrentTimestamp()
+
+      let savedService
+      if (serviceId) {
+        savedService = await updateService(serviceId, apiData)
+      } else {
+        savedService = await createService(apiData)
+      }
+
       setPendingFormData(null)
       router.push('/servicos-municipais/servicos?tab=published')
     } catch (error) {
@@ -365,30 +451,49 @@ export function NewServiceForm({
       .filter(channel => channel.trim() !== '')
       .filter(channel => channel.trim().length >= 5)
 
+    // Filter out empty and invalid legislações
+    const validLegislacoes = legislacaoRelacionada
+      .filter(legislacao => legislacao.trim() !== '')
+      .filter(legislacao => legislacao.trim().length >= 5)
+
     return {
       ...data,
       digitalChannels:
         validDigitalChannels.length > 0 ? validDigitalChannels : undefined,
       physicalChannels:
         validPhysicalChannels.length > 0 ? validPhysicalChannels : undefined,
+      legislacaoRelacionada:
+        validLegislacoes.length > 0 ? validLegislacoes : undefined,
     }
   }
 
   const handleSubmit = async (data: ServiceFormData) => {
     try {
       const processedData = preprocessFormData(data)
-      console.log('Service form data:', processedData)
 
       if (onSubmit) {
         await onSubmit(processedData)
       } else {
-        // Default behavior - show success message
-        toast.success('Serviço criado com sucesso!')
-        form.reset()
+        // Default behavior - create service as draft
+        const apiData = transformToApiRequest(processedData)
+        apiData.status = 0 // Draft status
+
+        if (serviceId) {
+          await updateService(serviceId, apiData)
+          toast.success('Serviço atualizado com sucesso!')
+        } else {
+          await createService(apiData)
+          toast.success('Serviço criado com sucesso!')
+          form.reset()
+        }
       }
     } catch (error) {
-      console.error('Error creating service:', error)
-      toast.error('Erro ao criar serviço. Tente novamente.')
+      console.error('Error saving service:', error)
+      toast.error(
+        serviceId
+          ? 'Erro ao atualizar serviço. Tente novamente.'
+          : 'Erro ao criar serviço. Tente novamente.'
+      )
     }
   }
 
@@ -444,7 +549,11 @@ export function NewServiceForm({
   return (
     <div className="space-y-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <form
+          id="service-edit-form"
+          onSubmit={form.handleSubmit(handleSubmit)}
+          className="space-y-6"
+        >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="space-y-6">
@@ -793,7 +902,7 @@ export function NewServiceForm({
                               variant="destructive"
                               size="icon"
                               onClick={() => removeDigitalChannel(index)}
-                              disabled={isLoading}
+                              disabled={isLoading || operationLoading}
                               className="shrink-0"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -807,7 +916,7 @@ export function NewServiceForm({
                         type="button"
                         variant="outline"
                         onClick={addDigitalChannel}
-                        disabled={isLoading}
+                        disabled={isLoading || operationLoading}
                         className="w-full"
                       >
                         Adicionar campo adicional +
@@ -859,7 +968,7 @@ export function NewServiceForm({
                               variant="destructive"
                               size="icon"
                               onClick={() => removePhysicalChannel(index)}
-                              disabled={isLoading}
+                              disabled={isLoading || operationLoading}
                               className="shrink-0"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -873,7 +982,73 @@ export function NewServiceForm({
                         type="button"
                         variant="outline"
                         onClick={addPhysicalChannel}
-                        disabled={isLoading}
+                        disabled={isLoading || operationLoading}
+                        className="w-full"
+                      >
+                        Adicionar campo adicional +
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Legislação Relacionada Section */}
+              <div className="space-y-4">
+                <div>
+                  <FormLabel
+                    className={
+                      legislacaoErrors.some(error => error)
+                        ? 'text-destructive'
+                        : ''
+                    }
+                  >
+                    Legislação relacionada
+                  </FormLabel>
+                  <div className="space-y-3 mt-2">
+                    {legislacaoRelacionada.map((legislacao, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex gap-2 items-start">
+                          <div className="flex-1">
+                            <Input
+                              placeholder="Ex: Lei Municipal nº 1234/2023"
+                              value={legislacao}
+                              onChange={e =>
+                                updateLegislacao(index, e.target.value)
+                              }
+                              disabled={isLoading || readOnly}
+                              className={
+                                legislacaoErrors[index]
+                                  ? 'border-destructive'
+                                  : ''
+                              }
+                            />
+                            {legislacaoErrors[index] && (
+                              <p className="text-sm text-destructive mt-1">
+                                {legislacaoErrors[index]}
+                              </p>
+                            )}
+                          </div>
+                          {index > 0 && !readOnly && (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              onClick={() => removeLegislacao(index)}
+                              disabled={isLoading || operationLoading}
+                              className="shrink-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {!readOnly && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addLegislacao}
+                        disabled={isLoading || operationLoading}
                         className="w-full"
                       >
                         Adicionar campo adicional +
@@ -908,9 +1083,11 @@ export function NewServiceForm({
                         variant="outline"
                         className="w-full"
                         onClick={form.handleSubmit(handleSendToEditClick)}
-                        disabled={isLoading}
+                        disabled={isLoading || operationLoading}
                       >
-                        {isLoading ? 'Enviando...' : 'Enviar para edição'}
+                        {isLoading || operationLoading
+                          ? 'Enviando...'
+                          : 'Enviar para edição'}
                       </Button>
                     )}
                     {buttonConfig.showSendToApproval && (
@@ -919,9 +1096,11 @@ export function NewServiceForm({
                         variant="outline"
                         className="w-full"
                         onClick={form.handleSubmit(handleSendToApprovalClick)}
-                        disabled={isLoading}
+                        disabled={isLoading || operationLoading}
                       >
-                        {isLoading ? 'Enviando...' : 'Enviar para aprovação'}
+                        {isLoading || operationLoading
+                          ? 'Enviando...'
+                          : 'Enviar para aprovação'}
                       </Button>
                     )}
                     {buttonConfig.showPublish && (
@@ -929,9 +1108,11 @@ export function NewServiceForm({
                         type="button"
                         className="w-full"
                         onClick={form.handleSubmit(handlePublishClick)}
-                        disabled={isLoading}
+                        disabled={isLoading || operationLoading}
                       >
-                        {isLoading ? 'Publicando...' : 'Salvar e publicar'}
+                        {isLoading || operationLoading
+                          ? 'Publicando...'
+                          : 'Salvar e publicar'}
                       </Button>
                     )}
                   </>

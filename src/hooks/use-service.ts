@@ -17,12 +17,15 @@ export function useService(serviceId: string | null): UseServiceReturn {
     if (!serviceId) {
       setLoading(false)
       setError(null)
+      setService(null)
       return
     }
 
     try {
       setLoading(true)
       setError(null)
+
+      console.log('Fetching service from internal API:', serviceId)
 
       const response = await fetch(`/api/services/${serviceId}`, {
         method: 'GET',
@@ -32,6 +35,11 @@ export function useService(serviceId: string | null): UseServiceReturn {
       })
 
       if (!response.ok) {
+        if (response.status === 404) {
+          setError('Serviço não encontrado')
+          setService(null)
+          return
+        }
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
