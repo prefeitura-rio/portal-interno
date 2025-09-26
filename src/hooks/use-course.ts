@@ -1,17 +1,16 @@
-import type { ModelsCurso } from '@/http-gorio/models'
+import type { ModelsCurso } from '@/http/models'
 import { transformApiCourseToCourse } from '@/lib/utils'
-import type { Course } from '@/types/course'
 import { useCallback, useEffect, useState } from 'react'
 
 interface UseCourseReturn {
-  course: Course | null
+  course: ModelsCurso | null
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
 }
 
 export function useCourse(courseId: string | null): UseCourseReturn {
-  const [course, setCourse] = useState<Course | null>(null)
+  const [course, setCourse] = useState<ModelsCurso | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 

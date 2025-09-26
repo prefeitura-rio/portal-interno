@@ -1,4 +1,4 @@
-import { getApiV1CoursesDrafts } from '@/http-gorio/courses/courses'
+import { getApiV1CoursesDrafts } from '@/http/courses/courses'
 import { transformApiCourseToCourseListItem } from '@/lib/api-transformers'
 import type { CourseListItem } from '@/types/course'
 import { NextResponse } from 'next/server'
@@ -73,10 +73,7 @@ export async function GET(request: Request) {
               return {
                 id: course.id?.toString() || 'unknown',
                 title: course.title || 'Sem título',
-                provider:
-                  (course as any).orgao?.nome ||
-                  course.organization ||
-                  'Não informado',
+                provider: course.orgao?.nome || 'Não informado',
                 duration: course.carga_horaria || 0,
                 vacancies: course.numero_vagas || 0,
                 status: course.status || 'draft',
@@ -88,10 +85,7 @@ export async function GET(request: Request) {
                   ? new Date(course.enrollment_end_date)
                   : null,
                 modalidade: course.modalidade || 'PRESENCIAL',
-                organization:
-                  (course as any).orgao?.nome ||
-                  course.organization ||
-                  'Não informado',
+                organization: course.orgao?.nome || 'Não informado',
               } as CourseListItem
             }
           })

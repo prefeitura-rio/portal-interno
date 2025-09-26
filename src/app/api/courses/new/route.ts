@@ -1,5 +1,5 @@
-import { postApiV1Courses } from '@/http-gorio/courses/courses'
-import type { ModelsCursoBody } from '@/http-gorio/models/modelsCursoBody'
+import { postApiV1Courses } from '@/http/courses/courses'
+import type { ModelsCursoBody } from '@/http/models/modelsCursoBody'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -8,9 +8,9 @@ export async function POST(request: Request) {
     const body: ModelsCursoBody = await request.json()
 
     // Validate required fields
-    if (!body.title || !body.orgao_id) {
+    if (!body.title || !body.orgao) {
       return NextResponse.json(
-        { error: 'Title and orgao_id are required' },
+        { error: 'Title and orgao are required' },
         { status: 400 }
       )
     }
