@@ -783,7 +783,35 @@ export function EnrollmentsTable({
       ...enrollmentsToExport.map(enrollment => {
         const customFieldValues = allCustomFieldTitles.map(title => {
           const field = enrollment.customFields?.find(f => f.title === title)
-          return field?.value || ''
+          if (!field) return ''
+
+          // Handle different field types for CSV export
+          switch (field.field_type) {
+            case 'radio':
+            case 'select': {
+              // For single selection, find the option that matches the value
+              const selectedOption = field.options?.find(
+                option => option.id === field.value
+              )
+              return selectedOption?.value || field.value
+            }
+
+            case 'multiselect': {
+              // For multiple selection, the value might be a comma-separated list of option IDs
+              const selectedOptionIds = field.value.split(',').filter(Boolean)
+              const selectedOptions = field.options?.filter(option =>
+                selectedOptionIds.includes(option.id)
+              )
+              return (
+                selectedOptions?.map(option => option.value).join('; ') ||
+                field.value
+              )
+            }
+
+            default:
+              // For text fields, return the value as is
+              return field.value
+          }
         })
 
         return [
@@ -1179,7 +1207,65 @@ export function EnrollmentsTable({
                                       <span className="text-red-500">*</span>
                                     )}
                                   </Label>
-                                  <p className="text-sm mt-1">{field.value}</p>
+                                  <div className="text-sm mt-1">
+                                    {(() => {
+                                      // Handle different field types
+                                      switch (field.field_type) {
+                                        case 'radio':
+                                        case 'select': {
+                                          // For single selection, find the option that matches the value
+                                          const selectedOption =
+                                            field.options?.find(
+                                              option =>
+                                                option.id === field.value
+                                            )
+                                          return (
+                                            <span className="font-medium">
+                                              {selectedOption?.value ||
+                                                field.value}
+                                            </span>
+                                          )
+                                        }
+
+                                        case 'multiselect': {
+                                          // For multiple selection, the value might be a comma-separated list of option IDs
+                                          const selectedOptionIds = field.value
+                                            .split(',')
+                                            .filter(Boolean)
+                                          const selectedOptions =
+                                            field.options?.filter(option =>
+                                              selectedOptionIds.includes(
+                                                option.id
+                                              )
+                                            )
+                                          return (
+                                            <div className="space-y-1">
+                                              {selectedOptions?.map(option => (
+                                                <span
+                                                  key={option.id}
+                                                  className="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs mr-1"
+                                                >
+                                                  {option.value}
+                                                </span>
+                                              )) || (
+                                                <span className="text-muted-foreground">
+                                                  {field.value}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )
+                                        }
+
+                                        default:
+                                          // For text fields, display the value as is
+                                          return (
+                                            <span className="font-medium">
+                                              {field.value}
+                                            </span>
+                                          )
+                                      }
+                                    })()}
+                                  </div>
                                 </div>
                               </div>
                             ))}

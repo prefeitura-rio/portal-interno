@@ -147,12 +147,18 @@ export interface CourseLocation {
   classDays: string
 }
 
+export interface CustomFieldOption {
+  id: string
+  value: string
+}
+
 export interface CustomField {
   id: string
   title: string
   value: string
-  type?: 'text' | 'number' | 'date' | 'select'
+  field_type?: 'text' | 'select' | 'multiselect' | 'radio'
   required: boolean
+  options?: CustomFieldOption[]
 }
 
 export interface CourseFormData {
