@@ -108,7 +108,7 @@ const fullFormSchema = z
         .string()
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
-        .max(500, { message: 'Descrição não pode exceder 500 caracteres.' }),
+        .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -133,7 +133,7 @@ const fullFormSchema = z
         .string()
         .min(1, { message: 'Público-alvo é obrigatório.' })
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
-        .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
+        .max(600, { message: 'Público-alvo não pode exceder 600 caracteres.' }),
       // Required image fields
       institutional_logo: z
         .string()
@@ -158,10 +158,12 @@ const fullFormSchema = z
       external_partner_url: z.string().url().optional().or(z.literal('')),
       external_partner_logo_url: z
         .string()
-        .url().optional()
+        .url()
+        .optional()
         .or(z.literal(''))
         .refine(validateGoogleCloudStorageURL, {
-          message: 'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+          message:
+            'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       external_partner_contact: z.string().optional(),
 
@@ -180,7 +182,17 @@ const fullFormSchema = z
             title: z.string(),
             required: z.boolean(),
             field_type: z
-              .enum(['text', 'number', 'email', 'date', 'select', 'textarea', 'checkbox', 'radio', 'multiselect'])
+              .enum([
+                'text',
+                'number',
+                'email',
+                'date',
+                'select',
+                'textarea',
+                'checkbox',
+                'radio',
+                'multiselect',
+              ])
               .default('text'),
             options: z
               .array(
@@ -205,7 +217,7 @@ const fullFormSchema = z
         .string()
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
-        .max(500, { message: 'Descrição não pode exceder 500 caracteres.' }),
+        .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -230,7 +242,7 @@ const fullFormSchema = z
         .string()
         .min(1, { message: 'Público-alvo é obrigatório.' })
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
-        .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
+        .max(600, { message: 'Público-alvo não pode exceder 600 caracteres.' }),
       // Required image fields
       institutional_logo: z
         .string()
@@ -255,10 +267,12 @@ const fullFormSchema = z
       external_partner_url: z.string().url().optional().or(z.literal('')),
       external_partner_logo_url: z
         .string()
-        .url().optional()
+        .url()
+        .optional()
         .or(z.literal(''))
         .refine(validateGoogleCloudStorageURL, {
-          message: 'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+          message:
+            'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       external_partner_contact: z.string().optional(),
 
@@ -277,7 +291,17 @@ const fullFormSchema = z
             title: z.string(),
             required: z.boolean(),
             field_type: z
-              .enum(['text', 'number', 'email', 'date', 'select', 'textarea', 'checkbox', 'radio', 'multiselect'])
+              .enum([
+                'text',
+                'number',
+                'email',
+                'date',
+                'select',
+                'textarea',
+                'checkbox',
+                'radio',
+                'multiselect',
+              ])
               .default('text'),
             options: z
               .array(
@@ -378,7 +402,8 @@ const draftFormSchema = z.object({
   external_partner_logo_url: z
     .string()
     .refine(validateGoogleCloudStorageURL, {
-      message: 'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+      message:
+        'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
     })
     .optional(),
   external_partner_contact: z.string().optional(),
@@ -758,10 +783,18 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
         // External partner fields - clear when not external partner
         is_external_partner: data.is_external_partner,
-        external_partner_name: data.is_external_partner ? data.external_partner_name : '',
-        external_partner_url: data.is_external_partner ? data.external_partner_url : '',
-        external_partner_logo_url: data.is_external_partner ? data.external_partner_logo_url : '',
-        external_partner_contact: data.is_external_partner ? data.external_partner_contact : '',
+        external_partner_name: data.is_external_partner
+          ? data.external_partner_name
+          : '',
+        external_partner_url: data.is_external_partner
+          ? data.external_partner_url
+          : '',
+        external_partner_logo_url: data.is_external_partner
+          ? data.external_partner_logo_url
+          : '',
+        external_partner_contact: data.is_external_partner
+          ? data.external_partner_contact
+          : '',
 
         facilitator: data.facilitator,
         objectives: data.objectives,
@@ -813,10 +846,18 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
         // External partner fields - clear when not external partner
         is_external_partner: data.is_external_partner,
-        external_partner_name: data.is_external_partner ? data.external_partner_name : '',
-        external_partner_url: data.is_external_partner ? data.external_partner_url : '',
-        external_partner_logo_url: data.is_external_partner ? data.external_partner_logo_url : '',
-        external_partner_contact: data.is_external_partner ? data.external_partner_contact : '',
+        external_partner_name: data.is_external_partner
+          ? data.external_partner_name
+          : '',
+        external_partner_url: data.is_external_partner
+          ? data.external_partner_url
+          : '',
+        external_partner_logo_url: data.is_external_partner
+          ? data.external_partner_logo_url
+          : '',
+        external_partner_contact: data.is_external_partner
+          ? data.external_partner_contact
+          : '',
 
         facilitator: data.facilitator,
         objectives: data.objectives,
@@ -1337,23 +1378,34 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                     src={field.value}
                                     alt="Preview da logo do parceiro"
                                     className="max-w-full max-h-full object-contain"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement
+                                    onError={e => {
+                                      const target =
+                                        e.target as HTMLImageElement
                                       target.style.display = 'none'
-                                      const errorText = target.nextElementSibling as HTMLElement
+                                      const errorText =
+                                        target.nextElementSibling as HTMLElement
                                       if (errorText) {
-                                        errorText.textContent = 'Erro ao carregar'
+                                        errorText.textContent =
+                                          'Erro ao carregar'
                                         errorText.style.display = 'block'
                                       }
                                     }}
-                                    onLoad={(e) => {
-                                      const target = e.target as HTMLImageElement
+                                    onLoad={e => {
+                                      const target =
+                                        e.target as HTMLImageElement
                                       target.style.display = 'block'
-                                      const errorText = target.nextElementSibling as HTMLElement
-                                      if (errorText) errorText.style.display = 'none'
+                                      const errorText =
+                                        target.nextElementSibling as HTMLElement
+                                      if (errorText)
+                                        errorText.style.display = 'none'
                                     }}
                                   />
-                                  <span className="text-xs text-gray-500" style={{ display: 'none' }}>Erro ao carregar</span>
+                                  <span
+                                    className="text-xs text-gray-500"
+                                    style={{ display: 'none' }}
+                                  >
+                                    Erro ao carregar
+                                  </span>
                                 </div>
                               </div>
                             )}
