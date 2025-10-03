@@ -274,7 +274,7 @@ export const NewMEIOpportunityForm = forwardRef<
             neighborhood: '',
             opportunity_expiration_date: new Date(),
             service_execution_deadline: new Date(),
-            gallery_images: [],
+            gallery_images: [{ id: crypto.randomUUID(), url: '' }],
             cover_image: '',
           },
       mode: 'onChange',
@@ -358,7 +358,7 @@ export const NewMEIOpportunityForm = forwardRef<
         neighborhood: data.neighborhood || '',
         opportunity_expiration_date: data.opportunity_expiration_date || nextMonth,
         service_execution_deadline: data.service_execution_deadline || nextMonth,
-        gallery_images: data.gallery_images || [],
+        gallery_images: data.gallery_images || [{ id: crypto.randomUUID(), url: '' }],
         cover_image: data.cover_image || '',
       }
 
