@@ -14,6 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUserRoleContext } from '@/contexts/user-role-context'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import { mockMEIOpportunities, type MEIOpportunity } from '@/lib/mock-mei-opportunities'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 // Types for MEI Opportunities
@@ -90,64 +91,23 @@ const statusConfig: Record<OportunidadeMEIStatus, OportunidadeMEIStatusConfig> =
     },
   }
 
-// Mock data for MEI Opportunities
-const mockOportunidadesMEI: OportunidadeMEI[] = [
-  {
-    id: '1',
-    title: 'Curso de Gestão Financeira para MEI',
-    activity: 'Educação e Capacitação',
-    offeredBy: 'Secretaria de Desenvolvimento Econômico',
-    publishedAt: '2024-01-15',
-    expiresAt: '2024-03-15',
-    status: 'active',
-    managingOrgan: 'desenvolvimento-economico',
-    lastUpdate: '2024-01-15',
-  },
-  {
-    id: '2',
-    title: 'Workshop de Marketing Digital',
-    activity: 'Marketing e Vendas',
-    offeredBy: 'Secretaria de Tecnologia',
-    publishedAt: '2024-01-10',
-    expiresAt: '2024-02-10',
-    status: 'expired',
-    managingOrgan: 'tecnologia',
-    lastUpdate: '2024-01-10',
-  },
-  {
-    id: '3',
-    title: 'Consultoria em Planejamento Tributário',
-    activity: 'Consultoria',
-    offeredBy: 'Secretaria da Fazenda',
-    publishedAt: null,
-    expiresAt: '2024-04-30',
-    status: 'draft',
-    managingOrgan: 'fazenda',
-    lastUpdate: '2024-01-20',
-  },
-  {
-    id: '4',
-    title: 'Programa de Microcrédito',
-    activity: 'Financiamento',
-    offeredBy: 'Secretaria de Desenvolvimento Econômico',
-    publishedAt: '2024-01-05',
-    expiresAt: '2024-06-05',
-    status: 'active',
-    managingOrgan: 'desenvolvimento-economico',
-    lastUpdate: '2024-01-05',
-  },
-  {
-    id: '5',
-    title: 'Feira de Negócios MEI',
-    activity: 'Eventos e Networking',
-    offeredBy: 'Secretaria de Turismo',
-    publishedAt: '2023-12-01',
-    expiresAt: '2023-12-31',
-    status: 'expired',
-    managingOrgan: 'turismo',
-    lastUpdate: '2023-12-01',
-  },
-]
+// Helper function to transform MEIOpportunity to OportunidadeMEI format
+function transformMEIOpportunityToDataTable(opportunity: MEIOpportunity): OportunidadeMEI {
+  return {
+    id: opportunity.id.toString(),
+    title: opportunity.title,
+    activity: opportunity.activity_type,
+    offeredBy: opportunity.orgao.nome,
+    publishedAt: opportunity.status === 'draft' ? null : opportunity.created_at.split('T')[0],
+    expiresAt: opportunity.opportunity_expiration_date.split('T')[0],
+    status: opportunity.status,
+    managingOrgan: opportunity.orgao.nome.toLowerCase().replace(/\s+/g, '-'),
+    lastUpdate: opportunity.updated_at.split('T')[0],
+  }
+}
+
+// Transform unified mock data to data table format
+const mockOportunidadesMEI: OportunidadeMEI[] = mockMEIOpportunities.map(transformMEIOpportunityToDataTable)
 
 export function OportunidadesMEIDataTable() {
   const router = useRouter()
@@ -474,7 +434,7 @@ export function OportunidadesMEIDataTable() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
                     <Link
-                      href={`/gorio/oportunidades-mei/oportunidade/${oportunidade.id}`}
+                      href={`/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`}
                     >
                       <Eye className="mr-2 h-4 w-4" />
                       Visualizar
@@ -483,7 +443,7 @@ export function OportunidadesMEIDataTable() {
                   {canEditOportunidade() && (
                     <DropdownMenuItem asChild>
                       <Link
-                        href={`/gorio/oportunidades-mei/oportunidade/${oportunidade.id}`}
+                        href={`/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}?edit=true`}
                       >
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
@@ -564,7 +524,7 @@ export function OportunidadesMEIDataTable() {
             table={table}
             loading={userRoleLoading}
             onRowClick={oportunidade => {
-              window.location.href = `/gorio/oportunidades-mei/oportunidade/${oportunidade.id}`
+              window.location.href = `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
             }}
           >
             <DataTableToolbar table={table} />
@@ -576,7 +536,7 @@ export function OportunidadesMEIDataTable() {
             table={table}
             loading={userRoleLoading}
             onRowClick={oportunidade => {
-              window.location.href = `/gorio/oportunidades-mei/oportunidade/${oportunidade.id}`
+              window.location.href = `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
             }}
           >
             <DataTableToolbar table={table} />
@@ -588,7 +548,7 @@ export function OportunidadesMEIDataTable() {
             table={table}
             loading={userRoleLoading}
             onRowClick={oportunidade => {
-              window.location.href = `/gorio/oportunidades-mei/oportunidade/${oportunidade.id}`
+              window.location.href = `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
             }}
           >
             <DataTableToolbar table={table} />

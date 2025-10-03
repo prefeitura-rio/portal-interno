@@ -1,5 +1,5 @@
 'use client'
-import { NewMEIOpportunityForm } from '@/app/(private)/(app)/gorio/components/new-mei-opportunity-form'
+import { NewMEIOpportunityForm } from '@/app/(private)/(app)/gorio/oportunidades-mei/components/new-mei-opportunity-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import {
   Breadcrumb,
