@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { MEIOpportunity, getMEIOpportunityById } from '@/lib/mock-mei-opportunities'
+import { useEffect, useState } from 'react'
 
 export type { MEIOpportunity }
 
