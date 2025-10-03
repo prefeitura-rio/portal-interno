@@ -395,16 +395,28 @@ export default function MEIOpportunityDetailPage({
                   <StatusIcon className="w-3 h-3 mr-1" />
                   {config.label}
                 </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Criado em{' '}
-                  {format(
-                    new Date(opportunity.created_at) || new Date(),
-                    'dd/MM/yyyy',
-                    {
-                      locale: ptBR,
-                    }
-                  )}
-                </span>
+                <div className="flex flex-row gap-4">
+                  <span className="text-sm text-muted-foreground">
+                    Criado em:{' '}
+                    {format(
+                      new Date(opportunity.created_at) || new Date(),
+                      'dd/MM/yyyy',
+                      {
+                        locale: ptBR,
+                      }
+                    )}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    Expira em:{' '}
+                    {format(
+                      new Date(opportunity.opportunity_expiration_date) || new Date(),
+                      'dd/MM/yyyy',
+                      {
+                        locale: ptBR,
+                      }
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
