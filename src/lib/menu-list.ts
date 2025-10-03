@@ -65,18 +65,18 @@ export function getMenuList(pathname: string): Group[] {
         },
         {
           href: '',
-          label: 'Emprego e Trabalho',
+          label: 'Emprego e trabalho',
           icon: Briefcase,
           allowedRoles: ['admin', 'geral'],
           submenus: [
             {
-              href: '/gorio/jobs',
-              label: 'Vagas',
+              href: '/gorio/oportunidades-mei',
+              label: 'Oportunidades MEI',
               allowedRoles: ['admin', 'geral'],
             },
             {
-              href: '/gorio/jobs/new',
-              label: 'Nova Vaga',
+              href: '/gorio/oportunidades-mei/new',
+              label: 'Nova oportunidade MEI',
               allowedRoles: ['admin', 'geral'],
             },
           ],
