@@ -41,15 +41,15 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '1',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/curso-gestao1.jpg',
+        url: 'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
       },
       {
         id: '2',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/curso-gestao2.jpg',
+        url: 'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
       },
     ],
     cover_image:
-      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/curso-gestao-cover.jpg',
+      'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
     status: 'active',
     created_at: '2024-01-15T10:00:00Z',
     updated_at: '2024-01-15T10:00:00Z',
@@ -76,11 +76,11 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '3',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/workshop-marketing1.jpg',
+        url: 'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
       },
     ],
     cover_image:
-      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/workshop-marketing-cover.jpg',
+      'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
     status: 'expired',
     created_at: '2024-01-10T14:30:00Z',
     updated_at: '2024-01-10T14:30:00Z',
@@ -106,7 +106,7 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     service_execution_deadline: '2024-05-30T23:59:59Z',
     gallery_images: [],
     cover_image:
-      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/consultoria-tributaria-cover.jpg',
+      'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
     status: 'draft',
     created_at: '2024-01-20T09:15:00Z',
     updated_at: '2024-01-20T09:15:00Z',
@@ -133,15 +133,15 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '4',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/microcredito1.jpg',
+        url: 'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
       },
       {
         id: '5',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/microcredito2.jpg',
+        url: 'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
       },
     ],
     cover_image:
-      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/microcredito-cover.jpg',
+      'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
     status: 'active',
     created_at: '2024-01-05T08:00:00Z',
     updated_at: '2024-01-05T08:00:00Z',
@@ -168,11 +168,11 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '6',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/feira-negocios1.jpg',
+        url: 'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
       },
     ],
     cover_image:
-      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/feira-negocios-cover.jpg',
+      'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
     status: 'expired',
     created_at: '2023-12-01T10:00:00Z',
     updated_at: '2023-12-01T10:00:00Z',
@@ -199,11 +199,11 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '7',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/limpeza1.jpg',
+        url: 'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
       },
     ],
     cover_image:
-      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/limpeza-cover.jpg',
+      'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
     status: 'draft',
     created_at: '2024-01-25T16:45:00Z',
     updated_at: '2024-01-25T16:45:00Z',
@@ -230,15 +230,15 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '8',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/manutencao1.jpg',
+        url: 'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
       },
       {
         id: '9',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/manutencao2.jpg',
+        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/avatar2.png',
       },
     ],
     cover_image:
-      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/manutencao-cover.jpg',
+      'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
     status: 'draft',
     created_at: '2024-01-28T11:20:00Z',
     updated_at: '2024-01-28T11:20:00Z',
@@ -263,7 +263,7 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     service_execution_deadline: '2023-12-30T23:59:59Z',
     gallery_images: [],
     cover_image:
-      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/consultoria-gestao-cover.jpg',
+      'http://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/banner/iptu.png',
     status: 'expired',
     created_at: '2023-11-01T13:30:00Z',
     updated_at: '2023-11-01T13:30:00Z',
