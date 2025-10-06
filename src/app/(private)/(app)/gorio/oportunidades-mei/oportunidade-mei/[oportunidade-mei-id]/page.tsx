@@ -1,6 +1,10 @@
 'use client'
 
-import { NewMEIOpportunityForm, type NewMEIOpportunityFormRef } from '@/app/(private)/(app)/gorio/oportunidades-mei/components/new-mei-opportunity-form'
+import {
+  NewMEIOpportunityForm,
+  type NewMEIOpportunityFormRef,
+} from '@/app/(private)/(app)/gorio/oportunidades-mei/components/new-mei-opportunity-form'
+import { ProposalsTable } from '@/app/(private)/(app)/gorio/oportunidades-mei/components/proposals-table'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -25,7 +29,7 @@ import {
   Flag,
   Save,
   Trash2,
-  X
+  X,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -67,11 +71,7 @@ export default function MEIOpportunityDetailPage({
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean
-    type:
-      | 'delete_opportunity'
-      | 'save_changes'
-      | 'publish_opportunity'
-      | null
+    type: 'delete_opportunity' | 'save_changes' | 'publish_opportunity' | null
   }>({
     open: false,
     type: null,
@@ -151,17 +151,24 @@ export default function MEIOpportunityDetailPage({
         ...data,
         title: data.title || opportunity?.title,
         activity_type: data.activity_type || opportunity?.activity_type,
-        activity_specification: data.activity_specification || opportunity?.activity_specification,
+        activity_specification:
+          data.activity_specification || opportunity?.activity_specification,
         description: data.description || opportunity?.description,
-        execution_location: data.execution_location || opportunity?.execution_location,
+        execution_location:
+          data.execution_location || opportunity?.execution_location,
         address: data.address || opportunity?.address,
         number: data.number || opportunity?.number,
         neighborhood: data.neighborhood || opportunity?.neighborhood,
-        opportunity_expiration_date: data.opportunity_expiration_date || opportunity?.opportunity_expiration_date,
-        service_execution_deadline: data.service_execution_deadline || opportunity?.service_execution_deadline,
+        opportunity_expiration_date:
+          data.opportunity_expiration_date ||
+          opportunity?.opportunity_expiration_date,
+        service_execution_deadline:
+          data.service_execution_deadline ||
+          opportunity?.service_execution_deadline,
         gallery_images: data.gallery_images || opportunity?.gallery_images,
         cover_image: data.cover_image || opportunity?.cover_image,
-        orgao_id: (data.orgao as any)?.id || data.orgao_id || opportunity?.orgao_id,
+        orgao_id:
+          (data.orgao as any)?.id || data.orgao_id || opportunity?.orgao_id,
       }
 
       // Mock API call - replace with actual implementation
@@ -194,17 +201,24 @@ export default function MEIOpportunityDetailPage({
         ...data,
         title: data.title || opportunity?.title,
         activity_type: data.activity_type || opportunity?.activity_type,
-        activity_specification: data.activity_specification || opportunity?.activity_specification,
+        activity_specification:
+          data.activity_specification || opportunity?.activity_specification,
         description: data.description || opportunity?.description,
-        execution_location: data.execution_location || opportunity?.execution_location,
+        execution_location:
+          data.execution_location || opportunity?.execution_location,
         address: data.address || opportunity?.address,
         number: data.number || opportunity?.number,
         neighborhood: data.neighborhood || opportunity?.neighborhood,
-        opportunity_expiration_date: data.opportunity_expiration_date || opportunity?.opportunity_expiration_date,
-        service_execution_deadline: data.service_execution_deadline || opportunity?.service_execution_deadline,
+        opportunity_expiration_date:
+          data.opportunity_expiration_date ||
+          opportunity?.opportunity_expiration_date,
+        service_execution_deadline:
+          data.service_execution_deadline ||
+          opportunity?.service_execution_deadline,
         gallery_images: data.gallery_images || opportunity?.gallery_images,
         cover_image: data.cover_image || opportunity?.cover_image,
-        orgao_id: (data.orgao as any)?.id || data.orgao_id || opportunity?.orgao_id,
+        orgao_id:
+          (data.orgao as any)?.id || data.orgao_id || opportunity?.orgao_id,
         status: 'active',
       }
 
@@ -258,7 +272,6 @@ export default function MEIOpportunityDetailPage({
       setIsLoading(false)
     }
   }
-
 
   const handlePublishFromHeader = () => {
     // Trigger form validation and publish
@@ -359,7 +372,6 @@ export default function MEIOpportunityDetailPage({
   // Check if opportunity is a draft
   const isDraft = actualStatus === 'draft'
 
-
   return (
     <ContentLayout title="Detalhes da Oportunidade MEI">
       <div className="space-y-6">
@@ -409,7 +421,8 @@ export default function MEIOpportunityDetailPage({
                   <span className="text-sm text-muted-foreground">
                     Expira em:{' '}
                     {format(
-                      new Date(opportunity.opportunity_expiration_date) || new Date(),
+                      new Date(opportunity.opportunity_expiration_date) ||
+                        new Date(),
                       'dd/MM/yyyy',
                       {
                         locale: ptBR,
@@ -530,11 +543,10 @@ export default function MEIOpportunityDetailPage({
             </TabsContent>
 
             <TabsContent value="proposals" className="mt-6">
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  Conteúdo da tab de propostas será implementado em breve.
-                </p>
-              </div>
+              <ProposalsTable
+                opportunityId={opportunityId}
+                opportunityTitle={opportunity.title}
+              />
             </TabsContent>
           </Tabs>
         )}

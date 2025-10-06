@@ -28,8 +28,10 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     id: 1,
     title: 'Curso de Gestão Financeira para MEI',
     activity_type: 'Educação e Capacitação',
-    activity_specification: 'Curso completo de gestão financeira para microempreendedores individuais',
-    description: 'Oportunidade para MEI participar de curso completo de gestão financeira, incluindo planejamento, controle de fluxo de caixa e análise de resultados.',
+    activity_specification:
+      'Curso completo de gestão financeira para microempreendedores individuais',
+    description:
+      'Oportunidade para MEI participar de curso completo de gestão financeira, incluindo planejamento, controle de fluxo de caixa e análise de resultados.',
     execution_location: 'Centro de Capacitação Municipal',
     address: 'Rua da Educação',
     number: '100',
@@ -39,29 +41,32 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '1',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/curso-gestao1.jpg'
+        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/curso-gestao1.jpg',
       },
       {
         id: '2',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/curso-gestao2.jpg'
-      }
+        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/curso-gestao2.jpg',
+      },
     ],
-    cover_image: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/curso-gestao-cover.jpg',
+    cover_image:
+      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/curso-gestao-cover.jpg',
     status: 'active',
     created_at: '2024-01-15T10:00:00Z',
     updated_at: '2024-01-15T10:00:00Z',
     orgao: {
       id: 1,
-      nome: 'Secretaria de Desenvolvimento Econômico'
+      nome: 'Secretaria de Desenvolvimento Econômico',
     },
-    orgao_id: 1
+    orgao_id: 1,
   },
   {
     id: 2,
     title: 'Workshop de Marketing Digital',
     activity_type: 'Marketing e Vendas',
-    activity_specification: 'Workshop prático de marketing digital para pequenos negócios',
-    description: 'Oportunidade para MEI participar de workshop prático de marketing digital, incluindo redes sociais, SEO e publicidade online.',
+    activity_specification:
+      'Workshop prático de marketing digital para pequenos negócios',
+    description:
+      'Oportunidade para MEI participar de workshop prático de marketing digital, incluindo redes sociais, SEO e publicidade online.',
     execution_location: 'Centro de Tecnologia Municipal',
     address: 'Avenida da Tecnologia',
     number: '250',
@@ -71,25 +76,28 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '3',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/workshop-marketing1.jpg'
-      }
+        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/workshop-marketing1.jpg',
+      },
     ],
-    cover_image: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/workshop-marketing-cover.jpg',
+    cover_image:
+      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/workshop-marketing-cover.jpg',
     status: 'expired',
     created_at: '2024-01-10T14:30:00Z',
     updated_at: '2024-01-10T14:30:00Z',
     orgao: {
       id: 2,
-      nome: 'Secretaria de Tecnologia'
+      nome: 'Secretaria de Tecnologia',
     },
-    orgao_id: 2
+    orgao_id: 2,
   },
   {
     id: 3,
     title: 'Consultoria em Planejamento Tributário',
     activity_type: 'Consultoria',
-    activity_specification: 'Consultoria especializada em planejamento tributário para MEI',
-    description: 'Oportunidade para MEI receber consultoria especializada em planejamento tributário, incluindo análise de regime tributário e otimização de impostos.',
+    activity_specification:
+      'Consultoria especializada em planejamento tributário para MEI',
+    description:
+      'Oportunidade para MEI receber consultoria especializada em planejamento tributário, incluindo análise de regime tributário e otimização de impostos.',
     execution_location: 'Secretaria da Fazenda',
     address: 'Praça da República',
     number: '456',
@@ -97,22 +105,25 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     opportunity_expiration_date: '2024-04-30T23:59:59Z',
     service_execution_deadline: '2024-05-30T23:59:59Z',
     gallery_images: [],
-    cover_image: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/consultoria-tributaria-cover.jpg',
+    cover_image:
+      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/consultoria-tributaria-cover.jpg',
     status: 'draft',
     created_at: '2024-01-20T09:15:00Z',
     updated_at: '2024-01-20T09:15:00Z',
     orgao: {
       id: 3,
-      nome: 'Secretaria da Fazenda'
+      nome: 'Secretaria da Fazenda',
     },
-    orgao_id: 3
+    orgao_id: 3,
   },
   {
     id: 4,
     title: 'Programa de Microcrédito',
     activity_type: 'Financiamento',
-    activity_specification: 'Programa de microcrédito com juros baixos para MEI',
-    description: 'Oportunidade para MEI acessar programa de microcrédito com juros baixos para investimento em equipamentos e capital de giro.',
+    activity_specification:
+      'Programa de microcrédito com juros baixos para MEI',
+    description:
+      'Oportunidade para MEI acessar programa de microcrédito com juros baixos para investimento em equipamentos e capital de giro.',
     execution_location: 'Agência de Desenvolvimento',
     address: 'Rua do Comércio',
     number: '789',
@@ -122,29 +133,32 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '4',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/microcredito1.jpg'
+        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/microcredito1.jpg',
       },
       {
         id: '5',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/microcredito2.jpg'
-      }
+        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/microcredito2.jpg',
+      },
     ],
-    cover_image: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/microcredito-cover.jpg',
+    cover_image:
+      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/microcredito-cover.jpg',
     status: 'active',
     created_at: '2024-01-05T08:00:00Z',
     updated_at: '2024-01-05T08:00:00Z',
     orgao: {
       id: 1,
-      nome: 'Secretaria de Desenvolvimento Econômico'
+      nome: 'Secretaria de Desenvolvimento Econômico',
     },
-    orgao_id: 1
+    orgao_id: 1,
   },
   {
     id: 5,
     title: 'Feira de Negócios MEI',
     activity_type: 'Eventos e Networking',
-    activity_specification: 'Feira de negócios para networking e exposição de produtos/serviços MEI',
-    description: 'Oportunidade para MEI participar de feira de negócios para networking, exposição de produtos e serviços, e captação de clientes.',
+    activity_specification:
+      'Feira de negócios para networking e exposição de produtos/serviços MEI',
+    description:
+      'Oportunidade para MEI participar de feira de negócios para networking, exposição de produtos e serviços, e captação de clientes.',
     execution_location: 'Centro de Convenções',
     address: 'Avenida das Américas',
     number: '1000',
@@ -154,25 +168,28 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '6',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/feira-negocios1.jpg'
-      }
+        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/feira-negocios1.jpg',
+      },
     ],
-    cover_image: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/feira-negocios-cover.jpg',
+    cover_image:
+      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/feira-negocios-cover.jpg',
     status: 'expired',
     created_at: '2023-12-01T10:00:00Z',
     updated_at: '2023-12-01T10:00:00Z',
     orgao: {
       id: 4,
-      nome: 'Secretaria de Turismo'
+      nome: 'Secretaria de Turismo',
     },
-    orgao_id: 4
+    orgao_id: 4,
   },
   {
     id: 6,
     title: 'Rascunho - Serviços de Limpeza',
     activity_type: 'Limpeza e Conservação',
-    activity_specification: 'Serviços de limpeza e conservação de prédios públicos',
-    description: 'Oportunidade para MEI prestar serviços de limpeza e conservação em prédios públicos da prefeitura, incluindo limpeza de salas, corredores e áreas externas.',
+    activity_specification:
+      'Serviços de limpeza e conservação de prédios públicos',
+    description:
+      'Oportunidade para MEI prestar serviços de limpeza e conservação em prédios públicos da prefeitura, incluindo limpeza de salas, corredores e áreas externas.',
     execution_location: 'Prefeitura Municipal',
     address: 'Praça da República',
     number: '456',
@@ -182,25 +199,28 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '7',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/limpeza1.jpg'
-      }
+        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/limpeza1.jpg',
+      },
     ],
-    cover_image: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/limpeza-cover.jpg',
+    cover_image:
+      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/limpeza-cover.jpg',
     status: 'draft',
     created_at: '2024-01-25T16:45:00Z',
     updated_at: '2024-01-25T16:45:00Z',
     orgao: {
       id: 5,
-      nome: 'Secretaria de Administração'
+      nome: 'Secretaria de Administração',
     },
-    orgao_id: 5
+    orgao_id: 5,
   },
   {
     id: 7,
     title: 'Rascunho - Manutenção de Equipamentos',
     activity_type: 'Manutenção',
-    activity_specification: 'Manutenção preventiva e corretiva de equipamentos de informática',
-    description: 'Oportunidade para MEI realizar manutenção de equipamentos de informática da prefeitura, incluindo computadores, impressoras e outros dispositivos.',
+    activity_specification:
+      'Manutenção preventiva e corretiva de equipamentos de informática',
+    description:
+      'Oportunidade para MEI realizar manutenção de equipamentos de informática da prefeitura, incluindo computadores, impressoras e outros dispositivos.',
     execution_location: 'Centro Municipal de Tecnologia',
     address: 'Rua da Tecnologia',
     number: '123',
@@ -210,29 +230,31 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     gallery_images: [
       {
         id: '8',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/manutencao1.jpg'
+        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/manutencao1.jpg',
       },
       {
         id: '9',
-        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/manutencao2.jpg'
-      }
+        url: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/manutencao2.jpg',
+      },
     ],
-    cover_image: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/manutencao-cover.jpg',
+    cover_image:
+      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/manutencao-cover.jpg',
     status: 'draft',
     created_at: '2024-01-28T11:20:00Z',
     updated_at: '2024-01-28T11:20:00Z',
     orgao: {
       id: 2,
-      nome: 'Secretaria de Tecnologia'
+      nome: 'Secretaria de Tecnologia',
     },
-    orgao_id: 2
+    orgao_id: 2,
   },
   {
     id: 8,
     title: 'Oportunidade Expirada - Consultoria',
     activity_type: 'Consultoria',
     activity_specification: 'Consultoria em gestão empresarial para MEI',
-    description: 'Oportunidade para MEI receber consultoria em gestão empresarial, incluindo planejamento estratégico e organização de processos.',
+    description:
+      'Oportunidade para MEI receber consultoria em gestão empresarial, incluindo planejamento estratégico e organização de processos.',
     execution_location: 'Centro de Apoio ao Empreendedor',
     address: 'Rua do Empreendedor',
     number: '321',
@@ -240,25 +262,34 @@ export const mockMEIOpportunities: MEIOpportunity[] = [
     opportunity_expiration_date: '2023-11-30T23:59:59Z',
     service_execution_deadline: '2023-12-30T23:59:59Z',
     gallery_images: [],
-    cover_image: 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/consultoria-gestao-cover.jpg',
+    cover_image:
+      'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/consultoria-gestao-cover.jpg',
     status: 'expired',
     created_at: '2023-11-01T13:30:00Z',
     updated_at: '2023-11-01T13:30:00Z',
     orgao: {
       id: 3,
-      nome: 'Secretaria da Fazenda'
+      nome: 'Secretaria da Fazenda',
     },
-    orgao_id: 3
-  }
+    orgao_id: 3,
+  },
 ]
 
 // Helper function to get opportunity by ID
-export function getMEIOpportunityById(id: string | number): MEIOpportunity | undefined {
-  const opportunityId = typeof id === 'string' ? parseInt(id, 10) : id
-  return mockMEIOpportunities.find(opportunity => opportunity.id === opportunityId)
+export function getMEIOpportunityById(
+  id: string | number
+): MEIOpportunity | undefined {
+  const opportunityId = typeof id === 'string' ? Number.parseInt(id, 10) : id
+  return mockMEIOpportunities.find(
+    opportunity => opportunity.id === opportunityId
+  )
 }
 
 // Helper function to get opportunities by status
-export function getMEIOpportunitiesByStatus(status: 'active' | 'expired' | 'draft'): MEIOpportunity[] {
-  return mockMEIOpportunities.filter(opportunity => opportunity.status === status)
+export function getMEIOpportunitiesByStatus(
+  status: 'active' | 'expired' | 'draft'
+): MEIOpportunity[] {
+  return mockMEIOpportunities.filter(
+    opportunity => opportunity.status === status
+  )
 }

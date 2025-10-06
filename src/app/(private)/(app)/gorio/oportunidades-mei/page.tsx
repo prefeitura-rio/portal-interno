@@ -2,10 +2,10 @@
 
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import {
-    BreadcrumbItem,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { useUserRoleContext } from '@/contexts/user-role-context'
 
@@ -32,7 +32,7 @@ export default function OportunidadesMEIPage() {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-2">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">
                 Oportunidades MEI
