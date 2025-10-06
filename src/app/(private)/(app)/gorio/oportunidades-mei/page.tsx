@@ -25,7 +25,7 @@ export default function OportunidadesMEIPage() {
         <div className="flex flex-col gap-2">
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>Gório</BreadcrumbItem>
+              <BreadcrumbItem>Go Rio</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>Oportunidades MEI</BreadcrumbPage>
