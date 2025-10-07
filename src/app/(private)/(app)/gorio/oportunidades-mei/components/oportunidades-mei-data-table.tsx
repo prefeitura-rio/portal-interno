@@ -14,7 +14,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUserRoleContext } from '@/contexts/user-role-context'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
-import { mockMEIOpportunities, type MEIOpportunity } from '@/lib/mock-mei-opportunities'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 // Types for MEI Opportunities
@@ -39,9 +38,13 @@ type OportunidadeMEI = {
   lastUpdate: string
 }
 
-import { Combobox } from '@/components/ui/combobox'
+import { OrgaosCombobox } from '@/components/orgaos-combobox'
 import { Label } from '@/components/ui/label'
-import { SECRETARIAS } from '@/lib/secretarias'
+import {
+  type MEIOpportunityStatus,
+  useMEIOpportunities,
+} from '@/hooks/use-mei-opportunities'
+import type { ModelsOportunidadeMEI } from '@/http-gorio/models'
 import {
   type Column,
   type ColumnDef,
@@ -67,6 +70,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import * as React from 'react'
+import { toast } from 'sonner'
 
 // Status configuration for badges
 const statusConfig: Record<OportunidadeMEIStatus, OportunidadeMEIStatusConfig> =
@@ -91,28 +95,34 @@ const statusConfig: Record<OportunidadeMEIStatus, OportunidadeMEIStatusConfig> =
     },
   }
 
-// Helper function to transform MEIOpportunity to OportunidadeMEI format
-function transformMEIOpportunityToDataTable(opportunity: MEIOpportunity): OportunidadeMEI {
+// Helper function to transform API data to OportunidadeMEI format
+function transformAPIToDataTable(
+  opportunity: ModelsOportunidadeMEI
+): OportunidadeMEI {
+  const opp = opportunity as any
   return {
-    id: opportunity.id.toString(),
-    title: opportunity.title,
-    activity: opportunity.activity_type,
-    offeredBy: opportunity.orgao.nome,
-    publishedAt: opportunity.status === 'draft' ? null : opportunity.created_at.split('T')[0],
-    expiresAt: opportunity.opportunity_expiration_date.split('T')[0],
-    status: opportunity.status,
-    managingOrgan: opportunity.orgao.nome.toLowerCase().replace(/\s+/g, '-'),
-    lastUpdate: opportunity.updated_at.split('T')[0],
+    id: String(opp.id || ''),
+    title: String(opp.titulo || ''),
+    activity: String(opp.cnae?.servico || ''),
+    offeredBy: String(opp.orgao?.nome || ''),
+    publishedAt:
+      opp.status === 'draft' ? null : opp.created_at?.split('T')?.[0] || null,
+    expiresAt: String(opp.data_expiracao?.split('T')?.[0] || ''),
+    status: opp.status as OportunidadeMEIStatus,
+    managingOrgan: String(opp.orgao?.id || ''),
+    lastUpdate: String(opp.updated_at?.split('T')?.[0] || ''),
   }
 }
-
-// Transform unified mock data to data table format
-const mockOportunidadesMEI: OportunidadeMEI[] = mockMEIOpportunities.map(transformMEIOpportunityToDataTable)
 
 export function OportunidadesMEIDataTable() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { userRole, loading: userRoleLoading, isAdmin, hasElevatedPermissions } = useUserRoleContext()
+  const {
+    userRole,
+    loading: userRoleLoading,
+    isAdmin,
+    hasElevatedPermissions,
+  } = useUserRoleContext()
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'expiresAt', desc: true },
@@ -144,42 +154,30 @@ export function OportunidadesMEIDataTable() {
 
   // Get active tab from search params, default to 'active'
   const activeTab = (searchParams.get('tab') ||
-    'active') as OportunidadeMEIStatus
+    'active') as MEIOpportunityStatus
   const [searchQuery, setSearchQuery] = React.useState('')
   const [selectedSecretaria, setSelectedSecretaria] = React.useState('')
 
-  // Filter opportunities based on active tab and search
-  const filteredOportunidades = React.useMemo(() => {
-    return mockOportunidadesMEI.filter(oportunidade => {
-      // Filter by status
-      if (oportunidade.status !== activeTab) return false
-
-      // Filter by secretaria
-      if (
-        selectedSecretaria &&
-        oportunidade.managingOrgan !== selectedSecretaria
-      )
-        return false
-
-      // Filter by search query
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        return (
-          oportunidade.title.toLowerCase().includes(query) ||
-          oportunidade.activity.toLowerCase().includes(query) ||
-          oportunidade.offeredBy.toLowerCase().includes(query)
-        )
-      }
-
-      return true
+  // Fetch opportunities from API
+  const { opportunities, loading, error, total, pageCount, refetch } =
+    useMEIOpportunities({
+      page: pagination.pageIndex + 1, // API pages start at 1
+      pageSize: pagination.pageSize,
+      status: activeTab,
+      orgaoId: selectedSecretaria ? Number(selectedSecretaria) : undefined,
+      titulo: searchQuery || undefined,
     })
-  }, [activeTab, selectedSecretaria, searchQuery])
+
+  // Transform API data to data table format
+  const transformedOpportunities = React.useMemo(() => {
+    return opportunities.map(transformAPIToDataTable)
+  }, [opportunities])
 
   // Debounced search function
   const debouncedSearch = useDebouncedCallback((query: string) => {
     setSearchQuery(query)
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
-  }, 200)
+  }, 300)
 
   // Handle search filter changes
   React.useEffect(() => {
@@ -190,6 +188,15 @@ export function OportunidadesMEIDataTable() {
       debouncedSearch(newSearchQuery)
     }
   }, [columnFilters, searchQuery, debouncedSearch])
+
+  // Show error toast if there's an error
+  React.useEffect(() => {
+    if (error) {
+      toast.error('Erro ao carregar oportunidades', {
+        description: error.message,
+      })
+    }
+  }, [error])
 
   // Handle tab changes
   const handleTabChange = React.useCallback(
@@ -233,7 +240,7 @@ export function OportunidadesMEIDataTable() {
     []
   )
 
-  // Handle quick actions (simplified for now)
+  // Handle delete oportunidade
   const handleDeleteOportunidade = React.useCallback(
     (oportunidadeId: string, oportunidadeName: string) => {
       openConfirmDialog({
@@ -242,12 +249,31 @@ export function OportunidadesMEIDataTable() {
         confirmText: 'Excluir',
         variant: 'destructive',
         onConfirm: async () => {
-          // TODO: Implement delete functionality when API is ready
-          console.log('Delete oportunidade:', oportunidadeId)
+          try {
+            const response = await fetch(
+              `/api/oportunidades-mei/${oportunidadeId}`,
+              {
+                method: 'DELETE',
+              }
+            )
+
+            if (!response.ok) {
+              throw new Error('Failed to delete opportunity')
+            }
+
+            toast.success('Oportunidade excluída com sucesso!')
+            refetch() // Refresh the list
+          } catch (error) {
+            console.error('Error deleting opportunity:', error)
+            toast.error('Erro ao excluir oportunidade', {
+              description:
+                error instanceof Error ? error.message : 'Erro desconhecido',
+            })
+          }
         },
       })
     },
-    [openConfirmDialog]
+    [openConfirmDialog, refetch]
   )
 
   // Define table columns
@@ -476,7 +502,7 @@ export function OportunidadesMEIDataTable() {
   }, [isAdmin, userRole, activeTab, handleDeleteOportunidade])
 
   const table = useReactTable({
-    data: filteredOportunidades,
+    data: transformedOpportunities,
     columns,
     getRowId: row => row.id,
     state: {
@@ -490,16 +516,16 @@ export function OportunidadesMEIDataTable() {
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    manualPagination: false, // Use client-side pagination for mock data
-    manualFiltering: false, // Use client-side filtering for mock data
+    manualPagination: true, // Use server-side pagination
+    manualFiltering: true, // Use server-side filtering
+    pageCount: pageCount, // Total number of pages from API
   })
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col pb-4">
         <Label className="py-4">Selecione uma secretaria</Label>
-        <Combobox
-          options={SECRETARIAS}
+        <OrgaosCombobox
           value={selectedSecretaria}
           onValueChange={handleSecretariaChange}
           placeholder="Todas as secretarias"
@@ -522,7 +548,7 @@ export function OportunidadesMEIDataTable() {
         <TabsContent value="active" className="space-y-4">
           <DataTable
             table={table}
-            loading={userRoleLoading}
+            loading={loading || userRoleLoading}
             onRowClick={oportunidade => {
               window.location.href = `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
             }}
@@ -534,7 +560,7 @@ export function OportunidadesMEIDataTable() {
         <TabsContent value="expired" className="space-y-4">
           <DataTable
             table={table}
-            loading={userRoleLoading}
+            loading={loading || userRoleLoading}
             onRowClick={oportunidade => {
               window.location.href = `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
             }}
@@ -546,7 +572,7 @@ export function OportunidadesMEIDataTable() {
         <TabsContent value="draft" className="space-y-4">
           <DataTable
             table={table}
-            loading={userRoleLoading}
+            loading={loading || userRoleLoading}
             onRowClick={oportunidade => {
               window.location.href = `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
             }}

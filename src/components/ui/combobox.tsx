@@ -107,6 +107,7 @@ interface ComboboxProps {
   searchPlaceholder?: string
   emptyMessage?: string
   className?: string
+  disabled?: boolean
 }
 
 export function Combobox({
@@ -117,6 +118,7 @@ export function Combobox({
   searchPlaceholder = 'Buscar...',
   emptyMessage = 'Nenhuma opção encontrada.',
   className,
+  disabled = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
@@ -139,6 +141,7 @@ export function Combobox({
           role="combobox"
           aria-expanded={open}
           className={cn('w-full justify-between text-left', className)}
+          disabled={disabled}
         >
           <span className="truncate flex-1 min-w-0">
             {getDisplayText(selectedOption)}
@@ -152,7 +155,7 @@ export function Combobox({
         sideOffset={4}
       >
         <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+          <CommandInput placeholder={searchPlaceholder} className="h-9" />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
@@ -165,22 +168,16 @@ export function Combobox({
                     onValueChange?.(newValue)
                     setOpen(false)
                   }}
-                  className="flex items-center gap-2"
+                  // className="flex items-center gap-2"
                 >
+                  {option.label}
+                  {option.sigla && ` - ${option.sigla}`}
                   <CheckIcon
                     className={cn(
-                      'h-4 w-4 shrink-0',
+                      'ml-auto h-4 w-4',
                       value === option.value ? 'opacity-100' : 'opacity-0'
                     )}
                   />
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <span className="truncate text-sm">{option.label}</span>
-                    {option.sigla && (
-                      <span className="truncate text-xs text-muted-foreground">
-                        {option.sigla}
-                      </span>
-                    )}
-                  </div>
                 </CommandItem>
               ))}
             </CommandGroup>
