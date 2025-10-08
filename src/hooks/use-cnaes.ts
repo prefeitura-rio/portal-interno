@@ -86,7 +86,7 @@ export function useOcupacoes() {
   }
 }
 
-// Hook to get services for a specific occupation
+// Hook to get services for a specific occupation with CNAE data
 export function useServicos(ocupacao?: string) {
   const { data, isLoading, error } = useCNAEs({
     ocupacao,
@@ -94,11 +94,30 @@ export function useServicos(ocupacao?: string) {
     pageSize: 1000,
   })
 
-  const servicos = data?.data?.map(cnae => cnae.servico) || []
+  // Return full CNAE objects so we can access the ID
+  const cnaes = data?.data || []
 
   return {
-    servicos,
+    cnaes,
     isLoading,
     error,
+  }
+}
+
+// Helper hook to get full CNAE data by ocupacao and servico
+export function useCNAEData() {
+  const { data } = useCNAEs({ pageSize: 1000 })
+
+  const getCNAEByOcupacaoAndServico = (
+    ocupacao: string,
+    servico: string
+  ): CNAE | undefined => {
+    return data?.data?.find(
+      cnae => cnae.ocupacao === ocupacao && cnae.servico === servico
+    )
+  }
+
+  return {
+    getCNAEByOcupacaoAndServico,
   }
 }

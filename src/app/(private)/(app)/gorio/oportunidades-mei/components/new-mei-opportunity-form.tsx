@@ -55,6 +55,7 @@ const fullFormSchema = z.object({
     id: z.number(),
     nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
   }),
+  cnae_id: z.number().min(1, { message: 'CNAE é obrigatório.' }),
   title: z
     .string()
     .min(1, { message: 'Título é obrigatório.' })
@@ -72,10 +73,7 @@ const fullFormSchema = z.object({
     .min(1, { message: 'Descrição é obrigatória.' })
     .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
     .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
-  execution_location: z
-    .string()
-    .min(1, { message: 'Local de execução é obrigatório.' })
-    .min(5, { message: 'Local de execução deve ter pelo menos 5 caracteres.' }),
+  outras_informacoes: z.string().optional(),
   address: z
     .string()
     .min(1, { message: 'Endereço é obrigatório.' })
@@ -85,24 +83,20 @@ const fullFormSchema = z.object({
     .string()
     .min(1, { message: 'Bairro é obrigatório.' })
     .min(3, { message: 'Bairro deve ter pelo menos 3 caracteres.' }),
+  forma_pagamento: z.string().optional(),
+  prazo_pagamento: z.string().optional(),
   opportunity_expiration_date: z.date({
     required_error: 'Prazo para expiração da oportunidade é obrigatório.',
   }),
-  service_execution_deadline: z.date({
-    required_error: 'Data limite para execução do serviço é obrigatória.',
-  }),
+  service_execution_deadline: z.date().optional(),
   gallery_images: z
     .array(
-      z.object({
-        id: z.string(),
-        url: z
-          .string()
-          .url({ message: 'Deve ser uma URL válida.' })
-          .refine(validateGoogleCloudStorageURL, {
-            message:
-              'Imagem deve ser uma URL do bucket do Google Cloud Storage.',
-          }),
-      })
+      z
+        .string()
+        .url({ message: 'Deve ser uma URL válida.' })
+        .refine(validateGoogleCloudStorageURL, {
+          message: 'Imagem deve ser uma URL do bucket do Google Cloud Storage.',
+        })
     )
     .optional(),
   cover_image: z
@@ -122,24 +116,20 @@ const draftFormSchema = z.object({
       nome: z.string(),
     })
     .optional(),
+  cnae_id: z.number().optional(),
   title: z.string().optional(),
   activity_type: z.string().optional(),
   activity_specification: z.string().optional(),
   description: z.string().optional(),
-  execution_location: z.string().optional(),
+  outras_informacoes: z.string().optional(),
   address: z.string().optional(),
   number: z.string().optional(),
   neighborhood: z.string().optional(),
+  forma_pagamento: z.string().optional(),
+  prazo_pagamento: z.string().optional(),
   opportunity_expiration_date: z.date().optional(),
   service_execution_deadline: z.date().optional(),
-  gallery_images: z
-    .array(
-      z.object({
-        id: z.string(),
-        url: z.string(),
-      })
-    )
-    .optional(),
+  gallery_images: z.array(z.string()).optional(),
   cover_image: z
     .string()
     .refine(validateGoogleCloudStorageURL, {
@@ -156,27 +146,39 @@ type FormData = z.infer<typeof formSchema>
 
 // Helper type for form state
 type PartialFormData = Partial<FormData> & {
+  cnae?: {
+    id: number
+    codigo: string
+    ocupacao: string
+    servico: string
+  }
   status?: 'canceled' | 'draft' | 'opened' | 'closed'
   originalStatus?: 'canceled' | 'draft' | 'opened' | 'closed'
 }
 
 // Type for backend API data
 type BackendMEIOpportunityData = {
-  orgao?: { id: number; nome: string }
   orgao_id: number | null
-  title?: string
-  activity_type?: string
-  activity_specification?: string
-  description?: string
-  execution_location?: string
-  address?: string
-  number?: string
-  neighborhood?: string
-  opportunity_expiration_date?: string
-  service_execution_deadline?: string
-  gallery_images?: Array<{ id: string; url: string }>
+  cnae_id: number | null
+  cnae?: {
+    id: number
+    codigo: string
+    ocupacao: string
+    servico: string
+  }
+  titulo?: string
+  descricao_servico?: string
+  outras_informacoes?: string
+  logradouro?: string
+  numero?: string
+  bairro?: string
+  forma_pagamento?: string
+  prazo_pagamento?: string
+  data_expiracao?: string
+  data_limite_execucao?: string | null
+  gallery_images?: string[]
   cover_image?: string | null
-  status?: 'canceled' | 'draft' | 'opened' | 'closed'
+  status?: 'active' | 'draft' | 'canceled' | 'closed'
 }
 
 interface NewMEIOpportunityFormProps {
@@ -230,10 +232,17 @@ export const NewMEIOpportunityForm = forwardRef<
 
     // State for selected occupation to fetch services
     const [selectedOcupacao, setSelectedOcupacao] = useState<string>('')
+    // State for selected CNAE object
+    const [selectedCnae, setSelectedCnae] = useState<{
+      id: number
+      codigo: string
+      ocupacao: string
+      servico: string
+    } | null>(null)
 
     // Fetch occupations and services using hooks
     const { ocupacoes, isLoading: isLoadingOcupacoes } = useOcupacoes()
-    const { servicos, isLoading: isLoadingServicos } =
+    const { cnaes, isLoading: isLoadingServicos } =
       useServicos(selectedOcupacao)
 
     // Dialog states
@@ -250,46 +259,51 @@ export const NewMEIOpportunityForm = forwardRef<
       type: null,
     })
 
-    const form = useForm<PartialFormData>({
-      resolver: zodResolver(formSchema as any),
+    const form = useForm({
+      resolver: zodResolver(formSchema),
       defaultValues: initialData
         ? {
             orgao: initialData.orgao,
+            cnae_id: initialData.cnae_id,
             title: initialData.title || '',
             activity_type: initialData.activity_type || '',
             activity_specification: initialData.activity_specification || '',
             description: initialData.description || '',
-            execution_location: initialData.execution_location || '',
+            outras_informacoes: initialData.outras_informacoes || '',
             address: initialData.address || '',
             number: initialData.number || '',
             neighborhood: initialData.neighborhood || '',
+            forma_pagamento: initialData.forma_pagamento || '',
+            prazo_pagamento: initialData.prazo_pagamento || '',
             opportunity_expiration_date:
               initialData.opportunity_expiration_date || new Date(),
-            service_execution_deadline:
-              initialData.service_execution_deadline || new Date(),
+            service_execution_deadline: initialData.service_execution_deadline,
             gallery_images: initialData.gallery_images || [],
             cover_image: initialData.cover_image || '',
           }
         : {
             orgao: undefined,
+            cnae_id: undefined,
             title: '',
             activity_type: '',
             activity_specification: '',
             description: '',
-            execution_location: '',
+            outras_informacoes: '',
             address: '',
             number: '',
             neighborhood: '',
+            forma_pagamento: '',
+            prazo_pagamento: '',
             opportunity_expiration_date: new Date(),
-            service_execution_deadline: new Date(),
-            gallery_images: [{ id: crypto.randomUUID(), url: '' }],
+            service_execution_deadline: undefined,
+            gallery_images: [''],
             cover_image: '',
           },
       mode: 'onChange',
     })
 
     const { fields, append, remove } = useFieldArray({
-      control: form.control,
+      control: form.control as any,
       name: 'gallery_images',
     })
 
@@ -318,35 +332,44 @@ export const NewMEIOpportunityForm = forwardRef<
       fetchOrgaos()
     }, [])
 
-    // Set selected occupation when initial data is provided
+    // Set selected occupation and cnae when initial data is provided
     React.useEffect(() => {
       if (initialData?.activity_type) {
         setSelectedOcupacao(initialData.activity_type)
       }
-    }, [initialData?.activity_type])
+      if (initialData?.cnae) {
+        setSelectedCnae(initialData.cnae)
+      }
+    }, [initialData?.activity_type, initialData?.cnae])
 
     // Transform form data to snake_case for backend API
-    const transformFormDataToSnakeCase = (data: PartialFormData) => {
+    const transformFormDataToSnakeCase = (
+      data: PartialFormData
+    ): BackendMEIOpportunityData => {
       return {
-        orgao: data.orgao,
         orgao_id: data.orgao?.id || null,
-        title: data.title,
-        activity_type: data.activity_type,
-        activity_specification: data.activity_specification,
-        description: data.description,
-        execution_location: data.execution_location,
-        address: data.address,
-        number: data.number,
-        neighborhood: data.neighborhood,
-        opportunity_expiration_date: data.opportunity_expiration_date
+        cnae_id: data.cnae_id || null,
+        cnae: data.cnae || selectedCnae || undefined,
+        titulo: data.title,
+        descricao_servico: data.description,
+        outras_informacoes: data.outras_informacoes || '',
+        logradouro: data.address,
+        numero: data.number,
+        bairro: data.neighborhood,
+        forma_pagamento: data.forma_pagamento,
+        prazo_pagamento: data.prazo_pagamento || '',
+        data_expiracao: data.opportunity_expiration_date
           ? formatDateTimeToUTC(data.opportunity_expiration_date)
           : undefined,
-        service_execution_deadline: data.service_execution_deadline
+        data_limite_execucao: data.service_execution_deadline
           ? formatDateTimeToUTC(data.service_execution_deadline)
-          : undefined,
-        gallery_images: data.gallery_images,
-        cover_image: data.cover_image,
-        ...(data.status && { status: data.status }),
+          : null,
+        gallery_images:
+          data.gallery_images?.filter(img => img && img.trim() !== '') || [],
+        cover_image: data.cover_image || null,
+        ...(data.status && {
+          status: data.status as 'active' | 'draft' | 'canceled' | 'closed',
+        }),
       }
     }
 
@@ -361,6 +384,7 @@ export const NewMEIOpportunityForm = forwardRef<
         orgao:
           data.orgao ||
           (orgaos.length > 0 ? orgaos[0] : { id: 1, nome: 'Órgão Padrão' }),
+        cnae_id: data.cnae_id || 1,
         title:
           data.title || 'Rascunho de oportunidade. Edite antes de publicar!',
         activity_type: data.activity_type || '',
@@ -368,17 +392,16 @@ export const NewMEIOpportunityForm = forwardRef<
         description:
           data.description ||
           'Descrição em desenvolvimento. Edite antes de publicar!',
-        execution_location: data.execution_location || '',
+        outras_informacoes: data.outras_informacoes || '',
         address: data.address || '',
         number: data.number || '',
         neighborhood: data.neighborhood || '',
+        forma_pagamento: data.forma_pagamento || '',
+        prazo_pagamento: data.prazo_pagamento || '',
         opportunity_expiration_date:
           data.opportunity_expiration_date || nextMonth,
-        service_execution_deadline:
-          data.service_execution_deadline || nextMonth,
-        gallery_images: data.gallery_images || [
-          { id: crypto.randomUUID(), url: '' },
-        ],
+        service_execution_deadline: data.service_execution_deadline || null,
+        gallery_images: data.gallery_images || [''],
         cover_image: data.cover_image || '',
       }
 
@@ -399,10 +422,7 @@ export const NewMEIOpportunityForm = forwardRef<
     }))
 
     const addGalleryImage = () => {
-      append({
-        id: crypto.randomUUID(),
-        url: '',
-      })
+      append('')
     }
 
     const removeGalleryImage = (index: number) => {
@@ -435,10 +455,17 @@ export const NewMEIOpportunityForm = forwardRef<
 
         if (initialData) {
           // Editing an existing opportunity
+          // Map 'opened' to 'active' for backend compatibility
+          let status: 'active' | 'draft' | 'canceled' | 'closed' = 'active'
+          const currentStatus = initialData.originalStatus || initialData.status
+          if (currentStatus === 'draft') status = 'draft'
+          else if (currentStatus === 'canceled') status = 'canceled'
+          else if (currentStatus === 'closed') status = 'closed'
+          else status = 'active'
+
           const editData = {
             ...transformedData,
-            status:
-              initialData.originalStatus || initialData.status || 'opened',
+            status,
           }
 
           if (onSubmit) {
@@ -448,7 +475,7 @@ export const NewMEIOpportunityForm = forwardRef<
           // Creating a new opportunity
           const opportunityData = {
             ...transformedData,
-            status: 'opened' as const,
+            status: 'active' as const,
           }
 
           console.log('Form submitted successfully!')
@@ -555,7 +582,7 @@ export const NewMEIOpportunityForm = forwardRef<
 
         const publishData = {
           ...transformedData,
-          status: 'opened' as const,
+          status: 'active' as const,
         }
 
         console.log('Publishing opportunity...')
@@ -668,8 +695,10 @@ export const NewMEIOpportunityForm = forwardRef<
                         onValueChange={value => {
                           field.onChange(value)
                           setSelectedOcupacao(value)
-                          // Clear activity_specification when occupation changes
+                          // Clear activity_specification and cnae when occupation changes
                           form.setValue('activity_specification', '')
+                          form.setValue('cnae_id', undefined as any)
+                          setSelectedCnae(null)
                         }}
                         placeholder={
                           isLoadingOcupacoes
@@ -694,12 +723,22 @@ export const NewMEIOpportunityForm = forwardRef<
                     <FormLabel>Especificação da atividade (Serviço)*</FormLabel>
                     <FormControl>
                       <Combobox
-                        options={servicos.map(servico => ({
-                          value: servico,
-                          label: servico,
+                        options={cnaes.map(cnae => ({
+                          value: cnae.id.toString(),
+                          label: `${cnae.servico}${cnae.codigo ? ` (${cnae.codigo})` : ''}`,
                         }))}
-                        value={field.value}
-                        onValueChange={field.onChange}
+                        value={selectedCnae?.id.toString() || ''}
+                        onValueChange={value => {
+                          // Find CNAE by ID
+                          const foundCnae = cnaes.find(
+                            c => c.id.toString() === value
+                          )
+                          if (foundCnae) {
+                            field.onChange(foundCnae.servico)
+                            form.setValue('cnae_id', foundCnae.id)
+                            setSelectedCnae(foundCnae)
+                          }
+                        }}
                         placeholder={
                           !selectedOcupacao
                             ? 'Selecione uma ocupação primeiro'
@@ -724,7 +763,7 @@ export const NewMEIOpportunityForm = forwardRef<
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Descrição*</FormLabel>
+                    <FormLabel>Descrição do serviço*</FormLabel>
                     <FormControl>
                       <Textarea
                         className="min-h-[120px]"
@@ -739,13 +778,14 @@ export const NewMEIOpportunityForm = forwardRef<
 
               <FormField
                 control={form.control}
-                name="execution_location"
+                name="outras_informacoes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Local de execução*</FormLabel>
+                    <FormLabel>Outras informações</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Ex: Centro Municipal de Saúde"
+                      <Textarea
+                        className="min-h-[80px]"
+                        placeholder="Informações adicionais relevantes..."
                         {...field}
                         disabled={isReadOnly}
                       />
@@ -810,6 +850,55 @@ export const NewMEIOpportunityForm = forwardRef<
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="forma_pagamento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Forma de pagamento</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={isReadOnly}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a forma de pagamento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PIX">PIX</SelectItem>
+                            <SelectItem value="TED">TED</SelectItem>
+                            <SelectItem value="DOC">DOC</SelectItem>
+                            <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                            <SelectItem value="CHEQUE">Cheque</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="prazo_pagamento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prazo de pagamento</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ex: 30 dias"
+                          {...field}
+                          disabled={isReadOnly}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="flex flex-wrap items-start gap-4">
                 <FormField
@@ -884,7 +973,7 @@ export const NewMEIOpportunityForm = forwardRef<
                       <div className="flex items-start gap-2">
                         <FormField
                           control={form.control}
-                          name={`gallery_images.${index}.url`}
+                          name={`gallery_images.${index}`}
                           render={({ field }) => (
                             <FormItem className="flex-1">
                               <FormControl>
@@ -910,10 +999,10 @@ export const NewMEIOpportunityForm = forwardRef<
                           </Button>
                         )}
                       </div>
-                      {form.watch(`gallery_images.${index}.url`) && (
+                      {form.watch(`gallery_images.${index}`) && (
                         <div className="w-full rounded-lg border overflow-hidden">
                           <img
-                            src={form.watch(`gallery_images.${index}.url`)}
+                            src={form.watch(`gallery_images.${index}`)}
                             alt={`Pré-visualização ${index + 1}`}
                             className="w-full h-auto max-h-[200px] object-contain bg-muted"
                             onError={e => {
