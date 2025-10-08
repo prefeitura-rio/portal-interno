@@ -27,11 +27,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Combobox } from '@/components/ui/combobox'
 import {
   DateTimePicker,
   formatDateTimeToUTC,
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
+import { useOcupacoes, useServicos } from '@/hooks/use-cnaes'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -78,9 +80,7 @@ const fullFormSchema = z.object({
     .string()
     .min(1, { message: 'Endereço é obrigatório.' })
     .min(10, { message: 'Endereço deve ter pelo menos 10 caracteres.' }),
-  number: z
-    .string()
-    .min(1, { message: 'Número é obrigatório.' }),
+  number: z.string().min(1, { message: 'Número é obrigatório.' }),
   neighborhood: z
     .string()
     .min(1, { message: 'Bairro é obrigatório.' })
@@ -228,6 +228,14 @@ export const NewMEIOpportunityForm = forwardRef<
     )
     const [loadingOrgaos, setLoadingOrgaos] = useState(false)
 
+    // State for selected occupation to fetch services
+    const [selectedOcupacao, setSelectedOcupacao] = useState<string>('')
+
+    // Fetch occupations and services using hooks
+    const { ocupacoes, isLoading: isLoadingOcupacoes } = useOcupacoes()
+    const { servicos, isLoading: isLoadingServicos } =
+      useServicos(selectedOcupacao)
+
     // Dialog states
     const [confirmDialog, setConfirmDialog] = useState<{
       open: boolean
@@ -310,6 +318,13 @@ export const NewMEIOpportunityForm = forwardRef<
       fetchOrgaos()
     }, [])
 
+    // Set selected occupation when initial data is provided
+    React.useEffect(() => {
+      if (initialData?.activity_type) {
+        setSelectedOcupacao(initialData.activity_type)
+      }
+    }, [initialData?.activity_type])
+
     // Transform form data to snake_case for backend API
     const transformFormDataToSnakeCase = (data: PartialFormData) => {
       return {
@@ -346,7 +361,8 @@ export const NewMEIOpportunityForm = forwardRef<
         orgao:
           data.orgao ||
           (orgaos.length > 0 ? orgaos[0] : { id: 1, nome: 'Órgão Padrão' }),
-        title: data.title || 'Rascunho de oportunidade. Edite antes de publicar!',
+        title:
+          data.title || 'Rascunho de oportunidade. Edite antes de publicar!',
         activity_type: data.activity_type || '',
         activity_specification: data.activity_specification || '',
         description:
@@ -356,9 +372,13 @@ export const NewMEIOpportunityForm = forwardRef<
         address: data.address || '',
         number: data.number || '',
         neighborhood: data.neighborhood || '',
-        opportunity_expiration_date: data.opportunity_expiration_date || nextMonth,
-        service_execution_deadline: data.service_execution_deadline || nextMonth,
-        gallery_images: data.gallery_images || [{ id: crypto.randomUUID(), url: '' }],
+        opportunity_expiration_date:
+          data.opportunity_expiration_date || nextMonth,
+        service_execution_deadline:
+          data.service_execution_deadline || nextMonth,
+        gallery_images: data.gallery_images || [
+          { id: crypto.randomUUID(), url: '' },
+        ],
         cover_image: data.cover_image || '',
       }
 
@@ -637,12 +657,28 @@ export const NewMEIOpportunityForm = forwardRef<
                 name="activity_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo de atividade*</FormLabel>
+                    <FormLabel>Tipo de atividade (Ocupação)*</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Ex: Manutenção, Serviços de limpeza, etc."
-                        {...field}
-                        disabled={isReadOnly}
+                      <Combobox
+                        options={ocupacoes.map(ocupacao => ({
+                          value: ocupacao,
+                          label: ocupacao,
+                        }))}
+                        value={field.value}
+                        onValueChange={value => {
+                          field.onChange(value)
+                          setSelectedOcupacao(value)
+                          // Clear activity_specification when occupation changes
+                          form.setValue('activity_specification', '')
+                        }}
+                        placeholder={
+                          isLoadingOcupacoes
+                            ? 'Carregando ocupações...'
+                            : 'Selecione uma ocupação'
+                        }
+                        searchPlaceholder="Buscar ocupação..."
+                        emptyMessage="Nenhuma ocupação encontrada."
+                        disabled={isReadOnly || isLoadingOcupacoes}
                       />
                     </FormControl>
                     <FormMessage />
@@ -655,13 +691,27 @@ export const NewMEIOpportunityForm = forwardRef<
                 name="activity_specification"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Especificação da atividade*</FormLabel>
+                    <FormLabel>Especificação da atividade (Serviço)*</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Detalhe a especificação da atividade..."
-                        className="min-h-[100px]"
-                        {...field}
-                        disabled={isReadOnly}
+                      <Combobox
+                        options={servicos.map(servico => ({
+                          value: servico,
+                          label: servico,
+                        }))}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder={
+                          !selectedOcupacao
+                            ? 'Selecione uma ocupação primeiro'
+                            : isLoadingServicos
+                              ? 'Carregando serviços...'
+                              : 'Selecione um serviço'
+                        }
+                        searchPlaceholder="Buscar serviço..."
+                        emptyMessage="Nenhum serviço encontrado."
+                        disabled={
+                          isReadOnly || !selectedOcupacao || isLoadingServicos
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -767,7 +817,9 @@ export const NewMEIOpportunityForm = forwardRef<
                   name="opportunity_expiration_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                      <FormLabel>Prazo para expiração da oportunidade*</FormLabel>
+                      <FormLabel>
+                        Prazo para expiração da oportunidade*
+                      </FormLabel>
                       <FormControl>
                         <DateTimePicker
                           value={field.value}
@@ -785,7 +837,9 @@ export const NewMEIOpportunityForm = forwardRef<
                   name="service_execution_deadline"
                   render={({ field }) => (
                     <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                      <FormLabel>Data limite para execução do serviço*</FormLabel>
+                      <FormLabel>
+                        Data limite para execução do serviço*
+                      </FormLabel>
                       <FormControl>
                         <DateTimePicker
                           value={field.value}
@@ -862,7 +916,7 @@ export const NewMEIOpportunityForm = forwardRef<
                             src={form.watch(`gallery_images.${index}.url`)}
                             alt={`Pré-visualização ${index + 1}`}
                             className="w-full h-auto max-h-[200px] object-contain bg-muted"
-                            onError={(e) => {
+                            onError={e => {
                               const target = e.target as HTMLImageElement
                               target.style.display = 'none'
                             }}
