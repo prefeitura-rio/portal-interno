@@ -9,80 +9,19 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
+import { useCreateMEIOpportunity } from '@/hooks/use-create-mei-opportunity'
 
 import Link from 'next/link'
 
 export default function NewMEIOpportunity() {
-  const router = useRouter()
+  const { createOpportunity, createDraft } = useCreateMEIOpportunity()
 
   const handleCreateOpportunity = async (data: any) => {
-    try {
-      console.log('Creating MEI opportunity:', data)
-
-      const response = await fetch('/api/mei-opportunities/new', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create MEI opportunity')
-      }
-
-      const result = await response.json()
-      console.log('MEI opportunity created successfully:', result)
-
-      // Show success toast and redirect
-      toast.success('Oportunidade MEI criada com sucesso!')
-      router.push('/gorio/oportunidades-mei')
-
-      // Trigger cache revalidation
-      router.refresh()
-    } catch (error) {
-      console.error('Error creating MEI opportunity:', error)
-      toast.error('Erro ao criar oportunidade MEI', {
-        description: error instanceof Error ? error.message : 'Erro inesperado',
-      })
-    }
+    await createOpportunity(data)
   }
 
   const handleCreateDraft = async (data: any) => {
-    try {
-      console.log('Creating draft MEI opportunity:', data)
-
-      const response = await fetch('/api/mei-opportunities/draft', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create draft MEI opportunity')
-      }
-
-      const result = await response.json()
-      console.log('Draft MEI opportunity created successfully:', result)
-
-      // Show success toast and redirect
-      toast.success('Rascunho salvo com sucesso!')
-      router.push('/gorio/oportunidades-mei?tab=draft')
-
-      // Trigger cache revalidation
-      router.refresh()
-    } catch (error) {
-      console.error('Error creating draft MEI opportunity:', error)
-      toast.error('Erro ao salvar rascunho', {
-        description: error instanceof Error ? error.message : 'Erro inesperado',
-      })
-    }
+    await createDraft(data)
   }
 
   return (
@@ -105,8 +44,12 @@ export default function NewMEIOpportunity() {
             </BreadcrumbList>
           </Breadcrumb>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Nova Oportunidade MEI</h2>
-            <p className="text-muted-foreground">Crie uma nova oportunidade MEI.</p>
+            <h2 className="text-2xl font-bold tracking-tight">
+              Nova Oportunidade MEI
+            </h2>
+            <p className="text-muted-foreground">
+              Crie uma nova oportunidade MEI.
+            </p>
           </div>
         </div>
         <NewMEIOpportunityForm

@@ -91,12 +91,23 @@ const fullFormSchema = z.object({
   service_execution_deadline: z.date().optional(),
   gallery_images: z
     .array(
-      z
-        .string()
-        .url({ message: 'Deve ser uma URL válida.' })
-        .refine(validateGoogleCloudStorageURL, {
-          message: 'Imagem deve ser uma URL do bucket do Google Cloud Storage.',
-        })
+      z.string().refine(
+        val => {
+          // Se estiver vazio, aceita (campo opcional)
+          if (!val || val.trim() === '') return true
+          // Se tiver conteúdo, valida se é URL válida
+          try {
+            new URL(val)
+            return validateGoogleCloudStorageURL(val)
+          } catch {
+            return false
+          }
+        },
+        {
+          message:
+            'Deve ser uma URL válida do bucket do Google Cloud Storage ou deixe em branco.',
+        }
+      )
     )
     .optional(),
   cover_image: z
@@ -172,6 +183,7 @@ type BackendMEIOpportunityData = {
   logradouro?: string
   numero?: string
   bairro?: string
+  cidade?: string
   forma_pagamento?: string
   prazo_pagamento?: string
   data_expiracao?: string
@@ -278,7 +290,11 @@ export const NewMEIOpportunityForm = forwardRef<
             opportunity_expiration_date:
               initialData.opportunity_expiration_date || new Date(),
             service_execution_deadline: initialData.service_execution_deadline,
-            gallery_images: initialData.gallery_images || [],
+            gallery_images:
+              initialData.gallery_images &&
+              initialData.gallery_images.length > 0
+                ? initialData.gallery_images
+                : [''],
             cover_image: initialData.cover_image || '',
           }
         : {
@@ -356,6 +372,7 @@ export const NewMEIOpportunityForm = forwardRef<
         logradouro: data.address,
         numero: data.number,
         bairro: data.neighborhood,
+        cidade: 'RJ', // Sempre enviar "RJ" como cidade
         forma_pagamento: data.forma_pagamento,
         prazo_pagamento: data.prazo_pagamento || '',
         data_expiracao: data.opportunity_expiration_date

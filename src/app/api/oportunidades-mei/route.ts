@@ -1,6 +1,8 @@
 import {
   getApiV1OportunidadesMei,
   getApiV1OportunidadesMeiDrafts,
+  postApiV1OportunidadesMei,
+  postApiV1OportunidadesMeiDraft,
 } from '@/http-gorio/oportunidades-mei/oportunidades-mei'
 import { NextResponse } from 'next/server'
 
@@ -60,6 +62,47 @@ export async function GET(request: Request) {
     )
   } catch (error) {
     console.error('Error in oportunidades-mei API route:', error)
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const { searchParams } = new URL(request.url)
+    const isDraft = searchParams.get('draft') === 'true'
+
+    console.log(`Creating MEI opportunity (draft: ${isDraft}):`, body)
+
+    // Call the appropriate endpoint based on whether it's a draft or not
+    const response = isDraft
+      ? await postApiV1OportunidadesMeiDraft(body)
+      : await postApiV1OportunidadesMei(body)
+
+    if (response.status === 201) {
+      return NextResponse.json(response.data, { status: 201 })
+    }
+
+    // Handle error responses
+    if (response.status === 400) {
+      return NextResponse.json(
+        { error: 'Validation error', details: response.data },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create opportunity' },
+      { status: response.status }
+    )
+  } catch (error) {
+    console.error('Error creating MEI opportunity:', error)
     return NextResponse.json(
       {
         error: 'Internal server error',
