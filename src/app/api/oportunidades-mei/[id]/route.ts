@@ -7,10 +7,11 @@ import { NextResponse } from 'next/server'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = Number.parseInt(params.id)
+    const resolvedParams = await params
+    const id = Number.parseInt(resolvedParams.id)
 
     if (Number.isNaN(id)) {
       return NextResponse.json(
@@ -22,7 +23,10 @@ export async function GET(
     const response = await getApiV1OportunidadesMeiId(id)
 
     if (response.status === 200) {
-      return NextResponse.json(response.data)
+      return NextResponse.json({
+        opportunity: response.data,
+        success: true,
+      })
     }
 
     if (response.status === 404) {
@@ -50,10 +54,11 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = Number.parseInt(params.id)
+    const resolvedParams = await params
+    const id = Number.parseInt(resolvedParams.id)
 
     if (Number.isNaN(id)) {
       return NextResponse.json(
@@ -98,10 +103,11 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = Number.parseInt(params.id)
+    const resolvedParams = await params
+    const id = Number.parseInt(resolvedParams.id)
 
     if (Number.isNaN(id)) {
       return NextResponse.json(
