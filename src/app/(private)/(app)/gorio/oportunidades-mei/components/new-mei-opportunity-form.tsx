@@ -885,10 +885,12 @@ export const NewMEIOpportunityForm = forwardRef<
                             <SelectValue placeholder="Selecione a forma de pagamento" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="TED">TED</SelectItem>
-                            <SelectItem value="DOC">DOC</SelectItem>
-                            <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
                             <SelectItem value="CHEQUE">Cheque</SelectItem>
+                            <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                            <SelectItem value="CARTAO">Cartão</SelectItem>
+                            <SelectItem value="TRANSFERENCIA">
+                              Transferência
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </FormControl>
