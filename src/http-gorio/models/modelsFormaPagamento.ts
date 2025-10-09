@@ -14,6 +14,5 @@ export const ModelsFormaPagamento = {
   FormaPagamentoCheque: 'CHEQUE',
   FormaPagamentoDinheiro: 'DINHEIRO',
   FormaPagamentoCartao: 'CARTAO',
-  FormaPagamentoPix: 'PIX',
   FormaPagamentoTransferencia: 'TRANSFERENCIA',
 } as const

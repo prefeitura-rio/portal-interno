@@ -868,7 +868,6 @@ export const NewMEIOpportunityForm = forwardRef<
                             <SelectValue placeholder="Selecione a forma de pagamento" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="PIX">PIX</SelectItem>
                             <SelectItem value="TED">TED</SelectItem>
                             <SelectItem value="DOC">DOC</SelectItem>
                             <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
