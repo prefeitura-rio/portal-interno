@@ -20,6 +20,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useMEIOpportunity } from '@/hooks/use-mei-opportunity'
+import { useMEIOpportunityOperations } from '@/hooks/use-mei-opportunity-operations'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -86,6 +87,13 @@ export default function MEIOpportunityDetailPage({
     opportunityId?.toString() || null
   )
 
+  // Use the operations hook for update/delete
+  const {
+    updateOpportunity,
+    deleteOpportunity,
+    loading: operationLoading,
+  } = useMEIOpportunityOperations()
+
   // Debug logging
   useEffect(() => {
     if (opportunity) {
@@ -146,42 +154,17 @@ export default function MEIOpportunityDetailPage({
     try {
       setIsLoading(true)
 
-      // Ensure required fields are always included
-      const updateData = {
-        ...data,
-        title: data.title || opportunity?.title,
-        activity_type: data.activity_type || opportunity?.activity_type,
-        activity_specification:
-          data.activity_specification || opportunity?.activity_specification,
-        description: data.description || opportunity?.description,
-        execution_location:
-          data.execution_location || opportunity?.execution_location,
-        address: data.address || opportunity?.address,
-        number: data.number || opportunity?.number,
-        neighborhood: data.neighborhood || opportunity?.neighborhood,
-        opportunity_expiration_date:
-          data.opportunity_expiration_date ||
-          opportunity?.opportunity_expiration_date,
-        service_execution_deadline:
-          data.service_execution_deadline ||
-          opportunity?.service_execution_deadline,
-        gallery_images: data.gallery_images || opportunity?.gallery_images,
-        cover_image: data.cover_image || opportunity?.cover_image,
-        orgao_id:
-          (data.orgao as any)?.id || data.orgao_id || opportunity?.orgao_id,
+      if (!opportunityId) {
+        throw new Error('ID da oportunidade não encontrado')
       }
 
-      // Mock API call - replace with actual implementation
-      console.log('Saving opportunity:', updateData)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Use the data as-is from the form (it's already in snake_case format)
+      await updateOpportunity(opportunityId.toString(), data)
 
-      toast.success('Oportunidade salva com sucesso!')
       setIsEditing(false)
 
       // Refetch opportunity data to get updated information
-      if (refetch) {
-        refetch()
-      }
+      await refetch()
     } catch (error) {
       console.error('Error saving opportunity:', error)
       toast.error('Erro ao salvar oportunidade', {
@@ -196,43 +179,22 @@ export default function MEIOpportunityDetailPage({
     try {
       setIsLoading(true)
 
-      // Ensure required fields are always included
+      if (!opportunityId) {
+        throw new Error('ID da oportunidade não encontrado')
+      }
+
+      // Use the data as-is but ensure status is 'active'
       const publishData = {
         ...data,
-        title: data.title || opportunity?.title,
-        activity_type: data.activity_type || opportunity?.activity_type,
-        activity_specification:
-          data.activity_specification || opportunity?.activity_specification,
-        description: data.description || opportunity?.description,
-        execution_location:
-          data.execution_location || opportunity?.execution_location,
-        address: data.address || opportunity?.address,
-        number: data.number || opportunity?.number,
-        neighborhood: data.neighborhood || opportunity?.neighborhood,
-        opportunity_expiration_date:
-          data.opportunity_expiration_date ||
-          opportunity?.opportunity_expiration_date,
-        service_execution_deadline:
-          data.service_execution_deadline ||
-          opportunity?.service_execution_deadline,
-        gallery_images: data.gallery_images || opportunity?.gallery_images,
-        cover_image: data.cover_image || opportunity?.cover_image,
-        orgao_id:
-          (data.orgao as any)?.id || data.orgao_id || opportunity?.orgao_id,
         status: 'active',
       }
 
-      // Mock API call - replace with actual implementation
-      console.log('Publishing opportunity:', publishData)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await updateOpportunity(opportunityId.toString(), publishData)
 
-      toast.success('Oportunidade publicada com sucesso!')
       setIsEditing(false)
 
       // Refetch opportunity data to get updated information
-      if (refetch) {
-        refetch()
-      }
+      await refetch()
     } catch (error) {
       console.error('Error publishing opportunity:', error)
       toast.error('Erro ao publicar oportunidade', {
@@ -247,22 +209,21 @@ export default function MEIOpportunityDetailPage({
     try {
       setIsLoading(true)
 
+      if (!opportunityId) {
+        throw new Error('ID da oportunidade não encontrado')
+      }
+
       const draftData = {
         ...data,
         status: 'draft',
       }
 
-      // Mock API call - replace with actual implementation
-      console.log('Saving draft:', draftData)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await updateOpportunity(opportunityId.toString(), draftData)
 
-      toast.success('Rascunho salvo com sucesso!')
       setIsEditing(false)
 
       // Refetch opportunity data to get updated information
-      if (refetch) {
-        refetch()
-      }
+      await refetch()
     } catch (error) {
       console.error('Error saving draft:', error)
       toast.error('Erro ao salvar rascunho', {
@@ -306,19 +267,17 @@ export default function MEIOpportunityDetailPage({
     try {
       setIsLoading(true)
 
-      // Mock API call - replace with actual implementation
-      console.log('Deleting opportunity:', opportunityId)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (!opportunityId) {
+        throw new Error('ID da oportunidade não encontrado')
+      }
 
-      toast.success('Oportunidade excluída com sucesso!')
+      await deleteOpportunity(opportunityId.toString())
 
       // Redirect to opportunities list
       router.push('/gorio/oportunidades-mei')
     } catch (error) {
       console.error('Error deleting opportunity:', error)
-      toast.error('Erro ao excluir oportunidade', {
-        description: error instanceof Error ? error.message : 'Erro inesperado',
-      })
+      // Error toast is already shown by the hook
     } finally {
       setIsLoading(false)
     }
@@ -440,7 +399,11 @@ export default function MEIOpportunityDetailPage({
                   {actualStatus !== 'expired' && (
                     <Button
                       onClick={handleEdit}
-                      disabled={activeTab === 'proposals' || isLoading}
+                      disabled={
+                        activeTab === 'proposals' ||
+                        isLoading ||
+                        operationLoading
+                      }
                       className="w-full md:w-auto"
                     >
                       <Edit className="mr-2 h-4 w-4" />
@@ -452,6 +415,7 @@ export default function MEIOpportunityDetailPage({
                   <Button
                     variant="destructive"
                     onClick={handleDeleteOpportunity}
+                    disabled={isLoading || operationLoading}
                     className="w-full md:w-auto"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -463,25 +427,32 @@ export default function MEIOpportunityDetailPage({
                   {isDraft && (
                     <Button
                       onClick={handlePublishFromHeader}
-                      disabled={isLoading}
+                      disabled={isLoading || operationLoading}
                       className="w-full md:w-auto"
                     >
                       <Save className="mr-2 h-4 w-4" />
-                      Salvar e Publicar
+                      {isLoading || operationLoading
+                        ? 'Salvando...'
+                        : 'Salvar e Publicar'}
                     </Button>
                   )}
                   <Button
                     variant="outline"
                     onClick={handleSaveDraftFromHeader}
-                    disabled={isLoading}
+                    disabled={isLoading || operationLoading}
                     className="w-full md:w-auto"
                   >
                     <Save className="mr-2 h-4 w-4" />
-                    {isDraft ? 'Salvar Rascunho' : 'Salvar alterações'}
+                    {isLoading || operationLoading
+                      ? 'Salvando...'
+                      : isDraft
+                        ? 'Salvar Rascunho'
+                        : 'Salvar alterações'}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleCancel}
+                    disabled={isLoading || operationLoading}
                     className="w-full md:w-auto"
                   >
                     <X className="mr-2 h-4 w-4" />

@@ -13,6 +13,8 @@ export interface MEIOpportunity {
   address: string
   number: string
   neighborhood: string
+  cidade?: string
+  estado?: string
   forma_pagamento?: string
   prazo_pagamento?: string
   opportunity_expiration_date: string
@@ -56,6 +58,8 @@ function transformAPIData(apiData: any): MEIOpportunity {
     address: apiData.logradouro || '',
     number: apiData.numero || '',
     neighborhood: apiData.bairro || '',
+    cidade: apiData.cidade || 'RJ',
+    estado: apiData.estado || 'RJ',
     forma_pagamento: apiData.forma_pagamento || '',
     prazo_pagamento: apiData.prazo_pagamento || '',
     opportunity_expiration_date: apiData.data_expiracao || '',

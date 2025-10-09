@@ -74,7 +74,11 @@ export async function PUT(
     const response = await putApiV1OportunidadesMeiId(id, body)
 
     if (response.status === 200) {
-      return NextResponse.json(response.data, { status: 200 })
+      return NextResponse.json({
+        opportunity: response.data,
+        success: true,
+        message: 'Opportunity updated successfully',
+      })
     }
 
     // Handle error responses
@@ -121,7 +125,10 @@ export async function DELETE(
     const response = await deleteApiV1OportunidadesMeiId(id)
 
     if (response.status === 200) {
-      return NextResponse.json(response.data, { status: 200 })
+      return NextResponse.json({
+        success: true,
+        message: 'Opportunity deleted successfully',
+      })
     }
 
     // Handle error responses

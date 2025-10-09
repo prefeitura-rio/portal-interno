@@ -184,6 +184,7 @@ type BackendMEIOpportunityData = {
   numero?: string
   bairro?: string
   cidade?: string
+  estado?: string
   forma_pagamento?: string
   prazo_pagamento?: string
   data_expiracao?: string
@@ -373,6 +374,7 @@ export const NewMEIOpportunityForm = forwardRef<
         numero: data.number,
         bairro: data.neighborhood,
         cidade: 'RJ', // Sempre enviar "RJ" como cidade
+        estado: 'RJ', // Sempre enviar "RJ" como estado
         forma_pagamento: data.forma_pagamento,
         prazo_pagamento: data.prazo_pagamento || '',
         data_expiracao: data.opportunity_expiration_date

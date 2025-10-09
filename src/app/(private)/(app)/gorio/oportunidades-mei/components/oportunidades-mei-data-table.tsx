@@ -14,6 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUserRoleContext } from '@/contexts/user-role-context'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import { useMEIOpportunityOperations } from '@/hooks/use-mei-opportunity-operations'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 // Types for MEI Opportunities
@@ -168,6 +169,9 @@ export function OportunidadesMEIDataTable() {
       titulo: searchQuery || undefined,
     })
 
+  // Use operations hook for delete
+  const { deleteOpportunity } = useMEIOpportunityOperations()
+
   // Transform API data to data table format
   const transformedOpportunities = React.useMemo(() => {
     return opportunities.map(transformAPIToDataTable)
@@ -250,30 +254,16 @@ export function OportunidadesMEIDataTable() {
         variant: 'destructive',
         onConfirm: async () => {
           try {
-            const response = await fetch(
-              `/api/oportunidades-mei/${oportunidadeId}`,
-              {
-                method: 'DELETE',
-              }
-            )
-
-            if (!response.ok) {
-              throw new Error('Failed to delete opportunity')
-            }
-
-            toast.success('Oportunidade excluída com sucesso!')
+            await deleteOpportunity(oportunidadeId)
             refetch() // Refresh the list
           } catch (error) {
             console.error('Error deleting opportunity:', error)
-            toast.error('Erro ao excluir oportunidade', {
-              description:
-                error instanceof Error ? error.message : 'Erro desconhecido',
-            })
+            // Error toast is already shown by the hook
           }
         },
       })
     },
-    [openConfirmDialog, refetch]
+    [openConfirmDialog, deleteOpportunity, refetch]
   )
 
   // Define table columns
