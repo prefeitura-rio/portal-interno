@@ -14,8 +14,9 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   '/gorio/courses/course/*': ['admin', 'geral'],
 
   // GO Rio - Emprego e Trabalho
-  '/gorio/jobs': ['admin', 'geral'],
-  '/gorio/jobs/new': ['admin', 'geral'],
+  '/gorio/oportunidades-mei': ['admin', 'geral'],
+  '/gorio/oportunidades-mei/new': ['admin', 'geral'],
+  '/gorio/oportunidades-mei/oportunidade-mei/*': ['admin', 'geral'],
 
   // Serviços Municipais
   '/servicos-municipais/servicos': ['admin', 'geral', 'editor'],
