@@ -1,8 +1,27 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { MEIProposal, MEIProposalSummary, ProposalStatus } from '@/lib/mock-mei-proposals'
-import { getProposalsByOpportunityId, updateMultipleProposalStatuses, updateProposalStatus } from '@/lib/mock-mei-proposals'
+
+export type ProposalStatus = 'approved' | 'pending' | 'rejected'
+
+export interface MEIProposal {
+  id: string
+  opportunityId: number
+  companyName: string
+  cnpj: string
+  amount: number
+  submittedAt: string
+  email: string
+  phone?: string
+  address?: string
+  status: ProposalStatus
+}
+
+export interface MEIProposalSummary {
+  approvedCount: number
+  pendingCount: number
+  rejectedCount: number
+}
 
 export interface ProposalFilters {
   status?: ProposalStatus
@@ -19,39 +38,87 @@ interface UseMEIProposalsOptions {
 interface UseMEIProposalsReturn {
   proposals: MEIProposal[]
   summary: MEIProposalSummary | null
-  pagination: { page: number; perPage: number; total: number; totalPages: number } | null
+  pagination: {
+    page: number
+    perPage: number
+    total: number
+    totalPages: number
+  } | null
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
-  updateStatus: (proposalId: string, status: ProposalStatus) => Promise<MEIProposal | null>
-  updateMultipleStatuses: (proposalIds: string[], status: ProposalStatus) => Promise<boolean>
+  updateStatus: (
+    proposalId: string,
+    status: ProposalStatus
+  ) => Promise<MEIProposal | null>
+  updateMultipleStatuses: (
+    proposalIds: string[],
+    status: ProposalStatus
+  ) => Promise<boolean>
 }
 
-export function useMEIProposals({ opportunityId, page = 1, perPage = 10, filters }: UseMEIProposalsOptions): UseMEIProposalsReturn {
+export function useMEIProposals({
+  opportunityId,
+  page = 1,
+  perPage = 10,
+  filters,
+}: UseMEIProposalsOptions): UseMEIProposalsReturn {
   const [proposals, setProposals] = useState<MEIProposal[]>([])
   const [summary, setSummary] = useState<MEIProposalSummary | null>(null)
-  const [pagination, setPagination] = useState<{ page: number; perPage: number; total: number; totalPages: number } | null>(null)
+  const [pagination, setPagination] = useState<{
+    page: number
+    perPage: number
+    total: number
+    totalPages: number
+  } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchProposals = useCallback(async () => {
     if (!opportunityId) return
+
     try {
       setLoading(true)
       setError(null)
 
-      const { proposals, total, summary } = getProposalsByOpportunityId(opportunityId, {
-        page,
-        perPage,
-        status: filters?.status,
-        search: filters?.search,
+      // Build query params
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: perPage.toString(),
       })
 
-      setProposals(proposals)
-      setSummary(summary)
-      setPagination({ page, perPage, total, totalPages: Math.ceil(total / perPage) })
+      if (filters?.status) {
+        params.append('status', filters.status)
+      }
+
+      if (filters?.search) {
+        params.append('search', filters.search)
+      }
+
+      const response = await fetch(
+        `/api/oportunidades-mei/${opportunityId}/propostas?${params.toString()}`
+      )
+
+      if (!response.ok) {
+        throw new Error('Erro ao carregar propostas')
+      }
+
+      const data = await response.json()
+
+      // Map API response to our interface
+      setProposals(data.proposals || [])
+      setSummary(data.summary || null)
+      setPagination({
+        page: data.pagination?.page || page,
+        perPage: data.pagination?.perPage || perPage,
+        total: data.pagination?.total || 0,
+        totalPages: data.pagination?.totalPages || 0,
+      })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar propostas')
+      setError(
+        err instanceof Error ? err.message : 'Erro ao carregar propostas'
+      )
+      console.error('Error fetching proposals:', err)
     } finally {
       setLoading(false)
     }
@@ -65,39 +132,78 @@ export function useMEIProposals({ opportunityId, page = 1, perPage = 10, filters
     await fetchProposals()
   }
 
-  const updateStatus = async (proposalId: string, status: ProposalStatus) => {
+  const updateStatus = async (
+    proposalId: string,
+    status: ProposalStatus
+  ): Promise<MEIProposal | null> => {
     try {
-      const updated = updateProposalStatus(proposalId, status)
-      if (updated) {
-        await refetch()
-        return updated
+      const response = await fetch(
+        `/api/oportunidades-mei/${opportunityId}/propostas/${proposalId}/status`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status }),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar status da proposta')
       }
-      return null
+
+      const data = await response.json()
+      await refetch()
+      return data.proposal || null
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao atualizar proposta')
+      setError(
+        err instanceof Error ? err.message : 'Erro ao atualizar proposta'
+      )
+      console.error('Error updating proposal status:', err)
       return null
     }
   }
 
-  const updateMultipleStatuses = async (proposalIds: string[], status: ProposalStatus) => {
+  const updateMultipleStatuses = async (
+    proposalIds: string[],
+    status: ProposalStatus
+  ): Promise<boolean> => {
     try {
-      const success = updateMultipleProposalStatuses(proposalIds, status)
-      if (success) {
-        await refetch()
+      const response = await fetch(
+        `/api/oportunidades-mei/${opportunityId}/propostas/bulk-status`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ proposalIds, status }),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar status das propostas')
       }
-      return success
+
+      const data = await response.json()
+      await refetch()
+      return data.success || false
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao atualizar propostas')
+      setError(
+        err instanceof Error ? err.message : 'Erro ao atualizar propostas'
+      )
+      console.error('Error updating multiple proposal statuses:', err)
       return false
     }
   }
 
-  return { proposals, summary, pagination, loading, error, refetch, updateStatus, updateMultipleStatuses }
+  return {
+    proposals,
+    summary,
+    pagination,
+    loading,
+    error,
+    refetch,
+    updateStatus,
+    updateMultipleStatuses,
+  }
 }
-
-export type { MEIProposal, ProposalStatus }
-
-
-
-
-
