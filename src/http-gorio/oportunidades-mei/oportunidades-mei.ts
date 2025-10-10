@@ -275,7 +275,7 @@ export const getApiV1OportunidadesMeiId = async (
 }
 
 /**
- * Atualiza os dados de uma oportunidade MEI existente e publica se estava em rascunho
+ * Atualiza os dados de uma oportunidade MEI existente mantendo seu status atual
  * @summary Atualizar oportunidade MEI
  */
 export type putApiV1OportunidadesMeiIdResponse200 = {
@@ -365,6 +365,58 @@ export const deleteApiV1OportunidadesMeiId = async (
     {
       ...options,
       method: 'DELETE',
+    }
+  )
+}
+
+/**
+ * Publica uma oportunidade MEI que estava em rascunho
+ * @summary Publicar oportunidade MEI
+ */
+export type putApiV1OportunidadesMeiIdPublishResponse200 = {
+  data: ModelsOportunidadeMEI
+  status: 200
+}
+
+export type putApiV1OportunidadesMeiIdPublishResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+
+export type putApiV1OportunidadesMeiIdPublishResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
+export type putApiV1OportunidadesMeiIdPublishResponse500 = {
+  data: ModelsErrorResponse
+  status: 500
+}
+
+export type putApiV1OportunidadesMeiIdPublishResponseComposite =
+  | putApiV1OportunidadesMeiIdPublishResponse200
+  | putApiV1OportunidadesMeiIdPublishResponse400
+  | putApiV1OportunidadesMeiIdPublishResponse404
+  | putApiV1OportunidadesMeiIdPublishResponse500
+
+export type putApiV1OportunidadesMeiIdPublishResponse =
+  putApiV1OportunidadesMeiIdPublishResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1OportunidadesMeiIdPublishUrl = (id: number) => {
+  return `/api/v1/oportunidades-mei/${id}/publish`
+}
+
+export const putApiV1OportunidadesMeiIdPublish = async (
+  id: number,
+  options?: RequestInit
+): Promise<putApiV1OportunidadesMeiIdPublishResponse> => {
+  return customFetchGoRio<putApiV1OportunidadesMeiIdPublishResponse>(
+    getPutApiV1OportunidadesMeiIdPublishUrl(id),
+    {
+      ...options,
+      method: 'PUT',
     }
   )
 }

@@ -87,9 +87,10 @@ export default function MEIOpportunityDetailPage({
     opportunityId?.toString() || null
   )
 
-  // Use the operations hook for update/delete
+  // Use the operations hook for update/delete/publish
   const {
     updateOpportunity,
+    publishOpportunity,
     deleteOpportunity,
     loading: operationLoading,
   } = useMEIOpportunityOperations()
@@ -183,13 +184,11 @@ export default function MEIOpportunityDetailPage({
         throw new Error('ID da oportunidade não encontrado')
       }
 
-      // Use the data as-is but ensure status is 'active'
-      const publishData = {
-        ...data,
-        status: 'active',
-      }
+      // First update the opportunity with the form data (without changing status)
+      await updateOpportunity(opportunityId.toString(), data)
 
-      await updateOpportunity(opportunityId.toString(), publishData)
+      // Then publish it using the dedicated publish endpoint
+      await publishOpportunity(opportunityId.toString())
 
       setIsEditing(false)
 

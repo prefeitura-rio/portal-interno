@@ -156,7 +156,11 @@ const formSchema = fullFormSchema
 type FormData = z.infer<typeof formSchema>
 
 // Helper type for form state
-type PartialFormData = Partial<FormData> & {
+type PartialFormData = Partial<
+  Omit<FormData, 'opportunity_expiration_date' | 'service_execution_deadline'>
+> & {
+  opportunity_expiration_date?: Date | string
+  service_execution_deadline?: Date | string | null
   cnae?: {
     id: number
     codigo: string
@@ -288,9 +292,16 @@ export const NewMEIOpportunityForm = forwardRef<
             neighborhood: initialData.neighborhood || '',
             forma_pagamento: initialData.forma_pagamento || '',
             prazo_pagamento: initialData.prazo_pagamento || '',
-            opportunity_expiration_date:
-              initialData.opportunity_expiration_date || new Date(),
-            service_execution_deadline: initialData.service_execution_deadline,
+            opportunity_expiration_date: initialData.opportunity_expiration_date
+              ? typeof initialData.opportunity_expiration_date === 'string'
+                ? new Date(initialData.opportunity_expiration_date)
+                : initialData.opportunity_expiration_date
+              : new Date(),
+            service_execution_deadline: initialData.service_execution_deadline
+              ? typeof initialData.service_execution_deadline === 'string'
+                ? new Date(initialData.service_execution_deadline)
+                : initialData.service_execution_deadline
+              : undefined,
             gallery_images:
               initialData.gallery_images &&
               initialData.gallery_images.length > 0
@@ -363,6 +374,13 @@ export const NewMEIOpportunityForm = forwardRef<
     const transformFormDataToSnakeCase = (
       data: PartialFormData
     ): BackendMEIOpportunityData => {
+      // Helper to convert string dates to Date objects
+      const toDate = (value: Date | string | undefined | null): Date | null => {
+        if (!value) return null
+        if (typeof value === 'string') return new Date(value)
+        return value
+      }
+
       return {
         orgao_id: data.orgao?.id || null,
         cnae_id: data.cnae_id || null,
@@ -378,10 +396,12 @@ export const NewMEIOpportunityForm = forwardRef<
         forma_pagamento: data.forma_pagamento,
         prazo_pagamento: data.prazo_pagamento || '',
         data_expiracao: data.opportunity_expiration_date
-          ? formatDateTimeToUTC(data.opportunity_expiration_date)
+          ? formatDateTimeToUTC(
+              toDate(data.opportunity_expiration_date) as Date
+            )
           : undefined,
         data_limite_execucao: data.service_execution_deadline
-          ? formatDateTimeToUTC(data.service_execution_deadline)
+          ? formatDateTimeToUTC(toDate(data.service_execution_deadline) as Date)
           : null,
         gallery_images:
           data.gallery_images?.filter(img => img && img.trim() !== '') || [],
@@ -398,6 +418,13 @@ export const NewMEIOpportunityForm = forwardRef<
       const nextMonth = new Date(
         currentDate.getTime() + 30 * 24 * 60 * 60 * 1000
       )
+
+      // Helper to convert string dates to Date objects
+      const toDate = (value: Date | string | undefined | null): Date | null => {
+        if (!value) return null
+        if (typeof value === 'string') return new Date(value)
+        return value
+      }
 
       const draftData: PartialFormData = {
         orgao:
@@ -417,9 +444,12 @@ export const NewMEIOpportunityForm = forwardRef<
         neighborhood: data.neighborhood || '',
         forma_pagamento: data.forma_pagamento || '',
         prazo_pagamento: data.prazo_pagamento || '',
-        opportunity_expiration_date:
-          data.opportunity_expiration_date || nextMonth,
-        service_execution_deadline: data.service_execution_deadline || null,
+        opportunity_expiration_date: data.opportunity_expiration_date
+          ? toDate(data.opportunity_expiration_date) || nextMonth
+          : nextMonth,
+        service_execution_deadline: data.service_execution_deadline
+          ? toDate(data.service_execution_deadline)
+          : null,
         gallery_images: data.gallery_images || [''],
         cover_image: data.cover_image || '',
       }
@@ -599,18 +629,13 @@ export const NewMEIOpportunityForm = forwardRef<
         // Transform to snake_case for backend
         const transformedData = transformFormDataToSnakeCase(validatedData)
 
-        const publishData = {
-          ...transformedData,
-          status: 'active' as const,
-        }
-
         console.log('Publishing opportunity...')
-        console.log('Publish values:', publishData)
+        console.log('Publish values:', transformedData)
 
         if (onPublish) {
-          onPublish(publishData)
+          // Don't include status here - the publish endpoint handles it
+          onPublish(transformedData)
         }
-        toast.success('Oportunidade publicada com sucesso!')
       } catch (error) {
         if (error instanceof z.ZodError) {
           console.error('Validation errors:', error.errors)

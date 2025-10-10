@@ -28,6 +28,7 @@ interface UseMEIOpportunityOperationsReturn {
     id: string,
     data: BackendMEIOpportunityData
   ) => Promise<any>
+  publishOpportunity: (id: string) => Promise<any>
   deleteOpportunity: (id: string) => Promise<boolean>
   loading: boolean
   error: string | null
@@ -81,6 +82,46 @@ export function useMEIOpportunityOperations(): UseMEIOpportunityOperationsReturn
     []
   )
 
+  const publishOpportunity = useCallback(async (id: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      console.log('Publishing MEI opportunity:', id)
+
+      const response = await fetch(`/api/oportunidades-mei/${id}/publish`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`
+        )
+      }
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Falha ao publicar oportunidade')
+      }
+
+      toast.success('Oportunidade publicada com sucesso!')
+      return result.opportunity
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Erro ao publicar oportunidade'
+      setError(errorMessage)
+      toast.error(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const deleteOpportunity = useCallback(async (id: string) => {
     try {
       setLoading(true)
@@ -123,6 +164,7 @@ export function useMEIOpportunityOperations(): UseMEIOpportunityOperationsReturn
 
   return {
     updateOpportunity,
+    publishOpportunity,
     deleteOpportunity,
     loading,
     error,
