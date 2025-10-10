@@ -81,7 +81,7 @@ export function useMEIProposals({
       setLoading(true)
       setError(null)
 
-      // Build query params
+      // Build query params - filters ARE sent to API
       const params = new URLSearchParams({
         page: page.toString(),
         per_page: perPage.toString(),

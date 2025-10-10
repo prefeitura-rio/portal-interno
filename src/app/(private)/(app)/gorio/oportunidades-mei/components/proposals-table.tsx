@@ -52,11 +52,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import {
-  type MEIProposal,
-  type ProposalStatus,
-  useMEIProposals,
-} from '@/hooks/use-mei-proposals'
+import { type MEIProposal, useMEIProposals } from '@/hooks/use-mei-proposals'
 import { toast } from 'sonner'
 
 interface ProposalsTableProps {
@@ -101,7 +97,7 @@ export function ProposalsTable({
     const statusValue = statusFilter?.value as string
     const status =
       statusValue && statusValue !== ''
-        ? (statusValue as ProposalStatus)
+        ? (statusValue as 'approved' | 'pending' | 'rejected')
         : undefined
 
     return {
@@ -448,12 +444,13 @@ export function ProposalsTable({
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
-    manualFiltering: true,
+    manualFiltering: true, // Filters are applied server-side via API
     pageCount: apiPagination?.totalPages || 0,
     rowCount: apiPagination?.total || 0,
   })
 
-  if (loading && proposals.length === 0) {
+  // Show loading state only on initial load (no data yet)
+  if (loading && proposals.length === 0 && !summary) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">

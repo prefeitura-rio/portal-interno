@@ -28,7 +28,7 @@ export async function GET(
     const statusFilter = searchParams.get('status') as ProposalStatus | null
     const searchQuery = searchParams.get('search')
 
-    // Build API params
+    // Build API params with filters
     const apiParams: {
       page?: number
       pageSize?: number
@@ -39,11 +39,15 @@ export async function GET(
       pageSize: perPage,
     }
 
-    // If search query is provided, try to determine if it's a CNPJ or company name
+    // If search query is provided, determine if it's a CNPJ or company name
+    // Send only the appropriate parameter to the API
     if (searchQuery) {
-      // Simple heuristic: if it's mostly numbers, treat as CNPJ, otherwise as company name
-      const isNumeric = /^\d+$/.test(searchQuery.replace(/[^\d]/g, ''))
-      if (isNumeric && searchQuery.replace(/[^\d]/g, '').length >= 8) {
+      // Remove non-numeric characters to check if it's a CNPJ
+      const numericOnly = searchQuery.replace(/[^\d]/g, '')
+
+      // If it's mostly numbers and has at least 11 digits, treat as CNPJ
+      // Otherwise, treat as company name
+      if (numericOnly.length >= 11) {
         apiParams.cnpj = searchQuery
       } else {
         apiParams.nomeEmpresa = searchQuery
@@ -52,10 +56,11 @@ export async function GET(
 
     console.log(
       `Fetching proposals for opportunity ${id} with params:`,
-      apiParams
+      apiParams,
+      statusFilter ? `status filter: ${statusFilter}` : 'no status filter'
     )
 
-    // Call backend API
+    // Call backend API with filters
     const response = await getApiV1OportunidadesMeiIdPropostas(id, apiParams)
 
     if (response.status !== 200) {
@@ -67,6 +72,12 @@ export async function GET(
     }
 
     const backendData = response.data as any
+
+    console.log(
+      `API returned ${backendData.data?.length || 0} proposals from backend`,
+      `Meta:`,
+      backendData.meta
+    )
 
     // Map backend status_cidadao to frontend status
     const mapStatusToFrontend = (backendStatus: string): ProposalStatus => {
@@ -82,21 +93,41 @@ export async function GET(
       }
     }
 
+    // Fetch summary data WITHOUT filters (to show total counts)
+    const summaryResponse = await getApiV1OportunidadesMeiIdPropostas(id, {
+      page: 1,
+      pageSize: 1000, // Get all proposals to calculate accurate summary
+    })
+
+    const summaryData = summaryResponse.data as any
+    const allProposals = (summaryData.data || [])
+      .map((proposta: any) => {
+        if (!proposta || !proposta.id) return null
+        return {
+          status: mapStatusToFrontend(proposta.status_cidadao),
+        }
+      })
+      .filter((p: any) => p !== null)
+
+    // Calculate summary from ALL proposals (regardless of filters)
+    const summary = {
+      approvedCount: allProposals.filter((p: any) => p.status === 'approved')
+        .length,
+      pendingCount: allProposals.filter((p: any) => p.status === 'pending')
+        .length,
+      rejectedCount: allProposals.filter((p: any) => p.status === 'rejected')
+        .length,
+    }
+
     // Transform backend data to frontend format
     const proposals: MEIProposal[] = (backendData.data || [])
       .map((proposta: any) => {
         if (!proposta || !proposta.id) return null
 
         // Use status_cidadao as the actual proposal status
-        // status_admin seems to be for soft-delete purposes only (active/inactive)
         const frontendStatus = mapStatusToFrontend(proposta.status_cidadao)
 
-        // Debug log to see what status we're getting from the API
-        console.log(
-          `Proposal ${proposta.id}: status_cidadao="${proposta.status_cidadao}" -> frontend="${frontendStatus}"`
-        )
-
-        // Skip proposals that don't match the status filter
+        // Apply status filter on frontend if provided
         if (statusFilter && frontendStatus !== statusFilter) {
           return null
         }
@@ -130,27 +161,23 @@ export async function GET(
       })
       .filter((p: any) => p !== null)
 
-    // Calculate summary
-    const summary = {
-      approvedCount: proposals.filter(p => p.status === 'approved').length,
-      pendingCount: proposals.filter(p => p.status === 'pending').length,
-      rejectedCount: proposals.filter(p => p.status === 'rejected').length,
-    }
-
-    // Build pagination info
+    // Build pagination info based on filtered results
+    // Note: total reflects filtered count (from search), not status filter
     const meta = backendData.meta || {}
-    const total = meta.total || proposals.length
-    const totalPages = Math.ceil(total / perPage)
+    const filteredTotal = statusFilter
+      ? proposals.length // If status filter applied, count actual filtered proposals
+      : meta.total || proposals.length // Otherwise use API's total
+    const filteredTotalPages = Math.ceil(filteredTotal / perPage)
 
     const pagination = {
       page,
       perPage,
-      total,
-      totalPages,
+      total: filteredTotal,
+      totalPages: filteredTotalPages,
     }
 
     console.log(
-      `Returning ${proposals.length} proposals (total: ${total}, page: ${page}/${totalPages})`
+      `Returning ${proposals.length} proposals (filtered total: ${filteredTotal}, page: ${page}/${filteredTotalPages})`
     )
 
     const jsonResponse = NextResponse.json({
