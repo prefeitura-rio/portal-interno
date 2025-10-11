@@ -52,6 +52,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { type MEIProposal, useMEIProposals } from '@/hooks/use-mei-proposals'
 import { toast } from 'sonner'
 
@@ -81,18 +82,34 @@ export function ProposalsTable({
   const [selectedProposal, setSelectedProposal] =
     React.useState<MEIProposal | null>(null)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
+  const [searchQuery, setSearchQuery] = React.useState('')
 
   const noteForm = useForm<ProposalNoteForm>({
     resolver: zodResolver(proposalNoteSchema),
     defaultValues: { note: '' },
   })
 
+  // Debounced search function
+  const debouncedSearch = useDebouncedCallback((query: string) => {
+    setSearchQuery(query)
+    setPagination(prev => ({ ...prev, pageIndex: 0 }))
+  }, 300)
+
+  // Handle search filter changes
+  React.useEffect(() => {
+    const companyNameFilter = columnFilters.find(
+      filter => filter.id === 'companyName'
+    )
+    const newSearchQuery = (companyNameFilter?.value as string) || ''
+
+    if (newSearchQuery !== searchQuery) {
+      debouncedSearch(newSearchQuery)
+    }
+  }, [columnFilters, searchQuery, debouncedSearch])
+
   // Convert column filters to API filters
   const filters = React.useMemo(() => {
     const statusFilter = columnFilters.find(filter => filter.id === 'status')
-    const searchFilter = columnFilters.find(
-      filter => filter.id === 'companyName'
-    )
 
     const statusValue = statusFilter?.value as string
     const status =
@@ -102,9 +119,9 @@ export function ProposalsTable({
 
     return {
       status,
-      search: (searchFilter?.value as string) || undefined,
+      search: searchQuery || undefined,
     }
-  }, [columnFilters])
+  }, [columnFilters, searchQuery])
 
   const {
     proposals,
@@ -690,7 +707,7 @@ export function ProposalsTable({
         </SheetContent>
       </Sheet>
 
-      <DataTable table={table} onRowClick={handleRowClick}>
+      <DataTable table={table} loading={loading} onRowClick={handleRowClick}>
         <DataTableToolbar table={table} />
 
         <DataTableActionBar table={table}>
