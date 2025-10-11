@@ -134,13 +134,11 @@ export async function GET(
 
         const meiEmpresa = proposta.mei_empresa || {}
 
-        // Build address from MEI empresa data
+        // Build address from MEI empresa data (without city and state to avoid duplication)
         const addressParts = [
           meiEmpresa.logradouro,
           meiEmpresa.numero,
           meiEmpresa.bairro,
-          meiEmpresa.cidade,
-          meiEmpresa.estado,
         ].filter(Boolean)
         const address =
           addressParts.length > 0 ? addressParts.join(', ') : undefined

@@ -41,7 +41,6 @@ import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
@@ -52,6 +51,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { type MEIProposal, useMEIProposals } from '@/hooks/use-mei-proposals'
 import { toast } from 'sonner'
 
@@ -81,18 +81,34 @@ export function ProposalsTable({
   const [selectedProposal, setSelectedProposal] =
     React.useState<MEIProposal | null>(null)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
+  const [searchQuery, setSearchQuery] = React.useState('')
 
   const noteForm = useForm<ProposalNoteForm>({
     resolver: zodResolver(proposalNoteSchema),
     defaultValues: { note: '' },
   })
 
+  // Debounced search function
+  const debouncedSearch = useDebouncedCallback((query: string) => {
+    setSearchQuery(query)
+    setPagination(prev => ({ ...prev, pageIndex: 0 }))
+  }, 300)
+
+  // Handle search filter changes
+  React.useEffect(() => {
+    const companyNameFilter = columnFilters.find(
+      filter => filter.id === 'companyName'
+    )
+    const newSearchQuery = (companyNameFilter?.value as string) || ''
+
+    if (newSearchQuery !== searchQuery) {
+      debouncedSearch(newSearchQuery)
+    }
+  }, [columnFilters, searchQuery, debouncedSearch])
+
   // Convert column filters to API filters
   const filters = React.useMemo(() => {
     const statusFilter = columnFilters.find(filter => filter.id === 'status')
-    const searchFilter = columnFilters.find(
-      filter => filter.id === 'companyName'
-    )
 
     const statusValue = statusFilter?.value as string
     const status =
@@ -102,9 +118,9 @@ export function ProposalsTable({
 
     return {
       status,
-      search: (searchFilter?.value as string) || undefined,
+      search: searchQuery || undefined,
     }
-  }, [columnFilters])
+  }, [columnFilters, searchQuery])
 
   const {
     proposals,
@@ -358,8 +374,13 @@ export function ProposalsTable({
         id: 'submittedAt',
         accessorKey: 'submittedAt',
         accessorFn: row => {
-          const date = new Date(row.submittedAt)
-          date.setHours(0, 0, 0, 0)
+          // Parse ISO date string as local date to avoid timezone issues
+          const isoDate = new Date(row.submittedAt)
+          const date = new Date(
+            isoDate.getFullYear(),
+            isoDate.getMonth(),
+            isoDate.getDate()
+          )
           return date.getTime()
         },
         header: ({ column }: { column: Column<MEIProposal, unknown> }) => (
@@ -643,17 +664,6 @@ export function ProposalsTable({
                       </div>
                     </div>
                   </div>
-
-                  {/* optional note field to keep form infra similar */}
-                  <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">
-                      Observação (opcional)
-                    </Label>
-                    <Input
-                      {...noteForm.register('note')}
-                      placeholder="Anotações internas"
-                    />
-                  </div>
                 </div>
               </div>
               <SheetFooter className="flex-col gap-2">
@@ -690,7 +700,7 @@ export function ProposalsTable({
         </SheetContent>
       </Sheet>
 
-      <DataTable table={table} onRowClick={handleRowClick}>
+      <DataTable table={table} loading={loading} onRowClick={handleRowClick}>
         <DataTableToolbar table={table} />
 
         <DataTableActionBar table={table}>
