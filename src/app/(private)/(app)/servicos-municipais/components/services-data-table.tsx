@@ -362,8 +362,13 @@ export function ServicesDataTable() {
         accessorKey: 'published_at',
         accessorFn: row => {
           if (!row.published_at) return null
-          const date = new Date(row.published_at)
-          date.setHours(0, 0, 0, 0)
+          // Extract date components and create local date to avoid timezone issues
+          const sourceDate = new Date(row.published_at)
+          const date = new Date(
+            sourceDate.getFullYear(),
+            sourceDate.getMonth(),
+            sourceDate.getDate()
+          )
           return date.getTime()
         },
         header: ({ column }: { column: Column<ServiceListItem, unknown> }) => (
@@ -393,8 +398,13 @@ export function ServicesDataTable() {
         id: 'last_update',
         accessorKey: 'last_update',
         accessorFn: row => {
-          const date = new Date(row.last_update)
-          date.setHours(0, 0, 0, 0)
+          // Extract date components and create local date to avoid timezone issues
+          const sourceDate = new Date(row.last_update)
+          const date = new Date(
+            sourceDate.getFullYear(),
+            sourceDate.getMonth(),
+            sourceDate.getDate()
+          )
           return date.getTime()
         },
         header: ({ column }: { column: Column<ServiceListItem, unknown> }) => (

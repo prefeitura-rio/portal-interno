@@ -41,7 +41,6 @@ import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
@@ -375,8 +374,13 @@ export function ProposalsTable({
         id: 'submittedAt',
         accessorKey: 'submittedAt',
         accessorFn: row => {
-          const date = new Date(row.submittedAt)
-          date.setHours(0, 0, 0, 0)
+          // Parse ISO date string as local date to avoid timezone issues
+          const isoDate = new Date(row.submittedAt)
+          const date = new Date(
+            isoDate.getFullYear(),
+            isoDate.getMonth(),
+            isoDate.getDate()
+          )
           return date.getTime()
         },
         header: ({ column }: { column: Column<MEIProposal, unknown> }) => (
@@ -659,17 +663,6 @@ export function ProposalsTable({
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* optional note field to keep form infra similar */}
-                  <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">
-                      Observação (opcional)
-                    </Label>
-                    <Input
-                      {...noteForm.register('note')}
-                      placeholder="Anotações internas"
-                    />
                   </div>
                 </div>
               </div>

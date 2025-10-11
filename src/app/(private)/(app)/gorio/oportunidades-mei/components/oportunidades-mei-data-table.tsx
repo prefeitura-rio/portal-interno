@@ -343,8 +343,9 @@ export function OportunidadesMEIDataTable() {
         accessorKey: 'publishedAt',
         accessorFn: row => {
           if (!row.publishedAt) return null
-          const date = new Date(row.publishedAt)
-          date.setHours(0, 0, 0, 0)
+          // Parse date as local date to avoid timezone issues
+          const [year, month, day] = row.publishedAt.split('-').map(Number)
+          const date = new Date(year, month - 1, day)
           return date.getTime()
         },
         header: ({ column }: { column: Column<OportunidadeMEI, unknown> }) => (
@@ -374,8 +375,9 @@ export function OportunidadesMEIDataTable() {
         id: 'expiresAt',
         accessorKey: 'expiresAt',
         accessorFn: row => {
-          const date = new Date(row.expiresAt)
-          date.setHours(0, 0, 0, 0)
+          // Parse date as local date to avoid timezone issues
+          const [year, month, day] = row.expiresAt.split('-').map(Number)
+          const date = new Date(year, month - 1, day)
           return date.getTime()
         },
         header: ({ column }: { column: Column<OportunidadeMEI, unknown> }) => {
