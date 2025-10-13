@@ -28,15 +28,35 @@ export async function GET(
     const statusFilter = searchParams.get('status') as ProposalStatus | null
     const searchQuery = searchParams.get('search')
 
+    // Map frontend status to backend status for API filter
+    const mapStatusToBackend = (status: ProposalStatus): string => {
+      switch (status) {
+        case 'approved':
+          return 'approved'
+        case 'rejected':
+          return 'rejected'
+        case 'pending':
+          return 'submitted'
+        default:
+          return 'submitted'
+      }
+    }
+
     // Build API params with filters
     const apiParams: {
       page?: number
       pageSize?: number
       nomeEmpresa?: string
       cnpj?: string
+      status?: string
     } = {
       page,
       pageSize: perPage,
+    }
+
+    // Add status filter if provided
+    if (statusFilter) {
+      apiParams.status = mapStatusToBackend(statusFilter)
     }
 
     // If search query is provided, determine if it's a CNPJ or company name
@@ -56,8 +76,7 @@ export async function GET(
 
     console.log(
       `Fetching proposals for opportunity ${id} with params:`,
-      apiParams,
-      statusFilter ? `status filter: ${statusFilter}` : 'no status filter'
+      apiParams
     )
 
     // Call backend API with filters
@@ -127,11 +146,6 @@ export async function GET(
         // Use status_cidadao as the actual proposal status
         const frontendStatus = mapStatusToFrontend(proposta.status_cidadao)
 
-        // Apply status filter on frontend if provided
-        if (statusFilter && frontendStatus !== statusFilter) {
-          return null
-        }
-
         const meiEmpresa = proposta.mei_empresa || {}
 
         // Build address from MEI empresa data (without city and state to avoid duplication)
@@ -159,23 +173,21 @@ export async function GET(
       })
       .filter((p: any) => p !== null)
 
-    // Build pagination info based on filtered results
-    // Note: total reflects filtered count (from search), not status filter
+    // Build pagination info from backend response
+    // Backend now handles all filtering (status, search), so meta.total is accurate
     const meta = backendData.meta || {}
-    const filteredTotal = statusFilter
-      ? proposals.length // If status filter applied, count actual filtered proposals
-      : meta.total || proposals.length // Otherwise use API's total
-    const filteredTotalPages = Math.ceil(filteredTotal / perPage)
+    const total = meta.total || proposals.length
+    const totalPages = meta.total_pages || Math.ceil(total / perPage)
 
     const pagination = {
       page,
       perPage,
-      total: filteredTotal,
-      totalPages: filteredTotalPages,
+      total,
+      totalPages,
     }
 
     console.log(
-      `Returning ${proposals.length} proposals (filtered total: ${filteredTotal}, page: ${page}/${filteredTotalPages})`
+      `Returning ${proposals.length} proposals (total: ${total}, page: ${page}/${totalPages})`
     )
 
     const jsonResponse = NextResponse.json({
