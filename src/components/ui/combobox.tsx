@@ -140,10 +140,13 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn('w-full justify-between text-left', className)}
+          className={cn(
+            'truncate! relative! overflow-hidden! w-full justify-between text-left',
+            className
+          )}
           disabled={disabled}
         >
-          <span className="truncate flex-1 min-w-0">
+          <span className="truncate relative! overflow-hidden! flex-1 min-w-0">
             {getDisplayText(selectedOption)}
           </span>
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -168,13 +171,15 @@ export function Combobox({
                     onValueChange?.(newValue)
                     setOpen(false)
                   }}
-                  // className="flex items-center gap-2"
+                  className="flex items-center gap-2"
                 >
-                  {option.label}
-                  {option.sigla && ` - ${option.sigla}`}
+                  <span className="truncate flex-1 min-w-0">
+                    {option.label}
+                    {option.sigla && ` - ${option.sigla}`}
+                  </span>
                   <CheckIcon
                     className={cn(
-                      'ml-auto h-4 w-4',
+                      'h-4 w-4 shrink-0',
                       value === option.value ? 'opacity-100' : 'opacity-0'
                     )}
                   />
