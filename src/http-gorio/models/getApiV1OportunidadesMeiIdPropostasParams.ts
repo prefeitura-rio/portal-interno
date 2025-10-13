@@ -23,4 +23,8 @@ export type GetApiV1OportunidadesMeiIdPropostasParams = {
    * Buscar por CNPJ
    */
   cnpj?: string
+  /**
+   * Filtrar por status (submitted, approved, rejected)
+   */
+  status?: string
 }

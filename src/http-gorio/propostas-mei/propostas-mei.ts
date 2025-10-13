@@ -13,6 +13,8 @@ import type {
   GetApiV1PropostasMeiPorEmpresaParams,
   ModelsErrorResponse,
   ModelsPropostaMEI,
+  ModelsPropostaStatusUpdateRequest,
+  ModelsPropostaStatusUpdateResponse,
   PutApiV1OportunidadesMeiIdPropostasPropostaIdStatusBody,
 } from '.././models'
 
@@ -119,6 +121,55 @@ export const postApiV1OportunidadesMeiIdPropostas = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...options?.headers },
       body: JSON.stringify(modelsPropostaMEI),
+    }
+  )
+}
+
+/**
+ * Atualiza o status de várias propostas MEI de uma vez (aprovação em lote)
+ * @summary Atualizar status de múltiplas propostas MEI
+ */
+export type putApiV1OportunidadesMeiIdPropostasStatusResponse200 = {
+  data: ModelsPropostaStatusUpdateResponse
+  status: 200
+}
+
+export type putApiV1OportunidadesMeiIdPropostasStatusResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+
+export type putApiV1OportunidadesMeiIdPropostasStatusResponse500 = {
+  data: ModelsErrorResponse
+  status: 500
+}
+
+export type putApiV1OportunidadesMeiIdPropostasStatusResponseComposite =
+  | putApiV1OportunidadesMeiIdPropostasStatusResponse200
+  | putApiV1OportunidadesMeiIdPropostasStatusResponse400
+  | putApiV1OportunidadesMeiIdPropostasStatusResponse500
+
+export type putApiV1OportunidadesMeiIdPropostasStatusResponse =
+  putApiV1OportunidadesMeiIdPropostasStatusResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1OportunidadesMeiIdPropostasStatusUrl = (id: number) => {
+  return `/api/v1/oportunidades-mei/${id}/propostas/status`
+}
+
+export const putApiV1OportunidadesMeiIdPropostasStatus = async (
+  id: number,
+  modelsPropostaStatusUpdateRequest: ModelsPropostaStatusUpdateRequest,
+  options?: RequestInit
+): Promise<putApiV1OportunidadesMeiIdPropostasStatusResponse> => {
+  return customFetchGoRio<putApiV1OportunidadesMeiIdPropostasStatusResponse>(
+    getPutApiV1OportunidadesMeiIdPropostasStatusUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsPropostaStatusUpdateRequest),
     }
   )
 }
