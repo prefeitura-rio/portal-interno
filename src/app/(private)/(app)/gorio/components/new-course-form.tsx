@@ -167,7 +167,11 @@ const fullFormSchema = z
         }),
       external_partner_contact: z.string().optional(),
 
-      accessibility: z.enum(['ACESSIVEL', 'EXCLUSIVO', 'NAO_ACESSIVEL']).optional(),
+      accessibility: z
+        .enum(['ACESSIVEL', 'EXCLUSIVO', 'NAO_ACESSIVEL'])
+        .nullable()
+        .optional()
+        .or(z.literal('')),
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
       expected_results: z.string().optional(),
