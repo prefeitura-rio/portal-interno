@@ -474,7 +474,7 @@ type PartialFormData = Omit<FormData, 'modalidade' | 'locations' | 'remote_class
   external_partner_logo_url?: string
   external_partner_contact?: string
 
-  accessibility?: Accessibility | undefined | ''
+  accessibility?: Accessibility | undefined | '' | null
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -514,7 +514,7 @@ type BackendCourseData = {
   external_partner_logo_url?: string
   external_partner_contact?: string
 
-  accessibility?: Accessibility | undefined | ''
+  accessibility?: Accessibility | undefined | '' | null
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -622,7 +622,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             external_partner_url: initialData.external_partner_url || '',
             external_partner_logo_url: initialData.external_partner_logo_url || '',
             external_partner_contact: initialData.external_partner_contact || '',
-            accessibility: initialData.accessibility || '',
+            accessibility: initialData.accessibility || '' || null,
             facilitator: initialData.facilitator || '',
             objectives: initialData.objectives || '',
             expected_results: initialData.expected_results || '',
@@ -1145,7 +1145,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       <FormLabel>Início das inscrições*</FormLabel>
                       <FormControl>
                         <DateTimePicker
-                          value={field.value}
+                          value={field.value || undefined}
                           onChange={field.onChange}
                           placeholder="Selecionar data e hora de início"
                           disabled={isReadOnly}
@@ -1755,7 +1755,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                 <FormLabel>Acessibilidade*</FormLabel>
                                 <Select
                                   onValueChange={(value) => field.onChange(value as Accessibility)}
-                                  value={field.value}
+                                  value={field.value || undefined}
                                   disabled={isReadOnly}
                                 >
                                   <FormControl>
