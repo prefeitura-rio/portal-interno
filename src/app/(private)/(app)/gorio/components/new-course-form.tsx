@@ -1752,7 +1752,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             name="accessibility"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Acessibilidade*</FormLabel>
+                                <FormLabel>Acessibilidade</FormLabel>
                                 <Select
                                   onValueChange={(value) => field.onChange(value as Accessibility)}
                                   value={field.value || undefined}
