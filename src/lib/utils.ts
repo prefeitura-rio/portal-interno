@@ -79,12 +79,7 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
   }
 
   // 2. "Recebendo Inscrições" - currently in enrollment period
-  if (
-    enrollmentStart &&
-    enrollmentEnd &&
-    now >= enrollmentStart &&
-    now <= enrollmentEnd
-  ) {
+  if (enrollmentStart && enrollmentEnd && now >= enrollmentStart && now <= enrollmentEnd) {
     return 'accepting_enrollments' as CourseStatus
   }
 
@@ -94,8 +89,7 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
 
   // Handle ONLINE/Remoto courses (remote_class)
   if (
-    (courseData.modalidade === 'ONLINE' ||
-      courseData.modalidade === 'Remoto') &&
+    (courseData.modalidade === 'ONLINE' || courseData.modalidade === 'Remoto') &&
     courseData.remote_class
   ) {
     const remoteClass = courseData.remote_class
@@ -126,10 +120,8 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
   // If we have class dates, determine status based on them
   if (classStartDates.length > 0 && classEndDates.length > 0) {
     // Get the earliest start date and latest end date
-    const earliestStart = new Date(
-      Math.min(...classStartDates.map(d => d.getTime()))
-    )
-    const latestEnd = new Date(Math.max(...classEndDates.map(d => d.getTime())))
+    const earliestStart = new Date(Math.min(...classStartDates.map((d) => d.getTime())))
+    const latestEnd = new Date(Math.max(...classEndDates.map((d) => d.getTime())))
 
     // 3. "Em andamento" - currently in class period
     if (now >= earliestStart && now <= latestEnd) {
@@ -180,14 +172,11 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     provider: courseData.orgao?.nome || courseData.organization || '',
     theme: courseData.theme || '',
     modalidade: (() => {
-      const modalidade =
-        courseData.modalidade?.nome || courseData.modalidade || ''
+      const modalidade = courseData.modalidade?.nome || courseData.modalidade || ''
       // Map API modalidade values to frontend expected values
-      if (modalidade === 'Presencial' || modalidade === 'PRESENCIAL')
-        return 'PRESENCIAL'
+      if (modalidade === 'Presencial' || modalidade === 'PRESENCIAL') return 'PRESENCIAL'
       if (modalidade === 'Remoto' || modalidade === 'ONLINE') return 'ONLINE'
-      if (modalidade === 'Semipresencial' || modalidade === 'HIBRIDO')
-        return 'HIBRIDO'
+      if (modalidade === 'Semipresencial' || modalidade === 'HIBRIDO') return 'HIBRIDO'
       return modalidade
     })(),
     orgao: courseData.orgao || null,
@@ -224,10 +213,9 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     targetAudience: courseData.target_audience || '',
     pre_requisitos: courseData.pre_requisitos || courseData.prerequisites || '',
     prerequisites: courseData.pre_requisitos || courseData.prerequisites || '',
-    has_certificate:
-      courseData.has_certificate || courseData.certificacao_oferecida || false,
-    hasCertificate:
-      courseData.has_certificate || courseData.certificacao_oferecida || false,
+    has_certificate: courseData.has_certificate || courseData.certificacao_oferecida || false,
+    hasCertificate: courseData.has_certificate || courseData.certificacao_oferecida || false,
+    accessibility: courseData.accessibility || '',
     facilitator: courseData.facilitator || '',
     objectives: courseData.objectives || '',
     expected_results: courseData.expected_results || '',
@@ -260,11 +248,8 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     remote_class: courseData.remote_class
       ? {
           vacancies: courseData.remote_class.vacancies || 0,
-          classStartDate:
-            safeParseDate(courseData.remote_class.class_start_date) ||
-            new Date(),
-          classEndDate:
-            safeParseDate(courseData.remote_class.class_end_date) || new Date(),
+          classStartDate: safeParseDate(courseData.remote_class.class_start_date) || new Date(),
+          classEndDate: safeParseDate(courseData.remote_class.class_end_date) || new Date(),
           classTime: courseData.remote_class.class_time || '',
           classDays: courseData.remote_class.class_days || '',
         }

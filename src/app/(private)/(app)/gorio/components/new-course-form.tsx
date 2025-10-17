@@ -34,15 +34,20 @@ import {
 } from '@/components/ui/accordion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  DateTimePicker,
-  formatDateTimeToUTC,
-} from '@/components/ui/datetime-picker'
+import { DateTimePicker, formatDateTimeToUTC } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
+
+export type Accessibility = 'ACESSIVEL' | 'EXCLUSIVO' | 'NAO_ACESSIVEL'
+const ACCESSIBILITY_OPTIONS: Accessibility[] = ['ACESSIVEL', 'EXCLUSIVO', 'NAO_ACESSIVEL'] as const
+const accessibilityLabel: Record<Accessibility, string> = {
+  ACESSIVEL: 'Acessível para pessoas com deficiência',
+  EXCLUSIVO: 'Exclusivo para pessoas com deficiência',
+  NAO_ACESSIVEL: 'Não acessível para pessoas com deficiência',
+}
 
 // Define the schema for location/class information
 const locationClassSchema = z.object({
@@ -90,9 +95,7 @@ const validateGoogleCloudStorageURL = (url: string | undefined) => {
   if (!url || url.trim() === '') {
     return true
   }
-  return url.startsWith(
-    'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/'
-  )
+  return url.startsWith('https://storage.googleapis.com/rj-escritorio-dev-public/superapp/')
 }
 
 // Create the full schema for complete validation (used for publishing)
@@ -139,15 +142,13 @@ const fullFormSchema = z
         .string()
         .url({ message: 'Logo institucional deve ser uma URL válida.' })
         .refine(validateGoogleCloudStorageURL, {
-          message:
-            'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
+          message: 'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       cover_image: z
         .string()
         .url({ message: 'Imagem de capa deve ser uma URL válida.' })
         .refine(validateGoogleCloudStorageURL, {
-          message:
-            'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
+          message: 'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       // Optional fields
       pre_requisitos: z.string().optional(),
@@ -162,11 +163,15 @@ const fullFormSchema = z
         .optional()
         .or(z.literal(''))
         .refine(validateGoogleCloudStorageURL, {
-          message:
-            'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+          message: 'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       external_partner_contact: z.string().optional(),
 
+      accessibility: z
+        .enum(['ACESSIVEL', 'EXCLUSIVO', 'NAO_ACESSIVEL'])
+        .nullable()
+        .optional()
+        .or(z.literal('')),
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
       expected_results: z.string().optional(),
@@ -248,15 +253,13 @@ const fullFormSchema = z
         .string()
         .url({ message: 'Logo institucional deve ser uma URL válida.' })
         .refine(validateGoogleCloudStorageURL, {
-          message:
-            'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
+          message: 'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       cover_image: z
         .string()
         .url({ message: 'Imagem de capa deve ser uma URL válida.' })
         .refine(validateGoogleCloudStorageURL, {
-          message:
-            'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
+          message: 'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       // Optional fields
       pre_requisitos: z.string().optional(),
@@ -271,8 +274,7 @@ const fullFormSchema = z
         .optional()
         .or(z.literal(''))
         .refine(validateGoogleCloudStorageURL, {
-          message:
-            'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+          message: 'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       external_partner_contact: z.string().optional(),
 
@@ -319,29 +321,24 @@ const fullFormSchema = z
       }),
     }),
   ])
-  .refine(data => data.enrollment_end_date >= data.enrollment_start_date, {
+  .refine((data) => data.enrollment_end_date >= data.enrollment_start_date, {
     message: 'A data final deve ser igual ou posterior à data inicial.',
     path: ['enrollment_end_date'],
   })
   .refine(
-    data => {
+    (data) => {
       if (data.modalidade === 'ONLINE') {
-        return (
-          data.remote_class.classEndDate >= data.remote_class.classStartDate
-        )
+        return data.remote_class.classEndDate >= data.remote_class.classStartDate
       }
-      return data.locations.every(
-        location => location.classEndDate >= location.classStartDate
-      )
+      return data.locations.every((location) => location.classEndDate >= location.classStartDate)
     },
     {
-      message:
-        'A data final das aulas deve ser igual ou posterior à data inicial.',
+      message: 'A data final das aulas deve ser igual ou posterior à data inicial.',
       path: ['modalidade'],
     }
   )
   .refine(
-    data => {
+    (data) => {
       if (!data.is_external_partner) return true
       return data.external_partner_name?.trim()
     },
@@ -351,7 +348,7 @@ const fullFormSchema = z
     }
   )
   .refine(
-    data => {
+    (data) => {
       if (!data.is_external_partner) return true
       return data.external_partner_url?.trim()
     },
@@ -381,15 +378,13 @@ const draftFormSchema = z.object({
   institutional_logo: z
     .string()
     .refine(validateGoogleCloudStorageURL, {
-      message:
-        'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
+      message: 'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
     })
     .optional(),
   cover_image: z
     .string()
     .refine(validateGoogleCloudStorageURL, {
-      message:
-        'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
+      message: 'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
     })
     .optional(),
   pre_requisitos: z.string().optional(),
@@ -402,8 +397,7 @@ const draftFormSchema = z.object({
   external_partner_logo_url: z
     .string()
     .refine(validateGoogleCloudStorageURL, {
-      message:
-        'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+      message: 'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
     })
     .optional(),
   external_partner_contact: z.string().optional(),
@@ -422,9 +416,7 @@ const draftFormSchema = z.object({
         id: z.string(),
         title: z.string(),
         required: z.boolean(),
-        field_type: z
-          .enum(['text', 'select', 'multiselect', 'radio'])
-          .default('text'),
+        field_type: z.enum(['text', 'select', 'multiselect', 'radio']).default('text'),
         options: z
           .array(
             z.object({
@@ -466,10 +458,7 @@ const formSchema = fullFormSchema
 type FormData = z.infer<typeof formSchema>
 
 // Helper type for form state before modalidade is selected
-type PartialFormData = Omit<
-  FormData,
-  'modalidade' | 'locations' | 'remote_class'
-> & {
+type PartialFormData = Omit<FormData, 'modalidade' | 'locations' | 'remote_class'> & {
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
@@ -485,6 +474,7 @@ type PartialFormData = Omit<
   external_partner_logo_url?: string
   external_partner_contact?: string
 
+  accessibility?: Accessibility | undefined | '' | null
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -524,6 +514,7 @@ type BackendCourseData = {
   external_partner_logo_url?: string
   external_partner_contact?: string
 
+  accessibility?: Accessibility | undefined | '' | null
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -596,24 +587,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     }
 
     // State for organizations
-    const [orgaos, setOrgaos] = useState<Array<{ id: number; nome: string }>>(
-      []
-    )
+    const [orgaos, setOrgaos] = useState<Array<{ id: number; nome: string }>>([])
     const [loadingOrgaos, setLoadingOrgaos] = useState(false)
 
-    const instituicaoId = Number(
-      process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
-    )
+    const instituicaoId = Number(process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? '')
 
     // Dialog states
     const [confirmDialog, setConfirmDialog] = useState<{
       open: boolean
-      type:
-        | 'create_course'
-        | 'save_draft'
-        | 'publish_course'
-        | 'save_changes'
-        | null
+      type: 'create_course' | 'save_draft' | 'publish_course' | 'save_changes' | null
     }>({
       open: false,
       type: null,
@@ -625,8 +607,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         ? {
             title: initialData.title || '',
             description: initialData.description || '',
-            enrollment_start_date:
-              initialData.enrollment_start_date || new Date(),
+            enrollment_start_date: initialData.enrollment_start_date || new Date(),
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
             orgao: initialData.orgao,
             modalidade: initialData.modalidade,
@@ -639,11 +620,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             is_external_partner: initialData.is_external_partner || false,
             external_partner_name: initialData.external_partner_name || '',
             external_partner_url: initialData.external_partner_url || '',
-            external_partner_logo_url:
-              initialData.external_partner_logo_url || '',
-            external_partner_contact:
-              initialData.external_partner_contact || '',
-
+            external_partner_logo_url: initialData.external_partner_logo_url || '',
+            external_partner_contact: initialData.external_partner_contact || '',
+            accessibility: initialData.accessibility || '' || null,
             facilitator: initialData.facilitator || '',
             objectives: initialData.objectives || '',
             expected_results: initialData.expected_results || '',
@@ -680,6 +659,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             external_partner_logo_url: '',
             external_partner_contact: '',
 
+            accessibility: '',
             facilitator: '',
             objectives: '',
             expected_results: '',
@@ -744,7 +724,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         : undefined
 
       // Transform locations fields to snake_case if they exist
-      const transformedLocations = data.locations?.map(location => ({
+      const transformedLocations = data.locations?.map((location) => ({
         address: location.address,
         neighborhood: location.neighborhood,
         vacancies: location.vacancies,
@@ -783,19 +763,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
         // External partner fields - clear when not external partner
         is_external_partner: data.is_external_partner,
-        external_partner_name: data.is_external_partner
-          ? data.external_partner_name
-          : '',
-        external_partner_url: data.is_external_partner
-          ? data.external_partner_url
-          : '',
-        external_partner_logo_url: data.is_external_partner
-          ? data.external_partner_logo_url
-          : '',
-        external_partner_contact: data.is_external_partner
-          ? data.external_partner_contact
-          : '',
-
+        external_partner_name: data.is_external_partner ? data.external_partner_name : '',
+        external_partner_url: data.is_external_partner ? data.external_partner_url : '',
+        external_partner_logo_url: data.is_external_partner ? data.external_partner_logo_url : '',
+        external_partner_contact: data.is_external_partner ? data.external_partner_contact : '',
+        accessibility: data.accessibility,
         facilitator: data.facilitator,
         objectives: data.objectives,
         expected_results: data.expected_results,
@@ -819,23 +791,17 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     // Transform form data for draft with default values for required fields
     const transformFormDataForDraft = (data: any) => {
       const currentDate = new Date()
-      const nextMonth = new Date(
-        currentDate.getTime() + 30 * 24 * 60 * 60 * 1000
-      )
+      const nextMonth = new Date(currentDate.getTime() + 30 * 24 * 60 * 60 * 1000)
 
       // Fill in default values for required fields when saving as draft
       const modalidade = data.modalidade || 'PRESENCIAL'
 
       const draftData: PartialFormData = {
         title: data.title || 'Rascunho de curso. Edite antes de publicar!',
-        description:
-          data.description ||
-          'Descrição em desenvolvimento. Edite antes de publicar!',
+        description: data.description || 'Descrição em desenvolvimento. Edite antes de publicar!',
         enrollment_start_date: data.enrollment_start_date || currentDate,
         enrollment_end_date: data.enrollment_end_date || nextMonth,
-        orgao:
-          data.orgao ||
-          (orgaos.length > 0 ? orgaos[0] : { id: 1, nome: 'Órgão Padrão' }),
+        orgao: data.orgao || (orgaos.length > 0 ? orgaos[0] : { id: 1, nome: 'Órgão Padrão' }),
         modalidade: modalidade as 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE',
         theme: data.theme || undefined,
         workload: data.workload,
@@ -846,19 +812,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
         // External partner fields - clear when not external partner
         is_external_partner: data.is_external_partner,
-        external_partner_name: data.is_external_partner
-          ? data.external_partner_name
-          : '',
-        external_partner_url: data.is_external_partner
-          ? data.external_partner_url
-          : '',
-        external_partner_logo_url: data.is_external_partner
-          ? data.external_partner_logo_url
-          : '',
-        external_partner_contact: data.is_external_partner
-          ? data.external_partner_contact
-          : '',
-
+        external_partner_name: data.is_external_partner ? data.external_partner_name : '',
+        external_partner_url: data.is_external_partner ? data.external_partner_url : '',
+        external_partner_logo_url: data.is_external_partner ? data.external_partner_logo_url : '',
+        external_partner_contact: data.is_external_partner ? data.external_partner_contact : '',
+        accessibility: data.accessibility,
         facilitator: data.facilitator,
         objectives: data.objectives,
         expected_results: data.expected_results,
@@ -914,9 +872,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     }))
 
     // Handle modalidade change to properly initialize fields
-    const handleModalidadeChange = (
-      value: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
-    ) => {
+    const handleModalidadeChange = (value: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE') => {
       if (value === 'ONLINE') {
         // Clear locations array and initialize remote class fields
         form.setValue('locations', [])
@@ -1002,8 +958,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           // Editing an existing course - ensure status is preserved if not explicitly set
           const editData = {
             ...transformedData,
-            status:
-              initialData.originalStatus || initialData.status || 'opened',
+            status: initialData.originalStatus || initialData.status || 'opened',
           }
 
           if (onSubmit) {
@@ -1082,8 +1037,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         if (error instanceof z.ZodError) {
           console.error('Validation errors:', error.errors)
           toast.error('Erro ao salvar rascunho', {
-            description:
-              'Ocorreu um erro de formato nos dados. Tente novamente.',
+            description: 'Ocorreu um erro de formato nos dados. Tente novamente.',
           })
         } else {
           console.error('Error saving draft:', error)
@@ -1108,8 +1062,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
         if (!isValid) {
           toast.error('Erro de validação', {
-            description:
-              'Por favor, verifique os campos destacados antes de publicar.',
+            description: 'Por favor, verifique os campos destacados antes de publicar.',
           })
           return
         }
@@ -1139,8 +1092,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         if (error instanceof z.ZodError) {
           console.error('Validation errors:', error.errors)
           toast.error('Erro de validação', {
-            description:
-              'Por favor, verifique os campos destacados antes de publicar.',
+            description: 'Por favor, verifique os campos destacados antes de publicar.',
           })
         } else {
           console.error('Error publishing course:', error)
@@ -1177,11 +1129,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <FormItem>
                     <FormLabel>Descrição*</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[120px]"
-                        {...field}
-                        disabled={isReadOnly}
-                      />
+                      <Textarea className="min-h-[120px]" {...field} disabled={isReadOnly} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1197,7 +1145,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       <FormLabel>Início das inscrições*</FormLabel>
                       <FormControl>
                         <DateTimePicker
-                          value={field.value}
+                          value={field.value || undefined}
                           onChange={field.onChange}
                           placeholder="Selecionar data e hora de início"
                           disabled={isReadOnly}
@@ -1234,10 +1182,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <FormItem>
                     <FormLabel>Órgão (Quem oferece o curso)*</FormLabel>
                     <Select
-                      onValueChange={value => {
-                        const selectedOrgao = orgaos.find(
-                          org => org.id.toString() === value
-                        )
+                      onValueChange={(value) => {
+                        const selectedOrgao = orgaos.find((org) => org.id.toString() === value)
                         if (selectedOrgao) {
                           field.onChange(selectedOrgao)
                         }
@@ -1252,22 +1198,18 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               loadingOrgaos
                                 ? 'Carregando organizações...'
                                 : orgaos.length === 0
-                                  ? 'Nenhuma organização encontrada'
-                                  : 'Selecione um órgão'
+                                ? 'Nenhuma organização encontrada'
+                                : 'Selecione um órgão'
                             }
                           >
-                            {field.value?.nome &&
-                              truncateText(field.value.nome)}
+                            {field.value?.nome && truncateText(field.value.nome)}
                           </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       {!loadingOrgaos && orgaos.length > 0 && (
                         <SelectContent>
-                          {orgaos.map(orgao => (
-                            <SelectItem
-                              key={orgao.id}
-                              value={orgao.id.toString()}
-                            >
+                          {orgaos.map((orgao) => (
+                            <SelectItem key={orgao.id} value={orgao.id.toString()}>
                               {orgao.nome}
                             </SelectItem>
                           ))}
@@ -1295,8 +1237,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     <div className="space-y-1 leading-none">
                       <FormLabel>Curso de parceiro externo</FormLabel>
                       <p className="text-[0.8rem] text-muted-foreground">
-                        Marque esta opção se o curso é oferecido por uma
-                        organização parceira externa.
+                        Marque esta opção se o curso é oferecido por uma organização parceira
+                        externa.
                       </p>
                     </div>
                   </FormItem>
@@ -1334,9 +1276,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       name="external_partner_url"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            URL para a página do parceiro externo*
-                          </FormLabel>
+                          <FormLabel>URL para a página do parceiro externo*</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="https://"
@@ -1356,9 +1296,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       name="external_partner_logo_url"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            URL para a logo do parceiro externo
-                          </FormLabel>
+                          <FormLabel>URL para a logo do parceiro externo</FormLabel>
                           <div className="flex items-start gap-4">
                             <div className="flex-1">
                               <FormControl>
@@ -1378,26 +1316,20 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                     src={field.value}
                                     alt="Preview da logo do parceiro"
                                     className="max-w-full max-h-full object-contain"
-                                    onError={e => {
-                                      const target =
-                                        e.target as HTMLImageElement
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement
                                       target.style.display = 'none'
-                                      const errorText =
-                                        target.nextElementSibling as HTMLElement
+                                      const errorText = target.nextElementSibling as HTMLElement
                                       if (errorText) {
-                                        errorText.textContent =
-                                          'Erro ao carregar'
+                                        errorText.textContent = 'Erro ao carregar'
                                         errorText.style.display = 'block'
                                       }
                                     }}
-                                    onLoad={e => {
-                                      const target =
-                                        e.target as HTMLImageElement
+                                    onLoad={(e) => {
+                                      const target = e.target as HTMLImageElement
                                       target.style.display = 'block'
-                                      const errorText =
-                                        target.nextElementSibling as HTMLElement
-                                      if (errorText)
-                                        errorText.style.display = 'none'
+                                      const errorText = target.nextElementSibling as HTMLElement
+                                      if (errorText) errorText.style.display = 'none'
                                     }}
                                   />
                                   <span
@@ -1420,9 +1352,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       name="external_partner_contact"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            Canal de informações do parceiro externo
-                          </FormLabel>
+                          <FormLabel>Canal de informações do parceiro externo</FormLabel>
                           <FormControl>
                             <Textarea
                               placeholder="Ex. Número de whatsapp, email, link de FAQ, etc."
@@ -1473,11 +1403,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <FormItem>
                     <FormLabel>Modalidade*</FormLabel>
                     <Select
-                      onValueChange={value => {
-                        const modalidadeValue = value as
-                          | 'PRESENCIAL'
-                          | 'HIBRIDO'
-                          | 'ONLINE'
+                      onValueChange={(value) => {
+                        const modalidadeValue = value as 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
                         field.onChange(modalidadeValue)
                         handleModalidadeChange(modalidadeValue)
                       }}
@@ -1519,9 +1446,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               type="number"
                               min="1"
                               value={field.value || ''}
-                              onChange={e =>
-                                field.onChange(Number(e.target.value))
-                              }
+                              onChange={(e) => field.onChange(Number(e.target.value))}
                               onBlur={field.onBlur}
                             />
                           </FormControl>
@@ -1667,9 +1592,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                 <Input
                                   type="number"
                                   value={field.value || ''}
-                                  onChange={e =>
-                                    field.onChange(Number(e.target.value))
-                                  }
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
                                   onBlur={field.onBlur}
                                 />
                               </FormControl>
@@ -1754,12 +1677,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     </Card>
                   ))}
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={addLocation}
-                    className="w-full"
-                  >
+                  <Button type="button" variant="outline" onClick={addLocation} className="w-full">
                     <Plus className="h-4 w-4 mr-2" />
                     Adicionar outra unidade
                   </Button>
@@ -1805,10 +1723,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               <Card className="w-full">
                 <CardHeader>
                   <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem
-                      value="optional-fields"
-                      className="border-none"
-                    >
+                    <AccordionItem value="optional-fields" className="border-none">
                       <AccordionTrigger className="text-lg font-semibold text-foreground hover:no-underline [&[data-state=open]>svg]:rotate-180">
                         Informações Adicionais do Curso (Opcionais)
                       </AccordionTrigger>
@@ -1819,9 +1734,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             name="pre_requisitos"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>
-                                  Pré-requisitos para receber certificado
-                                </FormLabel>
+                                <FormLabel>Pré-requisitos para receber certificado</FormLabel>
                                 <FormControl>
                                   <Textarea
                                     placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
@@ -1829,6 +1742,35 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                     {...field}
                                   />
                                 </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="accessibility"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Acessibilidade</FormLabel>
+                                <Select
+                                  onValueChange={(value) => field.onChange(value as Accessibility)}
+                                  value={field.value || undefined}
+                                  disabled={isReadOnly}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecione a acessibilidade" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {ACCESSIBILITY_OPTIONS.map((opt) => (
+                                      <SelectItem key={opt} value={opt}>
+                                        {accessibilityLabel[opt]}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -2026,10 +1968,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <FieldsCreator
-                        fields={field.value || []}
-                        onFieldsChange={field.onChange}
-                      />
+                      <FieldsCreator fields={field.value || []} onFieldsChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -2050,11 +1989,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               </Button>
             )}
             {isDraft && (
-              <Button
-                type="button"
-                onClick={handlePublish}
-                className="w-full py-6"
-              >
+              <Button type="button" onClick={handlePublish} className="w-full py-6">
                 Salvar e Publicar
               </Button>
             )}
@@ -2081,8 +2016,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   {form.formState.isSubmitting
                     ? 'Enviando...'
                     : initialData
-                      ? 'Salvar Alterações'
-                      : 'Criar Curso'}
+                    ? 'Salvar Alterações'
+                    : 'Criar Curso'}
                 </Button>
               )}
           </div>
@@ -2091,39 +2026,39 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         {/* Confirm Dialog */}
         <ConfirmDialog
           open={confirmDialog.open}
-          onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
+          onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
           title={
             confirmDialog.type === 'create_course'
               ? 'Criar Curso'
               : confirmDialog.type === 'save_draft'
-                ? 'Salvar Rascunho'
-                : confirmDialog.type === 'save_changes'
-                  ? 'Salvar Alterações'
-                  : confirmDialog.type === 'publish_course'
-                    ? 'Publicar Curso'
-                    : 'Salvar Alterações'
+              ? 'Salvar Rascunho'
+              : confirmDialog.type === 'save_changes'
+              ? 'Salvar Alterações'
+              : confirmDialog.type === 'publish_course'
+              ? 'Publicar Curso'
+              : 'Salvar Alterações'
           }
           description={
             confirmDialog.type === 'create_course'
               ? 'Tem certeza que deseja criar este curso? Esta ação tornará o curso visível para inscrições.'
               : confirmDialog.type === 'save_draft'
-                ? 'Tem certeza que deseja salvar este rascunho? O curso não será publicado ainda.'
-                : confirmDialog.type === 'save_changes'
-                  ? 'Tem certeza que deseja salvar as alterações neste curso?'
-                  : confirmDialog.type === 'publish_course'
-                    ? 'Tem certeza que deseja publicar este curso? Esta ação tornará o curso visível para inscrições.'
-                    : 'Tem certeza que deseja salvar as alterações neste curso?'
+              ? 'Tem certeza que deseja salvar este rascunho? O curso não será publicado ainda.'
+              : confirmDialog.type === 'save_changes'
+              ? 'Tem certeza que deseja salvar as alterações neste curso?'
+              : confirmDialog.type === 'publish_course'
+              ? 'Tem certeza que deseja publicar este curso? Esta ação tornará o curso visível para inscrições.'
+              : 'Tem certeza que deseja salvar as alterações neste curso?'
           }
           confirmText={
             confirmDialog.type === 'create_course'
               ? 'Criar Curso'
               : confirmDialog.type === 'save_draft'
-                ? 'Salvar Rascunho'
-                : confirmDialog.type === 'save_changes'
-                  ? 'Salvar Alterações'
-                  : confirmDialog.type === 'publish_course'
-                    ? 'Publicar Curso'
-                    : 'Salvar Alterações'
+              ? 'Salvar Rascunho'
+              : confirmDialog.type === 'save_changes'
+              ? 'Salvar Alterações'
+              : confirmDialog.type === 'publish_course'
+              ? 'Publicar Curso'
+              : 'Salvar Alterações'
           }
           variant="default"
           onConfirm={() => {
