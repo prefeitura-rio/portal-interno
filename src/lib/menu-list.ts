@@ -1,5 +1,6 @@
 import {
   Briefcase,
+  FolderKanban,
   GraduationCap,
   LayoutGrid,
   type LucideIcon,
@@ -88,29 +89,29 @@ export function getMenuList(pathname: string): Group[] {
         },
       ],
     },
-    // {
-    //   groupLabel: 'Serviços municipais',
-    //   menus: [
-    //     {
-    //       href: '',
-    //       label: 'Serviços municipais',
-    //       icon: FolderKanban,
-    //       allowedRoles: ['admin', 'geral', 'editor'],
-    //       submenus: [
-    //         {
-    //           href: '/servicos-municipais/servicos',
-    //           label: 'Serviços',
-    //           allowedRoles: ['admin', 'geral', 'editor'],
-    //         },
-    //         {
-    //           href: '/servicos-municipais/servicos/new',
-    //           label: 'Novo Serviço',
-    //           allowedRoles: ['admin', 'geral'],
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // },
+    {
+      groupLabel: 'Serviços municipais',
+      menus: [
+        {
+          href: '',
+          label: 'Serviços municipais',
+          icon: FolderKanban,
+          allowedRoles: ['admin', 'superadmin', 'busca:services:admin','busca:services:editor'],
+          submenus: [
+            {
+              href: '/servicos-municipais/servicos',
+              label: 'Serviços',
+              allowedRoles: ['admin', 'superadmin', 'busca:services:admin','busca:services:editor'],
+            },
+            {
+              href: '/servicos-municipais/servicos/new',
+              label: 'Novo Serviço',
+              allowedRoles: ['admin', 'superadmin', 'busca:services:admin'],
+            },
+          ],
+        },
+      ],
+    },
     {
       groupLabel: 'Configurações',
       menus: [
