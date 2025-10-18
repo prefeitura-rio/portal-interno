@@ -64,7 +64,8 @@ O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e p
 
 - ✅ Valida expiração do JWT
 - ✅ Faz refresh automático do token
-- ❌ **NÃO** valida roles específicas (limitação do Edge Runtime)
+- ✅ **Valida roles específicas** através da API Heimdall
+- ✅ Bloqueia acesso não autorizado baseado em permissões de rota
 
 **2. Application Layer**
 
@@ -82,15 +83,54 @@ src/
 ├── hooks/use-heimdall-user.ts           # Hooks client-side
 ├── lib/
 │   ├── server-auth.ts                   # Helpers server-side
-│   ├── route-permissions.ts             # Configuração de permissões
+│   ├── route-permissions.ts             # Configuração de permissões (usado no middleware!)
+│   ├── middleware-helpers.ts            # Helpers do middleware (inclui getUserRolesInMiddleware)
 │   └── menu-list.ts                     # Configuração do menu
 ├── components/auth/protected-route.tsx  # Wrapper de proteção
-└── middleware.ts                        # Middleware de autenticação
+└── middleware.ts                        # Middleware de autenticação + autorização RBAC
 ```
 
 ---
 
 ## ⚙️ Como Funciona
+
+### 0. Middleware RBAC (Primeira Camada de Proteção)
+
+```typescript
+// src/middleware.ts
+export async function middleware(request: NextRequest) {
+  const authToken = request.cookies.get('access_token')
+  const path = request.nextUrl.pathname
+  
+  // 1. Valida expiração do JWT
+  if (isJwtExpired(authToken.value)) {
+    return handleExpiredToken(...)
+  }
+  
+  // 2. Busca roles do usuário via Heimdall API
+  const userRoles = await getUserRolesInMiddleware(authToken.value)
+  
+  // 3. Verifica se usuário tem acesso à rota
+  const hasAccess = hasRouteAccess(path, userRoles)
+  
+  // 4. Bloqueia se não tiver permissão
+  if (!hasAccess) {
+    return handleUnauthorizedUser(...) // Redireciona para /unauthorized
+  }
+  
+  // 5. Permite acesso
+  return NextResponse.next()
+}
+```
+
+**Fluxo:**
+1. Usuário tenta acessar `/servicos-municipais/servicos/new`
+2. Middleware valida JWT e busca roles do Heimdall
+3. Middleware verifica em `route-permissions.ts` se a role permite acesso
+4. Se não permitir (ex: `busca:services:editor`), redireciona para `/unauthorized`
+5. Se permitir (ex: `busca:services:admin`), continua para a página
+
+> **⚠️ Nota de Performance:** O middleware faz uma chamada à API Heimdall em cada request para rotas protegidas. Esta abordagem garante que as permissões estejam sempre atualizadas, mas pode impactar a performance. Se necessário, considere implementar um cache de roles com TTL curto no futuro.
 
 ### 1. API Route Proxy (`/api/heimdall/user`)
 
@@ -636,7 +676,8 @@ O middleware já está configurado para:
 - ✅ Validar JWT (expiração)
 - ✅ Fazer refresh automático do token
 - ✅ Aplicar CSP headers
-- ❌ **NÃO** valida roles (feito na application layer)
+- ✅ **Validar roles** através da API Heimdall
+- ✅ Bloquear acessos não autorizados baseado em `route-permissions.ts`
 
 ---
 
@@ -655,11 +696,12 @@ O middleware já está configurado para:
 
 ## 🚨 Importante
 
-1. **Middleware NÃO valida roles específicas** - Apenas valida JWT
+1. **Middleware valida roles usando Heimdall API** - Bloqueia acesso não autorizado em tempo de request
 2. **Sempre use Heimdall API como fonte de verdade** - Não dependa de roles do JWT
 3. **Client Components**: Use hooks `use-heimdall-user`
 4. **Server Components**: Use helpers `server-auth`
 5. **Proteção de Layout > Proteção de Página** - Prefira proteger módulos inteiros via layout
+6. **Defina permissões em `route-permissions.ts`** - O middleware usa esse arquivo para validação
 
 ---
 
