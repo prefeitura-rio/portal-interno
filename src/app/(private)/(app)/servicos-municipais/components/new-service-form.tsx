@@ -27,6 +27,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  useCanEditBuscaServices,
+  useIsBuscaServicesAdmin,
+} from '@/hooks/use-heimdall-user'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import { SECRETARIAS } from '@/lib/secretarias'
 import {
@@ -135,7 +139,6 @@ interface NewServiceFormProps {
   isLoading?: boolean
   readOnly?: boolean
   initialData?: Partial<ServiceFormData>
-  userRole?: string | null
   serviceStatus?: string
   onSendToApproval?: () => void
   serviceId?: string // For editing existing services
@@ -146,12 +149,13 @@ export function NewServiceForm({
   isLoading = false,
   readOnly = false,
   initialData,
-  userRole,
   serviceStatus,
   onSendToApproval,
   serviceId,
 }: NewServiceFormProps) {
   const router = useRouter()
+  const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
+  const canEditServices = useCanEditBuscaServices()
   const {
     createService,
     updateService,
@@ -499,38 +503,35 @@ export function NewServiceForm({
 
   // Function to determine which buttons should be shown based on user role and service status
   const getFormButtonConfiguration = () => {
-    if (!userRole) {
-      // Default configuration when user role is not available
-      return {
-        showSendToEdit: true,
-        showPublish: true,
-      }
-    }
-
-    const isAdminOrGeral = userRole === 'admin' || userRole === 'geral'
-    const isEditor = userRole === 'editor'
-
-    if (isAdminOrGeral) {
-      // Admin and geral users behavior based on status
+    // Admin users (admin, superadmin, busca:services:admin) have full permissions
+    if (isBuscaServicesAdmin) {
       if (serviceStatus === 'in_edition') {
         return {
           showSendToEdit: false, // Don't show "Enviar para edição" button for "Em Edição" status
-          showPublish: true,
+          showPublish: true, // Admins can publish directly
         }
       }
       return {
         showSendToEdit: true,
-        showPublish: true,
+        showPublish: true, // Admins can publish directly
       }
     }
 
-    if (isEditor) {
-      // Editor users behavior based on status
+    // Editor users (busca:services:editor) have restricted permissions
+    if (canEditServices) {
       if (serviceStatus === 'in_edition') {
         return {
           showSendToEdit: false, // Don't show "Enviar para edição" button for "Em Edição" status
-          showPublish: false, // Don't show "Salvar e publicar", will show "Enviar para aprovação" instead
-          showSendToApproval: true,
+          showPublish: false, // Editors can't publish directly
+          showSendToApproval: true, // Show "Enviar para aprovação" instead
+        }
+      }
+      if (serviceStatus === 'published') {
+        // Editors cannot edit published services
+        return {
+          showSendToEdit: false,
+          showPublish: false,
+          showSendToApproval: false,
         }
       }
       return {
@@ -540,9 +541,10 @@ export function NewServiceForm({
       }
     }
 
+    // Default: no permissions
     return {
-      showSendToEdit: true,
-      showPublish: true,
+      showSendToEdit: false,
+      showPublish: false,
     }
   }
 

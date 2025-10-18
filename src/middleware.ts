@@ -3,13 +3,12 @@ import {
   type NextRequest,
   NextResponse,
 } from 'next/server'
+import { isJwtExpired } from './lib'
 import {
-  getUserRole,
+  getUserRolesInMiddleware,
   handleExpiredToken,
   handleUnauthorizedUser,
-  hasAdminLoginRole,
-  isJwtExpired,
-} from './lib'
+} from './lib/middleware-helpers'
 import { hasRouteAccess } from './lib/route-permissions'
 
 const publicRoutes = [
@@ -128,18 +127,15 @@ export async function middleware(request: NextRequest) {
       )
     }
 
-    // Check if user has admin:login role
-    if (!hasAdminLoginRole(authToken.value)) {
-      return await handleUnauthorizedUser(
-        request,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
-    }
-
-    // Check role-based route access
-    const userRole = getUserRole(authToken.value)
-    if (!hasRouteAccess(path, userRole)) {
+    // Role-based access control (RBAC) using Heimdall API
+    // Fetch user roles and verify route access
+    const userRoles = await getUserRolesInMiddleware(authToken.value)
+    
+    // Check if user has access to the requested route
+    const hasAccess = hasRouteAccess(path, userRoles)
+    
+    if (!hasAccess) {
+      // User doesn't have required roles for this route
       return await handleUnauthorizedUser(
         request,
         requestHeaders,
@@ -180,25 +176,6 @@ export async function middleware(request: NextRequest) {
       return await handleExpiredToken(
         request,
         refreshToken?.value,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
-    }
-
-    // Check if user has admin:login role
-    if (!hasAdminLoginRole(authToken.value)) {
-      return await handleUnauthorizedUser(
-        request,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
-    }
-
-    // Check role-based route access (even for public routes when authenticated)
-    const userRole = getUserRole(authToken.value)
-    if (!hasRouteAccess(path, userRole)) {
-      return await handleUnauthorizedUser(
-        request,
         requestHeaders,
         contentSecurityPolicyHeaderValue
       )
