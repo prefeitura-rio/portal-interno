@@ -40,6 +40,49 @@ export function useUserRole(): UserRole | null {
   return userRole
 }
 
+// Singleton cache to prevent multiple fetches
+let cachedUserRole: UserRole | null = null
+let cachedPromise: Promise<UserRole | null> | null = null
+
+async function fetchUserRoleOnce(): Promise<UserRole | null> {
+  // Return cached value if already fetched
+  if (cachedUserRole !== null) {
+    return cachedUserRole
+  }
+
+  // Return existing promise if fetch is in progress
+  if (cachedPromise) {
+    return cachedPromise
+  }
+
+  // Create new fetch promise
+  cachedPromise = (async () => {
+    try {
+      const response = await fetch('/api/user-role', {
+        method: 'GET',
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        cachedUserRole = data.role
+        return cachedUserRole
+      }
+
+      cachedUserRole = null
+      return null
+    } catch (error) {
+      console.error('Error fetching user role:', error)
+      cachedUserRole = null
+      return null
+    } finally {
+      cachedPromise = null
+    }
+  })()
+
+  return cachedPromise
+}
+
 /**
  * Custom hook to get user role and loading state
  * @returns { userRole: UserRole | null, loading: boolean }
@@ -48,32 +91,14 @@ export function useUserRoleWithLoading(): {
   userRole: UserRole | null
   loading: boolean
 } {
-  const [userRole, setUserRole] = useState<UserRole | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [userRole, setUserRole] = useState<UserRole | null>(cachedUserRole)
+  const [loading, setLoading] = useState(cachedUserRole === null)
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const response = await fetch('/api/user-role', {
-          method: 'GET',
-          credentials: 'include',
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUserRole(data.role)
-        } else {
-          setUserRole(null)
-        }
-      } catch (error) {
-        console.error('Error fetching user role:', error)
-        setUserRole(null)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUserRole()
+    fetchUserRoleOnce().then(role => {
+      setUserRole(role)
+      setLoading(false)
+    })
   }, [])
 
   return { userRole, loading }

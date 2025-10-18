@@ -24,7 +24,7 @@ export function ImageUpload({
   label,
   className,
   previewClassName = 'max-h-[200px] max-w-full rounded-lg object-contain',
-  placeholder = 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/avatars/avatar1.png',
+  placeholder = 'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/png/cover.png',
   error = false,
   errorMessage,
   disabled = false,

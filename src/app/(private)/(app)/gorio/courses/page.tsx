@@ -409,8 +409,13 @@ export default function Courses() {
         id: 'created_at',
         accessorKey: 'created_at',
         accessorFn: row => {
-          const date = new Date(row.created_at)
-          date.setHours(0, 0, 0, 0)
+          // Extract date components and create local date to avoid timezone issues
+          const sourceDate = new Date(row.created_at)
+          const date = new Date(
+            sourceDate.getFullYear(),
+            sourceDate.getMonth(),
+            sourceDate.getDate()
+          )
           return date.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
@@ -439,9 +444,14 @@ export default function Courses() {
         accessorFn: row => {
           const date = row.registration_start
           if (!date) return null
-          const dateObj = new Date(date)
-          dateObj.setHours(0, 0, 0, 0)
-          return dateObj.getTime()
+          // Extract date components and create local date to avoid timezone issues
+          const sourceDate = new Date(date)
+          const localDate = new Date(
+            sourceDate.getFullYear(),
+            sourceDate.getMonth(),
+            sourceDate.getDate()
+          )
+          return localDate.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader
@@ -475,9 +485,14 @@ export default function Courses() {
         accessorFn: row => {
           const date = row.registration_end
           if (!date) return null
-          const dateObj = new Date(date)
-          dateObj.setHours(0, 0, 0, 0)
-          return dateObj.getTime()
+          // Extract date components and create local date to avoid timezone issues
+          const sourceDate = new Date(date)
+          const localDate = new Date(
+            sourceDate.getFullYear(),
+            sourceDate.getMonth(),
+            sourceDate.getDate()
+          )
+          return localDate.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Fim das inscrições" />

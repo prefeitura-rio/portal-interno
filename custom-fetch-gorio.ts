@@ -65,7 +65,8 @@ export const customFetchGoRio = async <T>(
     headers: requestHeaders,
   }
 
-  console.log('RequestInit:', requestInit)
+  console.log('customFetchGoRio - URL:', requestUrl)
+  console.log('customFetchGoRio - RequestInit:', requestInit)
 
   const response = await fetch(requestUrl, requestInit)
   const data = await getBody<T>(response)

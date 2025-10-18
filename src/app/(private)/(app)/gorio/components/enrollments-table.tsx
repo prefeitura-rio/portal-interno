@@ -564,8 +564,13 @@ export function EnrollmentsTable({
         id: 'enrollmentDate',
         accessorKey: 'enrollmentDate',
         accessorFn: row => {
-          const date = new Date(row.enrollmentDate)
-          date.setHours(0, 0, 0, 0)
+          // Parse ISO date string as local date to avoid timezone issues
+          const isoDate = new Date(row.enrollmentDate)
+          const date = new Date(
+            isoDate.getFullYear(),
+            isoDate.getMonth(),
+            isoDate.getDate()
+          )
           return date.getTime()
         },
         header: ({ column }: { column: Column<Enrollment, unknown> }) => (

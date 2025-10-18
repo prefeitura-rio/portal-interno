@@ -1,3 +1,5 @@
+import { Accessibility } from '../app/(private)/(app)/gorio/components/new-course-form'
+
 // API Response types based on actual API responses
 export interface ApiPagination {
   limit: number
@@ -15,12 +17,7 @@ export interface ApiCourse {
     nome: string
   }
   organization?: string // Keep for backward compatibility
-  modalidade:
-    | 'ONLINE'
-    | 'PRESENCIAL'
-    | 'SEMIPRESENCIAL'
-    | 'Remoto'
-    | 'Presencial'
+  modalidade: 'ONLINE' | 'PRESENCIAL' | 'SEMIPRESENCIAL' | 'Remoto' | 'Presencial'
   status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled'
   created_at: string
   updated_at: string
@@ -34,6 +31,7 @@ export interface ApiCourse {
   external_partner_contact?: string
   // Additional fields that might be present
   carga_horaria?: number
+  accessibility?: Accessibility | undefined | ''
   numero_vagas?: number
   facilitador?: string
   local_realizacao?: string
@@ -275,12 +273,7 @@ export interface CourseFilters {
 }
 
 // Enrollment Types
-export type EnrollmentStatus =
-  | 'approved'
-  | 'pending'
-  | 'cancelled'
-  | 'rejected'
-  | 'concluded'
+export type EnrollmentStatus = 'approved' | 'pending' | 'cancelled' | 'rejected' | 'concluded'
 
 export interface Enrollment {
   id: string

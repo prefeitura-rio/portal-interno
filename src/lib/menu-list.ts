@@ -71,7 +71,7 @@ export function getMenuList(pathname: string): Group[] {
         },
         {
           href: '',
-          label: 'Emprego e Trabalho',
+          label: 'Emprego e trabalho',
           icon: Briefcase,
           allowedRoles: ['admin', 'superadmin', 'go:admin'],
           submenus: [
