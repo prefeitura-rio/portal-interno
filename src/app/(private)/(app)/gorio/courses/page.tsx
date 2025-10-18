@@ -369,10 +369,13 @@ export default function Courses() {
           const isExternalPartner = row.original.is_external_partner
           const provider = cell.getValue<CourseListItem['provider']>()
           const externalPartnerName = row.original.external_partner_name
-          
+
           // Use external partner name if it's a partnership and the name exists
-          const displayName = isExternalPartner && externalPartnerName ? externalPartnerName : provider
-          
+          const displayName =
+            isExternalPartner && externalPartnerName
+              ? externalPartnerName
+              : provider
+
           return (
             <div className="flex items-center gap-2">
               {isExternalPartner ? (
@@ -382,8 +385,8 @@ export default function Courses() {
               )}
               <div className="flex items-center gap-2 max-w-[300px] truncate">
                 {isExternalPartner && (
-                  <Badge 
-                    variant="secondary" 
+                  <Badge
+                    variant="secondary"
                     className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 border-blue-200"
                   >
                     Parceria

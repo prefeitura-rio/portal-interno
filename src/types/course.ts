@@ -187,7 +187,16 @@ export interface CourseLocation {
   classDays: string
 }
 
-export type CustomFieldType = 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio' | 'multiselect'
+export type CustomFieldType =
+  | 'text'
+  | 'number'
+  | 'email'
+  | 'date'
+  | 'select'
+  | 'textarea'
+  | 'checkbox'
+  | 'radio'
+  | 'multiselect'
 
 export interface CustomFieldOption {
   id: string
