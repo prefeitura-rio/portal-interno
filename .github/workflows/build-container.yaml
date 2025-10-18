@@ -50,6 +50,7 @@ jobs:
             --build-arg NEXT_PUBLIC_GOVBR_BASE_URL="https://sso.staging.acesso.gov.br/" \
             --build-arg NEXT_PUBLIC_COURSES_BASE_API_URL="https://services.staging.app.dados.rio/go" \
             --build-arg NEXT_PUBLIC_BUSCA_SEARCH_API_URL="https://services.staging.app.dados.rio/app-busca-search" \
+            --build-arg NEXT_PUBLIC_HEIMDALL_BASE_API_URL="https://services.staging.app.dados.rio/heimdall-admin" \
             --build-arg NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT=5 \
             --tag $IMAGE_NAME:$TAG1 \
             --tag $IMAGE_NAME:$TAG2 \
@@ -65,6 +66,7 @@ jobs:
             --build-arg NEXT_PUBLIC_GOVBR_BASE_URL="https://sso.acesso.gov.br/" \
             --build-arg NEXT_PUBLIC_COURSES_BASE_API_URL="https://services.pref.rio/go" \
             --build-arg NEXT_PUBLIC_BUSCA_SEARCH_API_URL="https://services.pref.rio/app-busca-search" \
+            --build-arg NEXT_PUBLIC_HEIMDALL_BASE_API_URL="https://services.pref.rio/heimdall-admin" \
             --build-arg NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT=1 \
             --tag $IMAGE_NAME:$TAG1 \
             --tag $IMAGE_NAME:$TAG2 \
