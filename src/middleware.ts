@@ -3,14 +3,7 @@ import {
   type NextRequest,
   NextResponse,
 } from 'next/server'
-import {
-  getUserRole,
-  handleExpiredToken,
-  handleUnauthorizedUser,
-  hasAdminLoginRole,
-  isJwtExpired,
-} from './lib'
-import { hasRouteAccess } from './lib/route-permissions'
+import { handleExpiredToken, isJwtExpired } from './lib'
 
 const publicRoutes = [
   { path: '/description', whenAuthenticated: 'next' },
@@ -128,24 +121,12 @@ export async function middleware(request: NextRequest) {
       )
     }
 
-    // Check if user has admin:login role
-    if (!hasAdminLoginRole(authToken.value)) {
-      return await handleUnauthorizedUser(
-        request,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
-    }
-
-    // Check role-based route access
-    const userRole = getUserRole(authToken.value)
-    if (!hasRouteAccess(path, userRole)) {
-      return await handleUnauthorizedUser(
-        request,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
-    }
+    // Note: Role-based access control (RBAC) is handled at the component/page level using Heimdall API
+    // Middleware only validates JWT token validity and expiration
+    // Fine-grained authorization (which roles can access which routes) happens in:
+    // - Layout components (e.g., /gorio/layout.tsx)
+    // - ProtectedRoute wrapper component
+    // - Individual page components using useHeimdallUser hooks
 
     const response = NextResponse.next({
       request: {
@@ -185,24 +166,8 @@ export async function middleware(request: NextRequest) {
       )
     }
 
-    // Check if user has admin:login role
-    if (!hasAdminLoginRole(authToken.value)) {
-      return await handleUnauthorizedUser(
-        request,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
-    }
-
-    // Check role-based route access (even for public routes when authenticated)
-    const userRole = getUserRole(authToken.value)
-    if (!hasRouteAccess(path, userRole)) {
-      return await handleUnauthorizedUser(
-        request,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
-    }
+    // Note: Role-based access control (RBAC) is handled at the component/page level using Heimdall API
+    // Middleware only validates JWT token validity and expiration
 
     const response = NextResponse.next({
       request: {

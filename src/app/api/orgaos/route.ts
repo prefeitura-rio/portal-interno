@@ -3,8 +3,11 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    // Call the external API using the existing client function
-    const response = await getApiV1Orgaos()
+    // Call the external API using the existing client function with pagination parameters
+    const response = await getApiV1Orgaos({
+      page: 1,
+      pageSize: 70,
+    })
 
     if (response.status === 200) {
       console.log(

@@ -1,16 +1,16 @@
-"use client"
+'use client'
 
-import { SheetMenu } from "@/components/admin-panel/sheet-menu";
-import { UserNav } from "@/components/admin-panel/user-nav";
-import { ModeToggle } from "@/components/mode-toggle";
-import { useUser } from "@/components/providers/user-provider";
+import { SheetMenu } from '@/components/admin-panel/sheet-menu'
+import { UserNav } from '@/components/admin-panel/user-nav'
+import { ModeToggle } from '@/components/mode-toggle'
+import { useUser } from '@/components/providers/user-provider'
 
 interface NavbarProps {
-  title: string;
+  title: string
 }
 
 export function Navbar({ title }: NavbarProps) {
-  const { userInfo } = useUser();
+  const { userInfo } = useUser()
 
   return (
     <header className="sticky top-0 z-10 w-full bg-background/95 shadow backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:shadow-secondary">
@@ -25,5 +25,5 @@ export function Navbar({ title }: NavbarProps) {
         </div>
       </div>
     </header>
-  );
+  )
 }

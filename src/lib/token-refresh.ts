@@ -5,7 +5,9 @@ export interface TokenRefreshResult {
   error?: string
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<TokenRefreshResult> {
+export async function refreshAccessToken(
+  refreshToken: string
+): Promise<TokenRefreshResult> {
   try {
     const tokenUrl = `${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_BASE_URL}/token`
     const params = new URLSearchParams({
@@ -22,16 +24,31 @@ export async function refreshAccessToken(refreshToken: string): Promise<TokenRef
     })
 
     if (!response.ok) {
-      return { success: false, error: 'Failed to refresh token' }
+      const errorText = await response.text()
+      console.error(
+        '❌ Refresh failed with status:',
+        response.status,
+        'Error:',
+        errorText
+      )
+      return {
+        success: false,
+        error: `Failed to refresh token: ${response.status} - ${errorText}`,
+      }
     }
 
     const data = await response.json()
+
     return {
       success: true,
       accessToken: data.access_token,
       newRefreshToken: data.refresh_token,
     }
   } catch (error) {
-    return { success: false, error: 'Network error during token refresh' }
+    console.error('❌ Network error during token refresh:', error)
+    return {
+      success: false,
+      error: `Network error during token refresh: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
   }
 }

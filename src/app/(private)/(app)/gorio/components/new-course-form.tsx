@@ -33,6 +33,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DateTimePicker,
   formatDateTimeToUTC,
@@ -84,7 +85,7 @@ const remoteClassSchema = z.object({
 })
 
 // Custom validation function for Google Cloud Storage URLs
-const validateGoogleCloudStorageURL = (url: string) => {
+const validateGoogleCloudStorageURL = (url: string | undefined) => {
   // Allow empty or undefined URLs for drafts
   if (!url || url.trim() === '') {
     return true
@@ -107,7 +108,7 @@ const fullFormSchema = z
         .string()
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
-        .max(500, { message: 'Descrição não pode exceder 500 caracteres.' }),
+        .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -132,7 +133,7 @@ const fullFormSchema = z
         .string()
         .min(1, { message: 'Público-alvo é obrigatório.' })
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
-        .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
+        .max(600, { message: 'Público-alvo não pode exceder 600 caracteres.' }),
       // Required image fields
       institutional_logo: z
         .string()
@@ -151,6 +152,21 @@ const fullFormSchema = z
       // Optional fields
       pre_requisitos: z.string().optional(),
 
+      // External partner fields
+      is_external_partner: z.boolean().optional(),
+      external_partner_name: z.string().optional(),
+      external_partner_url: z.string().url().optional().or(z.literal('')),
+      external_partner_logo_url: z
+        .string()
+        .url()
+        .optional()
+        .or(z.literal(''))
+        .refine(validateGoogleCloudStorageURL, {
+          message:
+            'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
+      external_partner_contact: z.string().optional(),
+
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
       expected_results: z.string().optional(),
@@ -165,7 +181,27 @@ const fullFormSchema = z
             id: z.string(),
             title: z.string(),
             required: z.boolean(),
-            field_type: z.string().optional(),
+            field_type: z
+              .enum([
+                'text',
+                'number',
+                'email',
+                'date',
+                'select',
+                'textarea',
+                'checkbox',
+                'radio',
+                'multiselect',
+              ])
+              .default('text'),
+            options: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  value: z.string(),
+                })
+              )
+              .optional(),
           })
         )
         .optional(),
@@ -181,7 +217,7 @@ const fullFormSchema = z
         .string()
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
-        .max(500, { message: 'Descrição não pode exceder 500 caracteres.' }),
+        .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -206,7 +242,7 @@ const fullFormSchema = z
         .string()
         .min(1, { message: 'Público-alvo é obrigatório.' })
         .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
-        .max(200, { message: 'Público-alvo não pode exceder 200 caracteres.' }),
+        .max(600, { message: 'Público-alvo não pode exceder 600 caracteres.' }),
       // Required image fields
       institutional_logo: z
         .string()
@@ -225,6 +261,21 @@ const fullFormSchema = z
       // Optional fields
       pre_requisitos: z.string().optional(),
 
+      // External partner fields
+      is_external_partner: z.boolean().optional(),
+      external_partner_name: z.string().optional(),
+      external_partner_url: z.string().url().optional().or(z.literal('')),
+      external_partner_logo_url: z
+        .string()
+        .url()
+        .optional()
+        .or(z.literal(''))
+        .refine(validateGoogleCloudStorageURL, {
+          message:
+            'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
+      external_partner_contact: z.string().optional(),
+
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
       expected_results: z.string().optional(),
@@ -239,7 +290,27 @@ const fullFormSchema = z
             id: z.string(),
             title: z.string(),
             required: z.boolean(),
-            field_type: z.string().optional(),
+            field_type: z
+              .enum([
+                'text',
+                'number',
+                'email',
+                'date',
+                'select',
+                'textarea',
+                'checkbox',
+                'radio',
+                'multiselect',
+              ])
+              .default('text'),
+            options: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  value: z.string(),
+                })
+              )
+              .optional(),
           })
         )
         .optional(),
@@ -267,6 +338,26 @@ const fullFormSchema = z
       message:
         'A data final das aulas deve ser igual ou posterior à data inicial.',
       path: ['modalidade'],
+    }
+  )
+  .refine(
+    data => {
+      if (!data.is_external_partner) return true
+      return data.external_partner_name?.trim()
+    },
+    {
+      message: 'Nome do parceiro externo é obrigatório.',
+      path: ['external_partner_name'],
+    }
+  )
+  .refine(
+    data => {
+      if (!data.is_external_partner) return true
+      return data.external_partner_url?.trim()
+    },
+    {
+      message: 'URL do parceiro externo é obrigatória.',
+      path: ['external_partner_url'],
     }
   )
 
@@ -303,6 +394,20 @@ const draftFormSchema = z.object({
     .optional(),
   pre_requisitos: z.string().optional(),
   has_certificate: z.boolean().optional(),
+
+  // External partner fields
+  is_external_partner: z.boolean().optional(),
+  external_partner_name: z.string().optional(),
+  external_partner_url: z.string().optional(),
+  external_partner_logo_url: z
+    .string()
+    .refine(validateGoogleCloudStorageURL, {
+      message:
+        'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+    })
+    .optional(),
+  external_partner_contact: z.string().optional(),
+
   facilitator: z.string().optional(),
   objectives: z.string().optional(),
   expected_results: z.string().optional(),
@@ -317,7 +422,17 @@ const draftFormSchema = z.object({
         id: z.string(),
         title: z.string(),
         required: z.boolean(),
-        field_type: z.string().optional(),
+        field_type: z
+          .enum(['text', 'select', 'multiselect', 'radio'])
+          .default('text'),
+        options: z
+          .array(
+            z.object({
+              id: z.string(),
+              value: z.string(),
+            })
+          )
+          .optional(),
       })
     )
     .optional(),
@@ -363,6 +478,13 @@ type PartialFormData = Omit<
   target_audience?: string
   pre_requisitos?: string
 
+  // External partner fields
+  is_external_partner?: boolean
+  external_partner_name?: string
+  external_partner_url?: string
+  external_partner_logo_url?: string
+  external_partner_contact?: string
+
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -394,6 +516,13 @@ type BackendCourseData = {
   institutional_logo: string | null
   cover_image: string | null
   pre_requisitos?: string
+
+  // External partner fields
+  is_external_partner?: boolean
+  external_partner_name?: string
+  external_partner_url?: string
+  external_partner_logo_url?: string
+  external_partner_contact?: string
 
   facilitator?: string
   objectives?: string
@@ -506,6 +635,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             target_audience: initialData.target_audience || '',
             pre_requisitos: initialData.pre_requisitos || '',
 
+            // External partner fields
+            is_external_partner: initialData.is_external_partner || false,
+            external_partner_name: initialData.external_partner_name || '',
+            external_partner_url: initialData.external_partner_url || '',
+            external_partner_logo_url:
+              initialData.external_partner_logo_url || '',
+            external_partner_contact:
+              initialData.external_partner_contact || '',
+
             facilitator: initialData.facilitator || '',
             objectives: initialData.objectives || '',
             expected_results: initialData.expected_results || '',
@@ -534,6 +672,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             workload: '',
             target_audience: '',
             pre_requisitos: '',
+
+            // External partner fields
+            is_external_partner: false,
+            external_partner_name: '',
+            external_partner_url: '',
+            external_partner_logo_url: '',
+            external_partner_contact: '',
 
             facilitator: '',
             objectives: '',
@@ -635,6 +780,22 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         cover_image: data.cover_image,
         pre_requisitos: data.pre_requisitos,
         has_certificate: Boolean(data.pre_requisitos?.trim()),
+
+        // External partner fields - clear when not external partner
+        is_external_partner: data.is_external_partner,
+        external_partner_name: data.is_external_partner
+          ? data.external_partner_name
+          : '',
+        external_partner_url: data.is_external_partner
+          ? data.external_partner_url
+          : '',
+        external_partner_logo_url: data.is_external_partner
+          ? data.external_partner_logo_url
+          : '',
+        external_partner_contact: data.is_external_partner
+          ? data.external_partner_contact
+          : '',
+
         facilitator: data.facilitator,
         objectives: data.objectives,
         expected_results: data.expected_results,
@@ -682,6 +843,21 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         institutional_logo: data.institutional_logo || '',
         cover_image: data.cover_image || '',
         pre_requisitos: data.pre_requisitos,
+
+        // External partner fields - clear when not external partner
+        is_external_partner: data.is_external_partner,
+        external_partner_name: data.is_external_partner
+          ? data.external_partner_name
+          : '',
+        external_partner_url: data.is_external_partner
+          ? data.external_partner_url
+          : '',
+        external_partner_logo_url: data.is_external_partner
+          ? data.external_partner_logo_url
+          : '',
+        external_partner_contact: data.is_external_partner
+          ? data.external_partner_contact
+          : '',
 
         facilitator: data.facilitator,
         objectives: data.objectives,
@@ -1102,6 +1278,166 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   </FormItem>
                 )}
               />
+
+              {/* External Partner Checkbox */}
+              <FormField
+                control={form.control}
+                name="is_external_partner"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Curso de parceiro externo</FormLabel>
+                      <p className="text-[0.8rem] text-muted-foreground">
+                        Marque esta opção se o curso é oferecido por uma
+                        organização parceira externa.
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {/* External Partner Fields - Show only when checkbox is checked */}
+              {form.watch('is_external_partner') && (
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle>Informações do Parceiro Externo</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="external_partner_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome do parceiro externo*</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Ex. PUC RJ"
+                              {...field}
+                              disabled={isReadOnly}
+                              required={form.watch('is_external_partner')}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="external_partner_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            URL para a página do parceiro externo*
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="https://"
+                              type="url"
+                              {...field}
+                              disabled={isReadOnly}
+                              required={form.watch('is_external_partner')}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="external_partner_logo_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            URL para a logo do parceiro externo
+                          </FormLabel>
+                          <div className="flex items-start gap-4">
+                            <div className="flex-1">
+                              <FormControl>
+                                <Input
+                                  placeholder="https://"
+                                  type="url"
+                                  {...field}
+                                  disabled={isReadOnly}
+                                />
+                              </FormControl>
+                            </div>
+                            {field.value && (
+                              <div className="flex-shrink-0">
+                                <div className="w-16 h-16 border border-gray-200 rounded-md overflow-hidden bg-gray-50 flex items-center justify-center">
+                                  <img
+                                    key={field.value} // Force re-render when URL changes
+                                    src={field.value}
+                                    alt="Preview da logo do parceiro"
+                                    className="max-w-full max-h-full object-contain"
+                                    onError={e => {
+                                      const target =
+                                        e.target as HTMLImageElement
+                                      target.style.display = 'none'
+                                      const errorText =
+                                        target.nextElementSibling as HTMLElement
+                                      if (errorText) {
+                                        errorText.textContent =
+                                          'Erro ao carregar'
+                                        errorText.style.display = 'block'
+                                      }
+                                    }}
+                                    onLoad={e => {
+                                      const target =
+                                        e.target as HTMLImageElement
+                                      target.style.display = 'block'
+                                      const errorText =
+                                        target.nextElementSibling as HTMLElement
+                                      if (errorText)
+                                        errorText.style.display = 'none'
+                                    }}
+                                  />
+                                  <span
+                                    className="text-xs text-gray-500"
+                                    style={{ display: 'none' }}
+                                  >
+                                    Erro ao carregar
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="external_partner_contact"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Canal de informações do parceiro externo
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Ex. Número de whatsapp, email, link de FAQ, etc."
+                              className="min-h-[80px]"
+                              {...field}
+                              disabled={isReadOnly}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+              )}
 
               <FormField
                 control={form.control}

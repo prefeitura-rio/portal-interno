@@ -3,8 +3,8 @@ import {
   getGetApiV1AdminServicesUrl,
   postApiV1AdminServices,
 } from '@/http-busca-search/admin/admin'
-import type { GetApiV1AdminServicesParams } from '@/http-busca-search/models/getApiV1AdminServicesParams'
 import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
+import type { GetApiV1AdminServicesParams } from '@/http-busca-search/models/getApiV1AdminServicesParams'
 import type { ServiceListItem, ServiceStatus } from '@/types/service'
 import { convertApiToFrontend } from '@/types/service'
 import { revalidateTag } from 'next/cache'
@@ -154,7 +154,9 @@ export async function POST(request: Request) {
     // Validate required fields
     if (!body.nome_servico || !body.resumo || !body.orgao_gestor) {
       return NextResponse.json(
-        { error: 'Required fields missing: nome_servico, resumo, orgao_gestor' },
+        {
+          error: 'Required fields missing: nome_servico, resumo, orgao_gestor',
+        },
         { status: 400 }
       )
     }
