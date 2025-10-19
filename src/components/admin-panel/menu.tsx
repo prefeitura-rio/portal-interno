@@ -13,8 +13,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useHeimdallUserWithLoading } from '@/hooks/use-heimdall-user'
 import { useLogout } from '@/hooks/use-logout'
-import { useUserRoleWithLoading } from '@/hooks/use-user-role'
 import { getFilteredMenuList } from '@/lib/menu-list'
 import { cn } from '@/lib/utils'
 
@@ -24,8 +24,8 @@ interface MenuProps {
 
 export function Menu({ isOpen }: MenuProps) {
   const pathname = usePathname()
-  const { userRole, loading: roleLoading } = useUserRoleWithLoading()
-  const menuList = getFilteredMenuList(pathname, userRole)
+  const { user, loading: roleLoading } = useHeimdallUserWithLoading()
+  const menuList = getFilteredMenuList(pathname, user?.roles)
   const { isLoading: logoutLoading, handleLogout } = useLogout()
 
   // Show loading state while fetching user role

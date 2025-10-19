@@ -1,3 +1,4 @@
+import { TokenRefreshProvider } from '@/components/providers/token-refresh-provider'
 import { SessionExpiredHandler } from '@/components/session-expired-handler'
 import { UnauthorizedHandler } from '@/components/unauthorized-handler'
 
@@ -7,10 +8,12 @@ export default function Layout({
   children: React.ReactNode
 }>) {
   return (
-    <div>
-      <SessionExpiredHandler />
-      <UnauthorizedHandler />
-      {children}
-    </div>
+    <TokenRefreshProvider>
+      <div>
+        <SessionExpiredHandler />
+        <UnauthorizedHandler />
+        {children}
+      </div>
+    </TokenRefreshProvider>
   )
 }

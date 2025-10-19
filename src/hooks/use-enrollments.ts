@@ -216,7 +216,9 @@ export function useEnrollments({
         )
 
         if (!response.ok) {
-          throw new Error(`Failed to update certificate: ${response.statusText}`)
+          throw new Error(
+            `Failed to update certificate: ${response.statusText}`
+          )
         }
 
         const updatedEnrollment: Enrollment = await response.json()
