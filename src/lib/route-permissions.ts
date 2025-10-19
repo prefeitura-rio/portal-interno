@@ -18,8 +18,13 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
   '/gorio/courses/course/*': ['admin', 'superadmin', 'go:admin'],
 
   // GO Rio - Emprego e Trabalho (only admin, superadmin, and go:admin)
-  '/gorio/jobs': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/jobs/new': ['admin', 'superadmin', 'go:admin'],
+  '/gorio/oportunidades-mei': ['admin', 'superadmin', 'go:admin'],
+  '/gorio/oportunidades-mei/new': ['admin', 'superadmin', 'go:admin'],
+  '/gorio/oportunidades-mei/oportunidade-mei/*': [
+    'admin',
+    'superadmin',
+    'go:admin',
+  ],
 
   // Serviços Municipais (admin, superadmin, busca:services roles)
   '/servicos-municipais/servicos': [

@@ -76,13 +76,13 @@ export function getMenuList(pathname: string): Group[] {
           allowedRoles: ['admin', 'superadmin', 'go:admin'],
           submenus: [
             {
-              href: '/gorio/jobs',
-              label: 'Vagas',
+              href: '/gorio/oportunidades-mei',
+              label: 'Oportunidades MEI',
               allowedRoles: ['admin', 'superadmin', 'go:admin'],
             },
             {
-              href: '/gorio/jobs/new',
-              label: 'Nova Vaga',
+              href: '/gorio/oportunidades-mei/new',
+              label: 'Nova oportunidade MEI',
               allowedRoles: ['admin', 'superadmin', 'go:admin'],
             },
           ],
@@ -96,12 +96,22 @@ export function getMenuList(pathname: string): Group[] {
           href: '',
           label: 'Serviços municipais',
           icon: FolderKanban,
-          allowedRoles: ['admin', 'superadmin', 'busca:services:admin','busca:services:editor'],
+          allowedRoles: [
+            'admin',
+            'superadmin',
+            'busca:services:admin',
+            'busca:services:editor',
+          ],
           submenus: [
             {
               href: '/servicos-municipais/servicos',
               label: 'Serviços',
-              allowedRoles: ['admin', 'superadmin', 'busca:services:admin','busca:services:editor'],
+              allowedRoles: [
+                'admin',
+                'superadmin',
+                'busca:services:admin',
+                'busca:services:editor',
+              ],
             },
             {
               href: '/servicos-municipais/servicos/new',
