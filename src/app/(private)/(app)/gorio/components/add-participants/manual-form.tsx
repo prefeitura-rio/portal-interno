@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, UserPlus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 const manualSchema = z.object({
@@ -18,11 +19,12 @@ const manualSchema = z.object({
 type ManualFormData = z.infer<typeof manualSchema>
 
 interface ManualFormProps {
+  courseId: string
   onBack: () => void
   onFinish: (success: boolean) => void
 }
 
-export function ManualForm({ onBack, onFinish }: ManualFormProps) {
+export function ManualForm({ courseId, onBack, onFinish }: ManualFormProps) {
   const {
     register,
     handleSubmit,
@@ -32,12 +34,29 @@ export function ManualForm({ onBack, onFinish }: ManualFormProps) {
   })
 
   const onSubmit = async (data: ManualFormData) => {
-    console.log('Novo participante:', data)
     try {
-      if (!data.nome) throw new Error('Erro ao adicionar participante')
-      await new Promise((r) => setTimeout(r, 2000))
-      onFinish(true)
-    } catch {
+      const response = await fetch(`/api/enrollments/${courseId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (response.ok) {
+        toast.success('Participante adicionado com sucesso!')
+        onFinish(true)
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao adicionar participante')
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar participante:', error)
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Erro ao adicionar participante. Tente novamente.'
+      )
       onFinish(false)
     }
   }

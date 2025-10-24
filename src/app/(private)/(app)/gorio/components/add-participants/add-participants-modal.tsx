@@ -12,10 +12,11 @@ import { SpreadsheetForm } from './spreadsheet-form'
 interface AddParticipantsModalProps {
   isOpen: boolean
   onClose: () => void
+  courseId: string
   courseType?: 'presencial' | 'online'
 }
 
-export function AddParticipantsModal({ isOpen, onClose, courseType }: AddParticipantsModalProps) {
+export function AddParticipantsModal({ isOpen, onClose, courseId, courseType }: AddParticipantsModalProps) {
   const [mode, setMode] = useState<'options' | 'manual' | 'spreadsheet' | 'finish'>('options')
   const [finishStatus, setFinishStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [simulateSuccess, setSimulateSuccess] = useState(true)
@@ -90,7 +91,7 @@ export function AddParticipantsModal({ isOpen, onClose, courseType }: AddPartici
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <ManualForm onBack={() => setMode('options')} onFinish={handleFinish} />
+                <ManualForm courseId={courseId} onBack={() => setMode('options')} onFinish={handleFinish} />
               </motion.div>
             )}
 

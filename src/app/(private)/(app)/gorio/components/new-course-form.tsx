@@ -150,6 +150,9 @@ const fullFormSchema = z
         .refine(validateGoogleCloudStorageURL, {
           message: 'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
         }),
+        is_visible: z.boolean({
+          required_error: 'Visibilidade do curso é obrigatória.',
+        }),
       // Optional fields
       pre_requisitos: z.string().optional(),
 
@@ -260,6 +263,9 @@ const fullFormSchema = z
         .url({ message: 'Imagem de capa deve ser uma URL válida.' })
         .refine(validateGoogleCloudStorageURL, {
           message: 'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
+        is_visible: z.boolean({
+          required_error: 'Visibilidade do curso é obrigatória.',
         }),
       // Optional fields
       pre_requisitos: z.string().optional(),
@@ -410,6 +416,7 @@ const draftFormSchema = z.object({
   resources_used: z.string().optional(),
   material_used: z.string().optional(),
   teaching_material: z.string().optional(),
+  is_visible: z.boolean().optional(),
   custom_fields: z
     .array(
       z.object({
@@ -485,6 +492,7 @@ type PartialFormData = Omit<FormData, 'modalidade' | 'locations' | 'remote_class
   teaching_material?: string
   institutional_logo?: string | null
   cover_image?: string | null
+  is_visible?: boolean
   custom_fields?: CustomField[]
   status?: 'canceled' | 'draft' | 'opened' | 'closed'
   originalStatus?: 'canceled' | 'draft' | 'opened' | 'closed'
@@ -505,6 +513,7 @@ type BackendCourseData = {
   target_audience: string
   institutional_logo: string | null
   cover_image: string | null
+  is_visible?: boolean
   pre_requisitos?: string
 
   // External partner fields
@@ -633,6 +642,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             teaching_material: initialData.teaching_material || '',
             institutional_logo: initialData.institutional_logo || '',
             cover_image: initialData.cover_image || '',
+            is_visible: initialData?.is_visible ?? true,
             custom_fields: initialData.custom_fields || [],
             // Handle locations and remote_class based on modalidade
             locations: initialData.locations || [],
@@ -670,6 +680,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             teaching_material: '',
             institutional_logo: '',
             cover_image: '',
+            is_visible: true,
             custom_fields: [],
           },
       mode: 'onChange', // Enable real-time validation
@@ -758,6 +769,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo,
         cover_image: data.cover_image,
+        is_visible: data.is_visible,
         pre_requisitos: data.pre_requisitos,
         has_certificate: Boolean(data.pre_requisitos?.trim()),
 
@@ -808,6 +820,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo || '',
         cover_image: data.cover_image || '',
+        is_visible: data.is_visible,
         pre_requisitos: data.pre_requisitos,
 
         // External partner fields - clear when not external partner
@@ -960,6 +973,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             ...transformedData,
             status: initialData.originalStatus || initialData.status || 'opened',
           }
+          console.log("ENVIOU O EDIT DATA:", JSON.stringify(editData, null, 2))
 
           if (onSubmit) {
             onSubmit(editData)
@@ -1958,6 +1972,29 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+               <FormField
+                control={form.control}
+                name="is_visible"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="translate-y-[2px]"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Curso visível</FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Quando marcado, este curso será exibido para todos os usuários na plataforma. 
+                        Se desmarcado, o curso ficará oculto e não aparecerá nas listagens públicas.
+                      </p>
+                    </div>
                   </FormItem>
                 )}
               />

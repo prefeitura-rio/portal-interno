@@ -1545,7 +1545,11 @@ export function EnrollmentsTable({
         }}
       />
 
-      <AddParticipantsModal isOpen={isAddParticipantsModalOpen} onClose={() => setIsAddParticipantsModalOpen(false)} />
+      <AddParticipantsModal
+        isOpen={isAddParticipantsModalOpen}
+        onClose={() => setIsAddParticipantsModalOpen(false)}
+        courseId={courseId}
+      />
     </div>
   )
 }
