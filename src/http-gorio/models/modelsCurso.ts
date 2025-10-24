@@ -11,7 +11,16 @@ import type { ModelsStatusCurso } from './modelsStatusCurso'
 import type { ModelsTurno } from './modelsTurno'
 
 // Custom field types for external courses
-export type CustomFieldType = 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio' | 'multiselect'
+export type CustomFieldType =
+  | 'text'
+  | 'number'
+  | 'email'
+  | 'date'
+  | 'select'
+  | 'textarea'
+  | 'checkbox'
+  | 'radio'
+  | 'multiselect'
 
 export interface ModelsCustomField {
   id: string

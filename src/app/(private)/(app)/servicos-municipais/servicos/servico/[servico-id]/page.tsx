@@ -13,9 +13,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import {
+  useCanEditBuscaServices,
+  useIsBuscaServicesAdmin,
+} from '@/hooks/use-heimdall-user'
 import { useService } from '@/hooks/use-service'
 import { useServiceOperations } from '@/hooks/use-service-operations'
-import { useUserRole } from '@/hooks/use-user-role'
 import { transformToApiRequest } from '@/lib/service-data-transformer'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
@@ -77,7 +80,8 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     deleteService,
     loading: operationLoading,
   } = useServiceOperations()
-  const userRole = useUserRole()
+  const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
+  const canEditServices = useCanEditBuscaServices()
 
   const handleEdit = () => {
     setIsEditing(true)
@@ -206,15 +210,12 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
   // Function to determine which buttons should be shown based on user role and service status
   const getButtonConfiguration = () => {
-    if (!service || !userRole)
-      return { showEdit: false, showAdditionalButtons: [] }
+    if (!service) return { showEdit: false, showAdditionalButtons: [] }
 
-    const isAdminOrGeral = userRole === 'admin' || userRole === 'geral'
-    const isEditor = userRole === 'editor'
     const { status } = service
 
-    if (isAdminOrGeral) {
-      // Admin and geral users can edit services in any status
+    // Admin users (admin, superadmin, busca:services:admin) have full permissions
+    if (isBuscaServicesAdmin) {
       switch (status) {
         case 'published':
           return { showEdit: true, showAdditionalButtons: [] }
@@ -241,8 +242,8 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       }
     }
 
-    if (isEditor) {
-      // Editor users have restricted permissions
+    // Editor users (busca:services:editor) have restricted permissions
+    if (canEditServices) {
       switch (status) {
         case 'published':
           // CRITICAL: Editors cannot edit published services
@@ -265,7 +266,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       }
     }
 
-    // For any other roles or unknown roles, no edit permissions
+    // For any other roles or no permissions
     return { showEdit: false, showAdditionalButtons: [] }
   }
 
@@ -445,7 +446,6 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           readOnly={!isEditing}
           isLoading={isSaving || operationLoading}
           onSubmit={isEditing ? handleSaveClick : undefined}
-          userRole={userRole}
           serviceStatus={service.status}
           onSendToApproval={handleSendToApproval}
           serviceId={servicoId || undefined}

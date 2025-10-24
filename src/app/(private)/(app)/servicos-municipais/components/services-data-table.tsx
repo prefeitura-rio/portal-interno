@@ -14,13 +14,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import {
+  useCanEditBuscaServices,
+  useIsBuscaServicesAdmin,
+} from '@/hooks/use-heimdall-user'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import { useServices } from '@/hooks/use-services'
-import {
-  useHasElevatedPermissions,
-  useIsAdmin,
-  useUserRole,
-} from '@/hooks/use-user-role'
 import { getSecretariaByValue } from '@/lib/secretarias'
 import type {
   ServiceListItem,
@@ -85,9 +84,8 @@ const statusConfig: Record<ServiceStatus, ServiceStatusConfig> = {
 export function ServicesDataTable() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const isAdmin = useIsAdmin()
-  const hasElevatedPermissions = useHasElevatedPermissions()
-  const userRole = useUserRole()
+  const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
+  const canEditServices = useCanEditBuscaServices()
   const {
     publishService,
     unpublishService,
@@ -362,8 +360,13 @@ export function ServicesDataTable() {
         accessorKey: 'published_at',
         accessorFn: row => {
           if (!row.published_at) return null
-          const date = new Date(row.published_at)
-          date.setHours(0, 0, 0, 0)
+          // Extract date components and create local date to avoid timezone issues
+          const sourceDate = new Date(row.published_at)
+          const date = new Date(
+            sourceDate.getFullYear(),
+            sourceDate.getMonth(),
+            sourceDate.getDate()
+          )
           return date.getTime()
         },
         header: ({ column }: { column: Column<ServiceListItem, unknown> }) => (
@@ -393,8 +396,13 @@ export function ServicesDataTable() {
         id: 'last_update',
         accessorKey: 'last_update',
         accessorFn: row => {
-          const date = new Date(row.last_update)
-          date.setHours(0, 0, 0, 0)
+          // Extract date components and create local date to avoid timezone issues
+          const sourceDate = new Date(row.last_update)
+          const date = new Date(
+            sourceDate.getFullYear(),
+            sourceDate.getMonth(),
+            sourceDate.getDate()
+          )
           return date.getTime()
         },
         header: ({ column }: { column: Column<ServiceListItem, unknown> }) => (
@@ -452,15 +460,13 @@ export function ServicesDataTable() {
 
           // Helper function to check if user can edit the service
           const canEditService = () => {
-            if (!userRole) return false
-
-            // Admin and geral users can always edit services
-            if (userRole === 'admin' || userRole === 'geral') {
+            // Admins can always edit
+            if (isBuscaServicesAdmin) {
               return true
             }
 
-            // Editor users can only edit services that are not published
-            if (userRole === 'editor') {
+            // Editors can only edit services that are not published
+            if (canEditServices) {
               return service.status !== 'published'
             }
 
@@ -496,7 +502,7 @@ export function ServicesDataTable() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  {isAdmin && (
+                  {isBuscaServicesAdmin && (
                     <>
                       {service.status === 'published' ? (
                         <DropdownMenuItem
@@ -547,8 +553,8 @@ export function ServicesDataTable() {
       },
     ]
   }, [
-    isAdmin,
-    userRole,
+    isBuscaServicesAdmin,
+    canEditServices,
     operationLoading,
     isRefreshingAfterOperation,
     handlePublishService,
@@ -633,7 +639,7 @@ export function ServicesDataTable() {
           <TabsTrigger value="published">Publicados</TabsTrigger>
           <TabsTrigger value="in_edition">Em edição</TabsTrigger>
           <TabsTrigger value="awaiting_approval">
-            {isAdmin ? 'Pronto para aprovação' : 'Em aprovação'}
+            {isBuscaServicesAdmin ? 'Pronto para aprovação' : 'Em aprovação'}
           </TabsTrigger>
         </TabsList>
 
