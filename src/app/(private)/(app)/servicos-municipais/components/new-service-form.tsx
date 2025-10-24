@@ -159,9 +159,10 @@ export function NewServiceForm({
   const {
     createService,
     updateService,
-    publishService,
     loading: operationLoading,
   } = useServiceOperations()
+
+  // Removed tombamento hook since we're redirecting to detail page
   const [showSendToEditDialog, setShowSendToEditDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
   const [showSendToApprovalDialog, setShowSendToApprovalDialog] =
@@ -414,7 +415,12 @@ export function NewServiceForm({
       }
 
       setPendingFormData(null)
-      router.push('/servicos-municipais/servicos?tab=published')
+      setShowPublishDialog(false)
+
+      // Redirect to service detail page with tombamento flag
+      router.push(
+        `/servicos-municipais/servicos/servico/${savedService.id}?tombamento=true`
+      )
     } catch (error) {
       console.error('Error publishing service:', error)
       toast.error('Erro ao publicar serviço. Tente novamente.')
@@ -426,9 +432,28 @@ export function NewServiceForm({
 
     try {
       console.log('Enviando serviço para aprovação:', pendingFormData)
+      
       if (onSendToApproval) {
+        // For editing existing services - use the provided handler
         onSendToApproval()
+      } else {
+        // For creating new services - create the service with awaiting_approval flag
+        const apiData = transformToApiRequest(pendingFormData)
+        apiData.awaiting_approval = true
+        apiData.status = 0 // Draft status
+
+        if (serviceId) {
+          await updateService(serviceId, apiData)
+          toast.success('Serviço atualizado e enviado para aprovação!')
+        } else {
+          await createService(apiData)
+          toast.success('Serviço criado e enviado para aprovação!')
+        }
+        
+        // Redirect to services table with awaiting_approval tab
+        router.push('/servicos-municipais/servicos?tab=awaiting_approval')
       }
+      
       setPendingFormData(null)
       setShowSendToApprovalDialog(false)
     } catch (error) {

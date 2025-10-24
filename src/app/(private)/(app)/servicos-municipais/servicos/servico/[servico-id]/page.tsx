@@ -1,6 +1,7 @@
 'use client'
 
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { TombamentoModal } from '@/components/tombamento-modal'
 import { Badge } from '@/components/ui/badge'
 import {
   Breadcrumb,
@@ -19,13 +20,25 @@ import {
 } from '@/hooks/use-heimdall-user'
 import { useService } from '@/hooks/use-service'
 import { useServiceOperations } from '@/hooks/use-service-operations'
+import { useTombamentos } from '@/hooks/use-tombamentos'
 import { transformToApiRequest } from '@/lib/service-data-transformer'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ArrowLeft, CheckCircle, Clock, Edit, Save, X } from 'lucide-react'
+import {
+  AlertCircle,
+  AlertTriangle,
+  Archive,
+  ArrowLeft,
+  CheckCircle,
+  Clock,
+  Edit,
+  Save,
+  X,
+} from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { NewServiceForm } from '../../../components/new-service-form'
 
@@ -56,6 +69,7 @@ interface ServiceDetailPageProps {
 }
 
 export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
+  const router = useRouter()
   const [servicoId, setServicoId] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -65,12 +79,34 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [pendingFormData, setPendingFormData] = useState<any>(null)
+  const [showTombamentoModal, setShowTombamentoModal] = useState(false)
+  const [isServiceTombado, setIsServiceTombado] = useState(false)
+  const [shouldShowTombamentoModal, setShouldShowTombamentoModal] =
+    useState(false)
+  const [tombamentoLoading, setTombamentoLoading] = useState(false)
+  const [tombamentoData, setTombamentoData] = useState<{
+    id: string
+    origem: string
+    id_servico_antigo: string
+  } | null>(null)
+  const [showDestombamentoDialog, setShowDestombamentoDialog] = useState(false)
 
   useEffect(() => {
     params.then(({ 'servico-id': id }) => {
       setServicoId(id)
     })
   }, [params])
+
+  // Check for tombamento parameter in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('tombamento') === 'true') {
+      setShouldShowTombamentoModal(true)
+      // Clean up the URL parameter
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+    }
+  }, [])
 
   const { service, loading, error, refetch } = useService(servicoId)
   const {
@@ -80,6 +116,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     deleteService,
     loading: operationLoading,
   } = useServiceOperations()
+  const { fetchTombamentos, deleteTombamento } = useTombamentos()
   const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
   const canEditServices = useCanEditBuscaServices()
 
@@ -178,6 +215,9 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       await publishService(servicoId)
       setShowApproveDialog(false)
       refetch()
+
+      // Show tombamento modal after successful publication
+      setShowTombamentoModal(true)
     } catch (error) {
       console.error('Error approving and publishing service:', error)
       toast.error('Erro ao aprovar e publicar serviço. Tente novamente.')
@@ -208,6 +248,91 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     }
   }
 
+  const handleTombarService = () => {
+    setShowTombamentoModal(true)
+  }
+
+  const handleTombamentoSuccess = () => {
+    toast.success('Tombamento criado com sucesso!')
+    setShowTombamentoModal(false)
+    setIsServiceTombado(true) // Mark service as tombado after successful tombamento
+    setTombamentoLoading(false) // Ensure loading state is cleared
+
+    // Redirect to services table with published tab
+    router.push('/servicos-municipais/servicos?tab=published')
+  }
+
+  const handleDestombarService = () => {
+    setShowDestombamentoDialog(true)
+  }
+
+  const handleConfirmDestombamento = async () => {
+    if (!tombamentoData) return
+
+    try {
+      setTombamentoLoading(true)
+      console.log('🔄 Starting destombar service operation...')
+      const success = await deleteTombamento(tombamentoData.id)
+
+      if (success) {
+        setIsServiceTombado(false)
+        setTombamentoData(null)
+        setShowDestombamentoDialog(false)
+        console.log('✅ Tombamento removed successfully')
+      } else {
+        console.error('❌ Failed to destombar service')
+      }
+    } catch (error) {
+      console.error('❌ Error in destombar service flow:', error)
+    } finally {
+      setTombamentoLoading(false)
+    }
+  }
+
+  // Check if service is tombado when service is loaded
+  useEffect(() => {
+    const checkTombamento = async () => {
+      if (servicoId && service?.status === 'published') {
+        setTombamentoLoading(true)
+        try {
+          const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
+          if (tombamentosResponse?.data?.tombamentos) {
+            const tombamentos = tombamentosResponse.data.tombamentos
+            const tombamento = tombamentos.find(
+              tombamento => tombamento.id_servico_novo === servicoId
+            )
+            const isTombado = !!tombamento
+            setIsServiceTombado(isTombado)
+
+            if (tombamento) {
+              setTombamentoData({
+                id: tombamento.id,
+                origem: tombamento.origem,
+                id_servico_antigo: tombamento.id_servico_antigo,
+              })
+            } else {
+              setTombamentoData(null)
+            }
+
+            // Show tombamento modal if requested and service is not already tombado
+            if (shouldShowTombamentoModal && !isTombado) {
+              setShowTombamentoModal(true)
+              setShouldShowTombamentoModal(false)
+            }
+          }
+        } catch (error) {
+          console.error('Error checking tombamento:', error)
+        } finally {
+          setTombamentoLoading(false)
+        }
+      } else {
+        setTombamentoLoading(false)
+      }
+    }
+
+    checkTombamento()
+  }, [servicoId, service?.status, fetchTombamentos, shouldShowTombamentoModal])
+
   // Function to determine which buttons should be shown based on user role and service status
   const getButtonConfiguration = () => {
     if (!service) return { showEdit: false, showAdditionalButtons: [] }
@@ -217,8 +342,34 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     // Admin users (admin, superadmin, busca:services:admin) have full permissions
     if (isBuscaServicesAdmin) {
       switch (status) {
-        case 'published':
-          return { showEdit: true, showAdditionalButtons: [] }
+        case 'published': {
+          const publishedButtons = []
+
+          if (!isServiceTombado && !tombamentoLoading) {
+            publishedButtons.push({
+              label: 'Tombar',
+              action: handleTombarService,
+              className:
+                'text-orange-600 border-orange-500 border-1 bg-orange-50 hover:bg-orange-100 hover:text-orange-700',
+              icon: AlertTriangle,
+            })
+          }
+
+          if (isServiceTombado && !tombamentoLoading) {
+            publishedButtons.push({
+              label: 'Destombar',
+              action: handleDestombarService,
+              className:
+                'text-red-600 border-red-500 border-1 bg-red-50 hover:bg-red-100 hover:text-red-700',
+              icon: AlertCircle,
+            })
+          }
+
+          return {
+            showEdit: true,
+            showAdditionalButtons: publishedButtons,
+          }
+        }
         case 'in_edition':
           return { showEdit: true, showAdditionalButtons: [] }
         case 'awaiting_approval':
@@ -356,6 +507,34 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                   <StatusIcon className="w-3 h-3 mr-1" />
                   {config.label}
                 </Badge>
+                {/* Tombamento status badge */}
+                {service.status === 'published' &&
+                  (tombamentoLoading ? (
+                    <div className="animate-pulse">
+                      <div className="h-5 w-22 bg-muted rounded-full" />
+                    </div>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className={
+                        isServiceTombado
+                          ? 'text-green-600 border-green-200 bg-green-50'
+                          : 'text-orange-600 border-orange-200 bg-orange-50'
+                      }
+                    >
+                      {isServiceTombado ? (
+                        <>
+                          <Archive className="w-3 h-3 mr-1" />
+                          Tombado
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Tombamento pendente
+                        </>
+                      )}
+                    </Badge>
+                  ))}
                 <span className="text-sm text-muted-foreground">
                   Criado em{' '}
                   {format(service.created_at || new Date(), 'dd/MM/yyyy', {
@@ -385,7 +564,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                           disabled={loading || operationLoading}
                           className="w-full md:w-auto"
                         >
-                          <Edit className="mr-2 h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                           Editar
                         </Button>
                       )}
@@ -393,11 +572,14 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                         (button, index) => (
                           <Button
                             key={index}
-                            variant={button.variant}
                             onClick={button.action}
                             disabled={loading || operationLoading || isSaving}
-                            className="w-full md:w-auto"
+                            className={`w-full md:w-auto ${(button as any).className || ''}`}
                           >
+                            {(button as any).icon &&
+                              React.createElement((button as any).icon, {
+                                className: 'h-4 w-4',
+                              })}
                             {button.label}
                           </Button>
                         )
@@ -423,7 +605,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                         }
                       }}
                     >
-                      <Save className="mr-2 h-4 w-4" />
+                      <Save className="h-4 w-4" />
                       {isSaving ? 'Salvando...' : 'Salvar edição'}
                     </Button>
                     <Button
@@ -432,7 +614,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                       disabled={isSaving || operationLoading}
                       className="flex-1 md:flex-none"
                     >
-                      <X className="mr-2 h-4 w-4" />
+                      <X className="h-4 w-4" />
                       Cancelar
                     </Button>
                   </div>
@@ -513,6 +695,28 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           variant="default"
           onConfirm={handleConfirmSave}
         />
+
+        <ConfirmDialog
+          open={showDestombamentoDialog}
+          onOpenChange={setShowDestombamentoDialog}
+          title="Destombar Serviço"
+          description="Tem certeza que deseja destombar este serviço? Isso irá reverter a migração e o serviço antigo voltará a aparecer normalmente."
+          confirmText="Destombar"
+          cancelText="Cancelar"
+          variant="destructive"
+          onConfirm={handleConfirmDestombamento}
+        />
+
+        {/* Tombamento Modal */}
+        {servicoId && service && (
+          <TombamentoModal
+            open={showTombamentoModal}
+            onOpenChange={setShowTombamentoModal}
+            serviceId={servicoId}
+            serviceTitle={service.title}
+            onSuccess={handleTombamentoSuccess}
+          />
+        )}
       </div>
     </ContentLayout>
   )
