@@ -83,6 +83,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [isServiceTombado, setIsServiceTombado] = useState(false)
   const [shouldShowTombamentoModal, setShouldShowTombamentoModal] =
     useState(false)
+  const [tombamentoLoading, setTombamentoLoading] = useState(false)
 
   useEffect(() => {
     params.then(({ 'servico-id': id }) => {
@@ -249,6 +250,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     toast.success('Tombamento criado com sucesso!')
     setShowTombamentoModal(false)
     setIsServiceTombado(true) // Mark service as tombado after successful tombamento
+    setTombamentoLoading(false) // Ensure loading state is cleared
 
     // Redirect to services table with published tab
     router.push('/servicos-municipais/servicos?tab=published')
@@ -258,6 +260,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   useEffect(() => {
     const checkTombamento = async () => {
       if (servicoId && service?.status === 'published') {
+        setTombamentoLoading(true)
         try {
           const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
           if (tombamentosResponse?.data?.tombamentos) {
@@ -275,7 +278,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           }
         } catch (error) {
           console.error('Error checking tombamento:', error)
+        } finally {
+          setTombamentoLoading(false)
         }
+      } else {
+        setTombamentoLoading(false)
       }
     }
 
@@ -294,18 +301,19 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
         case 'published':
           return {
             showEdit: true,
-            showAdditionalButtons: !isServiceTombado
-              ? [
-                  {
-                    label: 'Tombar',
-                    action: handleTombarService,
-                    // variant: 'outline' as const,
-                    className:
-                      'text-orange-600 border-orange-500 border-1 bg-orange-50 hover:bg-orange-100 hover:text-orange-700',
-                    icon: AlertTriangle,
-                  },
-                ]
-              : [],
+            showAdditionalButtons:
+              !isServiceTombado && !tombamentoLoading
+                ? [
+                    {
+                      label: 'Tombar',
+                      action: handleTombarService,
+                      // variant: 'outline' as const,
+                      className:
+                        'text-orange-600 border-orange-500 border-1 bg-orange-50 hover:bg-orange-100 hover:text-orange-700',
+                      icon: AlertTriangle,
+                    },
+                  ]
+                : [],
           }
         case 'in_edition':
           return { showEdit: true, showAdditionalButtons: [] }
@@ -445,28 +453,33 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                   {config.label}
                 </Badge>
                 {/* Tombamento status badge */}
-                {service.status === 'published' && (
-                  <Badge
-                    variant="outline"
-                    className={
-                      isServiceTombado
-                        ? 'text-green-600 border-green-200 bg-green-50'
-                        : 'text-orange-600 border-orange-200 bg-orange-50'
-                    }
-                  >
-                    {isServiceTombado ? (
-                      <>
-                        <Archive className="w-3 h-3 mr-1" />
-                        Tombado
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        Tombamento pendente
-                      </>
-                    )}
-                  </Badge>
-                )}
+                {service.status === 'published' &&
+                  (tombamentoLoading ? (
+                    <div className="animate-pulse">
+                      <div className="h-5 w-22 bg-muted rounded-full" />
+                    </div>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className={
+                        isServiceTombado
+                          ? 'text-green-600 border-green-200 bg-green-50'
+                          : 'text-orange-600 border-orange-200 bg-orange-50'
+                      }
+                    >
+                      {isServiceTombado ? (
+                        <>
+                          <Archive className="w-3 h-3 mr-1" />
+                          Tombado
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Tombamento pendente
+                        </>
+                      )}
+                    </Badge>
+                  ))}
                 <span className="text-sm text-muted-foreground">
                   Criado em{' '}
                   {format(service.created_at || new Date(), 'dd/MM/yyyy', {

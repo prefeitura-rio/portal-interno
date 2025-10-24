@@ -146,6 +146,7 @@ export function ServicesDataTable() {
   const [tombamentosData, setTombamentosData] = React.useState<
     Map<string, { id: string; origem: string; id_servico_antigo: string }>
   >(new Map())
+  const [tombamentosLoading, setTombamentosLoading] = React.useState(false)
 
   // Use the services hook to fetch data from API
   const {
@@ -177,6 +178,7 @@ export function ServicesDataTable() {
   React.useEffect(() => {
     const checkTombamentos = async () => {
       if (services.length > 0 && activeTab === 'published') {
+        setTombamentosLoading(true)
         try {
           const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
           if (tombamentosResponse?.data?.tombamentos) {
@@ -202,7 +204,11 @@ export function ServicesDataTable() {
           }
         } catch (error) {
           console.error('Error checking tombamentos:', error)
+        } finally {
+          setTombamentosLoading(false)
         }
+      } else {
+        setTombamentosLoading(false)
       }
     }
 
@@ -407,6 +413,7 @@ export function ServicesDataTable() {
   const handleTombamentoSuccess = React.useCallback(() => {
     // Refresh tombamentos map
     const refreshTombamentos = async () => {
+      setTombamentosLoading(true)
       try {
         const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
         if (tombamentosResponse?.data?.tombamentos) {
@@ -431,6 +438,8 @@ export function ServicesDataTable() {
         }
       } catch (error) {
         console.error('Error refreshing tombamentos:', error)
+      } finally {
+        setTombamentosLoading(false)
       }
     }
 
@@ -600,6 +609,17 @@ export function ServicesDataTable() {
         cell: ({ row }: { row: any }) => {
           const service = row.original
           const hasTombamento = tombamentosMap.get(service.id)
+
+          // Show loading skeleton while tombamentos are being fetched
+          if (tombamentosLoading) {
+            return (
+              <div className="flex items-center gap-2">
+                <div className="animate-pulse">
+                  <div className="h-5 w-22 bg-muted rounded-full" />
+                </div>
+              </div>
+            )
+          }
 
           return (
             <div className="flex items-center gap-2">
@@ -774,6 +794,7 @@ export function ServicesDataTable() {
     handleTombarService,
     handleDestombarService,
     tombamentosMap,
+    tombamentosLoading,
     activeTab,
   ])
 
