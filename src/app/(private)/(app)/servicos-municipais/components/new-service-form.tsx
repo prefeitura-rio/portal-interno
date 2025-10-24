@@ -159,9 +159,10 @@ export function NewServiceForm({
   const {
     createService,
     updateService,
-    publishService,
     loading: operationLoading,
   } = useServiceOperations()
+
+  // Removed tombamento hook since we're redirecting to detail page
   const [showSendToEditDialog, setShowSendToEditDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
   const [showSendToApprovalDialog, setShowSendToApprovalDialog] =
@@ -414,7 +415,12 @@ export function NewServiceForm({
       }
 
       setPendingFormData(null)
-      router.push('/servicos-municipais/servicos?tab=published')
+      setShowPublishDialog(false)
+
+      // Redirect to service detail page with tombamento flag
+      router.push(
+        `/servicos-municipais/servicos/servico/${savedService.id}?tombamento=true`
+      )
     } catch (error) {
       console.error('Error publishing service:', error)
       toast.error('Erro ao publicar serviço. Tente novamente.')

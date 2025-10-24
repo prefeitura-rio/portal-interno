@@ -3,8 +3,10 @@
 import { DataTable } from '@/components/data-table/data-table'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
+import { TombamentoModal } from '@/components/tombamento-modal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Combobox } from '@/components/ui/combobox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   DropdownMenu,
@@ -12,25 +14,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
 } from '@/hooks/use-heimdall-user'
-import { useServiceOperations } from '@/hooks/use-service-operations'
+import { useServiceOperationsWithTombamento } from '@/hooks/use-service-operations-with-tombamento'
 import { useServices } from '@/hooks/use-services'
-import { getSecretariaByValue } from '@/lib/secretarias'
+import { useTombamentos } from '@/hooks/use-tombamentos'
+import { SECRETARIAS, getSecretariaByValue } from '@/lib/secretarias'
 import type {
   ServiceListItem,
   ServiceStatus,
   ServiceStatusConfig,
 } from '@/types/service'
-import { useRouter, useSearchParams } from 'next/navigation'
-
-import { Combobox } from '@/components/ui/combobox'
-import { Label } from '@/components/ui/label'
-import { SECRETARIAS } from '@/lib/secretarias'
 import {
   type Column,
   type ColumnDef,
@@ -43,6 +42,8 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
+  AlertCircle,
+  Archive,
   Building2,
   Calendar,
   CheckCircle,
@@ -57,6 +58,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import * as React from 'react'
 
 // Status configuration for badges
@@ -91,7 +93,12 @@ export function ServicesDataTable() {
     unpublishService,
     deleteService,
     loading: operationLoading,
-  } = useServiceOperations()
+    showTombamentoModal: showPublishTombamentoModal,
+    selectedServiceForTombamento: selectedPublishServiceForTombamento,
+    handleTombamentoSuccess: handlePublishTombamentoSuccess,
+    handleTombamentoCancel: handlePublishTombamentoCancel,
+  } = useServiceOperationsWithTombamento()
+  const { fetchTombamentos, deleteTombamento } = useTombamentos()
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'last_update', desc: true },
@@ -130,6 +137,15 @@ export function ServicesDataTable() {
   )
   const [isRefreshingAfterOperation, setIsRefreshingAfterOperation] =
     React.useState(false)
+  const [showTombamentoModal, setShowTombamentoModal] = React.useState(false)
+  const [selectedServiceForTombamento, setSelectedServiceForTombamento] =
+    React.useState<{ id: string; title: string } | null>(null)
+  const [tombamentosMap, setTombamentosMap] = React.useState<
+    Map<string, boolean>
+  >(new Map())
+  const [tombamentosData, setTombamentosData] = React.useState<
+    Map<string, { id: string; origem: string; id_servico_antigo: string }>
+  >(new Map())
 
   // Use the services hook to fetch data from API
   const {
@@ -156,6 +172,42 @@ export function ServicesDataTable() {
       }))
     }
   }, [apiPagination])
+
+  // Check tombamentos for published services
+  React.useEffect(() => {
+    const checkTombamentos = async () => {
+      if (services.length > 0 && activeTab === 'published') {
+        try {
+          const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
+          if (tombamentosResponse?.data?.tombamentos) {
+            const tombamentos = tombamentosResponse.data.tombamentos
+            const newTombamentosMap = new Map<string, boolean>()
+            const newTombamentosData = new Map<
+              string,
+              { id: string; origem: string; id_servico_antigo: string }
+            >()
+
+            // Create a map of service IDs that have tombamentos
+            tombamentos.forEach(tombamento => {
+              newTombamentosMap.set(tombamento.id_servico_novo, true)
+              newTombamentosData.set(tombamento.id_servico_novo, {
+                id: tombamento.id,
+                origem: tombamento.origem,
+                id_servico_antigo: tombamento.id_servico_antigo,
+              })
+            })
+
+            setTombamentosMap(newTombamentosMap)
+            setTombamentosData(newTombamentosData)
+          }
+        } catch (error) {
+          console.error('Error checking tombamentos:', error)
+        }
+      }
+    }
+
+    checkTombamentos()
+  }, [services, activeTab, fetchTombamentos])
 
   // Debounced search function
   const debouncedSearch = useDebouncedCallback((query: string) => {
@@ -227,7 +279,7 @@ export function ServicesDataTable() {
           try {
             setIsRefreshingAfterOperation(true)
             console.log('🔄 Starting publish service operation...')
-            await publishService(serviceId)
+            await publishService(serviceId, serviceName)
             // Add a small delay to ensure API changes are processed
             await new Promise(resolve => setTimeout(resolve, 500))
             console.log('🔄 Refetching services after publish...')
@@ -303,9 +355,91 @@ export function ServicesDataTable() {
     [openConfirmDialog, deleteService, refetch]
   )
 
+  const handleTombarService = React.useCallback(
+    (serviceId: string, serviceTitle: string) => {
+      setSelectedServiceForTombamento({ id: serviceId, title: serviceTitle })
+      setShowTombamentoModal(true)
+    },
+    []
+  )
+
+  const handleDestombarService = React.useCallback(
+    (serviceId: string, serviceTitle: string) => {
+      const tombamentoData = tombamentosData.get(serviceId)
+      if (!tombamentoData) return
+
+      openConfirmDialog({
+        title: 'Destombar Serviço',
+        description: `Tem certeza que deseja destombar o serviço "${serviceTitle}"? Isso irá reverter a migração e o serviço antigo voltará a aparecer normalmente.`,
+        confirmText: 'Destombar',
+        variant: 'destructive',
+        onConfirm: async () => {
+          try {
+            console.log('🔄 Starting destombar service operation...')
+            const success = await deleteTombamento(tombamentoData.id)
+
+            if (success) {
+              // Immediately update local state to remove the tombamento
+              setTombamentosMap(prev => {
+                const newMap = new Map(prev)
+                newMap.delete(serviceId)
+                return newMap
+              })
+              setTombamentosData(prev => {
+                const newData = new Map(prev)
+                newData.delete(serviceId)
+                return newData
+              })
+              console.log('✅ Tombamento removed from local state')
+            } else {
+              console.error('❌ Failed to destombar service')
+            }
+          } catch (error) {
+            console.error('❌ Error in destombar service flow:', error)
+          }
+        },
+      })
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [openConfirmDialog, deleteTombamento, tombamentosData]
+  )
+
+  const handleTombamentoSuccess = React.useCallback(() => {
+    // Refresh tombamentos map
+    const refreshTombamentos = async () => {
+      try {
+        const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
+        if (tombamentosResponse?.data?.tombamentos) {
+          const tombamentos = tombamentosResponse.data.tombamentos
+          const newTombamentosMap = new Map<string, boolean>()
+          const newTombamentosData = new Map<
+            string,
+            { id: string; origem: string; id_servico_antigo: string }
+          >()
+
+          tombamentos.forEach(tombamento => {
+            newTombamentosMap.set(tombamento.id_servico_novo, true)
+            newTombamentosData.set(tombamento.id_servico_novo, {
+              id: tombamento.id,
+              origem: tombamento.origem,
+              id_servico_antigo: tombamento.id_servico_antigo,
+            })
+          })
+
+          setTombamentosMap(newTombamentosMap)
+          setTombamentosData(newTombamentosData)
+        }
+      } catch (error) {
+        console.error('Error refreshing tombamentos:', error)
+      }
+    }
+
+    refreshTombamentos()
+  }, [fetchTombamentos])
+
   // Define table columns
   const columns = React.useMemo<ColumnDef<ServiceListItem>[]>(() => {
-    return [
+    const baseColumns: ColumnDef<ServiceListItem>[] = [
       {
         id: 'title',
         accessorKey: 'title',
@@ -453,105 +587,182 @@ export function ServicesDataTable() {
         },
         enableColumnFilter: false,
       },
-      {
-        id: 'actions',
-        cell: function Cell({ row }) {
+    ]
+
+    // Add tombamento column only for published services
+    if (activeTab === 'published') {
+      baseColumns.push({
+        id: 'tombamento_pendente',
+        accessorKey: 'id',
+        header: ({ column }: { column: Column<ServiceListItem, unknown> }) => (
+          <DataTableColumnHeader column={column} title="Tombamento" />
+        ),
+        cell: ({ row }: { row: any }) => {
           const service = row.original
-
-          // Helper function to check if user can edit the service
-          const canEditService = () => {
-            // Admins can always edit
-            if (isBuscaServicesAdmin) {
-              return true
-            }
-
-            // Editors can only edit services that are not published
-            if (canEditServices) {
-              return service.status !== 'published'
-            }
-
-            return false
-          }
+          const hasTombamento = tombamentosMap.get(service.id)
 
           return (
             <div className="flex items-center gap-2">
-              {/* More actions dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Abrir menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+              {hasTombamento ? (
+                <Badge
+                  variant="outline"
+                  className="text-green-600 border-green-200 bg-green-50"
+                >
+                  <Archive className="w-3 h-3 mr-1" />
+                  Tombado
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="text-orange-600 border-orange-200 bg-orange-50"
+                >
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  Pendente
+                </Badge>
+              )}
+            </div>
+          )
+        },
+        meta: {
+          label: 'Tombamento',
+          variant: 'select',
+          icon: Archive,
+        },
+        enableColumnFilter: false,
+      })
+    }
+
+    baseColumns.push({
+      id: 'actions',
+      cell: function Cell({ row }) {
+        const service = row.original
+
+        // Helper function to check if user can edit the service
+        const canEditService = () => {
+          // Admins can always edit
+          if (isBuscaServicesAdmin) {
+            return true
+          }
+
+          // Editors can only edit services that are not published
+          if (canEditServices) {
+            return service.status !== 'published'
+          }
+
+          return false
+        }
+
+        return (
+          <div className="flex items-center gap-2">
+            {/* More actions dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">Abrir menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={`/servicos-municipais/servicos/servico/${service.id}`}
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Visualizar
+                  </Link>
+                </DropdownMenuItem>
+                {canEditService() && (
                   <DropdownMenuItem asChild>
                     <Link
                       href={`/servicos-municipais/servicos/servico/${service.id}`}
                     >
-                      <Eye className="mr-2 h-4 w-4" />
-                      Visualizar
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar
                     </Link>
                   </DropdownMenuItem>
-                  {canEditService() && (
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href={`/servicos-municipais/servicos/servico/${service.id}`}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  {isBuscaServicesAdmin && (
-                    <>
-                      {service.status === 'published' ? (
-                        <DropdownMenuItem
-                          onClick={e => {
-                            e.stopPropagation()
-                            handleUnpublishService(service.id, service.title)
-                          }}
-                          disabled={
-                            operationLoading || isRefreshingAfterOperation
-                          }
-                        >
-                          <Square className="mr-2 h-4 w-4" />
-                          Despublicar
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem
-                          onClick={e => {
-                            e.stopPropagation()
-                            handlePublishService(service.id, service.title)
-                          }}
-                          disabled={
-                            operationLoading || isRefreshingAfterOperation
-                          }
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          Publicar
-                        </DropdownMenuItem>
-                      )}
+                )}
+                {isBuscaServicesAdmin && (
+                  <>
+                    {service.status === 'published' ? (
                       <DropdownMenuItem
                         onClick={e => {
                           e.stopPropagation()
-                          handleDeleteService(service.id, service.title)
+                          handleUnpublishService(service.id, service.title)
                         }}
-                        disabled={operationLoading}
-                        className="text-destructive"
+                        disabled={
+                          operationLoading || isRefreshingAfterOperation
+                        }
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir
+                        <Square className="mr-2 h-4 w-4" />
+                        Despublicar
                       </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )
-        },
-        size: 32,
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={e => {
+                          e.stopPropagation()
+                          handlePublishService(service.id, service.title)
+                        }}
+                        disabled={
+                          operationLoading || isRefreshingAfterOperation
+                        }
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Publicar
+                      </DropdownMenuItem>
+                    )}
+                    {service.status === 'published' &&
+                      !tombamentosMap.get(service.id) && (
+                        <DropdownMenuItem
+                          onClick={e => {
+                            e.stopPropagation()
+                            handleTombarService(service.id, service.title)
+                          }}
+                          disabled={
+                            operationLoading || isRefreshingAfterOperation
+                          }
+                        >
+                          <Archive className="mr-2 h-4 w-4" />
+                          Tombar
+                        </DropdownMenuItem>
+                      )}
+                    {service.status === 'published' &&
+                      tombamentosMap.get(service.id) && (
+                        <DropdownMenuItem
+                          onClick={e => {
+                            e.stopPropagation()
+                            handleDestombarService(service.id, service.title)
+                          }}
+                          disabled={
+                            operationLoading || isRefreshingAfterOperation
+                          }
+                          className="text-destructive"
+                        >
+                          <Archive className="mr-2 h-4 w-4" />
+                          Destombar
+                        </DropdownMenuItem>
+                      )}
+                    <DropdownMenuItem
+                      onClick={e => {
+                        e.stopPropagation()
+                        handleDeleteService(service.id, service.title)
+                      }}
+                      disabled={operationLoading}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )
       },
-    ]
+      size: 32,
+    })
+
+    return baseColumns
   }, [
     isBuscaServicesAdmin,
     canEditServices,
@@ -560,6 +771,10 @@ export function ServicesDataTable() {
     handlePublishService,
     handleUnpublishService,
     handleDeleteService,
+    handleTombarService,
+    handleDestombarService,
+    tombamentosMap,
+    activeTab,
   ])
 
   const table = useReactTable({
@@ -691,6 +906,32 @@ export function ServicesDataTable() {
         variant={confirmDialog.variant}
         onConfirm={confirmDialog.onConfirm}
       />
+
+      {/* Tombamento Modal for manual tombamento */}
+      {selectedServiceForTombamento && (
+        <TombamentoModal
+          open={showTombamentoModal}
+          onOpenChange={setShowTombamentoModal}
+          serviceId={selectedServiceForTombamento.id}
+          serviceTitle={selectedServiceForTombamento.title}
+          onSuccess={handleTombamentoSuccess}
+        />
+      )}
+
+      {/* Tombamento Modal for publish flow */}
+      {selectedPublishServiceForTombamento && (
+        <TombamentoModal
+          open={showPublishTombamentoModal}
+          onOpenChange={open => {
+            if (!open) {
+              handlePublishTombamentoCancel()
+            }
+          }}
+          serviceId={selectedPublishServiceForTombamento.id}
+          serviceTitle={selectedPublishServiceForTombamento.title}
+          onSuccess={handlePublishTombamentoSuccess}
+        />
+      )}
     </div>
   )
 }
