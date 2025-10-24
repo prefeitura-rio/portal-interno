@@ -449,3 +449,60 @@ export const putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus = async (
     }
   )
 }
+
+/**
+ * Cria uma inscrição manual no curso (para uso do admin). Aplica mesmas validações do endpoint regular.
+ * @summary Criar inscrição manual
+ */
+export type postApiV1CoursesCourseIdEnrollmentsManualResponse201 = {
+  data: ModelsInscricao
+  status: 201
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsManualResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsManualResponse409 = {
+  data: ModelsErrorResponse
+  status: 409
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsManualResponse500 = {
+  data: ModelsErrorResponse
+  status: 500
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsManualResponseComposite =
+  | postApiV1CoursesCourseIdEnrollmentsManualResponse201
+  | postApiV1CoursesCourseIdEnrollmentsManualResponse400
+  | postApiV1CoursesCourseIdEnrollmentsManualResponse409
+  | postApiV1CoursesCourseIdEnrollmentsManualResponse500
+
+export type postApiV1CoursesCourseIdEnrollmentsManualResponse =
+  postApiV1CoursesCourseIdEnrollmentsManualResponseComposite & {
+    headers: Headers
+  }
+
+export const getPostApiV1CoursesCourseIdEnrollmentsManualUrl = (
+  courseId: number
+) => {
+  return `/api/v1/courses/${courseId}/enrollments/manual`
+}
+
+export const postApiV1CoursesCourseIdEnrollmentsManual = async (
+  courseId: number,
+  modelsInscricao: ModelsInscricao,
+  options?: RequestInit
+): Promise<postApiV1CoursesCourseIdEnrollmentsManualResponse> => {
+  return customFetchGoRio<postApiV1CoursesCourseIdEnrollmentsManualResponse>(
+    getPostApiV1CoursesCourseIdEnrollmentsManualUrl(courseId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsInscricao),
+    }
+  )
+}
