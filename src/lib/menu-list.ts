@@ -96,17 +96,32 @@ export function getMenuList(pathname: string): Group[] {
           href: '',
           label: 'Serviços municipais',
           icon: FolderKanban,
-          allowedRoles: ['admin', 'superadmin', 'busca:services:admin','busca:services:editor'],
+          allowedRoles: [
+            'admin',
+            'superadmin',
+            'busca:services:admin',
+            'busca:services:editor',
+          ],
           submenus: [
             {
               href: '/servicos-municipais/servicos',
               label: 'Serviços',
-              allowedRoles: ['admin', 'superadmin', 'busca:services:admin','busca:services:editor'],
+              allowedRoles: [
+                'admin',
+                'superadmin',
+                'busca:services:admin',
+                'busca:services:editor',
+              ],
             },
             {
               href: '/servicos-municipais/servicos/new',
               label: 'Novo Serviço',
-              allowedRoles: ['admin', 'superadmin', 'busca:services:admin'],
+              allowedRoles: [
+                'admin',
+                'superadmin',
+                'busca:services:admin',
+                'busca:services:editor',
+              ],
             },
           ],
         },

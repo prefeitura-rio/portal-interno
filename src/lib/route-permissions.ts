@@ -32,6 +32,7 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'admin',
     'superadmin',
     'busca:services:admin',
+    'busca:services:editor',
   ],
   '/servicos-municipais/servicos/servico/*': [
     'admin',

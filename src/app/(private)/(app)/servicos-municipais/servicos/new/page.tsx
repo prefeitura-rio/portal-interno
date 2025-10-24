@@ -1,16 +1,19 @@
+'use client'
+
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import Link from 'next/link'
 import { NewServiceForm } from '../../components/new-service-form'
 
 export default function NewServicePage() {
+
   return (
     <ContentLayout title="Gestão de Serviços Municipais">
       <div className="space-y-4">

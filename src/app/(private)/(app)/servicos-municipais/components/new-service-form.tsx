@@ -432,9 +432,28 @@ export function NewServiceForm({
 
     try {
       console.log('Enviando serviço para aprovação:', pendingFormData)
+      
       if (onSendToApproval) {
+        // For editing existing services - use the provided handler
         onSendToApproval()
+      } else {
+        // For creating new services - create the service with awaiting_approval flag
+        const apiData = transformToApiRequest(pendingFormData)
+        apiData.awaiting_approval = true
+        apiData.status = 0 // Draft status
+
+        if (serviceId) {
+          await updateService(serviceId, apiData)
+          toast.success('Serviço atualizado e enviado para aprovação!')
+        } else {
+          await createService(apiData)
+          toast.success('Serviço criado e enviado para aprovação!')
+        }
+        
+        // Redirect to services table with awaiting_approval tab
+        router.push('/servicos-municipais/servicos?tab=awaiting_approval')
       }
+      
       setPendingFormData(null)
       setShowSendToApprovalDialog(false)
     } catch (error) {
