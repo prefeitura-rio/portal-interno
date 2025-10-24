@@ -10,7 +10,7 @@ const manualSchema = z.object({
   nome: z.string().min(3, 'Informe um nome válido'),
   cpf: z.string().min(11, 'CPF inválido').max(14, 'CPF inválido'),
   idade: z.coerce.number().min(1, 'Idade inválida'),
-  telefone: z.string().min(8, 'Telefone inválido'),
+  telefone: z.string().min(8, 'Telefone inválido').max(15, 'Telefone inválido'),
   email: z.string().email('E-mail inválido'),
   endereco: z.string().min(3, 'Endereço obrigatório'),
   bairro: z.string().min(2, 'Bairro obrigatório'),

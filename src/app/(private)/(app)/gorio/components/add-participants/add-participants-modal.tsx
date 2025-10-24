@@ -13,15 +13,16 @@ interface AddParticipantsModalProps {
   isOpen: boolean
   onClose: () => void
   courseId: string
+  onSuccess?: () => void | Promise<void>
   courseType?: 'presencial' | 'online'
 }
 
-export function AddParticipantsModal({ isOpen, onClose, courseId, courseType }: AddParticipantsModalProps) {
+export function AddParticipantsModal({ isOpen, onClose, courseId, onSuccess, courseType }: AddParticipantsModalProps) {
   const [mode, setMode] = useState<'options' | 'manual' | 'spreadsheet' | 'finish'>('options')
   const [finishStatus, setFinishStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [simulateSuccess, setSimulateSuccess] = useState(true)
 
-  const handleFinish = (success: boolean) => {
+  const handleFinish = async (success: boolean) => {
     setMode('finish')
     setFinishStatus('loading')
     setSimulateSuccess(success)
@@ -29,6 +30,10 @@ export function AddParticipantsModal({ isOpen, onClose, courseId, courseType }: 
     // Simula processamento (loading -> success/erro)
     setTimeout(() => {
       setFinishStatus(success ? 'success' : 'error')
+      if (success && onSuccess) {
+        onClose()
+        onSuccess()
+      }
     }, 2500)
   }
 
