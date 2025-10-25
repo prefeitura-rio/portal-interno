@@ -1,6 +1,7 @@
 'use client'
 
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { TombadoServiceInfo } from '@/components/tombado-service-info'
 import { TombamentoModal } from '@/components/tombamento-modal'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -20,7 +21,7 @@ import {
 } from '@/hooks/use-heimdall-user'
 import { useService } from '@/hooks/use-service'
 import { useServiceOperations } from '@/hooks/use-service-operations'
-import { useTombamentos } from '@/hooks/use-tombamentos'
+import { useTombamentos, type Tombamento } from '@/hooks/use-tombamentos'
 import { transformToApiRequest } from '@/lib/service-data-transformer'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
@@ -84,11 +85,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [shouldShowTombamentoModal, setShouldShowTombamentoModal] =
     useState(false)
   const [tombamentoLoading, setTombamentoLoading] = useState(false)
-  const [tombamentoData, setTombamentoData] = useState<{
-    id: string
-    origem: string
-    id_servico_antigo: string
-  } | null>(null)
+  const [tombamentoData, setTombamentoData] = useState<Tombamento | null>(null)
   const [showDestombamentoDialog, setShowDestombamentoDialog] = useState(false)
 
   useEffect(() => {
@@ -305,11 +302,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             setIsServiceTombado(isTombado)
 
             if (tombamento) {
-              setTombamentoData({
-                id: tombamento.id,
-                origem: tombamento.origem,
-                id_servico_antigo: tombamento.id_servico_antigo,
-              })
+              setTombamentoData(tombamento)
             } else {
               setTombamentoData(null)
             }
@@ -494,64 +487,71 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           </Breadcrumb>
 
           {/* Header */}
-          <div className="flex items-center justify-between md:flex-row flex-col gap-6">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
+          <div className="flex items-start justify-between md:flex-row flex-col gap-4 md:gap-6">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
                 {service.title}
               </h1>
-              <div className="flex items-center gap-4 mt-2">
-                <Badge
-                  variant={config.variant}
-                  className={`capitalize ${config.className}`}
-                >
-                  <StatusIcon className="w-3 h-3 mr-1" />
-                  {config.label}
-                </Badge>
-                {/* Tombamento status badge */}
-                {service.status === 'published' &&
-                  (tombamentoLoading ? (
-                    <div className="animate-pulse">
-                      <div className="h-5 w-22 bg-muted rounded-full" />
-                    </div>
-                  ) : (
-                    <Badge
-                      variant="outline"
-                      className={
-                        isServiceTombado
-                          ? 'text-green-600 border-green-200 bg-green-50'
-                          : 'text-orange-600 border-orange-200 bg-orange-50'
-                      }
-                    >
-                      {isServiceTombado ? (
-                        <>
-                          <Archive className="w-3 h-3 mr-1" />
-                          Tombado
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          Tombamento pendente
-                        </>
-                      )}
-                    </Badge>
-                  ))}
-                <span className="text-sm text-muted-foreground">
-                  Criado em{' '}
-                  {format(service.created_at || new Date(), 'dd/MM/yyyy', {
-                    locale: ptBR,
-                  })}
-                </span>
-                {service.published_at && (
-                  <span className="text-sm text-muted-foreground">
-                    • Publicado em{' '}
-                    {format(service.published_at, 'dd/MM/yyyy', {
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant={config.variant}
+                    className={`capitalize ${config.className}`}
+                  >
+                    <StatusIcon className="w-3 h-3 mr-1" />
+                    {config.label}
+                  </Badge>
+                  {/* Tombamento status badge */}
+                  {service.status === 'published' &&
+                    (tombamentoLoading ? (
+                      <div className="animate-pulse">
+                        <div className="h-5 w-22 bg-muted rounded-full" />
+                      </div>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className={
+                          isServiceTombado
+                            ? 'text-green-600 border-green-200 bg-green-50'
+                            : 'text-orange-600 border-orange-200 bg-orange-50'
+                        }
+                      >
+                        {isServiceTombado ? (
+                          <>
+                            <Archive className="w-3 h-3 mr-1" />
+                            Tombado
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            Tombamento pendente
+                          </>
+                        )}
+                      </Badge>
+                    ))}
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
+                  <span>
+                    Criado em{' '}
+                    {format(service.created_at || new Date(), 'dd/MM/yyyy', {
                       locale: ptBR,
                     })}
                   </span>
-                )}
+                  {service.published_at && (
+                    <>
+                      <span className="hidden sm:inline">•</span>
+                      <span>
+                        Publicado em{' '}
+                        {format(service.published_at, 'dd/MM/yyyy', {
+                          locale: ptBR,
+                        })}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-4 md:mt-0">
               {(() => {
                 const buttonConfig = getButtonConfiguration()
 
@@ -562,9 +562,9 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                         <Button
                           onClick={handleEdit}
                           disabled={loading || operationLoading}
-                          className="w-full md:w-auto"
+                          className="w-full sm:w-auto"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-4 w-4 mr-2" />
                           Editar
                         </Button>
                       )}
@@ -574,11 +574,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                             key={index}
                             onClick={button.action}
                             disabled={loading || operationLoading || isSaving}
-                            className={`w-full md:w-auto ${(button as any).className || ''}`}
+                            className={`w-full sm:w-auto ${(button as any).className || ''}`}
                           >
                             {(button as any).icon &&
                               React.createElement((button as any).icon, {
-                                className: 'h-4 w-4',
+                                className: 'h-4 w-4 mr-2',
                               })}
                             {button.label}
                           </Button>
@@ -589,12 +589,12 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                 }
 
                 return (
-                  <div className="flex gap-2 w-full md:w-auto">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Button
                       type="button"
                       form="service-edit-form"
                       disabled={isSaving || operationLoading}
-                      className="flex-1 md:flex-none"
+                      className="w-full sm:w-auto"
                       onClick={() => {
                         // We'll use form.handleSubmit to trigger validation and get data
                         const formElement = document.getElementById(
@@ -605,16 +605,16 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                         }
                       }}
                     >
-                      <Save className="h-4 w-4" />
+                      <Save className="h-4 w-4 mr-2" />
                       {isSaving ? 'Salvando...' : 'Salvar edição'}
                     </Button>
                     <Button
                       variant="outline"
                       onClick={handleCancel}
                       disabled={isSaving || operationLoading}
-                      className="flex-1 md:flex-none"
+                      className="w-full sm:w-auto"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-4 w-4 mr-2" />
                       Cancelar
                     </Button>
                   </div>
@@ -623,6 +623,17 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             </div>
           </div>
         </div>
+
+        {/* Tombamento Information Card */}
+        {isServiceTombado && tombamentoData && (
+          <TombadoServiceInfo
+            origem={tombamentoData.origem}
+            idServicoAntigo={tombamentoData.id_servico_antigo}
+            criadoEm={tombamentoData.criado_em}
+            criadoPor={tombamentoData.criado_por}
+            observacoes={tombamentoData.observacoes}
+          />
+        )}
 
         <NewServiceForm
           readOnly={!isEditing}
