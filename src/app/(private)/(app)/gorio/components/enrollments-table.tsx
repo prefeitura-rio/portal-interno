@@ -55,6 +55,7 @@ import {
 import { useEnrollments } from '@/hooks/use-enrollments'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import { toast } from 'sonner'
+import { AddParticipantsModal } from './add-participants/add-participants-modal'
 
 // Constantes para validação de certificados
 const VALID_CERTIFICATE_EXTENSIONS = [
@@ -136,6 +137,8 @@ export function EnrollmentsTable({
     open: false,
     type: 'remove_concluded' as const,
   })
+  const [isAddParticipantsModalOpen, setIsAddParticipantsModalOpen] =
+    React.useState(false)
 
   // Hook do formulário para validação do certificado
   const certificateForm = useForm<CertificateFormData>({
@@ -971,10 +974,13 @@ export function EnrollmentsTable({
         <h2 className="text-2xl font-semibold tracking-tight">
           Inscrições no Curso
         </h2>
-        <Button variant="outline" onClick={handleDownloadSpreadsheet}>
-          <FileDown className="mr-2 h-4 w-4" />
-          Exportar CSV
-        </Button>
+        <div className='flex items-center gap-2'>
+          <Button variant="outline" onClick={() => setIsAddParticipantsModalOpen(true)}>Adicionar participantes</Button>
+          <Button variant="outline" onClick={handleDownloadSpreadsheet}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Exportar CSV
+          </Button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -1544,6 +1550,13 @@ export function EnrollmentsTable({
             confirmRemoveConcludedStatus(selectedEnrollment)
           }
         }}
+      />
+
+      <AddParticipantsModal
+        isOpen={isAddParticipantsModalOpen}
+        onClose={() => setIsAddParticipantsModalOpen(false)}
+        courseId={courseId}
+        onSuccess={refetch}
       />
     </div>
   )

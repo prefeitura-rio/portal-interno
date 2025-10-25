@@ -123,7 +123,12 @@ export function getMenuList(pathname: string): Group[] {
             {
               href: '/servicos-municipais/servicos/new',
               label: 'Novo Serviço',
-              allowedRoles: ['admin', 'superadmin', 'busca:services:admin'],
+              allowedRoles: [
+                'admin',
+                'superadmin',
+                'busca:services:admin',
+                'busca:services:editor',
+              ],
             },
           ],
         },
