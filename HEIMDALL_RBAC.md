@@ -20,16 +20,24 @@ Documentação oficial do sistema de controle de acesso baseado em roles (RBAC) 
 
 ## 🎯 Visão Geral
 
-O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e permissões de usuários. Não dependemos mais de roles extraídas do JWT - todas as verificações de acesso são baseadas nas roles retornadas pela API do Heimdall.
+O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e permissões de usuários. A API é chamada **apenas uma vez** durante o ciclo de vida da aplicação, com um sistema de cache global que compartilha os dados entre todos os componentes.
 
 ### Fluxo de Autenticação/Autorização
 
 ```
 1. Usuário faz login → JWT é armazenado em cookie HTTP-only
-2. Middleware valida apenas JWT (expiração)
-3. Aplicação chama API Heimdall para buscar roles do usuário
-4. Roles do Heimdall controlam acesso a módulos e funcionalidades
+2. Middleware valida JWT (expiração) e roles via Heimdall API
+3. Aplicação client-side chama API Heimdall UMA VEZ
+4. Cache global compartilha roles entre todos os componentes
+5. Roles do Heimdall controlam acesso a módulos e funcionalidades
 ```
+
+### Princípios Fundamentais
+
+- ✅ **Single Source of Truth**: API Heimdall é a única fonte de roles
+- ✅ **Cache Global**: Uma única chamada HTTP para toda a aplicação
+- ✅ **Pub/Sub Pattern**: Componentes são notificados quando dados carregam
+- ✅ **Server + Client**: Proteção em ambas as camadas
 
 ---
 
@@ -58,18 +66,37 @@ O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e p
 
 ## 🏗️ Arquitetura
 
+### Sistema de Cache Global
+
+O sistema implementa um **cache singleton** que garante que a API Heimdall seja chamada apenas uma vez:
+
+```typescript
+// Cache global compartilhado
+let cachedUser: HeimdallUser | null = null
+let isLoading = false
+let loadingPromise: Promise<HeimdallUser | null> | null = null
+const subscribers = new Set<(user: HeimdallUser | null) => void>()
+```
+
+**Fluxo do Cache:**
+
+1. Primeiro componente solicita dados → Faz chamada HTTP à API
+2. Componentes subsequentes → Recebem dados do cache
+3. Todos os componentes se inscrevem para atualizações
+4. Quando dados chegam → Todos são notificados simultaneamente
+
 ### Camadas de Autorização
 
 **1. Middleware (Edge Runtime)**
 
 - ✅ Valida expiração do JWT
 - ✅ Faz refresh automático do token
-- ✅ **Valida roles específicas** através da API Heimdall
+- ✅ Valida roles específicas através da API Heimdall
 - ✅ Bloqueia acesso não autorizado baseado em permissões de rota
 
 **2. Application Layer**
 
-- ✅ Client Components: Hooks para buscar roles
+- ✅ Client Components: Context + Hooks com cache global
 - ✅ Server Components: Funções server-side para buscar roles
 - ✅ Layouts: Proteção de seções inteiras
 - ✅ Componentes: Controle condicional de UI
@@ -80,14 +107,14 @@ O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e p
 src/
 ├── types/heimdall-roles.ts              # Tipos e helpers de roles
 ├── app/api/heimdall/user/route.ts       # API route proxy para Heimdall
-├── hooks/use-heimdall-user.ts           # Hooks client-side
+├── hooks/use-heimdall-user.ts           # Hooks + cache global
+├── contexts/heimdall-user-context.tsx   # Context provider centralizado
 ├── lib/
 │   ├── server-auth.ts                   # Helpers server-side
-│   ├── route-permissions.ts             # Configuração de permissões (usado no middleware!)
-│   ├── middleware-helpers.ts            # Helpers do middleware (inclui getUserRolesInMiddleware)
+│   ├── route-permissions.ts             # Configuração de permissões
+│   ├── middleware-helpers.ts            # Helpers do middleware
 │   └── menu-list.ts                     # Configuração do menu
-├── components/auth/protected-route.tsx  # Wrapper de proteção
-└── middleware.ts                        # Middleware de autenticação + autorização RBAC
+└── middleware.ts                        # Middleware de autenticação + RBAC
 ```
 
 ---
@@ -101,23 +128,23 @@ src/
 export async function middleware(request: NextRequest) {
   const authToken = request.cookies.get('access_token')
   const path = request.nextUrl.pathname
-  
+
   // 1. Valida expiração do JWT
   if (isJwtExpired(authToken.value)) {
     return handleExpiredToken(...)
   }
-  
+
   // 2. Busca roles do usuário via Heimdall API
   const userRoles = await getUserRolesInMiddleware(authToken.value)
-  
+
   // 3. Verifica se usuário tem acesso à rota
   const hasAccess = hasRouteAccess(path, userRoles)
-  
+
   // 4. Bloqueia se não tiver permissão
   if (!hasAccess) {
     return handleUnauthorizedUser(...) // Redireciona para /unauthorized
   }
-  
+
   // 5. Permite acesso
   return NextResponse.next()
 }
@@ -127,17 +154,64 @@ export async function middleware(request: NextRequest) {
 1. Usuário tenta acessar `/servicos-municipais/servicos/new`
 2. Middleware valida JWT e busca roles do Heimdall
 3. Middleware verifica em `route-permissions.ts` se a role permite acesso
-4. Se não permitir (ex: `busca:services:editor`), redireciona para `/unauthorized`
-5. Se permitir (ex: `busca:services:admin`), continua para a página
+4. Se não permitir, redireciona para `/unauthorized`
+5. Se permitir, continua para a página
 
-> **⚠️ Nota de Performance:** O middleware faz uma chamada à API Heimdall em cada request para rotas protegidas. Esta abordagem garante que as permissões estejam sempre atualizadas, mas pode impactar a performance. Se necessário, considere implementar um cache de roles com TTL curto no futuro.
+> **⚠️ Nota de Performance:** O middleware faz uma chamada à API Heimdall em cada request para rotas protegidas. Isso garante permissões sempre atualizadas.
 
-### 1. API Route Proxy (`/api/heimdall/user`)
+### 1. Cache Global (Client-Side)
+
+```typescript
+// src/hooks/use-heimdall-user.ts
+
+// Singleton cache - garante apenas 1 chamada HTTP
+let cachedUser: HeimdallUser | null = null
+let isLoading = false
+let loadingPromise: Promise<HeimdallUser | null> | null = null
+const subscribers = new Set<(user: HeimdallUser | null) => void>()
+
+async function fetchHeimdallUser(): Promise<HeimdallUser | null> {
+  // Se já tem cache, retorna imediatamente
+  if (cachedUser !== null) return cachedUser
+
+  // Se já está buscando, aguarda a mesma promise
+  if (isLoading && loadingPromise) return loadingPromise
+
+  // Faz a busca (apenas uma vez!)
+  loadingPromise = fetch('/api/heimdall/user').then(...)
+
+  // Notifica todos os subscribers
+  notifySubscribers(data)
+
+  return data
+}
+```
+
+### 2. Context Provider
+
+```typescript
+// src/contexts/heimdall-user-context.tsx
+export function HeimdallUserProvider({ children }: { children: ReactNode }) {
+  const { user, loading } = useHeimdallUserWithLoading() // Usa cache global
+
+  const isAdmin = hasAdminPrivileges(user?.roles)
+  const canEditGoRio = canEditGoRio(user?.roles)
+  // ... outras permissões calculadas
+
+  return (
+    <HeimdallUserContext.Provider value={{ user, loading, isAdmin, canEditGoRio, ... }}>
+      {children}
+    </HeimdallUserContext.Provider>
+  )
+}
+```
+
+### 3. API Route Proxy
 
 ```typescript
 // src/app/api/heimdall/user/route.ts
 export async function GET() {
-  const accessToken = cookies.get('access_token')
+  const accessToken = cookies().get('access_token')
 
   // Chama API Heimdall
   const response = await getCurrentUserInfoApiV1UsersMeGet()
@@ -152,47 +226,40 @@ export async function GET() {
 }
 ```
 
-### 2. Client Components
-
-```typescript
-'use client'
-import { useHeimdallUser } from '@/hooks/use-heimdall-user'
-
-function MyComponent() {
-  const user = useHeimdallUser()
-
-  // user = {
-  //   id: 2,
-  //   cpf: "12345678901",
-  //   display_name: "João Silva",
-  //   groups: ["heimdall_admins"],
-  //   roles: ["admin", "go:admin"] // ← Roles do Heimdall
-  // }
-}
-```
-
-### 3. Server Components
-
-```typescript
-// src/app/(private)/(app)/my-page/page.tsx
-import { getCurrentUserInfoApiV1UsersMeGet } from '@/http-heimdall/users/users'
-
-export default async function MyPage() {
-  const response = await getCurrentUserInfoApiV1UsersMeGet()
-  const userRoles = response.data.roles
-
-  // Valida acesso
-  const hasAccess = userRoles?.includes('admin') || userRoles?.includes('go:admin')
-
-  if (!hasAccess) redirect('/unauthorized')
-}
-```
-
 ---
 
 ## 💻 Uso em Client Components
 
-### Hooks Disponíveis
+### Context Provider (Recomendado)
+
+O modo mais eficiente de acessar roles em client components é através do context:
+
+```typescript
+'use client'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
+
+export function MyComponent() {
+  const {
+    user,           // Dados completos do usuário
+    loading,        // Estado de carregamento
+    isAdmin,        // É admin ou superadmin?
+    canEditGoRio,   // Pode editar no GO Rio?
+    canEditBuscaServices, // Pode editar serviços?
+  } = useHeimdallUserContext()
+
+  if (loading) return <Skeleton />
+
+  return (
+    <div>
+      {canEditGoRio && <Button>Criar Curso</Button>}
+    </div>
+  )
+}
+```
+
+### Hooks Disponíveis (Alternativa)
+
+Se não quiser usar o context, pode usar os hooks diretamente (mas eles também usam o cache global):
 
 ```typescript
 import {
@@ -201,77 +268,46 @@ import {
   useHasRole,                   // Verifica roles específicas
   useIsAdmin,                   // Verifica se é admin/superadmin
   useHasGoRioAccess,            // Verifica acesso ao GO Rio
+  useCanEditGoRio,              // Verifica se pode editar GO Rio
   useHasBuscaServicesAccess,    // Verifica acesso a Serviços
   useCanEditBuscaServices,      // Verifica se pode editar serviços
   useIsBuscaServicesAdmin,      // Verifica se é admin de serviços
 } from '@/hooks/use-heimdall-user'
 ```
 
-### Exemplo 1: Mostrar/Ocultar Botão
+### Exemplo: Mostrar/Ocultar Botão
 
 ```typescript
 'use client'
-
-import { useHasGoRioAccess } from '@/hooks/use-heimdall-user'
-import { Button } from '@/components/ui/button'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 
 export function NewCourseButton() {
-  const hasAccess = useHasGoRioAccess()
+  const { canEditGoRio } = useHeimdallUserContext()
 
-  if (!hasAccess) return null
+  if (!canEditGoRio) return null
 
-  return (
-    <Button>
-      Criar Novo Curso
-    </Button>
-  )
+  return <Button>Criar Novo Curso</Button>
 }
 ```
 
-### Exemplo 2: Diferentes UIs por Role
+### Exemplo: Diferentes UIs por Role
 
 ```typescript
 'use client'
-
-import { useIsAdmin, useHeimdallUser } from '@/hooks/use-heimdall-user'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 
 export function Dashboard() {
-  const isAdmin = useIsAdmin()
-  const user = useHeimdallUser()
+  const { isAdmin, hasGoRioAccess, user } = useHeimdallUserContext()
 
   return (
     <div>
       <h1>Dashboard</h1>
 
-      {isAdmin && (
-        <AdminPanel />
-      )}
-
-      {user?.roles?.includes('go:admin') && (
-        <GoRioStats />
-      )}
-
-      {user?.roles?.includes('busca:services:editor') && (
-        <ServicesDrafts />
-      )}
+      {isAdmin && <AdminPanel />}
+      {hasGoRioAccess && <GoRioStats />}
+      {user?.roles?.includes('busca:services:editor') && <ServicesDrafts />}
     </div>
   )
-}
-```
-
-### Exemplo 3: Verificar Múltiplas Roles
-
-```typescript
-'use client'
-
-import { useHasRole } from '@/hooks/use-heimdall-user'
-
-export function ApproveButton() {
-  const canApprove = useHasRole(['admin', 'superadmin', 'busca:services:admin'])
-
-  if (!canApprove) return null
-
-  return <Button>Aprovar Serviço</Button>
 }
 ```
 
@@ -291,11 +327,10 @@ import {
 } from '@/lib/server-auth'
 ```
 
-### Exemplo 1: Proteger Página Inteira
+### Exemplo: Proteger Página Inteira
 
 ```typescript
 // src/app/(private)/(app)/admin-only/page.tsx
-
 import { requireAdminAccess } from '@/lib/server-auth'
 
 export default async function AdminPage() {
@@ -305,17 +340,14 @@ export default async function AdminPage() {
   return (
     <div>
       <h1>Painel Administrativo</h1>
-      {/* Conteúdo apenas para admins */}
     </div>
   )
 }
 ```
 
-### Exemplo 2: Renderização Condicional
+### Exemplo: Renderização Condicional
 
 ```typescript
-// src/app/(private)/(app)/dashboard/page.tsx
-
 import { getUserRolesServer } from '@/lib/server-auth'
 import { hasAdminPrivileges } from '@/types/heimdall-roles'
 
@@ -326,14 +358,8 @@ export default async function Dashboard() {
   return (
     <div>
       <h1>Dashboard</h1>
-
-      {isAdmin && (
-        <AdminStats />
-      )}
-
-      {roles?.includes('go:admin') && (
-        <GoRioStats />
-      )}
+      {isAdmin && <AdminStats />}
+      {roles?.includes('go:admin') && <GoRioStats />}
     </div>
   )
 }
@@ -343,52 +369,44 @@ export default async function Dashboard() {
 
 ## 🔒 Proteção de Rotas
 
-### Método 1: Layout Protection (Recomendado para Módulos)
+### Método 1: Context Provider no Layout (Recomendado)
 
 ```typescript
-// src/app/(private)/(app)/gorio/layout.tsx
+// src/app/(private)/(app)/layout.tsx
+import { HeimdallUserProvider } from '@/contexts/heimdall-user-context'
 
-import { ProtectedRoute } from '@/components/auth/protected-route'
-
-export default function GorioLayout({ children }: { children: React.ReactNode }) {
+export default async function Layout({ children }) {
   return (
-    <ProtectedRoute requiredRoles={['admin', 'superadmin', 'go:admin']}>
+    <HeimdallUserProvider>
       {children}
-    </ProtectedRoute>
+    </HeimdallUserProvider>
   )
 }
 ```
 
-**Resultado:** Todas as páginas dentro de `/gorio/*` exigem uma dessas roles.
-
-### Método 2: Component Wrapper (Para Páginas Específicas)
+### Método 2: Server-Side Protection
 
 ```typescript
-// src/app/(private)/(app)/special-page/page.tsx
-'use client'
+// src/app/(private)/(app)/gorio/page.tsx
+import { requireGoRioAccess } from '@/lib/server-auth'
 
-import { ProtectedRoute } from '@/components/auth/protected-route'
+export default async function GorioPage() {
+  await requireGoRioAccess() // Redireciona se não tiver acesso
 
-export default function SpecialPage() {
-  return (
-    <ProtectedRoute requiredRoles={['admin', 'busca:services:admin']}>
-      <div>Conteúdo protegido</div>
-    </ProtectedRoute>
-  )
+  return <div>Conteúdo GO Rio</div>
 }
 ```
 
-### Método 3: Server-Side Protection
+### Método 3: Middleware Protection (Automático)
+
+O middleware já protege automaticamente baseado em `route-permissions.ts`:
 
 ```typescript
-// src/app/(private)/(app)/api-admin/page.tsx
-
-import { requireRoles } from '@/lib/server-auth'
-
-export default async function ApiAdminPage() {
-  await requireRoles(['admin', 'superadmin'])
-
-  return <div>Página de administração de APIs</div>
+// src/lib/route-permissions.ts
+export const ROUTE_PERMISSIONS: Record<string, string[]> = {
+  '/gorio': ['admin', 'superadmin', 'go:admin'],
+  '/gorio/courses': ['admin', 'superadmin', 'go:admin'],
+  '/servicos-municipais': ['admin', 'superadmin', 'busca:services:admin', 'busca:services:editor'],
 }
 ```
 
@@ -396,11 +414,10 @@ export default async function ApiAdminPage() {
 
 ## ➕ Adicionando Novos Módulos
 
-### Passo 1: Definir Nova Role (se necessário)
+### Passo 1: Definir Nova Role
 
 ```typescript
 // src/types/heimdall-roles.ts
-
 export type HeimdallRole =
   | 'admin'
   | 'superadmin'
@@ -419,28 +436,26 @@ export function hasAnalyticsAccess(roles: string[] | undefined): boolean {
 }
 ```
 
-### Passo 2: Adicionar no Menu
+### Passo 2: Adicionar no Context
 
 ```typescript
-// src/lib/menu-list.ts
+// src/contexts/heimdall-user-context.tsx
+import { hasAnalyticsAccess } from '@/types/heimdall-roles'
 
-import { BarChart3 } from 'lucide-react'
+interface HeimdallUserContextType {
+  // ... existing properties
+  hasAnalyticsAccess: boolean
+}
 
-export function getMenuList(pathname: string): Group[] {
-  return [
-    // ... outros grupos
-    {
-      groupLabel: 'Analytics',
-      menus: [
-        {
-          href: '/analytics',
-          label: 'Relatórios',
-          icon: BarChart3,
-          allowedRoles: ['admin', 'superadmin', 'analytics:viewer'],
-        },
-      ],
-    },
-  ]
+export function HeimdallUserProvider({ children }) {
+  const { user, loading } = useHeimdallUserWithLoading()
+  const analyticsAccess = hasAnalyticsAccess(user?.roles)
+
+  return (
+    <HeimdallUserContext.Provider value={{ ..., hasAnalyticsAccess: analyticsAccess }}>
+      {children}
+    </HeimdallUserContext.Provider>
+  )
 }
 ```
 
@@ -448,236 +463,99 @@ export function getMenuList(pathname: string): Group[] {
 
 ```typescript
 // src/lib/route-permissions.ts
-
 export const ROUTE_PERMISSIONS: Record<string, string[]> = {
-  // ... rotas existentes
-
-  // Analytics
   '/analytics': ['admin', 'superadmin', 'analytics:viewer'],
   '/analytics/reports': ['admin', 'superadmin', 'analytics:viewer'],
-  '/analytics/export': ['admin', 'superadmin'], // Apenas admins podem exportar
 }
 ```
 
-### Passo 4: Criar Layout Protegido
+### Passo 4: Adicionar no Menu
 
 ```typescript
-// src/app/(private)/(app)/analytics/layout.tsx
-
-import { ProtectedRoute } from '@/components/auth/protected-route'
-
-export default function AnalyticsLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <ProtectedRoute requiredRoles={['admin', 'superadmin', 'analytics:viewer']}>
-      {children}
-    </ProtectedRoute>
-  )
+// src/lib/menu-list.ts
+{
+  href: '/analytics',
+  label: 'Analytics',
+  icon: BarChart3,
+  allowedRoles: ['admin', 'superadmin', 'analytics:viewer'],
 }
-```
-
-### Passo 5: Criar Hook Específico (Opcional)
-
-```typescript
-// src/hooks/use-heimdall-user.ts
-
-export function useHasAnalyticsAccess(): boolean {
-  const user = useHeimdallUser()
-  return hasAnalyticsAccess(user?.roles)
-}
-```
-
-### Passo 6: Adicionar na Página de Conta
-
-```typescript
-// src/app/(private)/(app)/account/page.tsx
-
-// Na função getModuleAccess:
-function getModuleAccess(roles: string[] | undefined) {
-  const hasAdminPrivileges = roles?.includes('admin') || roles?.includes('superadmin')
-
-  return {
-    dashboard: true,
-    goRio: hasAdminPrivileges || roles?.includes('go:admin'),
-    servicosMunicipais: hasAdminPrivileges || roles?.includes('busca:services:admin') || roles?.includes('busca:services:editor'),
-    analytics: hasAdminPrivileges || roles?.includes('analytics:viewer'), // ← Novo
-  }
-}
-
-// No JSX:
-{moduleAccess.analytics && (
-  <div className="flex items-start gap-3 p-4 rounded-lg border-2 border-primary">
-    <div className="rounded-full p-2 bg-primary/10">
-      <BarChart3 className="h-5 w-5 text-primary" />
-    </div>
-    <div className="flex-1">
-      <div className="flex items-center justify-between">
-        <p className="font-semibold">Analytics</p>
-        <Check className="h-5 w-5 text-primary" />
-      </div>
-      <p className="text-sm text-muted-foreground mt-1">
-        Relatórios e métricas
-      </p>
-    </div>
-  </div>
-)}
 ```
 
 ---
 
 ## 📚 Exemplos Práticos
 
-### Exemplo Completo: Botão de Ação Condicional
+### Navegação sem Reload
 
 ```typescript
 'use client'
+import { useRouter } from 'next/navigation'
 
-import { useHasRole, useIsAdmin } from '@/hooks/use-heimdall-user'
-import { Button } from '@/components/ui/button'
-import { Trash2, Edit, Check } from 'lucide-react'
-
-interface ServiceActionsProps {
-  serviceId: string
-  status: 'draft' | 'pending' | 'published'
-}
-
-export function ServiceActions({ serviceId, status }: ServiceActionsProps) {
-  const isAdmin = useIsAdmin()
-  const canEdit = useHasRole(['admin', 'superadmin', 'busca:services:admin', 'busca:services:editor'])
-  const canApprove = useHasRole(['admin', 'superadmin', 'busca:services:admin'])
+export function DataTable({ data }) {
+  const router = useRouter()
 
   return (
-    <div className="flex gap-2">
-      {/* Editar: Editor ou Admin */}
-      {canEdit && (
-        <Button variant="outline" size="sm">
-          <Edit className="h-4 w-4 mr-2" />
-          Editar
-        </Button>
-      )}
+    <DataTable
+      data={data}
+      onRowClick={(row) => {
+        // ✅ Correto: Navegação client-side
+        router.push(`/detail/${row.id}`)
 
-      {/* Aprovar: Apenas Admin de Serviços */}
-      {canApprove && status === 'pending' && (
-        <Button variant="default" size="sm">
-          <Check className="h-4 w-4 mr-2" />
-          Aprovar
-        </Button>
-      )}
-
-      {/* Excluir: Apenas Super Admin */}
-      {isAdmin && (
-        <Button variant="destructive" size="sm">
-          <Trash2 className="h-4 w-4 mr-2" />
-          Excluir
-        </Button>
-      )}
-    </div>
+        // ❌ Errado: Recarrega a página inteira
+        // window.location.href = `/detail/${row.id}`
+      }}
+    />
   )
 }
 ```
 
-### Exemplo Completo: Tabela com Colunas Condicionais
+### Cache Global em Ação
 
 ```typescript
-'use client'
-
-import { useIsAdmin, useHeimdallUser } from '@/hooks/use-heimdall-user'
-import { ColumnDef } from '@tanstack/react-table'
-
-export function useServiceColumns() {
-  const isAdmin = useIsAdmin()
-  const user = useHeimdallUser()
-  const canApprove = user?.roles?.some(r => ['admin', 'superadmin', 'busca:services:admin'].includes(r))
-
-  const columns: ColumnDef<Service>[] = [
-    {
-      accessorKey: 'title',
-      header: 'Título',
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-    },
-    {
-      accessorKey: 'createdBy',
-      header: 'Criado por',
-      // Mostrar apenas para admins
-      cell: ({ row }) => isAdmin ? row.original.createdBy : '---',
-    },
-  ]
-
-  // Adicionar coluna de ações apenas se tiver permissão
-  if (canApprove || isAdmin) {
-    columns.push({
-      id: 'actions',
-      header: 'Ações',
-      cell: ({ row }) => <ServiceActions service={row.original} />,
-    })
-  }
-
-  return columns
+// Componente 1
+function Header() {
+  const { user } = useHeimdallUserContext() // Trigger: 1ª chamada HTTP
+  return <div>{user?.display_name}</div>
 }
-```
 
-### Exemplo Completo: Formulário com Campos Condicionais
-
-```typescript
-'use client'
-
-import { useIsAdmin, useHasRole } from '@/hooks/use-heimdall-user'
-import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-
-export function CourseForm() {
-  const isAdmin = useIsAdmin()
-  const canSetExternalPartner = useHasRole(['admin', 'superadmin', 'go:admin'])
-
-  return (
-    <form>
-      <Input label="Título do Curso" name="title" required />
-      <Input label="Descrição" name="description" />
-
-      {/* Campo visível apenas para go:admin ou superior */}
-      {canSetExternalPartner && (
-        <Select label="Parceiro Externo" name="externalPartner">
-          <option value="">Nenhum</option>
-          <option value="partner1">Parceiro 1</option>
-        </Select>
-      )}
-
-      {/* Campo visível apenas para super admins */}
-      {isAdmin && (
-        <Select label="Secretaria" name="secretariat">
-          <option value="sme">SME</option>
-          <option value="smtr">SMTR</option>
-        </Select>
-      )}
-
-      <Button type="submit">Salvar</Button>
-    </form>
-  )
+// Componente 2 (montado ao mesmo tempo)
+function Sidebar() {
+  const { user } = useHeimdallUserContext() // Cache: Retorna instantaneamente
+  return <div>{user?.roles?.length} roles</div>
 }
+
+// Componente 3 (montado depois)
+function Dashboard() {
+  const { user } = useHeimdallUserContext() // Cache: Retorna instantaneamente
+  return <div>Welcome {user?.display_name}</div>
+}
+
+// Resultado: Apenas 1 chamada HTTP para os 3 componentes! 🎉
 ```
 
 ---
 
-## 🔧 Configuração
+## 🔧 Troubleshooting
 
-### Variável de Ambiente Obrigatória
+### Problema: Múltiplas chamadas à API Heimdall
 
-```env
-# .env
-NEXT_PUBLIC_HEIMDALL_BASE_API_URL=...
+**Causa**: Isso NÃO deveria mais acontecer com o cache global.
+
+**Solução**:
+1. Verifique se está usando `useHeimdallUserContext()` (context)
+2. Certifique-se de que `HeimdallUserProvider` está no layout raiz
+3. Verifique o Network tab - deve ter apenas 1 chamada
+
+### Problema: Dados não atualizam após mudança de role
+
+**Solução**: Limpe o cache manualmente:
+
+```typescript
+import { clearHeimdallUserCache } from '@/hooks/use-heimdall-user'
+
+// Após logout ou mudança de permissões
+clearHeimdallUserCache()
 ```
-
-### Middleware Config
-
-O middleware já está configurado para:
-
-- ✅ Validar JWT (expiração)
-- ✅ Fazer refresh automático do token
-- ✅ Aplicar CSP headers
-- ✅ **Validar roles** através da API Heimdall
-- ✅ Bloquear acessos não autorizados baseado em `route-permissions.ts`
 
 ---
 
@@ -685,24 +563,24 @@ O middleware já está configurado para:
 
 - [ ] Definir role(s) em `src/types/heimdall-roles.ts`
 - [ ] Adicionar helpers de permissão (ex: `hasAnalyticsAccess()`)
+- [ ] Adicionar propriedade no context (`src/contexts/heimdall-user-context.tsx`)
 - [ ] Adicionar item no menu (`src/lib/menu-list.ts`)
 - [ ] Configurar permissões de rota (`src/lib/route-permissions.ts`)
-- [ ] Criar layout protegido (`src/app/(private)/(app)/module/layout.tsx`)
-- [ ] Criar hook específico se necessário (`src/hooks/use-heimdall-user.ts`)
-- [ ] Adicionar card na página de conta (`src/app/(private)/(app)/account/page.tsx`)
-- [ ] Atualizar esta documentação
+- [ ] Criar proteções server-side se necessário
+- [ ] Testar cache global (deve ter apenas 1 chamada HTTP)
 
 ---
 
-## 🚨 Importante
+## 🚨 Regras de Ouro
 
-1. **Middleware valida roles usando Heimdall API** - Bloqueia acesso não autorizado em tempo de request
-2. **Sempre use Heimdall API como fonte de verdade** - Não dependa de roles do JWT
-3. **Client Components**: Use hooks `use-heimdall-user`
-4. **Server Components**: Use helpers `server-auth`
-5. **Proteção de Layout > Proteção de Página** - Prefira proteger módulos inteiros via layout
-6. **Defina permissões em `route-permissions.ts`** - O middleware usa esse arquivo para validação
+1. **API Heimdall é a fonte única de verdade** - Nunca use roles do JWT
+2. **Uma chamada HTTP apenas** - Cache global garante isso
+3. **Use Context Provider** - `useHeimdallUserContext()` é o padrão
+4. **Navegação client-side** - Use `router.push()`, nunca `window.location.href`
+5. **Middleware valida primeiro** - Servidor sempre verifica permissões
+6. **Context + Middleware** - Proteção dupla (UX + Segurança)
 
 ---
 
-**Última atualização:** 2025-10-18
+**Última atualização:** 2025-10-25
+**Sistema:** Heimdall RBAC com Cache Global

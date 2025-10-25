@@ -10,36 +10,106 @@ import {
 } from '@/types/heimdall-roles'
 import { useEffect, useState } from 'react'
 
+// Global cache for user data - ensures single API call across the app
+let cachedUser: HeimdallUser | null = null
+let isLoading = false
+let loadingPromise: Promise<HeimdallUser | null> | null = null
+const subscribers = new Set<(user: HeimdallUser | null) => void>()
+
+/**
+ * Fetches user data from Heimdall API with global caching
+ * Ensures only one API call is made even with multiple subscribers
+ */
+async function fetchHeimdallUser(): Promise<HeimdallUser | null> {
+  // If we already have cached data, return it immediately
+  if (cachedUser !== null) {
+    return cachedUser
+  }
+
+  // If a fetch is already in progress, wait for it
+  if (isLoading && loadingPromise) {
+    return loadingPromise
+  }
+
+  // Start a new fetch
+  isLoading = true
+  loadingPromise = (async () => {
+    try {
+      const response = await fetch('/api/heimdall/user', {
+        method: 'GET',
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        cachedUser = data
+        notifySubscribers(data)
+        return data
+      }
+
+      cachedUser = null
+      notifySubscribers(null)
+      return null
+    } catch (error) {
+      console.error('Error fetching user from Heimdall:', error)
+      cachedUser = null
+      notifySubscribers(null)
+      return null
+    } finally {
+      isLoading = false
+      loadingPromise = null
+    }
+  })()
+
+  return loadingPromise
+}
+
+/**
+ * Notify all subscribers when user data changes
+ */
+function notifySubscribers(user: HeimdallUser | null) {
+  subscribers.forEach(callback => callback(user))
+}
+
+/**
+ * Subscribe to user data changes
+ */
+function subscribe(callback: (user: HeimdallUser | null) => void) {
+  subscribers.add(callback)
+  return () => subscribers.delete(callback)
+}
+
+/**
+ * Clear the cache (useful for logout or manual refresh)
+ */
+export function clearHeimdallUserCache() {
+  cachedUser = null
+  notifySubscribers(null)
+}
+
 /**
  * Custom hook to get the current user's information from Heimdall API
- * (since access_token is stored in HTTP-only cookies)
+ * Uses global cache to ensure single API call across the app
  *
  * @returns HeimdallUser | null
  */
 export function useHeimdallUser(): HeimdallUser | null {
-  const [user, setUser] = useState<HeimdallUser | null>(null)
+  const [user, setUser] = useState<HeimdallUser | null>(cachedUser)
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch('/api/heimdall/user', {
-          method: 'GET',
-          credentials: 'include', // Important: include cookies in the request
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUser(data)
-        } else {
-          setUser(null)
-        }
-      } catch (error) {
-        console.error('Error fetching user from Heimdall:', error)
-        setUser(null)
-      }
+    // If we already have cached data, use it
+    if (cachedUser !== null) {
+      setUser(cachedUser)
+    } else {
+      // Fetch user data
+      fetchHeimdallUser().then(setUser)
     }
 
-    fetchUser()
+    // Subscribe to updates
+    const unsubscribe = subscribe(setUser)
+    return () => {
+      unsubscribe()
+    }
   }, [])
 
   return user
@@ -47,6 +117,7 @@ export function useHeimdallUser(): HeimdallUser | null {
 
 /**
  * Custom hook to get user information with loading state
+ * Uses global cache to ensure single API call across the app
  *
  * @returns { user: HeimdallUser | null, loading: boolean }
  */
@@ -54,32 +125,32 @@ export function useHeimdallUserWithLoading(): {
   user: HeimdallUser | null
   loading: boolean
 } {
-  const [user, setUser] = useState<HeimdallUser | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<HeimdallUser | null>(cachedUser)
+  const [loading, setLoading] = useState(cachedUser === null)
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch('/api/heimdall/user', {
-          method: 'GET',
-          credentials: 'include',
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUser(data)
-        } else {
-          setUser(null)
-        }
-      } catch (error) {
-        console.error('Error fetching user from Heimdall:', error)
-        setUser(null)
-      } finally {
+    // If we already have cached data, use it
+    if (cachedUser !== null) {
+      setUser(cachedUser)
+      setLoading(false)
+    } else {
+      // Fetch user data
+      setLoading(true)
+      fetchHeimdallUser().then(data => {
+        setUser(data)
         setLoading(false)
-      }
+      })
     }
 
-    fetchUser()
+    // Subscribe to updates
+    const unsubscribe = subscribe(data => {
+      setUser(data)
+      setLoading(false)
+    })
+
+    return () => {
+      unsubscribe()
+    }
   }, [])
 
   return { user, loading }

@@ -884,7 +884,7 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
+              router.push(`/servicos-municipais/servicos/servico/${service.id}`)
             }}
           >
             <DataTableToolbar table={table} />
@@ -896,7 +896,7 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
+              router.push(`/servicos-municipais/servicos/servico/${service.id}`)
             }}
           >
             <DataTableToolbar table={table} />
@@ -908,7 +908,7 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
+              router.push(`/servicos-municipais/servicos/servico/${service.id}`)
             }}
           >
             <DataTableToolbar table={table} />

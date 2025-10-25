@@ -741,7 +741,7 @@ export default function Courses() {
               loading={loading}
               onRowClick={course => {
                 // Navigate to the course detail page
-                window.location.href = `/gorio/courses/course/${course.id}`
+                router.push(`/gorio/courses/course/${course.id}`)
               }}
             >
               <DataTableToolbar table={table} />
@@ -754,7 +754,7 @@ export default function Courses() {
               loading={loading}
               onRowClick={course => {
                 // Navigate to the course detail page
-                window.location.href = `/gorio/courses/course/${course.id}`
+                router.push(`/gorio/courses/course/${course.id}`)
               }}
             >
               <DataTableToolbar table={table} />
