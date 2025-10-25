@@ -53,6 +53,7 @@ import {
   FileText,
   MoreHorizontal,
   Play,
+  Send,
   Square,
   Text,
   Trash2,
@@ -92,6 +93,8 @@ export function ServicesDataTable() {
     publishService,
     unpublishService,
     deleteService,
+    sendToApproval,
+    sendToEdition,
     loading: operationLoading,
     showTombamentoModal: showPublishTombamentoModal,
     selectedServiceForTombamento: selectedPublishServiceForTombamento,
@@ -410,6 +413,64 @@ export function ServicesDataTable() {
     [openConfirmDialog, deleteTombamento, tombamentosData]
   )
 
+  const handleSendToApproval = React.useCallback(
+    (serviceId: string, serviceName: string) => {
+      openConfirmDialog({
+        title: 'Enviar para Aprovação',
+        description: `Tem certeza que deseja enviar o serviço "${serviceName}" para aprovação? Um administrador precisará revisar antes da publicação.`,
+        confirmText: 'Enviar',
+        variant: 'default',
+        onConfirm: async () => {
+          try {
+            setIsRefreshingAfterOperation(true)
+            console.log('🔄 Starting send to approval operation...')
+            await sendToApproval(serviceId)
+            // Add a small delay to ensure API changes are processed
+            await new Promise(resolve => setTimeout(resolve, 500))
+            console.log('🔄 Refetching services after send to approval...')
+            setLastRefreshTimestamp(Date.now())
+            await refetch()
+            console.log('✅ Services list refreshed after send to approval')
+          } catch (error) {
+            console.error('❌ Error in send to approval flow:', error)
+          } finally {
+            setIsRefreshingAfterOperation(false)
+          }
+        },
+      })
+    },
+    [openConfirmDialog, sendToApproval, refetch]
+  )
+
+  const handleSendToEdition = React.useCallback(
+    (serviceId: string, serviceName: string) => {
+      openConfirmDialog({
+        title: 'Enviar para Edição',
+        description: `Tem certeza que deseja enviar o serviço "${serviceName}" de volta para edição? Ele sairá do estado de aprovação.`,
+        confirmText: 'Enviar',
+        variant: 'default',
+        onConfirm: async () => {
+          try {
+            setIsRefreshingAfterOperation(true)
+            console.log('🔄 Starting send to edition operation...')
+            await sendToEdition(serviceId)
+            // Add a small delay to ensure API changes are processed
+            await new Promise(resolve => setTimeout(resolve, 500))
+            console.log('🔄 Refetching services after send to edition...')
+            setLastRefreshTimestamp(Date.now())
+            await refetch()
+            console.log('✅ Services list refreshed after send to edition')
+          } catch (error) {
+            console.error('❌ Error in send to edition flow:', error)
+          } finally {
+            setIsRefreshingAfterOperation(false)
+          }
+        },
+      })
+    },
+    [openConfirmDialog, sendToEdition, refetch]
+  )
+
   const handleTombamentoSuccess = React.useCallback(() => {
     // Refresh tombamentos map
     const refreshTombamentos = async () => {
@@ -701,6 +762,34 @@ export function ServicesDataTable() {
                     </Link>
                   </DropdownMenuItem>
                 )}
+                {/* Send to approval - only for editors on in_edition status */}
+                {!isBuscaServicesAdmin &&
+                  canEditServices &&
+                  service.status === 'in_edition' && (
+                    <DropdownMenuItem
+                      onClick={e => {
+                        e.stopPropagation()
+                        handleSendToApproval(service.id, service.title)
+                      }}
+                      disabled={operationLoading || isRefreshingAfterOperation}
+                    >
+                      <Send className="mr-2 h-4 w-4" />
+                      Enviar para aprovação
+                    </DropdownMenuItem>
+                  )}
+                {/* Send to edition - for both admins and editors on awaiting_approval status */}
+                {canEditServices && service.status === 'awaiting_approval' && (
+                  <DropdownMenuItem
+                    onClick={e => {
+                      e.stopPropagation()
+                      handleSendToEdition(service.id, service.title)
+                    }}
+                    disabled={operationLoading || isRefreshingAfterOperation}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Enviar para edição
+                  </DropdownMenuItem>
+                )}
                 {isBuscaServicesAdmin && (
                   <>
                     {service.status === 'published' ? (
@@ -793,6 +882,8 @@ export function ServicesDataTable() {
     handleDeleteService,
     handleTombarService,
     handleDestombarService,
+    handleSendToApproval,
+    handleSendToEdition,
     tombamentosMap,
     tombamentosLoading,
     activeTab,

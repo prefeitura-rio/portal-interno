@@ -4,8 +4,14 @@ import { useServiceOperations } from './use-service-operations'
 import { useTombamentos } from './use-tombamentos'
 
 export function useServiceOperationsWithTombamento() {
-  const { publishService, unpublishService, deleteService, loading } =
-    useServiceOperations()
+  const {
+    publishService,
+    unpublishService,
+    deleteService,
+    sendToApproval,
+    sendToEdition,
+    loading,
+  } = useServiceOperations()
   const { createTombamento } = useTombamentos()
   const [showTombamentoModal, setShowTombamentoModal] = useState(false)
   const [selectedServiceForTombamento, setSelectedServiceForTombamento] =
@@ -48,6 +54,8 @@ export function useServiceOperationsWithTombamento() {
     publishService: handlePublishWithTombamento,
     unpublishService,
     deleteService,
+    sendToApproval,
+    sendToEdition,
     loading,
 
     // Tombamento modal state
@@ -57,4 +65,3 @@ export function useServiceOperationsWithTombamento() {
     handleTombamentoCancel,
   }
 }
-
