@@ -414,7 +414,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     return { showEdit: false, showAdditionalButtons: [] }
   }
 
-  if (loading) {
+  if (loading || !servicoId) {
     return (
       <ContentLayout title="Carregando serviço...">
         <div className="flex items-center justify-center h-64">
