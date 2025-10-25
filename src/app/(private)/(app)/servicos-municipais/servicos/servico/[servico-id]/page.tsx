@@ -641,6 +641,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           onSubmit={isEditing ? handleSaveClick : undefined}
           serviceStatus={service.status}
           onSendToApproval={handleSendToApproval}
+          onPublish={handleApproveAndPublish}
           serviceId={servicoId || undefined}
           initialData={{
             managingOrgan: service.managingOrgan,

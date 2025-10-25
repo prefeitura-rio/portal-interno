@@ -141,6 +141,7 @@ interface NewServiceFormProps {
   initialData?: Partial<ServiceFormData>
   serviceStatus?: string
   onSendToApproval?: () => void
+  onPublish?: () => void // Callback for when service is published
   serviceId?: string // For editing existing services
 }
 
@@ -151,6 +152,7 @@ export function NewServiceForm({
   initialData,
   serviceStatus,
   onSendToApproval,
+  onPublish,
   serviceId,
 }: NewServiceFormProps) {
   const router = useRouter()
@@ -417,10 +419,15 @@ export function NewServiceForm({
       setPendingFormData(null)
       setShowPublishDialog(false)
 
-      // Redirect to service detail page with tombamento flag
-      router.push(
-        `/servicos-municipais/servicos/servico/${savedService.id}?tombamento=true`
-      )
+      // If onPublish callback is provided, call it (for editing existing services)
+      if (onPublish) {
+        onPublish()
+      } else {
+        // Redirect to service detail page with tombamento flag (for new services)
+        router.push(
+          `/servicos-municipais/servicos/servico/${savedService.id}?tombamento=true`
+        )
+      }
     } catch (error) {
       console.error('Error publishing service:', error)
       toast.error('Erro ao publicar serviço. Tente novamente.')
