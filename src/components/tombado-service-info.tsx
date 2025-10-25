@@ -76,7 +76,7 @@ export function TombadoServiceInfo({
                 </div>
 
                 {/* grid secundária: data + autor */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   {formattedDate && (
                     <InfoRow
                       icon={<Calendar className="h-4 w-4" />}
@@ -84,6 +84,7 @@ export function TombadoServiceInfo({
                       value={formattedDate}
                     />
                   )}
+                  <div className="hidden sm:block h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
 
                   {criadoPor && (
                     <InfoRow
