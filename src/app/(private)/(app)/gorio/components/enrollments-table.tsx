@@ -1557,6 +1557,7 @@ export function EnrollmentsTable({
         onClose={() => setIsAddParticipantsModalOpen(false)}
         courseId={courseId}
         onSuccess={refetch}
+        courseData={course}
       />
     </div>
   )
