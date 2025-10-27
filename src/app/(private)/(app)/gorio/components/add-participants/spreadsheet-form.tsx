@@ -40,7 +40,7 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
     { name: 'Idade', required: true },
   ]
 
-  const course = courseData?.course?.data
+  const course = courseData
   if (course?.custom_fields?.length > 0) {
     for (const field of course.custom_fields) {
       expectedFields.push({
