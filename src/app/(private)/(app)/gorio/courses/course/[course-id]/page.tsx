@@ -881,6 +881,7 @@ export default function CourseDetailPage({
                     | undefined,
                   modalidade: course?.modalidade as string | undefined,
                   status: course?.status as string | undefined,
+                  custom_fields: course?.custom_fields,
                 }}
               />
             </TabsContent>
