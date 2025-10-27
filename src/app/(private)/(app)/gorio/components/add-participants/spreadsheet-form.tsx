@@ -2,19 +2,57 @@
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, CheckCircle, FileSpreadsheet, Trash, Upload, XCircle } from 'lucide-react'
+import {
+  ArrowLeft,
+  Check,
+  CheckCircle,
+  FileSpreadsheet,
+  Trash,
+  Upload,
+  X,
+  XCircle,
+} from 'lucide-react'
 import { type DragEvent, useRef, useState } from 'react'
+import * as XLSX from 'xlsx'
 
 interface SpreadsheetFormProps {
   onBack: () => void
   onFinish: (success: boolean) => void
+  courseData: any
 }
 
-export function SpreadsheetForm({ onBack, onFinish }: SpreadsheetFormProps) {
+interface ExpectedField {
+  name: string
+  required: boolean
+}
+
+export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFormProps) {
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [validation, setValidation] = useState<Record<string, 'ok' | 'missing' | 'optional'>>({})
+  const [missingFields, setMissingFields] = useState<string[]>([])
   const dragCounter = useRef(0)
+
+  const expectedFields: ExpectedField[] = [
+    { name: 'Nome', required: true },
+    { name: 'CPF', required: true },
+    { name: 'Idade', required: true },
+  ]
+
+  const course = courseData?.course?.data
+  if (course?.custom_fields?.length > 0) {
+    for (const field of course.custom_fields) {
+      expectedFields.push({
+        name: field.title,
+        required: field.required,
+      })
+    }
+  }
+
+  if (course?.locations?.length > 1) {
+    expectedFields.push({ name: 'Turma', required: true })
+  }
 
   const validateFile = (uploaded: File) => {
     if (
@@ -37,6 +75,7 @@ export function SpreadsheetForm({ onBack, onFinish }: SpreadsheetFormProps) {
 
     setError(null)
     setFile(uploaded)
+    handleReadFile(uploaded)
     return true
   }
 
@@ -76,16 +115,53 @@ export function SpreadsheetForm({ onBack, onFinish }: SpreadsheetFormProps) {
   const removeFile = () => {
     setFile(null)
     setError(null)
+    setValidation({})
+    setMissingFields([])
+  }
+
+  const handleReadFile = async (uploaded: File) => {
+    const data = await uploaded.arrayBuffer()
+    const workbook = XLSX.read(data, { type: 'array' })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 })
+    const headerRow = rows[0]?.map((cell) => String(cell).trim().toLowerCase())
+
+    if (!headerRow || headerRow.length === 0) {
+      setError('Não foi possível ler o cabeçalho da planilha.')
+      return
+    }
+
+    const status: Record<string, 'ok' | 'missing' | 'optional'> = {}
+    const missing: string[] = []
+
+    for (const field of expectedFields) {
+      const found = headerRow.some(
+        (col) => col === field.name.toLowerCase().trim()
+      )
+      if (found) {
+        status[field.name] = 'ok'
+      } else if (field.required) {
+        status[field.name] = 'missing'
+        missing.push(field.name)
+      } else {
+        status[field.name] = 'optional'
+      }
+    }
+
+    setValidation(status)
+    setMissingFields(missing)
   }
 
   return (
     <div className="space-y-6">
+      {/* Instruções */}
       <div className="text-center space-y-1">
         <p className="text-sm text-muted-foreground">
           Faça upload de um arquivo CSV ou XLSX contendo os participantes.
         </p>
       </div>
 
+      {/* Área de upload */}
       <label
         htmlFor="spreadsheet-upload"
         onDrop={handleDrop}
@@ -112,9 +188,7 @@ export function SpreadsheetForm({ onBack, onFinish }: SpreadsheetFormProps) {
         />
 
         {!file && !error && (
-          <div
-            className="pointer-events-none flex flex-col items-center text-center text-muted-foreground"
-          >
+          <div className="pointer-events-none flex flex-col items-center text-center text-muted-foreground">
             <Upload className="h-8 w-8 mb-2 text-zinc-500" />
             <p className="text-sm">
               {isDragging ? (
@@ -132,7 +206,6 @@ export function SpreadsheetForm({ onBack, onFinish }: SpreadsheetFormProps) {
           </div>
         )}
 
-        {/* Sucesso */}
         {file && !error && (
           <div className="flex flex-col items-center gap-2 text-green-600">
             <CheckCircle className="h-6 w-6" />
@@ -172,12 +245,62 @@ export function SpreadsheetForm({ onBack, onFinish }: SpreadsheetFormProps) {
         )}
       </label>
 
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium">Campos esperados para inscrição deste curso:</h3>
+        <ul className="space-y-1">
+          {expectedFields.map((field) => {
+            const status = validation[field.name]
+            const isOk = status === 'ok'
+            const isMissing = status === 'missing'
+
+            return (
+              <li
+                key={field.name}
+                className="flex items-center text-sm gap-2"
+              >
+                {isOk ? (
+                  <Check className="text-green-500 h-4 w-4" />
+                ) : isMissing ? (
+                  <X className="text-red-500 h-4 w-4" />
+                ) : (
+                  <div className="h-4 w-4 rounded-full border border-zinc-400" />
+                )}
+                <span
+                  className={cn({
+                    'text-red-600': isMissing,
+                    'text-green-600': isOk,
+                    'text-muted-foreground': !isOk && !isMissing,
+                  })}
+                >
+                  {field.name}
+                  {field.required ? '*' : ' (opcional)'}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+
+        {/* Resumo de validação */}
+        {file && (
+          <div className="text-sm mt-3">
+            {missingFields.length === 0 ? (
+              <p className="text-green-600">✅ Todos os campos obrigatórios estão presentes.</p>
+            ) : (
+              <p className="text-red-600">
+                ⚠️ Os campos obrigatórios ausentes: {missingFields.join(', ')}.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Botões */}
       <div className="flex justify-between items-center pt-4 border-t">
         <Button variant="ghost" type="button" onClick={onBack} className="gap-2">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         <Button
-          disabled={!file || !!error}
+          disabled={!file || !!error || missingFields.length > 0}
           className="gap-2"
           onClick={async () => {
             if (!file) return

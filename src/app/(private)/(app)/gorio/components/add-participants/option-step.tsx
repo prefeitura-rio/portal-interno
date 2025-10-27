@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { UserPlus } from 'lucide-react'
+import { Upload, UserPlus } from 'lucide-react'
 
 interface OptionsStepProps {
   onSelect: (mode: 'manual' | 'spreadsheet') => void
@@ -23,7 +23,7 @@ export function OptionsStep({ onSelect }: OptionsStepProps) {
           <span className="font-medium">Incluir manualmente</span>
         </Button>
 
-        {/* <Button
+        <Button
           variant="outline"
           size="lg"
           onClick={() => onSelect('spreadsheet')}
@@ -31,7 +31,7 @@ export function OptionsStep({ onSelect }: OptionsStepProps) {
         >
           <Upload className="h-5 w-5 text-primary" />
           <span className="font-medium">Incluir via planilha</span>
-        </Button> */}
+        </Button>
       </div>
     </div>
   )
