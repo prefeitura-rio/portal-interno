@@ -112,6 +112,16 @@ interface EnrollmentsTableProps {
     modalidade?: string
     /** Status atual do curso */
     status?: string
+    custom_fields?: Array<{
+      id: string
+      title: string
+      field_type: 'string'
+      required: boolean
+      options?: Array<{
+        id: string
+        value: string
+      }>
+    }>
   }
 }
 
