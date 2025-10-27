@@ -263,7 +263,7 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
                 ) : isMissing ? (
                   <X className="text-red-500 h-4 w-4" />
                 ) : (
-                  <div className="h-4 w-4 rounded-full border border-zinc-400" />
+                  <div className="h-2 w-2 rounded-full border border-zinc-400" />
                 )}
                 <span
                   className={cn({
