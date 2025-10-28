@@ -719,7 +719,7 @@ export default function CourseDetailPage({
                   {/* Edit button - don't show for closed, canceled, finished, or encerrado courses when not in enrollments tab */}
                   {actualStatus !== 'closed' &&
                     actualStatus !== 'canceled' &&
-                    actualStatus !== 'finished' &&
+                    // actualStatus !== 'finished' &&
                     actualStatus !== 'ENCERRADO' && (
                       <Button
                         onClick={handleEdit}
