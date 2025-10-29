@@ -1,51 +1,43 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
+import { useAddParticipantsModal } from '@/hooks/use-add-participants-modal'
 import * as Dialog from '@radix-ui/react-dialog'
-import { CheckCircle2, Loader2, X, XCircle } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { AnimatePresence } from 'motion/react'
+import { useEffect } from 'react'
+import { AnimatedStep } from './animated-step'
+import { FinishStep } from './finish-step'
 import { ManualForm } from './manual-form'
+import { ModalHeader } from './modal-header'
 import { OptionsStep } from './option-step'
 import { SpreadsheetForm } from './spreadsheet-form'
+import type { AddParticipantsModalProps } from './types'
 
-interface AddParticipantsModalProps {
-  isOpen: boolean
-  onClose: () => void
-  courseId: string
-  onSuccess?: () => void | Promise<void>
-  courseType?: 'presencial' | 'online'
-  courseData: any
-}
-
-export function AddParticipantsModal({ isOpen, onClose, courseId, onSuccess, courseData }: AddParticipantsModalProps) {
-  const [mode, setMode] = useState<'options' | 'manual' | 'spreadsheet' | 'finish'>('options')
-  const [finishStatus, setFinishStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [_simulateSuccess, setSimulateSuccess] = useState(true)
-
-  const handleFinish = async (success: boolean) => {
-    setMode('finish')
-    setFinishStatus('loading')
-    setSimulateSuccess(success)
-
-    setTimeout(() => {
-      setFinishStatus(success ? 'success' : 'error')
-      if (success && onSuccess) {
-        onClose()
-        onSuccess()
-      }
-    }, 2500)
-  }
+/**
+ * Modal for adding participants to a course
+ * Supports manual entry and spreadsheet upload
+ */
+export function AddParticipantsModal({
+  isOpen,
+  onClose,
+  courseId,
+  onSuccess,
+  courseData,
+}: AddParticipantsModalProps) {
+  const {
+    step,
+    finishStatus,
+    handleFinish,
+    handleBack,
+    handleSelectMode,
+    handleRetry,
+    resetModal,
+  } = useAddParticipantsModal({ onClose, onSuccess })
 
   useEffect(() => {
-    if (mode === 'finish' && finishStatus === 'success') {
-      const timer = setTimeout(() => {
-        onClose()
-        setMode('options')
-      }, 2000)
-      return () => clearTimeout(timer)
+    if (!isOpen) {
+      resetModal()
     }
-  }, [finishStatus, mode, onClose])
+  }, [isOpen, resetModal])
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
@@ -56,103 +48,37 @@ export function AddParticipantsModal({ isOpen, onClose, courseId, onSuccess, cou
           className="fixed top-1/2 left-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2
                      rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-xl space-y-6"
         >
-          <div className="flex justify-between items-center border-b pb-3">
-            <Dialog.Title className="text-lg font-semibold">
-              {mode === 'manual'
-                ? 'Incluir participante manualmente'
-                : mode === 'spreadsheet'
-                ? 'Incluir via planilha'
-                : mode === 'finish'
-                ? ''
-                : 'Adicionar Participantes'}
-            </Dialog.Title>
-
-            {mode !== 'finish' && (
-              <Button onClick={onClose} variant="ghost" size="icon">
-                <X className="w-5 h-5 text-zinc-500 hover:text-zinc-700" />
-              </Button>
-            )}
-          </div>
+          <ModalHeader step={step} onClose={onClose} />
 
           <AnimatePresence mode="wait">
-            {mode === 'options' && (
-              <motion.div
-                key="options"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <OptionsStep onSelect={setMode} />
-              </motion.div>
+            {step === 'options' && (
+              <AnimatedStep stepKey="options">
+                <OptionsStep onSelect={handleSelectMode} />
+              </AnimatedStep>
             )}
 
-            {mode === 'manual' && (
-              <motion.div
-                key="manual"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <ManualForm courseId={courseId} onBack={() => setMode('options')} onFinish={handleFinish} />
-              </motion.div>
+            {step === 'manual' && (
+              <AnimatedStep stepKey="manual">
+                <ManualForm
+                  courseId={courseId}
+                  onBack={handleBack}
+                  onFinish={handleFinish}
+                />
+              </AnimatedStep>
             )}
 
-            {mode === 'spreadsheet' && (
-              <motion.div
-                key="spreadsheet"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <SpreadsheetForm onBack={() => setMode('options')} onFinish={handleFinish} courseData={courseData}/>
-              </motion.div>
+            {step === 'spreadsheet' && (
+              <AnimatedStep stepKey="spreadsheet">
+                <SpreadsheetForm
+                  onBack={handleBack}
+                  onFinish={handleFinish}
+                  courseData={courseData}
+                />
+              </AnimatedStep>
             )}
 
-            {mode === 'finish' && (
-              <motion.div
-                key="finish"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-                className="flex flex-col items-center justify-center gap-3 py-10"
-              >
-                {finishStatus === 'loading' && (
-                  <>
-                    <Loader2 className="h-10 w-10 animate-spin text-zinc-500" />
-                    <p className="text-base font-medium text-foreground">
-                      Adicionando participantes...
-                    </p>
-                  </>
-                )}
-
-                {finishStatus === 'success' && (
-                  <>
-                    <CheckCircle2 className="h-12 w-12 text-green-600" />
-                    <p className="text-base font-medium text-green-700">
-                      Participantes adicionados com sucesso!
-                    </p>
-                  </>
-                )}
-
-                {finishStatus === 'error' && (
-                  <>
-                    <XCircle className="h-12 w-12 text-red-600" />
-                    <p className="text-base font-medium text-red-700">
-                      Ocorreu um erro ao adicionar.
-                    </p>
-                    <Button
-                      onClick={() => {
-                        setMode('options')
-                      }}
-                      variant="destructive"
-                      className="mt-2"
-                    >
-                      Tentar novamente
-                    </Button>
-                  </>
-                )}
-              </motion.div>
+            {step === 'finish' && (
+              <FinishStep status={finishStatus} onRetry={handleRetry} />
             )}
           </AnimatePresence>
         </Dialog.Content>

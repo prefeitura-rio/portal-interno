@@ -14,18 +14,16 @@ import {
 } from 'lucide-react'
 import { type DragEvent, useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
-
-interface SpreadsheetFormProps {
-  onBack: () => void
-  onFinish: (success: boolean) => void
-  courseData: any
-}
+import type { SpreadsheetFormProps } from './types'
 
 interface ExpectedField {
   name: string
   required: boolean
 }
 
+/**
+ * Form for adding participants via spreadsheet upload
+ */
 export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFormProps) {
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -41,16 +39,16 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
   ]
 
   const course = courseData
-  if (course?.custom_fields?.length > 0) {
+  if (course?.custom_fields && course.custom_fields.length > 0) {
     for (const field of course.custom_fields) {
       expectedFields.push({
-        name: field.title,
+        name: field.title! || field.name!,
         required: field.required,
       })
     }
   }
 
-  if (course?.locations?.length > 1) {
+  if (course?.locations && course.locations.length > 1) {
     expectedFields.push({ name: 'Turma', required: true })
   }
 
@@ -294,7 +292,6 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
         )}
       </div>
 
-      {/* Botões */}
       <div className="flex justify-between items-center pt-4 border-t">
         <Button variant="ghost" type="button" onClick={onBack} className="gap-2">
           <ArrowLeft className="h-4 w-4" /> Voltar
