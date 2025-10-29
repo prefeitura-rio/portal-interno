@@ -661,20 +661,20 @@ export function NewServiceForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="educacao">Educação</SelectItem>
-                        <SelectItem value="cidade">Cidade</SelectItem>
-                        <SelectItem value="transporte">Transporte</SelectItem>
-                        <SelectItem value="licencas">Licenças</SelectItem>
-                        <SelectItem value="animais">Animais</SelectItem>
-                        <SelectItem value="ambiente">Ambiente</SelectItem>
-                        <SelectItem value="saude">Saúde</SelectItem>
-                        <SelectItem value="cidadania">Cidadania</SelectItem>
-                        <SelectItem value="familia">Família</SelectItem>
-                        <SelectItem value="taxas">Taxas</SelectItem>
-                        <SelectItem value="servidor">Servidor</SelectItem>
-                        <SelectItem value="cultura">Cultura</SelectItem>
-                        <SelectItem value="seguranca">Segurança</SelectItem>
-                        <SelectItem value="ouvidoria">Ouvidoria</SelectItem>
+                        <SelectItem value="Educação">Educação</SelectItem>
+                        <SelectItem value="Cidade">Cidade</SelectItem>
+                        <SelectItem value="Transporte">Transporte</SelectItem>
+                        <SelectItem value="Licenças">Licenças</SelectItem>
+                        <SelectItem value="Animais">Animais</SelectItem>
+                        <SelectItem value="Ambiente">Ambiente</SelectItem>
+                        <SelectItem value="Saúde">Saúde</SelectItem>
+                        <SelectItem value="Cidadania">Cidadania</SelectItem>
+                        <SelectItem value="Família">Família</SelectItem>
+                        <SelectItem value="Taxas">Taxas</SelectItem>
+                        <SelectItem value="Servidor">Servidor</SelectItem>
+                        <SelectItem value="Cultura">Cultura</SelectItem>
+                        <SelectItem value="Segurança">Segurança</SelectItem>
+                        <SelectItem value="Ouvidoria">Ouvidoria</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -699,25 +699,27 @@ export function NewServiceForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="geral">Público em geral</SelectItem>
-                        <SelectItem value="criancas">Crianças</SelectItem>
-                        <SelectItem value="adolescentes">
+                        <SelectItem value="Público em geral">
+                          Público em geral
+                        </SelectItem>
+                        <SelectItem value="Crianças">Crianças</SelectItem>
+                        <SelectItem value="Adolescentes">
                           Adolescentes
                         </SelectItem>
-                        <SelectItem value="jovens">Jovens</SelectItem>
-                        <SelectItem value="adultos">Adultos</SelectItem>
-                        <SelectItem value="idosos">Idosos</SelectItem>
-                        <SelectItem value="mulheres">Mulheres</SelectItem>
-                        <SelectItem value="pcd">
+                        <SelectItem value="Jovens">Jovens</SelectItem>
+                        <SelectItem value="Adultos">Adultos</SelectItem>
+                        <SelectItem value="Idosos">Idosos</SelectItem>
+                        <SelectItem value="Mulheres">Mulheres</SelectItem>
+                        <SelectItem value="Pessoas com Deficiência">
                           Pessoas com Deficiência
                         </SelectItem>
-                        <SelectItem value="empresarios">Empresários</SelectItem>
-                        <SelectItem value="estudantes">Estudantes</SelectItem>
-                        <SelectItem value="profissionais">
+                        <SelectItem value="Empresários">Empresários</SelectItem>
+                        <SelectItem value="Estudantes">Estudantes</SelectItem>
+                        <SelectItem value="Profissionais">
                           Profissionais
                         </SelectItem>
-                        <SelectItem value="familias">Famílias</SelectItem>
-                        <SelectItem value="vulnerabilidade">
+                        <SelectItem value="Famílias">Famílias</SelectItem>
+                        <SelectItem value="Pessoas em situação de vulnerabilidade">
                           Pessoas em situação de vulnerabilidade
                         </SelectItem>
                       </SelectContent>
