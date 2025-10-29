@@ -2,28 +2,28 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
-  type Column,
-  type ColumnDef,
-  type ColumnFiltersState,
-  type PaginationState,
-  type SortingState,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
+    type Column,
+    type ColumnDef,
+    type ColumnFiltersState,
+    type PaginationState,
+    type SortingState,
+    getCoreRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    useReactTable,
 } from '@tanstack/react-table'
 import {
-  Calendar,
-  CheckCircle,
-  Clock,
-  FileDown,
-  Hash,
-  Mail,
-  Phone,
-  Text,
-  User,
-  XCircle,
+    Calendar,
+    CheckCircle,
+    Clock,
+    FileDown,
+    Hash,
+    Mail,
+    Phone,
+    Text,
+    User,
+    XCircle,
 } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
@@ -31,9 +31,9 @@ import { z } from 'zod'
 
 import { DataTable } from '@/components/data-table/data-table'
 import {
-  DataTableActionBar,
-  DataTableActionBarAction,
-  DataTableActionBarSelection,
+    DataTableActionBar,
+    DataTableActionBarAction,
+    DataTableActionBarSelection,
 } from '@/components/data-table/data-table-action-bar'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
@@ -45,17 +45,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
 } from '@/components/ui/sheet'
 import { useEnrollments } from '@/hooks/use-enrollments'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import { toast } from 'sonner'
-import { AddParticipantsModal } from './add-participants/add-participants-modal'
+import { AddParticipantsModal } from './add-participants'
 
 // Constantes para validação de certificados
 const VALID_CERTIFICATE_EXTENSIONS = [

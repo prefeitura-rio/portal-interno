@@ -5,6 +5,7 @@ import { ArrowLeft, UserPlus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import type { ManualFormProps } from './types'
 
 const manualSchema = z.object({
   nome: z.string().min(3, 'Informe um nome válido'),
@@ -18,12 +19,9 @@ const manualSchema = z.object({
 
 type ManualFormData = z.infer<typeof manualSchema>
 
-interface ManualFormProps {
-  courseId: string
-  onBack: () => void
-  onFinish: (success: boolean) => void
-}
-
+/**
+ * Form for manually adding a single participant
+ */
 export function ManualForm({ courseId, onBack, onFinish }: ManualFormProps) {
   const {
     register,
