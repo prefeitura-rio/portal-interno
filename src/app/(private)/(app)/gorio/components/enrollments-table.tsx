@@ -837,7 +837,7 @@ export function EnrollmentsTable({
 
         return [
           enrollment.candidateName,
-          enrollment.cpf,
+          `${enrollment.cpf}`,
           enrollment.email,
           enrollment.phone || '',
           new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
@@ -846,7 +846,7 @@ export function EnrollmentsTable({
         ]
       }),
     ]
-      .map(row => row.map(field => `"${field}"`).join(','))
+      .map(row => row.map(field => `="${field}"`).join(','))
       .join('\n')
 
     // Create and download file with proper UTF-8 BOM for Excel compatibility
@@ -859,9 +859,13 @@ export function EnrollmentsTable({
     link.setAttribute('href', url)
 
     // Use course title if available, otherwise fallback to course ID
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, '-')
+      .slice(0, -5)
     const fileName = courseTitle
-      ? `inscricoes_curso_${courseTitle.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}`
-      : `inscricoes_curso_${courseId}`
+      ? `inscricoes_curso_${courseTitle.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}_${timestamp}`
+      : `inscricoes_curso_${courseId}_${timestamp}`
 
     link.setAttribute('download', `${fileName}.csv`)
     link.style.visibility = 'hidden'
