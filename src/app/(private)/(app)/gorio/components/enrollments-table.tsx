@@ -113,6 +113,16 @@ interface EnrollmentsTableProps {
     modalidade?: string
     /** Status atual do curso */
     status?: string
+    custom_fields?: Array<{
+      id: string
+      title: string
+      field_type: 'string'
+      required: boolean
+      options?: Array<{
+        id: string
+        value: string
+      }>
+    }>
   }
 }
 
@@ -1564,6 +1574,7 @@ export function EnrollmentsTable({
         onClose={() => setIsAddParticipantsModalOpen(false)}
         courseId={courseId}
         onSuccess={refetch}
+        courseData={course}
       />
     </div>
   )

@@ -15,19 +15,19 @@ interface AddParticipantsModalProps {
   courseId: string
   onSuccess?: () => void | Promise<void>
   courseType?: 'presencial' | 'online'
+  courseData: any
 }
 
-export function AddParticipantsModal({ isOpen, onClose, courseId, onSuccess, courseType }: AddParticipantsModalProps) {
+export function AddParticipantsModal({ isOpen, onClose, courseId, onSuccess, courseData }: AddParticipantsModalProps) {
   const [mode, setMode] = useState<'options' | 'manual' | 'spreadsheet' | 'finish'>('options')
   const [finishStatus, setFinishStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [simulateSuccess, setSimulateSuccess] = useState(true)
+  const [_simulateSuccess, setSimulateSuccess] = useState(true)
 
   const handleFinish = async (success: boolean) => {
     setMode('finish')
     setFinishStatus('loading')
     setSimulateSuccess(success)
 
-    // Simula processamento (loading -> success/erro)
     setTimeout(() => {
       setFinishStatus(success ? 'success' : 'error')
       if (success && onSuccess) {
@@ -37,7 +37,6 @@ export function AddParticipantsModal({ isOpen, onClose, courseId, onSuccess, cou
     }, 2500)
   }
 
-  // Fecha automaticamente após sucesso
   useEffect(() => {
     if (mode === 'finish' && finishStatus === 'success') {
       const timer = setTimeout(() => {
@@ -47,8 +46,6 @@ export function AddParticipantsModal({ isOpen, onClose, courseId, onSuccess, cou
       return () => clearTimeout(timer)
     }
   }, [finishStatus, mode, onClose])
-
-  // if (courseType !== 'presencial') return null
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
@@ -107,7 +104,7 @@ export function AddParticipantsModal({ isOpen, onClose, courseId, onSuccess, cou
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <SpreadsheetForm onBack={() => setMode('options')} onFinish={handleFinish} />
+                <SpreadsheetForm onBack={() => setMode('options')} onFinish={handleFinish} courseData={courseData}/>
               </motion.div>
             )}
 
