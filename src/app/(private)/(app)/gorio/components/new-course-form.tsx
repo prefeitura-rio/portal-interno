@@ -1843,14 +1843,17 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               />
 
               {/* Optional Fields Section */}
-              <Card className="w-full">
+              <Card className="w-full pointer-events-auto">
                 <CardHeader>
                   <Accordion type="single" collapsible className="w-full">
                     <AccordionItem
                       value="optional-fields"
                       className="border-none"
                     >
-                      <AccordionTrigger className="text-lg font-semibold text-foreground hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                      <AccordionTrigger
+                        disabled={false}
+                        className="text-lg font-semibold text-foreground hover:no-underline [&[data-state=open]>svg]:rotate-180"
+                      >
                         Informações Adicionais do Curso (Opcionais)
                       </AccordionTrigger>
                       <AccordionContent>
@@ -1889,6 +1892,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                     placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
                                     className="min-h-[80px]"
                                     {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
