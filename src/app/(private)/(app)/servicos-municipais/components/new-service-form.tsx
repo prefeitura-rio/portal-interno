@@ -633,12 +633,8 @@ export function NewServiceForm({
                       </FormControl>
                       <SelectContent>
                         {SECRETARIAS.map(secretaria => (
-                          <SelectItem
-                            key={secretaria.value}
-                            value={secretaria.value}
-                          >
-                            {secretaria.label}
-                            {secretaria.sigla ? ` - ${secretaria.sigla}` : ''}
+                          <SelectItem key={secretaria} value={secretaria}>
+                            {secretaria}
                           </SelectItem>
                         ))}
                       </SelectContent>

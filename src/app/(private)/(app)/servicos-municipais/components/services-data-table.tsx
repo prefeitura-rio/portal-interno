@@ -24,7 +24,7 @@ import {
 import { useServiceOperationsWithTombamento } from '@/hooks/use-service-operations-with-tombamento'
 import { useServices } from '@/hooks/use-services'
 import { useTombamentos } from '@/hooks/use-tombamentos'
-import { SECRETARIAS, getSecretariaByValue } from '@/lib/secretarias'
+import { SECRETARIAS } from '@/lib/secretarias'
 import type {
   ServiceListItem,
   ServiceStatus,
@@ -541,13 +541,13 @@ export function ServicesDataTable() {
         cell: ({ cell }) => {
           const managingOrganValue =
             cell.getValue<ServiceListItem['managingOrgan']>()
-          const secretaria = getSecretariaByValue(managingOrganValue)
-          const displayName = secretaria?.label || managingOrganValue
 
           return (
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="max-w-[200px] truncate">{displayName}</span>
+              <span className="max-w-[200px] truncate">
+                {managingOrganValue}
+              </span>
             </div>
           )
         },
@@ -948,7 +948,10 @@ export function ServicesDataTable() {
       <div className="flex flex-col pb-4">
         <Label className="py-4">Selecione uma secretaria</Label>
         <Combobox
-          options={SECRETARIAS}
+          options={SECRETARIAS.map(secretaria => ({
+            value: secretaria,
+            label: secretaria,
+          }))}
           value={selectedSecretaria}
           onValueChange={handleSecretariaChange}
           placeholder="Todas as secretarias"
