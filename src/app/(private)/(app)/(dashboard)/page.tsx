@@ -11,9 +11,10 @@ export default async function Dashboard() {
   }
   return (
     <ContentLayout title="Dashboard">
-      <div className="w-full pt-[6vh] text-lg flex items-center justify-center">
-        Quando o sistema estiver populado, aqui serão exibidos alertas, novas
-        candidaturas, estatísticas úteis, resumos de processos, etc.
+      <div className="w-full pt-[6vh] text-lg flex items-center justify-center text-center text-muted-foreground max-w-xl mx-auto">
+        Este painel apresentará alertas, indicadores de desempenho, candidaturas
+        recentes, estatísticas operacionais e acompanhamento de processos em
+        andamento.
       </div>
     </ContentLayout>
   )
