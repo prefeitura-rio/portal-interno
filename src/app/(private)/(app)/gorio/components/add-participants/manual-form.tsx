@@ -8,13 +8,13 @@ import { z } from 'zod'
 import type { ManualFormProps } from './types'
 
 const manualSchema = z.object({
-  nome: z.string().min(3, 'Informe um nome válido'),
-  cpf: z.string().min(11, 'CPF inválido').max(14, 'CPF inválido'),
-  idade: z.coerce.number().min(1, 'Idade inválida'),
-  telefone: z.string().min(8, 'Telefone inválido').max(15, 'Telefone inválido'),
-  email: z.string().email('E-mail inválido'),
-  endereco: z.string().min(3, 'Endereço obrigatório'),
-  bairro: z.string().min(2, 'Bairro obrigatório'),
+  name: z.string().min(3, 'Informe um nome válido').max(100, 'Nome muito longo'),
+  cpf: z.string().length(11, 'CPF deve ter 11 dígitos sem pontuação'),
+  age: z.coerce.number().min(1, 'Idade inválida').max(150, 'Idade inválida'),
+  phone: z.string().min(10, 'Telefone inválido').max(11, 'Telefone deve ter 10 ou 11 dígitos'),
+  email: z.string().email('E-mail inválido').max(100, 'E-mail muito longo'),
+  address: z.string().min(3, 'Endereço obrigatório').max(200, 'Endereço muito longo'),
+  neighborhood: z.string().min(2, 'Bairro obrigatório').max(50, 'Bairro muito longo'),
 })
 
 type ManualFormData = z.infer<typeof manualSchema>
@@ -69,19 +69,26 @@ export function ManualForm({ courseId, onBack, onFinish }: ManualFormProps) {
 
       <div className="grid grid-cols-2 gap-4">
         {[
-          { name: 'nome', label: 'Nome Completo', type: 'text' },
-          { name: 'cpf', label: 'CPF', type: 'text' },
-          { name: 'idade', label: 'Idade', type: 'number' },
-          { name: 'telefone', label: 'Telefone', type: 'text' },
-          { name: 'email', label: 'E-mail', type: 'email' },
-          { name: 'endereco', label: 'Endereço', type: 'text' },
-          { name: 'bairro', label: 'Bairro', type: 'text' },
+          { name: 'name', label: 'Nome Completo', type: 'text', placeholder: 'Ex: João da Silva', maxLength: 100 },
+          { name: 'cpf', label: 'CPF', type: 'text', placeholder: '1234567891011', maxLength: 11 },
+          { name: 'age', label: 'Idade', type: 'number', placeholder: '18', max: 150 },
+          { name: 'phone', label: 'Telefone', type: 'text', placeholder: '21999999999', maxLength: 11 },
+          { name: 'email', label: 'E-mail', type: 'email', placeholder: 'exemplo@email.com', maxLength: 100 },
+          { name: 'address', label: 'Endereço', type: 'text', placeholder: 'Rua, número, complemento', maxLength: 200 },
+          { name: 'neighborhood', label: 'Bairro', type: 'text', placeholder: 'Ex: Centro', maxLength: 50 },
         ].map((field) => (
           <div key={field.name} className="flex flex-col gap-1">
             <label className="text-sm font-medium text-foreground/80" htmlFor={field.name}>
               {field.label}
             </label>
-            <Input id={field.name} type={field.type} {...register(field.name as keyof ManualFormData)} />
+            <Input
+              id={field.name}
+              type={field.type}
+              placeholder={field.placeholder}
+              maxLength={field.maxLength}
+              max={field.max}
+              {...register(field.name as keyof ManualFormData)}
+            />
             {errors[field.name as keyof ManualFormData] && (
               <p className="text-xs text-red-500">
                 {errors[field.name as keyof ManualFormData]?.message?.toString()}
