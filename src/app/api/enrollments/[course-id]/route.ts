@@ -367,9 +367,9 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { nome, cpf, idade, telefone, email, endereco, bairro } = body
+    const { name, cpf, age, phone, email, address, neighborhood } = body
 
-    if (!nome || !cpf || !idade || !telefone || !email || !endereco || !bairro) {
+    if (!name || !cpf || !age || !phone || !email || !address || !neighborhood) {
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }
@@ -380,13 +380,13 @@ export async function POST(
     const response = await postApiV1CoursesCourseIdEnrollmentsManual(
       Number.parseInt(courseId, 10),
       {
-        nome,
+        name,
         cpf,
-        idade,
-        telefone,
+        age,
+        phone,
         email,
-        endereco,
-        bairro,
+        address,
+        neighborhood,
       }
     )
 

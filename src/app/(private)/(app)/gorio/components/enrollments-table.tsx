@@ -56,7 +56,7 @@ import { useEnrollments } from '@/hooks/use-enrollments'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { AddParticipantsModal } from './add-participants/add-participants-modal'
+import { AddParticipantsModal } from './add-participants'
 
 // Constantes para validação de certificados
 const VALID_CERTIFICATE_EXTENSIONS = [

@@ -1,9 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Upload, UserPlus } from 'lucide-react'
-
-interface OptionsStepProps {
-  onSelect: (mode: 'manual' | 'spreadsheet') => void
-}
+import type { OptionsStepProps } from './types'
 
 export function OptionsStep({ onSelect }: OptionsStepProps) {
   return (
