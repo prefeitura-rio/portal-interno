@@ -21,7 +21,7 @@ import {
 } from '@/hooks/use-heimdall-user'
 import { useService } from '@/hooks/use-service'
 import { useServiceOperations } from '@/hooks/use-service-operations'
-import { useTombamentos, type Tombamento } from '@/hooks/use-tombamentos'
+import { type Tombamento, useTombamentos } from '@/hooks/use-tombamentos'
 import { transformToApiRequest } from '@/lib/service-data-transformer'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
@@ -649,6 +649,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             targetAudience: service.targetAudience,
             title: service.title,
             shortDescription: service.shortDescription,
+            urlServico: service.urlServico,
             whatServiceDoesNotCover: service.whatServiceDoesNotCover,
             serviceTime: service.serviceTime,
             serviceCost: service.serviceCost,

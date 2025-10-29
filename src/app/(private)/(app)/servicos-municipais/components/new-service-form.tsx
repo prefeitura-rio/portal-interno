@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Trash2 } from 'lucide-react'
+import { Info, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -27,6 +27,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
@@ -62,6 +67,24 @@ const serviceFormSchema = z.object({
     .max(500, {
       message: 'Descrição resumida não pode exceder 500 caracteres.',
     }),
+  urlServico: z
+    .string()
+    .refine(
+      url => {
+        // Allow empty strings (optional field)
+        if (!url || url.trim() === '') return true
+        // Validate URL format
+        try {
+          new URL(url)
+        } catch {
+          return false
+        }
+        return true
+      },
+      { message: 'URL inválida.' }
+    )
+    .optional()
+    .or(z.literal('')),
   whatServiceDoesNotCover: z
     .string()
     .max(300, { message: 'Este campo não pode exceder 300 caracteres.' })
@@ -121,6 +144,7 @@ const defaultValues: ServiceFormData = {
   targetAudience: '',
   title: '',
   shortDescription: '',
+  urlServico: '',
   whatServiceDoesNotCover: '',
   serviceTime: '',
   serviceCost: '',
@@ -439,7 +463,7 @@ export function NewServiceForm({
 
     try {
       console.log('Enviando serviço para aprovação:', pendingFormData)
-      
+
       if (onSendToApproval) {
         // For editing existing services - use the provided handler
         onSendToApproval()
@@ -456,11 +480,11 @@ export function NewServiceForm({
           await createService(apiData)
           toast.success('Serviço criado e enviado para aprovação!')
         }
-        
+
         // Redirect to services table with awaiting_approval tab
         router.push('/servicos-municipais/servicos?tab=awaiting_approval')
       }
-      
+
       setPendingFormData(null)
       setShowSendToApprovalDialog(false)
     } catch (error) {
@@ -735,6 +759,38 @@ export function NewServiceForm({
                       <Textarea
                         className="min-h-[100px]"
                         placeholder="Descreva resumidamente o serviço oferecido"
+                        {...field}
+                        disabled={isLoading || readOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="urlServico"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>Url do serviço</FormLabel>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-70!">
+                          <p>
+                            Url da página nativa do serviço no pref.rio,
+                            referente ao botão de "acessar serviço" na página de
+                            descrição.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <FormControl>
+                      <Input
+                        placeholder="https://pref.rio/servicos/iptu"
                         {...field}
                         disabled={isLoading || readOnly}
                       />
