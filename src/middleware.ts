@@ -96,7 +96,7 @@ export async function middleware(request: NextRequest) {
   // TODO: Remove this block once the feature is ready
   if (
     path.includes('oportunidades-mei') &&
-    process.env.NEXT_PUBLIC_BLOCK_EMPREGABILIDADE === 'true'
+    process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
   ) {
     return await handleUnauthorizedUser(
       request,
