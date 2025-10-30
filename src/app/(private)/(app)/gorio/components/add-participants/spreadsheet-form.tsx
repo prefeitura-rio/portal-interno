@@ -13,6 +13,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { type DragEvent, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import type { SpreadsheetFormProps } from './types'
 
@@ -24,21 +25,34 @@ interface ExpectedField {
 /**
  * Form for adding participants via spreadsheet upload
  */
-export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFormProps) {
+export function SpreadsheetForm({
+  onBack,
+  onFinish,
+  courseId,
+  courseData,
+}: SpreadsheetFormProps) {
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [validation, setValidation] = useState<Record<string, 'ok' | 'missing' | 'optional'>>({})
+  const [validation, setValidation] = useState<
+    Record<string, 'ok' | 'missing' | 'optional'>
+  >({})
   const [missingFields, setMissingFields] = useState<string[]>([])
+  const [isUploading, setIsUploading] = useState(false)
   const dragCounter = useRef(0)
 
   const expectedFields: ExpectedField[] = [
-    { name: 'Nome', required: true },
-    { name: 'CPF', required: true },
-    { name: 'Idade', required: true },
+    { name: 'nome_completo', required: true },
+    { name: 'cpf', required: true },
+    { name: 'idade', required: false },
+    { name: 'telefone', required: false },
+    { name: 'email', required: true },
+    { name: 'endereco', required: false },
+    { name: 'bairro', required: false },
   ]
 
   const course = courseData
+
   if (course?.custom_fields && course.custom_fields.length > 0) {
     for (const field of course.custom_fields) {
       expectedFields.push({
@@ -122,7 +136,7 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
     const workbook = XLSX.read(data, { type: 'array' })
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 })
-    const headerRow = rows[0]?.map((cell) => String(cell).trim().toLowerCase())
+    const headerRow = rows[0]?.map(cell => String(cell).trim().toLowerCase())
 
     if (!headerRow || headerRow.length === 0) {
       setError('Não foi possível ler o cabeçalho da planilha.')
@@ -134,7 +148,7 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
 
     for (const field of expectedFields) {
       const found = headerRow.some(
-        (col) => col === field.name.toLowerCase().trim()
+        col => col === field.name.toLowerCase().trim()
       )
       if (found) {
         status[field.name] = 'ok'
@@ -171,7 +185,8 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
           {
             'border-primary bg-primary/10': isDragging,
             'border-red-400 hover:border-red-500 bg-red-50/20': error,
-            'border-green-400 hover:border-green-500 bg-green-50/20': file && !error,
+            'border-green-400 hover:border-green-500 bg-green-50/20':
+              file && !error,
             'border-zinc-300 hover:border-primary/40 bg-zinc-50/50 dark:bg-zinc-900/40':
               !file && !error && !isDragging,
           }
@@ -190,11 +205,15 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
             <Upload className="h-8 w-8 mb-2 text-zinc-500" />
             <p className="text-sm">
               {isDragging ? (
-                <span className="text-primary font-medium">Solte o arquivo aqui</span>
+                <span className="text-primary font-medium">
+                  Solte o arquivo aqui
+                </span>
               ) : (
                 <>
                   Arraste o arquivo aqui ou{' '}
-                  <span className="text-primary font-medium">clique para selecionar</span>
+                  <span className="text-primary font-medium">
+                    clique para selecionar
+                  </span>
                 </>
               )}
             </p>
@@ -219,7 +238,7 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
 
               <button
                 type="button"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation()
                   removeFile()
                 }}
@@ -244,18 +263,17 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
       </label>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-medium">Campos esperados para inscrição deste curso:</h3>
+        <h3 className="text-sm font-medium">
+          Campos esperados para inscrição deste curso:
+        </h3>
         <ul className="space-y-1">
-          {expectedFields.map((field) => {
+          {expectedFields.map(field => {
             const status = validation[field.name]
             const isOk = status === 'ok'
             const isMissing = status === 'missing'
 
             return (
-              <li
-                key={field.name}
-                className="flex items-center text-sm gap-2"
-              >
+              <li key={field.name} className="flex items-center text-sm gap-2">
                 {isOk ? (
                   <Check className="text-green-500 h-4 w-4" />
                 ) : isMissing ? (
@@ -282,7 +300,9 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
         {file && (
           <div className="text-sm mt-3">
             {missingFields.length === 0 ? (
-              <p className="text-green-600">✅ Todos os campos obrigatórios estão presentes.</p>
+              <p className="text-green-600">
+                ✅ Todos os campos obrigatórios estão presentes.
+              </p>
             ) : (
               <p className="text-red-600">
                 ⚠️ Os campos obrigatórios ausentes: {missingFields.join(', ')}.
@@ -293,23 +313,54 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
       </div>
 
       <div className="flex justify-between items-center pt-4 border-t">
-        <Button variant="ghost" type="button" onClick={onBack} className="gap-2">
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={onBack}
+          className="gap-2"
+        >
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         <Button
-          disabled={!file || !!error || missingFields.length > 0}
+          // disabled={!file || !!error || missingFields.length > 0 || isUploading}
           className="gap-2"
           onClick={async () => {
             if (!file) return
+
+            setIsUploading(true)
             try {
-              onFinish(true)
-            } catch {
+              const formData = new FormData()
+              formData.append('file', file)
+
+              const response = await fetch(
+                `/api/enrollments/${courseId}/import`,
+                {
+                  method: 'POST',
+                  body: formData,
+                }
+              )
+
+              if (response.ok) {
+                onFinish(true)
+              } else {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Erro ao enviar planilha')
+              }
+            } catch (error) {
+              console.error('Erro ao enviar planilha:', error)
+              toast.error(
+                error instanceof Error
+                  ? error.message
+                  : 'Erro ao enviar planilha. Tente novamente.'
+              )
               onFinish(false)
+            } finally {
+              setIsUploading(false)
             }
           }}
         >
           <FileSpreadsheet className="h-4 w-4" />
-          Enviar
+          {isUploading ? 'Enviando...' : 'Enviar'}
         </Button>
       </div>
     </div>

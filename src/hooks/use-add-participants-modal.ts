@@ -28,12 +28,8 @@ export function useAddParticipantsModal({
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
       setFinishStatus(success ? 'success' : 'error')
-
-      if (success && onSuccess) {
-        await onSuccess()
-      }
     },
-    [onSuccess]
+    []
   )
 
   const handleBack = useCallback(() => {
@@ -59,14 +55,17 @@ export function useAddParticipantsModal({
 
   useEffect(() => {
     if (step === 'finish' && finishStatus === 'success') {
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
+        if (onSuccess) {
+          await onSuccess()
+        }
         onClose()
         resetModal()
       }, 2000)
 
       return () => clearTimeout(timer)
     }
-  }, [step, finishStatus, onClose, resetModal])
+  }, [step, finishStatus, onClose, resetModal, onSuccess])
 
   return {
     step,
