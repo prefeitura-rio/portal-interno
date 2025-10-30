@@ -1,6 +1,5 @@
 import {
   getApiV1CoursesCourseIdEnrollments,
-  postApiV1CoursesCourseIdEnrollmentsManual,
   putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus,
   putApiV1CoursesCourseIdEnrollmentsStatus,
 } from '@/http-gorio/inscricoes/inscricoes'
@@ -345,68 +344,6 @@ export async function PUT(
     return NextResponse.json(
       {
         error: 'Failed to update enrollment statuses',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    )
-  }
-}
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ 'course-id': string }> }
-) {
-  try {
-    const { 'course-id': courseId } = await params
-
-    if (!courseId) {
-      return NextResponse.json(
-        { error: 'Course ID is required' },
-        { status: 400 }
-      )
-    }
-
-    const body = await request.json()
-    const { name, cpf, age, phone, email, address, neighborhood } = body
-
-    if (!name || !cpf || !age || !phone || !email || !address || !neighborhood) {
-      return NextResponse.json(
-        { error: 'All fields are required' },
-        { status: 400 }
-      )
-    }
-
-    // Call the API to create manual enrollment
-    const response = await postApiV1CoursesCourseIdEnrollmentsManual(
-      Number.parseInt(courseId, 10),
-      {
-        name,
-        cpf,
-        age,
-        phone,
-        email,
-        address,
-        neighborhood,
-      }
-    )
-
-    if (response.status === 201) {
-      const apiEnrollment = response.data as ModelsInscricao
-      const newEnrollment = convertApiEnrollmentToFrontend(apiEnrollment)
-
-      return NextResponse.json(newEnrollment, { status: 201 })
-    }
-
-    // Handle error responses
-    return NextResponse.json(
-      { error: 'Failed to create manual enrollment' },
-      { status: response.status }
-    )
-  } catch (error) {
-    console.error('Error creating manual enrollment:', error)
-    return NextResponse.json(
-      {
-        error: 'Failed to create manual enrollment',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }

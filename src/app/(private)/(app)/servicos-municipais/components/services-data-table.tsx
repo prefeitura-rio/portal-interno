@@ -3,10 +3,8 @@
 import { DataTable } from '@/components/data-table/data-table'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
-import { TombamentoModal } from '@/components/tombamento-modal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Combobox } from '@/components/ui/combobox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   DropdownMenu,
@@ -14,22 +12,26 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
-import {
-  useCanEditBuscaServices,
-  useIsBuscaServicesAdmin,
-} from '@/hooks/use-heimdall-user'
-import { useServiceOperationsWithTombamento } from '@/hooks/use-service-operations-with-tombamento'
+import { useServiceOperations } from '@/hooks/use-service-operations'
 import { useServices } from '@/hooks/use-services'
-import { useTombamentos } from '@/hooks/use-tombamentos'
-import { SECRETARIAS } from '@/lib/secretarias'
+import {
+  useHasElevatedPermissions,
+  useIsAdmin,
+  useUserRole,
+} from '@/hooks/use-user-role'
+import { getSecretariaByValue } from '@/lib/secretarias'
 import type {
   ServiceListItem,
   ServiceStatus,
   ServiceStatusConfig,
 } from '@/types/service'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+import { Combobox } from '@/components/ui/combobox'
+import { Label } from '@/components/ui/label'
+import { SECRETARIAS } from '@/lib/secretarias'
 import {
   type Column,
   type ColumnDef,
@@ -42,8 +44,6 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
-  AlertCircle,
-  Archive,
   Building2,
   Calendar,
   CheckCircle,
@@ -53,13 +53,11 @@ import {
   FileText,
   MoreHorizontal,
   Play,
-  Send,
   Square,
   Text,
   Trash2,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
 import * as React from 'react'
 
 // Status configuration for badges
@@ -87,21 +85,15 @@ const statusConfig: Record<ServiceStatus, ServiceStatusConfig> = {
 export function ServicesDataTable() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
-  const canEditServices = useCanEditBuscaServices()
+  const isAdmin = useIsAdmin()
+  const hasElevatedPermissions = useHasElevatedPermissions()
+  const userRole = useUserRole()
   const {
     publishService,
     unpublishService,
     deleteService,
-    sendToApproval,
-    sendToEdition,
     loading: operationLoading,
-    showTombamentoModal: showPublishTombamentoModal,
-    selectedServiceForTombamento: selectedPublishServiceForTombamento,
-    handleTombamentoSuccess: handlePublishTombamentoSuccess,
-    handleTombamentoCancel: handlePublishTombamentoCancel,
-  } = useServiceOperationsWithTombamento()
-  const { fetchTombamentos, deleteTombamento } = useTombamentos()
+  } = useServiceOperations()
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'last_update', desc: true },
@@ -140,16 +132,6 @@ export function ServicesDataTable() {
   )
   const [isRefreshingAfterOperation, setIsRefreshingAfterOperation] =
     React.useState(false)
-  const [showTombamentoModal, setShowTombamentoModal] = React.useState(false)
-  const [selectedServiceForTombamento, setSelectedServiceForTombamento] =
-    React.useState<{ id: string; title: string } | null>(null)
-  const [tombamentosMap, setTombamentosMap] = React.useState<
-    Map<string, boolean>
-  >(new Map())
-  const [tombamentosData, setTombamentosData] = React.useState<
-    Map<string, { id: string; origem: string; id_servico_antigo: string }>
-  >(new Map())
-  const [tombamentosLoading, setTombamentosLoading] = React.useState(false)
 
   // Use the services hook to fetch data from API
   const {
@@ -176,47 +158,6 @@ export function ServicesDataTable() {
       }))
     }
   }, [apiPagination])
-
-  // Check tombamentos for published services
-  React.useEffect(() => {
-    const checkTombamentos = async () => {
-      if (services.length > 0 && activeTab === 'published') {
-        setTombamentosLoading(true)
-        try {
-          const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
-          if (tombamentosResponse?.data?.tombamentos) {
-            const tombamentos = tombamentosResponse.data.tombamentos
-            const newTombamentosMap = new Map<string, boolean>()
-            const newTombamentosData = new Map<
-              string,
-              { id: string; origem: string; id_servico_antigo: string }
-            >()
-
-            // Create a map of service IDs that have tombamentos
-            tombamentos.forEach(tombamento => {
-              newTombamentosMap.set(tombamento.id_servico_novo, true)
-              newTombamentosData.set(tombamento.id_servico_novo, {
-                id: tombamento.id,
-                origem: tombamento.origem,
-                id_servico_antigo: tombamento.id_servico_antigo,
-              })
-            })
-
-            setTombamentosMap(newTombamentosMap)
-            setTombamentosData(newTombamentosData)
-          }
-        } catch (error) {
-          console.error('Error checking tombamentos:', error)
-        } finally {
-          setTombamentosLoading(false)
-        }
-      } else {
-        setTombamentosLoading(false)
-      }
-    }
-
-    checkTombamentos()
-  }, [services, activeTab, fetchTombamentos])
 
   // Debounced search function
   const debouncedSearch = useDebouncedCallback((query: string) => {
@@ -288,7 +229,7 @@ export function ServicesDataTable() {
           try {
             setIsRefreshingAfterOperation(true)
             console.log('🔄 Starting publish service operation...')
-            await publishService(serviceId, serviceName)
+            await publishService(serviceId)
             // Add a small delay to ensure API changes are processed
             await new Promise(resolve => setTimeout(resolve, 500))
             console.log('🔄 Refetching services after publish...')
@@ -364,152 +305,9 @@ export function ServicesDataTable() {
     [openConfirmDialog, deleteService, refetch]
   )
 
-  const handleTombarService = React.useCallback(
-    (serviceId: string, serviceTitle: string) => {
-      setSelectedServiceForTombamento({ id: serviceId, title: serviceTitle })
-      setShowTombamentoModal(true)
-    },
-    []
-  )
-
-  const handleDestombarService = React.useCallback(
-    (serviceId: string, serviceTitle: string) => {
-      const tombamentoData = tombamentosData.get(serviceId)
-      if (!tombamentoData) return
-
-      openConfirmDialog({
-        title: 'Destombar Serviço',
-        description: `Tem certeza que deseja destombar o serviço "${serviceTitle}"? Isso irá reverter a migração e o serviço antigo voltará a aparecer normalmente.`,
-        confirmText: 'Destombar',
-        variant: 'destructive',
-        onConfirm: async () => {
-          try {
-            console.log('🔄 Starting destombar service operation...')
-            const success = await deleteTombamento(tombamentoData.id)
-
-            if (success) {
-              // Immediately update local state to remove the tombamento
-              setTombamentosMap(prev => {
-                const newMap = new Map(prev)
-                newMap.delete(serviceId)
-                return newMap
-              })
-              setTombamentosData(prev => {
-                const newData = new Map(prev)
-                newData.delete(serviceId)
-                return newData
-              })
-              console.log('✅ Tombamento removed from local state')
-            } else {
-              console.error('❌ Failed to destombar service')
-            }
-          } catch (error) {
-            console.error('❌ Error in destombar service flow:', error)
-          }
-        },
-      })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [openConfirmDialog, deleteTombamento, tombamentosData]
-  )
-
-  const handleSendToApproval = React.useCallback(
-    (serviceId: string, serviceName: string) => {
-      openConfirmDialog({
-        title: 'Enviar para Aprovação',
-        description: `Tem certeza que deseja enviar o serviço "${serviceName}" para aprovação? Um administrador precisará revisar antes da publicação.`,
-        confirmText: 'Enviar',
-        variant: 'default',
-        onConfirm: async () => {
-          try {
-            setIsRefreshingAfterOperation(true)
-            console.log('🔄 Starting send to approval operation...')
-            await sendToApproval(serviceId)
-            // Add a small delay to ensure API changes are processed
-            await new Promise(resolve => setTimeout(resolve, 500))
-            console.log('🔄 Refetching services after send to approval...')
-            setLastRefreshTimestamp(Date.now())
-            await refetch()
-            console.log('✅ Services list refreshed after send to approval')
-          } catch (error) {
-            console.error('❌ Error in send to approval flow:', error)
-          } finally {
-            setIsRefreshingAfterOperation(false)
-          }
-        },
-      })
-    },
-    [openConfirmDialog, sendToApproval, refetch]
-  )
-
-  const handleSendToEdition = React.useCallback(
-    (serviceId: string, serviceName: string) => {
-      openConfirmDialog({
-        title: 'Enviar para Edição',
-        description: `Tem certeza que deseja enviar o serviço "${serviceName}" de volta para edição? Ele sairá do estado de aprovação.`,
-        confirmText: 'Enviar',
-        variant: 'default',
-        onConfirm: async () => {
-          try {
-            setIsRefreshingAfterOperation(true)
-            console.log('🔄 Starting send to edition operation...')
-            await sendToEdition(serviceId)
-            // Add a small delay to ensure API changes are processed
-            await new Promise(resolve => setTimeout(resolve, 500))
-            console.log('🔄 Refetching services after send to edition...')
-            setLastRefreshTimestamp(Date.now())
-            await refetch()
-            console.log('✅ Services list refreshed after send to edition')
-          } catch (error) {
-            console.error('❌ Error in send to edition flow:', error)
-          } finally {
-            setIsRefreshingAfterOperation(false)
-          }
-        },
-      })
-    },
-    [openConfirmDialog, sendToEdition, refetch]
-  )
-
-  const handleTombamentoSuccess = React.useCallback(() => {
-    // Refresh tombamentos map
-    const refreshTombamentos = async () => {
-      setTombamentosLoading(true)
-      try {
-        const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
-        if (tombamentosResponse?.data?.tombamentos) {
-          const tombamentos = tombamentosResponse.data.tombamentos
-          const newTombamentosMap = new Map<string, boolean>()
-          const newTombamentosData = new Map<
-            string,
-            { id: string; origem: string; id_servico_antigo: string }
-          >()
-
-          tombamentos.forEach(tombamento => {
-            newTombamentosMap.set(tombamento.id_servico_novo, true)
-            newTombamentosData.set(tombamento.id_servico_novo, {
-              id: tombamento.id,
-              origem: tombamento.origem,
-              id_servico_antigo: tombamento.id_servico_antigo,
-            })
-          })
-
-          setTombamentosMap(newTombamentosMap)
-          setTombamentosData(newTombamentosData)
-        }
-      } catch (error) {
-        console.error('Error refreshing tombamentos:', error)
-      } finally {
-        setTombamentosLoading(false)
-      }
-    }
-
-    refreshTombamentos()
-  }, [fetchTombamentos])
-
   // Define table columns
   const columns = React.useMemo<ColumnDef<ServiceListItem>[]>(() => {
-    const baseColumns: ColumnDef<ServiceListItem>[] = [
+    return [
       {
         id: 'title',
         accessorKey: 'title',
@@ -541,13 +339,13 @@ export function ServicesDataTable() {
         cell: ({ cell }) => {
           const managingOrganValue =
             cell.getValue<ServiceListItem['managingOrgan']>()
+          const secretaria = getSecretariaByValue(managingOrganValue)
+          const displayName = secretaria?.label || managingOrganValue
 
           return (
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="max-w-[200px] truncate">
-                {managingOrganValue}
-              </span>
+              <span className="max-w-[200px] truncate">{displayName}</span>
             </div>
           )
         },
@@ -564,13 +362,8 @@ export function ServicesDataTable() {
         accessorKey: 'published_at',
         accessorFn: row => {
           if (!row.published_at) return null
-          // Extract date components and create local date to avoid timezone issues
-          const sourceDate = new Date(row.published_at)
-          const date = new Date(
-            sourceDate.getFullYear(),
-            sourceDate.getMonth(),
-            sourceDate.getDate()
-          )
+          const date = new Date(row.published_at)
+          date.setHours(0, 0, 0, 0)
           return date.getTime()
         },
         header: ({ column }: { column: Column<ServiceListItem, unknown> }) => (
@@ -600,13 +393,8 @@ export function ServicesDataTable() {
         id: 'last_update',
         accessorKey: 'last_update',
         accessorFn: row => {
-          // Extract date components and create local date to avoid timezone issues
-          const sourceDate = new Date(row.last_update)
-          const date = new Date(
-            sourceDate.getFullYear(),
-            sourceDate.getMonth(),
-            sourceDate.getDate()
-          )
+          const date = new Date(row.last_update)
+          date.setHours(0, 0, 0, 0)
           return date.getTime()
         },
         header: ({ column }: { column: Column<ServiceListItem, unknown> }) => (
@@ -657,236 +445,115 @@ export function ServicesDataTable() {
         },
         enableColumnFilter: false,
       },
-    ]
-
-    // Add tombamento column only for published services
-    if (activeTab === 'published') {
-      baseColumns.push({
-        id: 'tombamento_pendente',
-        accessorKey: 'id',
-        header: ({ column }: { column: Column<ServiceListItem, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Tombamento" />
-        ),
-        cell: ({ row }: { row: any }) => {
+      {
+        id: 'actions',
+        cell: function Cell({ row }) {
           const service = row.original
-          const hasTombamento = tombamentosMap.get(service.id)
 
-          // Show loading skeleton while tombamentos are being fetched
-          if (tombamentosLoading) {
-            return (
-              <div className="flex items-center gap-2">
-                <div className="animate-pulse">
-                  <div className="h-5 w-22 bg-muted rounded-full" />
-                </div>
-              </div>
-            )
+          // Helper function to check if user can edit the service
+          const canEditService = () => {
+            if (!userRole) return false
+
+            // Admin and geral users can always edit services
+            if (userRole === 'admin' || userRole === 'geral') {
+              return true
+            }
+
+            // Editor users can only edit services that are not published
+            if (userRole === 'editor') {
+              return service.status !== 'published'
+            }
+
+            return false
           }
 
           return (
             <div className="flex items-center gap-2">
-              {hasTombamento ? (
-                <Badge
-                  variant="outline"
-                  className="text-green-600 border-green-200 bg-green-50"
-                >
-                  <Archive className="w-3 h-3 mr-1" />
-                  Tombado
-                </Badge>
-              ) : (
-                <Badge
-                  variant="outline"
-                  className="text-orange-600 border-orange-200 bg-orange-50"
-                >
-                  <AlertCircle className="w-3 h-3 mr-1" />
-                  Pendente
-                </Badge>
-              )}
-            </div>
-          )
-        },
-        meta: {
-          label: 'Tombamento',
-          variant: 'select',
-          icon: Archive,
-        },
-        enableColumnFilter: false,
-      })
-    }
-
-    baseColumns.push({
-      id: 'actions',
-      cell: function Cell({ row }) {
-        const service = row.original
-
-        // Helper function to check if user can edit the service
-        const canEditService = () => {
-          // Admins can always edit
-          if (isBuscaServicesAdmin) {
-            return true
-          }
-
-          // Editors can only edit services that are not published
-          if (canEditServices) {
-            return service.status !== 'published'
-          }
-
-          return false
-        }
-
-        return (
-          <div className="flex items-center gap-2">
-            {/* More actions dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Abrir menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link
-                    href={`/servicos-municipais/servicos/servico/${service.id}`}
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    Visualizar
-                  </Link>
-                </DropdownMenuItem>
-                {canEditService() && (
+              {/* More actions dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Abrir menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
                     <Link
                       href={`/servicos-municipais/servicos/servico/${service.id}`}
                     >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
+                      <Eye className="mr-2 h-4 w-4" />
+                      Visualizar
                     </Link>
                   </DropdownMenuItem>
-                )}
-                {/* Send to approval - only for editors on in_edition status */}
-                {!isBuscaServicesAdmin &&
-                  canEditServices &&
-                  service.status === 'in_edition' && (
-                    <DropdownMenuItem
-                      onClick={e => {
-                        e.stopPropagation()
-                        handleSendToApproval(service.id, service.title)
-                      }}
-                      disabled={operationLoading || isRefreshingAfterOperation}
-                    >
-                      <Send className="mr-2 h-4 w-4" />
-                      Enviar para aprovação
+                  {canEditService() && (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href={`/servicos-municipais/servicos/servico/${service.id}`}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </Link>
                     </DropdownMenuItem>
                   )}
-                {/* Send to edition - for both admins and editors on awaiting_approval status */}
-                {canEditServices && service.status === 'awaiting_approval' && (
-                  <DropdownMenuItem
-                    onClick={e => {
-                      e.stopPropagation()
-                      handleSendToEdition(service.id, service.title)
-                    }}
-                    disabled={operationLoading || isRefreshingAfterOperation}
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    Enviar para edição
-                  </DropdownMenuItem>
-                )}
-                {isBuscaServicesAdmin && (
-                  <>
-                    {service.status === 'published' ? (
-                      <DropdownMenuItem
-                        onClick={e => {
-                          e.stopPropagation()
-                          handleUnpublishService(service.id, service.title)
-                        }}
-                        disabled={
-                          operationLoading || isRefreshingAfterOperation
-                        }
-                      >
-                        <Square className="mr-2 h-4 w-4" />
-                        Despublicar
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem
-                        onClick={e => {
-                          e.stopPropagation()
-                          handlePublishService(service.id, service.title)
-                        }}
-                        disabled={
-                          operationLoading || isRefreshingAfterOperation
-                        }
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Publicar
-                      </DropdownMenuItem>
-                    )}
-                    {service.status === 'published' &&
-                      !tombamentosMap.get(service.id) && (
+                  {isAdmin && (
+                    <>
+                      {service.status === 'published' ? (
                         <DropdownMenuItem
                           onClick={e => {
                             e.stopPropagation()
-                            handleTombarService(service.id, service.title)
+                            handleUnpublishService(service.id, service.title)
                           }}
                           disabled={
                             operationLoading || isRefreshingAfterOperation
                           }
                         >
-                          <Archive className="mr-2 h-4 w-4" />
-                          Tombar
+                          <Square className="mr-2 h-4 w-4" />
+                          Despublicar
                         </DropdownMenuItem>
-                      )}
-                    {service.status === 'published' &&
-                      tombamentosMap.get(service.id) && (
+                      ) : (
                         <DropdownMenuItem
                           onClick={e => {
                             e.stopPropagation()
-                            handleDestombarService(service.id, service.title)
+                            handlePublishService(service.id, service.title)
                           }}
                           disabled={
                             operationLoading || isRefreshingAfterOperation
                           }
-                          className="text-destructive"
                         >
-                          <Archive className="mr-2 h-4 w-4" />
-                          Destombar
+                          <Play className="mr-2 h-4 w-4" />
+                          Publicar
                         </DropdownMenuItem>
                       )}
-                    <DropdownMenuItem
-                      onClick={e => {
-                        e.stopPropagation()
-                        handleDeleteService(service.id, service.title)
-                      }}
-                      disabled={operationLoading}
-                      className="text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Excluir
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )
+                      <DropdownMenuItem
+                        onClick={e => {
+                          e.stopPropagation()
+                          handleDeleteService(service.id, service.title)
+                        }}
+                        disabled={operationLoading}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )
+        },
+        size: 32,
       },
-      size: 32,
-    })
-
-    return baseColumns
+    ]
   }, [
-    isBuscaServicesAdmin,
-    canEditServices,
+    isAdmin,
+    userRole,
     operationLoading,
     isRefreshingAfterOperation,
     handlePublishService,
     handleUnpublishService,
     handleDeleteService,
-    handleTombarService,
-    handleDestombarService,
-    handleSendToApproval,
-    handleSendToEdition,
-    tombamentosMap,
-    tombamentosLoading,
-    activeTab,
   ])
 
   const table = useReactTable({
@@ -948,10 +615,7 @@ export function ServicesDataTable() {
       <div className="flex flex-col pb-4">
         <Label className="py-4">Selecione uma secretaria</Label>
         <Combobox
-          options={SECRETARIAS.map(secretaria => ({
-            value: secretaria,
-            label: secretaria,
-          }))}
+          options={SECRETARIAS}
           value={selectedSecretaria}
           onValueChange={handleSecretariaChange}
           placeholder="Todas as secretarias"
@@ -969,7 +633,7 @@ export function ServicesDataTable() {
           <TabsTrigger value="published">Publicados</TabsTrigger>
           <TabsTrigger value="in_edition">Em edição</TabsTrigger>
           <TabsTrigger value="awaiting_approval">
-            {isBuscaServicesAdmin ? 'Pronto para aprovação' : 'Em aprovação'}
+            {isAdmin ? 'Pronto para aprovação' : 'Em aprovação'}
           </TabsTrigger>
         </TabsList>
 
@@ -978,7 +642,7 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              router.push(`/servicos-municipais/servicos/servico/${service.id}`)
+              window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
             }}
           >
             <DataTableToolbar table={table} />
@@ -990,7 +654,7 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              router.push(`/servicos-municipais/servicos/servico/${service.id}`)
+              window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
             }}
           >
             <DataTableToolbar table={table} />
@@ -1002,7 +666,7 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              router.push(`/servicos-municipais/servicos/servico/${service.id}`)
+              window.location.href = `/servicos-municipais/servicos/servico/${service.id}`
             }}
           >
             <DataTableToolbar table={table} />
@@ -1021,32 +685,6 @@ export function ServicesDataTable() {
         variant={confirmDialog.variant}
         onConfirm={confirmDialog.onConfirm}
       />
-
-      {/* Tombamento Modal for manual tombamento */}
-      {selectedServiceForTombamento && (
-        <TombamentoModal
-          open={showTombamentoModal}
-          onOpenChange={setShowTombamentoModal}
-          serviceId={selectedServiceForTombamento.id}
-          serviceTitle={selectedServiceForTombamento.title}
-          onSuccess={handleTombamentoSuccess}
-        />
-      )}
-
-      {/* Tombamento Modal for publish flow */}
-      {selectedPublishServiceForTombamento && (
-        <TombamentoModal
-          open={showPublishTombamentoModal}
-          onOpenChange={open => {
-            if (!open) {
-              handlePublishTombamentoCancel()
-            }
-          }}
-          serviceId={selectedPublishServiceForTombamento.id}
-          serviceTitle={selectedPublishServiceForTombamento.title}
-          onSuccess={handlePublishTombamentoSuccess}
-        />
-      )}
     </div>
   )
 }

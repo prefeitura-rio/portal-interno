@@ -369,13 +369,10 @@ export default function Courses() {
           const isExternalPartner = row.original.is_external_partner
           const provider = cell.getValue<CourseListItem['provider']>()
           const externalPartnerName = row.original.external_partner_name
-
+          
           // Use external partner name if it's a partnership and the name exists
-          const displayName =
-            isExternalPartner && externalPartnerName
-              ? externalPartnerName
-              : provider
-
+          const displayName = isExternalPartner && externalPartnerName ? externalPartnerName : provider
+          
           return (
             <div className="flex items-center gap-2">
               {isExternalPartner ? (
@@ -385,8 +382,8 @@ export default function Courses() {
               )}
               <div className="flex items-center gap-2 max-w-[300px] truncate">
                 {isExternalPartner && (
-                  <Badge
-                    variant="secondary"
+                  <Badge 
+                    variant="secondary" 
                     className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 border-blue-200"
                   >
                     Parceria
@@ -409,13 +406,8 @@ export default function Courses() {
         id: 'created_at',
         accessorKey: 'created_at',
         accessorFn: row => {
-          // Extract date components and create local date to avoid timezone issues
-          const sourceDate = new Date(row.created_at)
-          const date = new Date(
-            sourceDate.getFullYear(),
-            sourceDate.getMonth(),
-            sourceDate.getDate()
-          )
+          const date = new Date(row.created_at)
+          date.setHours(0, 0, 0, 0)
           return date.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
@@ -444,14 +436,9 @@ export default function Courses() {
         accessorFn: row => {
           const date = row.registration_start
           if (!date) return null
-          // Extract date components and create local date to avoid timezone issues
-          const sourceDate = new Date(date)
-          const localDate = new Date(
-            sourceDate.getFullYear(),
-            sourceDate.getMonth(),
-            sourceDate.getDate()
-          )
-          return localDate.getTime()
+          const dateObj = new Date(date)
+          dateObj.setHours(0, 0, 0, 0)
+          return dateObj.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader
@@ -485,14 +472,9 @@ export default function Courses() {
         accessorFn: row => {
           const date = row.registration_end
           if (!date) return null
-          // Extract date components and create local date to avoid timezone issues
-          const sourceDate = new Date(date)
-          const localDate = new Date(
-            sourceDate.getFullYear(),
-            sourceDate.getMonth(),
-            sourceDate.getDate()
-          )
-          return localDate.getTime()
+          const dateObj = new Date(date)
+          dateObj.setHours(0, 0, 0, 0)
+          return dateObj.getTime()
         },
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Fim das inscrições" />
@@ -741,7 +723,7 @@ export default function Courses() {
               loading={loading}
               onRowClick={course => {
                 // Navigate to the course detail page
-                router.push(`/gorio/courses/course/${course.id}`)
+                window.location.href = `/gorio/courses/course/${course.id}`
               }}
             >
               <DataTableToolbar table={table} />
@@ -754,7 +736,7 @@ export default function Courses() {
               loading={loading}
               onRowClick={course => {
                 // Navigate to the course detail page
-                router.push(`/gorio/courses/course/${course.id}`)
+                window.location.href = `/gorio/courses/course/${course.id}`
               }}
             >
               <DataTableToolbar table={table} />

@@ -37,46 +37,20 @@ const getUrl = (contextUrl: string): string => {
   return requestUrl.toString()
 }
 
-const getHeaders = async (headers?: HeadersInit, body?: BodyInit): Promise<HeadersInit> => {
+const getHeaders = async (headers?: HeadersInit): Promise<HeadersInit> => {
   const cookieStore = await cookies()
   const access_token = cookieStore.get('access_token')?.value
-
-  const headersObj: Record<string, string> = {}
-
-  // Add Authorization header if token exists
-  if (access_token) {
-    headersObj.Authorization = `Bearer ${access_token}`
-  }
 
   // Check if Content-Type is already set in headers
   const hasContentType =
     headers && typeof headers === 'object' && 'Content-Type' in headers
 
-  // Determine if body is FormData
-  const isFormData = body instanceof FormData
-
-  // Only add Content-Type if:
-  // 1. Not FormData (FormData requires browser to set Content-Type with boundary)
-  // 2. Not already set in headers
-  if (!isFormData && !hasContentType) {
-    headersObj['Content-Type'] = 'application/json'
-  } else if (hasContentType && headers && typeof headers === 'object') {
-    // If Content-Type is explicitly set, use it (unless it's empty string which means omit it)
-    if (headers instanceof Headers) {
-      const contentType = headers.get('Content-Type')
-      if (contentType) headersObj['Content-Type'] = contentType
-    } else if (Array.isArray(headers)) {
-      const contentTypeHeader = headers.find(([key]) => key === 'Content-Type')
-      if (contentTypeHeader?.[1]) {
-        headersObj['Content-Type'] = contentTypeHeader[1]
-      }
-    } else {
-      const contentType = (headers as Record<string, string>)['Content-Type']
-      if (contentType) headersObj['Content-Type'] = contentType
-    }
+  return {
+    ...headers,
+    ...(access_token && { Authorization: `Bearer ${access_token}` }),
+    // Don't override Content-Type if it's already set in headers
+    ...(hasContentType ? {} : { 'Content-Type': 'application/json' }),
   }
-
-  return headersObj
 }
 
 export const customFetchGoRio = async <T>(
@@ -84,15 +58,14 @@ export const customFetchGoRio = async <T>(
   options: RequestInit
 ): Promise<T> => {
   const requestUrl = getUrl(url)
-  const requestHeaders = await getHeaders(options.headers, options.body ?? undefined)
+  const requestHeaders = await getHeaders(options.headers)
 
   const requestInit: RequestInit = {
     ...options,
     headers: requestHeaders,
   }
 
-  console.log('customFetchGoRio - URL:', requestUrl)
-  console.log('customFetchGoRio - RequestInit:', requestInit)
+  console.log('RequestInit:', requestInit)
 
   const response = await fetch(requestUrl, requestInit)
   const data = await getBody<T>(response)

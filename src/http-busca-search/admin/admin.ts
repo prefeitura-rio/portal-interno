@@ -23,7 +23,6 @@ import type {
   PatchApiV1AdminServicesIdPublish401,
   PatchApiV1AdminServicesIdPublish404,
   PatchApiV1AdminServicesIdPublish500,
-  PatchApiV1AdminServicesIdPublishParams,
   PatchApiV1AdminServicesIdUnpublish400,
   PatchApiV1AdminServicesIdUnpublish401,
   PatchApiV1AdminServicesIdUnpublish404,
@@ -325,8 +324,8 @@ export const deleteApiV1AdminServicesId = async (
 }
 
 /**
- * Publica um serviço alterando seu status para 1 e awaiting_approval para false. Opcionalmente, pode criar um tombamento se fornecidos os parâmetros origem e id_servico_antigo
- * @summary Publica um serviço (altera status para 1 e marca como aprovado)
+ * Publica um serviço alterando seu status para 1
+ * @summary Publica um serviço (altera status para 1)
  */
 export type patchApiV1AdminServicesIdPublishResponse200 = {
   data: ModelsPrefRioService
@@ -365,32 +364,16 @@ export type patchApiV1AdminServicesIdPublishResponse =
     headers: Headers
   }
 
-export const getPatchApiV1AdminServicesIdPublishUrl = (
-  id: string,
-  params?: PatchApiV1AdminServicesIdPublishParams
-) => {
-  const normalizedParams = new URLSearchParams()
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  })
-
-  const stringifiedParams = normalizedParams.toString()
-
-  return stringifiedParams.length > 0
-    ? `/api/v1/admin/services/${id}/publish?${stringifiedParams}`
-    : `/api/v1/admin/services/${id}/publish`
+export const getPatchApiV1AdminServicesIdPublishUrl = (id: string) => {
+  return `/api/v1/admin/services/${id}/publish`
 }
 
 export const patchApiV1AdminServicesIdPublish = async (
   id: string,
-  params?: PatchApiV1AdminServicesIdPublishParams,
   options?: RequestInit
 ): Promise<patchApiV1AdminServicesIdPublishResponse> => {
   return customFetchBuscaSearch<patchApiV1AdminServicesIdPublishResponse>(
-    getPatchApiV1AdminServicesIdPublishUrl(id, params),
+    getPatchApiV1AdminServicesIdPublishUrl(id),
     {
       ...options,
       method: 'PATCH',
@@ -399,8 +382,8 @@ export const patchApiV1AdminServicesIdPublish = async (
 }
 
 /**
- * Despublica um serviço alterando seu status para 0 e awaiting_approval para true
- * @summary Despublica um serviço (altera status para 0 e marca como aguardando aprovação)
+ * Despublica um serviço alterando seu status para 0
+ * @summary Despublica um serviço (altera status para 0)
  */
 export type patchApiV1AdminServicesIdUnpublishResponse200 = {
   data: ModelsPrefRioService

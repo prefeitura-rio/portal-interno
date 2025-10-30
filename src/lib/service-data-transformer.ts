@@ -11,7 +11,6 @@ export interface ServiceFormData {
   targetAudience: string
   title: string
   shortDescription: string
-  urlServico?: string
   whatServiceDoesNotCover?: string
   serviceTime?: string
   serviceCost?: string
@@ -37,7 +36,7 @@ export function getCurrentTimestamp(): number {
  */
 export function transformToApiRequest(
   formData: ServiceFormData
-): ModelsPrefRioServiceRequest & { is_free?: boolean; url_servico?: string } {
+): ModelsPrefRioServiceRequest & { is_free?: boolean } {
   const apiRequest = {
     nome_servico: formData.title,
     resumo: formData.shortDescription,
@@ -64,9 +63,6 @@ export function transformToApiRequest(
     ),
     is_free: formData.isFree,
     status: 0, // Default to draft status
-    ...(formData.urlServico && formData.urlServico.trim() !== ''
-      ? { url_servico: formData.urlServico.trim() }
-      : {}),
   }
 
   return apiRequest
@@ -86,7 +82,6 @@ export function transformFromApiResponse(
     managingOrgan: apiService.orgao_gestor?.[0] || '',
     serviceCategory: apiService.tema_geral,
     targetAudience: apiService.publico_especifico?.[0] || '',
-    urlServico: (apiService as any).url_servico || undefined,
     serviceCost: apiService.custo_servico,
     serviceTime: apiService.tempo_atendimento,
     requestResult: apiService.resultado_solicitacao,
@@ -137,7 +132,6 @@ export function transformToFormData(service: Service): ServiceFormData {
     targetAudience: service.targetAudience,
     title: service.title,
     shortDescription: service.shortDescription,
-    urlServico: service.urlServico,
     whatServiceDoesNotCover: service.whatServiceDoesNotCover,
     serviceTime: service.serviceTime,
     serviceCost: service.serviceCost,

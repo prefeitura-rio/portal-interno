@@ -1,17 +1,17 @@
 import {
   Briefcase,
-  FolderKanban,
   GraduationCap,
   LayoutGrid,
   type LucideIcon,
   Settings,
 } from 'lucide-react'
+import type { UserRole } from './jwt-utils'
 
 type Submenu = {
   href: string
   label: string
   active?: boolean
-  allowedRoles?: string[]
+  allowedRoles?: UserRole[]
 }
 
 type Menu = {
@@ -20,7 +20,7 @@ type Menu = {
   active?: boolean
   icon: LucideIcon
   submenus?: Submenu[]
-  allowedRoles?: string[]
+  allowedRoles?: UserRole[]
 }
 
 type Group = {
@@ -38,13 +38,7 @@ export function getMenuList(pathname: string): Group[] {
           label: 'Dashboard',
           icon: LayoutGrid,
           submenus: [],
-          allowedRoles: [
-            'admin',
-            'superadmin',
-            'go:admin',
-            'busca:services:admin',
-            'busca:services:editor',
-          ],
+          allowedRoles: ['admin', 'geral', 'editor'],
         },
       ],
     },
@@ -55,88 +49,63 @@ export function getMenuList(pathname: string): Group[] {
           href: '',
           label: 'Capacitação',
           icon: GraduationCap,
-          allowedRoles: ['admin', 'superadmin', 'go:admin'],
+          allowedRoles: ['admin', 'geral'],
           submenus: [
             {
               href: '/gorio/courses',
               label: 'Cursos',
-              allowedRoles: ['admin', 'superadmin', 'go:admin'],
+              allowedRoles: ['admin', 'geral'],
             },
             {
               href: '/gorio/courses/new',
               label: 'Novo Curso',
-              allowedRoles: ['admin', 'superadmin', 'go:admin'],
+              allowedRoles: ['admin', 'geral'],
             },
           ],
         },
         {
           href: '',
-          label: 'Emprego e trabalho',
+          label: 'Emprego e Trabalho',
           icon: Briefcase,
-          allowedRoles: ['admin', 'superadmin', 'go:admin'],
+          allowedRoles: ['admin', 'geral'],
           submenus: [
             {
-              href: '/gorio/oportunidades-mei',
-              label: 'Oportunidades MEI',
-              allowedRoles: ['admin', 'superadmin', 'go:admin'],
+              href: '/gorio/jobs',
+              label: 'Vagas',
+              allowedRoles: ['admin', 'geral'],
             },
             {
-              href: '/gorio/oportunidades-mei/new',
-              label: 'Nova oportunidade MEI',
-              allowedRoles: ['admin', 'superadmin', 'go:admin'],
-            },
-          ],
-        },
-      ].filter(menu => {
-        // TEMPORARY: Hide "Emprego e trabalho" menu when feature flag is enabled
-        // TODO: Remove this filter once the feature is ready
-        if (
-          menu.label === 'Emprego e trabalho' &&
-          process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
-        ) {
-          return false
-        }
-        return true
-      }),
-    },
-    {
-      groupLabel: 'Serviços municipais',
-      menus: [
-        {
-          href: '',
-          label: 'Serviços municipais',
-          icon: FolderKanban,
-          allowedRoles: [
-            'admin',
-            'superadmin',
-            'busca:services:admin',
-            'busca:services:editor',
-          ],
-          submenus: [
-            {
-              href: '/servicos-municipais/servicos',
-              label: 'Serviços',
-              allowedRoles: [
-                'admin',
-                'superadmin',
-                'busca:services:admin',
-                'busca:services:editor',
-              ],
-            },
-            {
-              href: '/servicos-municipais/servicos/new',
-              label: 'Novo Serviço',
-              allowedRoles: [
-                'admin',
-                'superadmin',
-                'busca:services:admin',
-                'busca:services:editor',
-              ],
+              href: '/gorio/jobs/new',
+              label: 'Nova Vaga',
+              allowedRoles: ['admin', 'geral'],
             },
           ],
         },
       ],
     },
+    // {
+    //   groupLabel: 'Serviços municipais',
+    //   menus: [
+    //     {
+    //       href: '',
+    //       label: 'Serviços municipais',
+    //       icon: FolderKanban,
+    //       allowedRoles: ['admin', 'geral', 'editor'],
+    //       submenus: [
+    //         {
+    //           href: '/servicos-municipais/servicos',
+    //           label: 'Serviços',
+    //           allowedRoles: ['admin', 'geral', 'editor'],
+    //         },
+    //         {
+    //           href: '/servicos-municipais/servicos/new',
+    //           label: 'Novo Serviço',
+    //           allowedRoles: ['admin', 'geral'],
+    //         },
+    //       ],
+    //     },
+    //   ],
+    // },
     {
       groupLabel: 'Configurações',
       menus: [
@@ -149,13 +118,7 @@ export function getMenuList(pathname: string): Group[] {
           href: '/account',
           label: 'Minha conta',
           icon: Settings,
-          allowedRoles: [
-            'admin',
-            'superadmin',
-            'go:admin',
-            'busca:services:admin',
-            'busca:services:editor',
-          ],
+          allowedRoles: ['admin', 'geral', 'editor'],
         },
       ],
     },
@@ -163,16 +126,16 @@ export function getMenuList(pathname: string): Group[] {
 }
 
 /**
- * Filters menu items based on user roles from Heimdall
- * @param pathname - Current pathname
- * @param userRoles - Array of user's roles from Heimdall API
+ * Filters menu items based on user role
+ * @param menuList - The complete menu list
+ * @param userRole - The user's role
  * @returns Filtered menu list based on user permissions
  */
 export function getFilteredMenuList(
   pathname: string,
-  userRoles: string[] | null | undefined
+  userRole: UserRole | null
 ): Group[] {
-  if (!userRoles || userRoles.length === 0) return []
+  if (!userRole) return []
 
   const fullMenuList = getMenuList(pathname)
 
@@ -181,17 +144,14 @@ export function getFilteredMenuList(
       ...group,
       menus: group.menus
         .filter(
-          menu =>
-            !menu.allowedRoles ||
-            menu.allowedRoles.some(role => userRoles.includes(role))
+          menu => !menu.allowedRoles || menu.allowedRoles.includes(userRole)
         )
         .map(menu => ({
           ...menu,
           submenus:
             menu.submenus?.filter(
               submenu =>
-                !submenu.allowedRoles ||
-                submenu.allowedRoles.some(role => userRoles.includes(role))
+                !submenu.allowedRoles || submenu.allowedRoles.includes(userRole)
             ) || [],
         }))
         .filter(

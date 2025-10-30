@@ -23,15 +23,15 @@ export interface ModelsPrefRioService {
   fixar_destaque?: boolean
   id?: string
   instrucoes_solicitante?: string
-  is_free?: boolean
   last_update?: number
+  published_at?: number
+  is_free?: boolean
   legislacao_relacionada?: string[]
   /** @maxLength 255 */
   nome_servico: string
   /** @minItems 1 */
   orgao_gestor: string[]
   publico_especifico?: string[]
-  published_at?: number
   resultado_solicitacao: string
   /** @maxLength 350 */
   resumo: string

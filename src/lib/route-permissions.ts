@@ -1,77 +1,47 @@
+import type { UserRole } from './jwt-utils'
+
 /**
- * Route permission configuration using Heimdall roles
- * Maps routes to their required roles from the Heimdall API
+ * Route permission configuration
+ * Maps routes to their required roles
  */
-export const ROUTE_PERMISSIONS: Record<string, string[]> = {
-  // Dashboard - accessible to all authenticated users with any role
-  '/': [
-    'admin',
-    'superadmin',
-    'go:admin',
-    'busca:services:admin',
-    'busca:services:editor',
-  ],
+export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
+  // Dashboard - accessible to all authenticated users
+  '/': ['admin', 'geral', 'editor'],
 
-  // GO Rio - Capacitação (only admin, superadmin, and go:admin)
-  '/gorio/courses': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/courses/new': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/courses/course/*': ['admin', 'superadmin', 'go:admin'],
+  // GO Rio - Capacitação
+  '/gorio/courses': ['admin', 'geral'],
+  '/gorio/courses/new': ['admin', 'geral'],
+  '/gorio/courses/course/*': ['admin', 'geral'],
 
-  // GO Rio - Emprego e Trabalho (only admin, superadmin, and go:admin)
-  '/gorio/oportunidades-mei': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/oportunidades-mei/new': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/oportunidades-mei/oportunidade-mei/*': [
-    'admin',
-    'superadmin',
-    'go:admin',
-  ],
+  // GO Rio - Emprego e Trabalho
+  '/gorio/jobs': ['admin', 'geral'],
+  '/gorio/jobs/new': ['admin', 'geral'],
 
-  // Serviços Municipais (admin, superadmin, busca:services roles)
-  '/servicos-municipais/servicos': [
-    'admin',
-    'superadmin',
-    'busca:services:admin',
-    'busca:services:editor',
-  ],
-  '/servicos-municipais/servicos/new': [
-    'admin',
-    'superadmin',
-    'busca:services:admin',
-    'busca:services:editor',
-  ],
-  '/servicos-municipais/servicos/servico/*': [
-    'admin',
-    'superadmin',
-    'busca:services:admin',
-    'busca:services:editor',
-  ],
+  // Serviços Municipais
+  '/servicos-municipais/servicos': ['admin', 'geral', 'editor'],
+  '/servicos-municipais/servicos/new': ['admin', 'geral'],
+  '/servicos-municipais/servicos/servico/*': ['admin', 'geral', 'editor'], // Wildcard for service details
 
   // Account - accessible to all authenticated users
-  '/account': [
-    'admin',
-    'superadmin',
-    'go:admin',
-    'busca:services:admin',
-    'busca:services:editor',
-  ],
+  '/account': ['admin', 'geral', 'editor'],
 } as const
 
 /**
- * Checks if a user has access to a specific route based on their roles from Heimdall
+ * Checks if a user role has access to a specific route
  * @param route - The route to check
- * @param userRoles - Array of user's roles from Heimdall API
+ * @param userRole - The user's role
  * @returns boolean indicating if access is allowed
  */
 export function hasRouteAccess(
   route: string,
-  userRoles: string[] | null | undefined
+  userRole: UserRole | null
 ): boolean {
-  if (!userRoles || userRoles.length === 0) return false
+  if (!userRole) return false
 
   // Check exact match first
   const exactMatch = ROUTE_PERMISSIONS[route]
   if (exactMatch) {
-    return userRoles.some(role => exactMatch.includes(role))
+    return exactMatch.includes(userRole)
   }
 
   // Check wildcard matches
@@ -81,7 +51,7 @@ export function hasRouteAccess(
     if (routePattern.endsWith('/*')) {
       const baseRoute = routePattern.slice(0, -2)
       if (route.startsWith(baseRoute)) {
-        return userRoles.some(role => allowedRoles.includes(role))
+        return allowedRoles.includes(userRole)
       }
     }
   }
@@ -95,7 +65,7 @@ export function hasRouteAccess(
  * @param route - The route to check
  * @returns Array of allowed roles or null if route not found
  */
-export function getAllowedRoles(route: string): string[] | null {
+export function getAllowedRoles(route: string): UserRole[] | null {
   // Check exact match first
   const exactMatch = ROUTE_PERMISSIONS[route]
   if (exactMatch) {

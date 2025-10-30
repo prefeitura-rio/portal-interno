@@ -1,9 +1,9 @@
 import {
-  deleteApiV1AdminServicesId,
   getApiV1AdminServices,
+  putApiV1AdminServicesId,
+  deleteApiV1AdminServicesId,
   patchApiV1AdminServicesIdPublish,
   patchApiV1AdminServicesIdUnpublish,
-  putApiV1AdminServicesId,
 } from '@/http-busca-search/admin/admin'
 import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import { convertApiToFrontend } from '@/types/service'
@@ -88,9 +88,7 @@ export async function PUT(
     // Validate required fields
     if (!body.nome_servico || !body.resumo || !body.orgao_gestor) {
       return NextResponse.json(
-        {
-          error: 'Required fields missing: nome_servico, resumo, orgao_gestor',
-        },
+        { error: 'Required fields missing: nome_servico, resumo, orgao_gestor' },
         { status: 400 }
       )
     }
