@@ -135,7 +135,17 @@ export function getMenuList(pathname: string): Group[] {
             },
           ],
         },
-      ],
+      ].filter(menu => {
+        // TEMPORARY: Hide entire "Serviços municipais" menu when feature flag is enabled
+        // TODO: Remove this filter once the feature is ready
+        if (
+          menu.label === 'Serviços municipais' &&
+          process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
+        ) {
+          return false
+        }
+        return true
+      }),
     },
     {
       groupLabel: 'Configurações',
