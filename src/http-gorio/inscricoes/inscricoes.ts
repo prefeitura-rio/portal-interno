@@ -506,3 +506,56 @@ export const postApiV1CoursesCourseIdEnrollmentsManual = async (
     }
   )
 }
+
+/**
+ * Importa inscrições em lote através de planilha CSV ou XLSX
+ * @summary Importar inscrições via planilha
+ */
+export type postApiV1CoursesCourseIdEnrollmentsImportResponse202 = {
+  data: { job_id: string; message: string }
+  status: 202
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsImportResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsImportResponse500 = {
+  data: ModelsErrorResponse
+  status: 500
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsImportResponseComposite =
+  | postApiV1CoursesCourseIdEnrollmentsImportResponse202
+  | postApiV1CoursesCourseIdEnrollmentsImportResponse400
+  | postApiV1CoursesCourseIdEnrollmentsImportResponse500
+
+export type postApiV1CoursesCourseIdEnrollmentsImportResponse =
+  postApiV1CoursesCourseIdEnrollmentsImportResponseComposite & {
+    headers: Headers
+  }
+
+export const getPostApiV1CoursesCourseIdEnrollmentsImportUrl = (
+  courseId: number
+) => {
+  return `/api/v1/courses/${courseId}/enrollments/import`
+}
+
+export const postApiV1CoursesCourseIdEnrollmentsImport = async (
+  courseId: number,
+  file: File,
+  options?: RequestInit
+): Promise<postApiV1CoursesCourseIdEnrollmentsImportResponse> => {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return customFetchGoRio<postApiV1CoursesCourseIdEnrollmentsImportResponse>(
+    getPostApiV1CoursesCourseIdEnrollmentsImportUrl(courseId),
+    {
+      ...options,
+      method: 'POST',
+      body: formData,
+    }
+  )
+}
