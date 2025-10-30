@@ -68,44 +68,114 @@ export function useEnrollments({
     setError(null)
 
     try {
-      // Build query parameters
-      const params = new URLSearchParams({
-        page: page.toString(),
-        perPage: perPage.toString(),
-      })
+      // If multiple statuses are selected, we need to fetch each separately
+      // and combine the results, since the API only supports single status filter
+      if (filters?.status && filters.status.length > 1) {
+        // Fetch enrollments for each status in parallel
+        const promises = filters.status.map(async status => {
+          const params = new URLSearchParams({
+            page: '1',
+            perPage: '1000', // Fetch all for client-side filtering
+          })
 
-      if (filters?.status && filters.status.length > 0) {
-        // Since we now expect only one status, take the first one
-        params.append('status', filters.status[0])
+          params.append('status', status)
+
+          if (filters?.search) {
+            params.append('search', filters.search)
+          }
+
+          if (filters?.dateRange) {
+            params.append('dateStart', filters.dateRange.start.toISOString())
+            params.append('dateEnd', filters.dateRange.end.toISOString())
+          }
+
+          if (filters?.ageRange) {
+            params.append('ageMin', filters.ageRange.min.toString())
+            params.append('ageMax', filters.ageRange.max.toString())
+          }
+
+          const response = await fetch(
+            `/api/enrollments/${courseId}?${params.toString()}`
+          )
+
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch enrollments: ${response.statusText}`
+            )
+          }
+
+          return response.json()
+        })
+
+        const results: EnrollmentResponse[] = await Promise.all(promises)
+
+        // Combine all enrollments from different statuses
+        const allEnrollments = results.flatMap(result => result.enrollments)
+
+        // Remove duplicates by id (just in case)
+        const uniqueEnrollments = Array.from(
+          new Map(allEnrollments.map(e => [e.id, e])).values()
+        )
+
+        // Client-side pagination
+        const startIndex = (page - 1) * perPage
+        const endIndex = startIndex + perPage
+        const paginatedEnrollments = uniqueEnrollments.slice(
+          startIndex,
+          endIndex
+        )
+
+        setEnrollments(paginatedEnrollments)
+
+        // Use summary from first result (they should all be the same)
+        setSummary(results[0]?.summary || null)
+
+        // Create custom pagination for combined results
+        setPagination({
+          page,
+          perPage,
+          total: uniqueEnrollments.length,
+          totalPages: Math.ceil(uniqueEnrollments.length / perPage),
+        })
+      } else {
+        // Single status or no status filter - use normal API call
+        const params = new URLSearchParams({
+          page: page.toString(),
+          perPage: perPage.toString(),
+        })
+
+        if (filters?.status && filters.status.length === 1) {
+          params.append('status', filters.status[0])
+        }
+
+        if (filters?.search) {
+          params.append('search', filters.search)
+        }
+
+        if (filters?.dateRange) {
+          params.append('dateStart', filters.dateRange.start.toISOString())
+          params.append('dateEnd', filters.dateRange.end.toISOString())
+        }
+
+        if (filters?.ageRange) {
+          params.append('ageMin', filters.ageRange.min.toString())
+          params.append('ageMax', filters.ageRange.max.toString())
+        }
+
+        const response = await fetch(
+          `/api/enrollments/${courseId}?${params.toString()}`
+        )
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch enrollments: ${response.statusText}`)
+        }
+
+        const data: EnrollmentResponse = await response.json()
+
+        setEnrollments(data.enrollments)
+        setSummary(data.summary)
+        setPagination(data.pagination)
       }
-
-      if (filters?.search) {
-        params.append('search', filters.search)
-      }
-
-      if (filters?.dateRange) {
-        params.append('dateStart', filters.dateRange.start.toISOString())
-        params.append('dateEnd', filters.dateRange.end.toISOString())
-      }
-
-      if (filters?.ageRange) {
-        params.append('ageMin', filters.ageRange.min.toString())
-        params.append('ageMax', filters.ageRange.max.toString())
-      }
-
-      const response = await fetch(
-        `/api/enrollments/${courseId}?${params.toString()}`
-      )
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch enrollments: ${response.statusText}`)
-      }
-
-      const data: EnrollmentResponse = await response.json()
-
-      setEnrollments(data.enrollments)
-      setSummary(data.summary)
-      setPagination(data.pagination)
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to fetch enrollments'
