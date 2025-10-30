@@ -1,11 +1,13 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Info, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+
+import type { ServiceButton } from '@/types/service'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -27,11 +29,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
@@ -67,24 +64,21 @@ const serviceFormSchema = z.object({
     .max(500, {
       message: 'Descrição resumida não pode exceder 500 caracteres.',
     }),
-  urlServico: z
-    .string()
-    .refine(
-      url => {
-        // Allow empty strings (optional field)
-        if (!url || url.trim() === '') return true
-        // Validate URL format
-        try {
-          new URL(url)
-        } catch {
-          return false
-        }
-        return true
-      },
-      { message: 'URL inválida.' }
+  buttons: z
+    .array(
+      z.object({
+        titulo: z
+          .string()
+          .min(1, { message: 'Título do botão é obrigatório.' }),
+        descricao: z
+          .string()
+          .min(1, { message: 'Descrição do botão é obrigatória.' }),
+        url_service: z.string().url({ message: 'URL inválida.' }),
+        is_enabled: z.boolean(),
+        ordem: z.number(),
+      })
     )
-    .optional()
-    .or(z.literal('')),
+    .optional(),
   whatServiceDoesNotCover: z
     .string()
     .max(300, { message: 'Este campo não pode exceder 300 caracteres.' })
@@ -144,7 +138,7 @@ const defaultValues: ServiceFormData = {
   targetAudience: '',
   title: '',
   shortDescription: '',
-  urlServico: '',
+  buttons: [],
   whatServiceDoesNotCover: '',
   serviceTime: '',
   serviceCost: '',
@@ -212,6 +206,11 @@ export function NewServiceForm({
   )
   const [legislacaoErrors, setLegislacaoErrors] = useState<string[]>(
     initialData?.legislacaoRelacionada?.map(() => '') || ['']
+  )
+  const [serviceButtons, setServiceButtons] = useState<ServiceButton[]>(
+    initialData?.buttons && initialData.buttons.length > 0
+      ? initialData.buttons
+      : []
   )
 
   const form = useForm<ServiceFormData>({
@@ -383,6 +382,63 @@ export function NewServiceForm({
     form.setValue('legislacaoRelacionada', validLegislacoes)
   }
 
+  const addButton = () => {
+    const newButton: ServiceButton = {
+      titulo: '',
+      descricao: '',
+      url_service: '',
+      is_enabled: true,
+      ordem: serviceButtons.length,
+    }
+    setServiceButtons([...serviceButtons, newButton])
+  }
+
+  const removeButton = (index: number) => {
+    const newButtons = serviceButtons.filter((_, i) => i !== index)
+    // Update order numbers
+    const reorderedButtons = newButtons.map((button, idx) => ({
+      ...button,
+      ordem: idx,
+    }))
+    setServiceButtons(reorderedButtons)
+    form.setValue('buttons', reorderedButtons)
+  }
+
+  const updateButton = (
+    index: number,
+    field: keyof ServiceButton,
+    value: any
+  ) => {
+    const newButtons = [...serviceButtons]
+    newButtons[index] = {
+      ...newButtons[index],
+      [field]: value,
+    }
+    setServiceButtons(newButtons)
+    form.setValue('buttons', newButtons)
+  }
+
+  const moveButton = (index: number, direction: 'up' | 'down') => {
+    const newButtons = [...serviceButtons]
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+
+    if (targetIndex < 0 || targetIndex >= newButtons.length)
+      return // Swap buttons
+    ;[newButtons[index], newButtons[targetIndex]] = [
+      newButtons[targetIndex],
+      newButtons[index],
+    ]
+
+    // Update order numbers
+    const reorderedButtons = newButtons.map((button, idx) => ({
+      ...button,
+      ordem: idx,
+    }))
+
+    setServiceButtons(reorderedButtons)
+    form.setValue('buttons', reorderedButtons)
+  }
+
   const handleSendToEditClick = (data: ServiceFormData) => {
     const processedData = preprocessFormData(data)
     setPendingFormData(processedData)
@@ -516,6 +572,14 @@ export function NewServiceForm({
       .filter(legislacao => legislacao.trim() !== '')
       .filter(legislacao => legislacao.trim().length >= 5)
 
+    // Filter out empty and invalid buttons
+    const validButtons = serviceButtons.filter(
+      button =>
+        button.titulo.trim() !== '' &&
+        button.descricao.trim() !== '' &&
+        button.url_service.trim() !== ''
+    )
+
     return {
       ...data,
       digitalChannels:
@@ -524,6 +588,7 @@ export function NewServiceForm({
         validPhysicalChannels.length > 0 ? validPhysicalChannels : undefined,
       legislacaoRelacionada:
         validLegislacoes.length > 0 ? validLegislacoes : undefined,
+      buttons: validButtons.length > 0 ? validButtons : undefined,
     }
   }
 
@@ -766,37 +831,151 @@ export function NewServiceForm({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="urlServico"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2">
-                      <FormLabel>Url do serviço</FormLabel>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-70!">
-                          <p>
-                            Url da página nativa do serviço no pref.rio,
-                            referente ao botão de "acessar serviço" na página de
-                            descrição.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <FormControl>
-                      <Input
-                        placeholder="https://pref.rio/servicos/iptu"
-                        {...field}
-                        disabled={isLoading || readOnly}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Service Buttons Section */}
+              <div className="space-y-4">
+                <div>
+                  <FormLabel>Hyperlinks dos serviços</FormLabel>
+                  <div className="space-y-3 mt-2">
+                    {serviceButtons.map((button, index) => (
+                      <div
+                        key={index}
+                        className="border rounded-lg p-4 space-y-3 bg-card"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Botão {index + 1}
+                          </span>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => moveButton(index, 'up')}
+                              disabled={
+                                isLoading ||
+                                operationLoading ||
+                                index === 0 ||
+                                readOnly
+                              }
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => moveButton(index, 'down')}
+                              disabled={
+                                isLoading ||
+                                operationLoading ||
+                                index === serviceButtons.length - 1 ||
+                                readOnly
+                              }
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => removeButton(index)}
+                              disabled={
+                                isLoading || operationLoading || readOnly
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3">
+                          <div>
+                            <label
+                              htmlFor={`button-titulo-${index}`}
+                              className="text-sm font-medium"
+                            >
+                              Título do botão
+                            </label>
+                            <Input
+                              id={`button-titulo-${index}`}
+                              placeholder="Ex: Acessar serviço"
+                              value={button.titulo}
+                              onChange={e =>
+                                updateButton(index, 'titulo', e.target.value)
+                              }
+                              disabled={isLoading || readOnly}
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor={`button-descricao-${index}`}
+                              className="text-sm font-medium"
+                            >
+                              Descrição
+                            </label>
+                            <Input
+                              id={`button-descricao-${index}`}
+                              placeholder="Ex: Acesse o portal do serviço"
+                              value={button.descricao}
+                              onChange={e =>
+                                updateButton(index, 'descricao', e.target.value)
+                              }
+                              disabled={isLoading || readOnly}
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor={`button-url-${index}`}
+                              className="text-sm font-medium"
+                            >
+                              URL do serviço
+                            </label>
+                            <Input
+                              id={`button-url-${index}`}
+                              placeholder="https://pref.rio/servicos/iptu"
+                              value={button.url_service}
+                              onChange={e =>
+                                updateButton(
+                                  index,
+                                  'url_service',
+                                  e.target.value
+                                )
+                              }
+                              disabled={isLoading || readOnly}
+                            />
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`button-enabled-${index}`}
+                              checked={button.is_enabled}
+                              onCheckedChange={checked =>
+                                updateButton(index, 'is_enabled', checked)
+                              }
+                              disabled={isLoading || readOnly}
+                            />
+                            <label
+                              htmlFor={`button-enabled-${index}`}
+                              className="text-sm font-medium"
+                            >
+                              Botão habilitado
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {!readOnly && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addButton}
+                        disabled={isLoading || operationLoading}
+                        className="w-full"
+                      >
+                        Adicionar botão +
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               <FormField
                 control={form.control}

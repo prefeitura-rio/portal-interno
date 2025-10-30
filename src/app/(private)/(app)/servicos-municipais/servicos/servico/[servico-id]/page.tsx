@@ -649,7 +649,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             targetAudience: service.targetAudience,
             title: service.title,
             shortDescription: service.shortDescription,
-            urlServico: service.urlServico,
+            buttons: service.buttons,
             whatServiceDoesNotCover: service.whatServiceDoesNotCover,
             serviceTime: service.serviceTime,
             serviceCost: service.serviceCost,
