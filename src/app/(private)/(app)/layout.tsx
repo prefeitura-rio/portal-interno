@@ -2,6 +2,7 @@
 import AdminPanelLayout from '@/components/admin-panel/admin-panel-layout'
 import { UserProvider } from '@/components/providers/user-provider'
 import { Toaster } from '@/components/ui/sonner'
+import { HeimdallUserProvider } from '@/contexts/heimdall-user-context'
 import { getUserInfoFromToken } from '@/lib/user-info'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
@@ -15,10 +16,12 @@ export default async function Layout({
   return (
     //add shadcn sonner
     <UserProvider userInfo={userInfo}>
-      <Toaster />
-      <AdminPanelLayout>
-        <NuqsAdapter>{children}</NuqsAdapter>
-      </AdminPanelLayout>
+      <HeimdallUserProvider>
+        <Toaster />
+        <AdminPanelLayout>
+          <NuqsAdapter>{children}</NuqsAdapter>
+        </AdminPanelLayout>
+      </HeimdallUserProvider>
     </UserProvider>
   )
 }

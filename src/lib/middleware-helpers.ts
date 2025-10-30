@@ -70,3 +70,50 @@ export async function handleUnauthorizedUser(
   )
   return response
 }
+
+/**
+ * Fetches user roles from Heimdall API in middleware context
+ * This is optimized for Edge Runtime
+ * 
+ * @param accessToken - The user's access token
+ * @returns Array of user roles or null if failed
+ */
+export async function getUserRolesInMiddleware(
+  accessToken: string
+): Promise<string[] | null> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_HEIMDALL_BASE_API_URL
+
+    if (!baseUrl) {
+      console.error('NEXT_PUBLIC_HEIMDALL_BASE_API_URL is not set')
+      return null
+    }
+
+    // Construct the URL for Heimdall user info endpoint
+    const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+    const apiUrl = new URL('api/v1/users/me', normalizedBaseUrl)
+
+    // Make the request to Heimdall API
+    const response = await fetch(apiUrl.toString(), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      // Add cache control to avoid stale data
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      console.error(`Heimdall API returned status ${response.status}`)
+      return null
+    }
+
+    const data = await response.json()
+    
+    return data.roles || []
+  } catch (error) {
+    console.error('Error fetching user roles from Heimdall in middleware:', error)
+    return null
+  }
+}

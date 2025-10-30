@@ -242,6 +242,7 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     institutional_logo: courseData.institutional_logo || '',
     institutionalLogo: courseData.institutional_logo || '',
     cover_image: courseData.cover_image || '',
+    is_visible: courseData.is_visible ?? true,
     coverImage: courseData.cover_image || '',
     custom_fields: courseData.custom_fields || [],
     customFields: courseData.custom_fields || [],

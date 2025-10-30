@@ -54,7 +54,9 @@ import {
 } from '@/components/ui/sheet'
 import { useEnrollments } from '@/hooks/use-enrollments'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { AddParticipantsModal } from './add-participants'
 
 // Constantes para validação de certificados
 const VALID_CERTIFICATE_EXTENSIONS = [
@@ -111,6 +113,16 @@ interface EnrollmentsTableProps {
     modalidade?: string
     /** Status atual do curso */
     status?: string
+    custom_fields?: Array<{
+      id: string
+      title: string
+      field_type: 'string'
+      required: boolean
+      options?: Array<{
+        id: string
+        value: string
+      }>
+    }>
   }
 }
 
@@ -119,6 +131,7 @@ export function EnrollmentsTable({
   courseTitle,
   course,
 }: EnrollmentsTableProps) {
+  const router = useRouter()
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'enrollmentDate', desc: true },
   ])
@@ -136,6 +149,11 @@ export function EnrollmentsTable({
     open: false,
     type: 'remove_concluded' as const,
   })
+  const [isAddParticipantsModalOpen, setIsAddParticipantsModalOpen] =
+    React.useState(false)
+
+  // Feature flag to hide the "Adicionar participantes" button
+  const hideAddParticipants = process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
 
   // Hook do formulário para validação do certificado
   const certificateForm = useForm<CertificateFormData>({
@@ -230,11 +248,11 @@ export function EnrollmentsTable({
       filter => filter.id === 'candidateName'
     )
 
-    // For single status filter, convert to array format if value exists and is not empty
-    const statusValue = statusFilter?.value as string
+    // Handle multiple status filters - value should be an array
+    const statusValue = statusFilter?.value as EnrollmentStatus[] | undefined
     const statusArray =
-      statusValue && statusValue !== ''
-        ? [statusValue as EnrollmentStatus]
+      statusValue && Array.isArray(statusValue) && statusValue.length > 0
+        ? statusValue
         : undefined
 
     return {
@@ -564,8 +582,13 @@ export function EnrollmentsTable({
         id: 'enrollmentDate',
         accessorKey: 'enrollmentDate',
         accessorFn: row => {
-          const date = new Date(row.enrollmentDate)
-          date.setHours(0, 0, 0, 0)
+          // Parse ISO date string as local date to avoid timezone issues
+          const isoDate = new Date(row.enrollmentDate)
+          const date = new Date(
+            isoDate.getFullYear(),
+            isoDate.getMonth(),
+            isoDate.getDate()
+          )
           return date.getTime()
         },
         header: ({ column }: { column: Column<Enrollment, unknown> }) => (
@@ -641,13 +664,16 @@ export function EnrollmentsTable({
         },
         filterFn: (row, id, value) => {
           const rowValue = row.getValue(id) as string
+          // If value is an array, check if rowValue is in the array
+          if (Array.isArray(value)) {
+            return value.includes(rowValue)
+          }
           return value === rowValue
         },
         meta: {
           label: 'Status',
-          variant: 'select',
+          variant: 'multiSelect',
           options: [
-            { label: 'Todos', value: '' },
             { label: 'Confirmado', value: 'approved' },
             { label: 'Pendente', value: 'pending' },
             { label: 'Cancelado', value: 'cancelled' },
@@ -798,7 +824,8 @@ export function EnrollmentsTable({
 
             case 'multiselect': {
               // For multiple selection, the value might be a comma-separated list of option IDs
-              const selectedOptionIds = field.value?.split(',').filter(Boolean) || []
+              const selectedOptionIds =
+                field.value?.split(',').filter(Boolean) || []
               const selectedOptions = field.options?.filter(option =>
                 selectedOptionIds.includes(option.id)
               )
@@ -816,7 +843,7 @@ export function EnrollmentsTable({
 
         return [
           enrollment.candidateName,
-          enrollment.cpf,
+          `${enrollment.cpf}`,
           enrollment.email,
           enrollment.phone || '',
           new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
@@ -825,7 +852,7 @@ export function EnrollmentsTable({
         ]
       }),
     ]
-      .map(row => row.map(field => `"${field}"`).join(','))
+      .map(row => row.map(field => `="${field}"`).join(','))
       .join('\n')
 
     // Create and download file with proper UTF-8 BOM for Excel compatibility
@@ -838,9 +865,13 @@ export function EnrollmentsTable({
     link.setAttribute('href', url)
 
     // Use course title if available, otherwise fallback to course ID
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, '-')
+      .slice(0, -5)
     const fileName = courseTitle
-      ? `inscricoes_curso_${courseTitle.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}`
-      : `inscricoes_curso_${courseId}`
+      ? `inscricoes_curso_${courseTitle.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}_${timestamp}`
+      : `inscricoes_curso_${courseId}_${timestamp}`
 
     link.setAttribute('download', `${fileName}.csv`)
     link.style.visibility = 'hidden'
@@ -965,10 +996,20 @@ export function EnrollmentsTable({
         <h2 className="text-2xl font-semibold tracking-tight">
           Inscrições no Curso
         </h2>
-        <Button variant="outline" onClick={handleDownloadSpreadsheet}>
-          <FileDown className="mr-2 h-4 w-4" />
-          Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          {!hideAddParticipants && (
+            <Button
+              variant="outline"
+              onClick={() => setIsAddParticipantsModalOpen(true)}
+            >
+              Adicionar participantes
+            </Button>
+          )}
+          <Button variant="outline" onClick={handleDownloadSpreadsheet}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Exportar CSV
+          </Button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -1229,9 +1270,10 @@ export function EnrollmentsTable({
 
                                         case 'multiselect': {
                                           // For multiple selection, the value might be a comma-separated list of option IDs
-                                          const selectedOptionIds = field.value
-                                            ?.split(',')
-                                            .filter(Boolean) || []
+                                          const selectedOptionIds =
+                                            field.value
+                                              ?.split(',')
+                                              .filter(Boolean) || []
                                           const selectedOptions =
                                             field.options?.filter(option =>
                                               selectedOptionIds.includes(
@@ -1537,6 +1579,14 @@ export function EnrollmentsTable({
             confirmRemoveConcludedStatus(selectedEnrollment)
           }
         }}
+      />
+
+      <AddParticipantsModal
+        isOpen={isAddParticipantsModalOpen}
+        onClose={() => setIsAddParticipantsModalOpen(false)}
+        courseId={courseId}
+        onSuccess={refetch}
+        courseData={course}
       />
     </div>
   )

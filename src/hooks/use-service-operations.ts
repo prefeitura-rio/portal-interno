@@ -12,6 +12,8 @@ interface UseServiceOperationsReturn {
   ) => Promise<any>
   publishService: (id: string) => Promise<any>
   unpublishService: (id: string) => Promise<any>
+  sendToApproval: (id: string) => Promise<any>
+  sendToEdition: (id: string) => Promise<any>
   deleteService: (id: string) => Promise<any>
   getService: (id: string) => Promise<any>
   loading: boolean
@@ -187,6 +189,98 @@ export function useServiceOperations(): UseServiceOperationsReturn {
     }
   }, [])
 
+  const sendToApproval = useCallback(async (id: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      console.log('📤 Sending service to approval:', id)
+
+      const response = await fetch(`/api/services/${id}/send-to-approval`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(
+          result.error || 'Falha ao enviar serviço para aprovação'
+        )
+      }
+
+      console.log(
+        '✅ Service sent to approval successfully:',
+        result.service?.id
+      )
+      toast.success('Serviço enviado para aprovação com sucesso!')
+      return result.service
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Erro ao enviar serviço para aprovação'
+      console.error('❌ Error sending service to approval:', err)
+      setError(errorMessage)
+      toast.error(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const sendToEdition = useCallback(async (id: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      console.log('📤 Sending service to edition:', id)
+
+      const response = await fetch(`/api/services/${id}/send-to-edition`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Falha ao enviar serviço para edição')
+      }
+
+      console.log(
+        '✅ Service sent to edition successfully:',
+        result.service?.id
+      )
+      toast.success('Serviço enviado para edição com sucesso!')
+      return result.service
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Erro ao enviar serviço para edição'
+      console.error('❌ Error sending service to edition:', err)
+      setError(errorMessage)
+      toast.error(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const deleteService = useCallback(async (id: string) => {
     try {
       setLoading(true)
@@ -264,6 +358,8 @@ export function useServiceOperations(): UseServiceOperationsReturn {
     updateService,
     publishService,
     unpublishService,
+    sendToApproval,
+    sendToEdition,
     deleteService,
     getService,
     loading,

@@ -32,6 +32,7 @@ export interface Service {
   targetAudience: string // Will convert from publico_especifico: string[]
   title: string // Maps to nome_servico: string
   shortDescription: string // Maps to resumo: string
+  urlServico?: string // Maps to url_servico: string
   whatServiceDoesNotCover?: string // Maps to servico_nao_cobre: string
   serviceTime?: string // Maps to tempo_atendimento: string
   serviceCost?: string // Maps to custo_servico: string
@@ -104,6 +105,7 @@ export const convertApiToFrontend = (
     targetAudience: apiService.publico_especifico?.[0] || '', // Take first audience
     title: apiService.nome_servico,
     shortDescription: apiService.resumo,
+    urlServico: (apiService as any).url_servico || undefined,
     whatServiceDoesNotCover: apiService.servico_nao_cobre,
     serviceTime: apiService.tempo_atendimento,
     serviceCost: apiService.custo_servico,
@@ -174,5 +176,8 @@ export const convertFrontendToApi = (
     status: apiStatus,
     tema_geral: frontendService.serviceCategory,
     tempo_atendimento: frontendService.serviceTime || '',
-  }
+    ...(frontendService.urlServico && frontendService.urlServico.trim() !== ''
+      ? { url_servico: frontendService.urlServico.trim() }
+      : {}),
+  } as Partial<ModelsPrefRioService & { url_servico?: string }>
 }

@@ -336,10 +336,10 @@ export default function CourseDetailPage({
       address: location.address,
       neighborhood: location.neighborhood,
       vacancies: location.vacancies,
-      class_start_date: location.classStartDate 
+      class_start_date: location.classStartDate
         ? new Date(location.classStartDate).toISOString()
         : location.class_start_date,
-      class_end_date: location.classEndDate 
+      class_end_date: location.classEndDate
         ? new Date(location.classEndDate).toISOString()
         : location.class_end_date,
       class_time: location.classTime || location.class_time,
@@ -363,13 +363,23 @@ export default function CourseDetailPage({
     })
 
     // Transform locations to API format
-    const transformedLocations = course.locations ? transformLocationsToApiFormat(course.locations) : []
+    const transformedLocations = course.locations
+      ? transformLocationsToApiFormat(course.locations)
+      : []
 
     return {
       title: course.title,
       description: course.description,
-      enrollment_start_date: (course as any).enrollment_start_date || (course.enrollmentStartDate ? new Date(course.enrollmentStartDate).toISOString() : undefined),
-      enrollment_end_date: (course as any).enrollment_end_date || (course.enrollmentEndDate ? new Date(course.enrollmentEndDate).toISOString() : undefined),
+      enrollment_start_date:
+        (course as any).enrollment_start_date ||
+        (course.enrollmentStartDate
+          ? new Date(course.enrollmentStartDate).toISOString()
+          : undefined),
+      enrollment_end_date:
+        (course as any).enrollment_end_date ||
+        (course.enrollmentEndDate
+          ? new Date(course.enrollmentEndDate).toISOString()
+          : undefined),
       orgao_id: course.orgao_id,
       instituicao_id: instituicaoId,
       modalidade: course.modalidade,
@@ -410,8 +420,11 @@ export default function CourseDetailPage({
 
       // Build complete course data with canceled status
       const cancelData = buildCompleteUpdateData('canceled')
-      
-      console.log('Cancel course data to be sent:', JSON.stringify(cancelData, null, 2))
+
+      console.log(
+        'Cancel course data to be sent:',
+        JSON.stringify(cancelData, null, 2)
+      )
 
       const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
@@ -706,7 +719,7 @@ export default function CourseDetailPage({
                   {/* Edit button - don't show for closed, canceled, finished, or encerrado courses when not in enrollments tab */}
                   {actualStatus !== 'closed' &&
                     actualStatus !== 'canceled' &&
-                    actualStatus !== 'finished' &&
+                    // actualStatus !== 'finished' &&
                     actualStatus !== 'ENCERRADO' && (
                       <Button
                         onClick={handleEdit}
@@ -868,6 +881,7 @@ export default function CourseDetailPage({
                     | undefined,
                   modalidade: course?.modalidade as string | undefined,
                   status: course?.status as string | undefined,
+                  custom_fields: course?.custom_fields,
                 }}
               />
             </TabsContent>
