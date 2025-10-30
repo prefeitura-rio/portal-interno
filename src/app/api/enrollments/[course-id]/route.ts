@@ -81,9 +81,19 @@ function convertApiEnrollmentToFrontend(
     ),
     notes: apiEnrollment.admin_notes as string | undefined,
     reason: apiEnrollment.reason as string | undefined,
-    customFields: Array.isArray(apiEnrollment.custom_fields)
-      ? apiEnrollment.custom_fields
-      : [],
+    customFields:
+      apiEnrollment.custom_fields &&
+      typeof apiEnrollment.custom_fields === 'object' &&
+      !Array.isArray(apiEnrollment.custom_fields)
+        ? Object.entries(apiEnrollment.custom_fields as Record<string, any>).map(
+            ([key, value]) => ({
+              id: key.toLowerCase().replace(/\s+/g, '_'),
+              title: key,
+              value: String(value),
+              required: false,
+            })
+          )
+        : [],
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),

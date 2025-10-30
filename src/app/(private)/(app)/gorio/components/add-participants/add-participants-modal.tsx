@@ -70,6 +70,7 @@ export function AddParticipantsModal({
             {step === 'spreadsheet' && (
               <AnimatedStep stepKey="spreadsheet">
                 <SpreadsheetForm
+                  courseId={courseId}
                   onBack={handleBack}
                   onFinish={handleFinish}
                   courseData={courseData}

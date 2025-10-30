@@ -57,6 +57,7 @@ export interface ManualFormProps extends StepComponentProps {
 }
 
 export interface SpreadsheetFormProps extends StepComponentProps {
+  courseId: string
   courseData?: CourseData | null
 }
 
