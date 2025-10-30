@@ -65,30 +65,3 @@ api: {
   },
 
 ```
-
-> ## API HEIMDALL
-
-- https://raw.githubusercontent.com/prefeitura-rio/heimdall/refs/heads/main/docs/api/openapi.json
-
-```
-  api: {
-    input:
-      'https://raw.githubusercontent.com/prefeitura-rio/heimdall/refs/heads/main/docs/api/openapi.json',
-    output: {
-      target: './src/http-heimdall/api.ts',
-      schemas: './src/http-heimdall/models',
-      mode: 'tags-split',
-      client: 'fetch',
-      biome: true,
-      httpClient: 'fetch',
-      clean: true,
-      baseUrl: process.env.NEXT_PUBLIC_HEIMDALL_BASE_API_URL,
-      override: {
-        mutator: {
-          path: './custom-fetch-heimdall.ts',
-          name: 'customFetchHeimdall',
-        },
-      },
-    },
-  },
-```

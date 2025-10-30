@@ -1,7 +1,13 @@
-'use client'
+"use client";
 
-import type { Column } from '@tanstack/react-table'
-import { ChevronDown, ChevronUp, ChevronsUpDown, EyeOff, X } from 'lucide-react'
+import type { Column } from "@tanstack/react-table";
+import {
+  ChevronDown,
+  ChevronsUpDown,
+  ChevronUp,
+  EyeOff,
+  X,
+} from "lucide-react";
 
 import {
   DropdownMenu,
@@ -9,13 +15,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface DataTableColumnHeaderProps<TData, TValue>
   extends React.ComponentProps<typeof DropdownMenuTrigger> {
-  column: Column<TData, TValue>
-  title: string
+  column: Column<TData, TValue>;
+  title: string;
 }
 
 export function DataTableColumnHeader<TData, TValue>({
@@ -25,23 +31,23 @@ export function DataTableColumnHeader<TData, TValue>({
   ...props
 }: DataTableColumnHeaderProps<TData, TValue>) {
   if (!column.getCanSort() && !column.getCanHide()) {
-    return <div className={cn(className)}>{title}</div>
+    return <div className={cn(className)}>{title}</div>;
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          '-ml-1.5 flex h-8 items-center gap-1.5 rounded-md px-2 py-1.5 hover:bg-accent focus:outline-none focus:ring-1 focus:ring-ring data-[state=open]:bg-accent [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground',
-          className
+          "-ml-1.5 flex h-8 items-center gap-1.5 rounded-md px-2 py-1.5 hover:bg-accent focus:outline-none focus:ring-1 focus:ring-ring data-[state=open]:bg-accent [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
+          className,
         )}
         {...props}
       >
         {title}
         {column.getCanSort() &&
-          (column.getIsSorted() === 'desc' ? (
+          (column.getIsSorted() === "desc" ? (
             <ChevronDown />
-          ) : column.getIsSorted() === 'asc' ? (
+          ) : column.getIsSorted() === "asc" ? (
             <ChevronUp />
           ) : (
             <ChevronsUpDown />
@@ -52,7 +58,7 @@ export function DataTableColumnHeader<TData, TValue>({
           <>
             <DropdownMenuCheckboxItem
               className="relative pr-8 pl-2 [&>span:first-child]:right-2 [&>span:first-child]:left-auto [&_svg]:text-muted-foreground"
-              checked={column.getIsSorted() === 'asc'}
+              checked={column.getIsSorted() === "asc"}
               onClick={() => column.toggleSorting(false)}
             >
               <ChevronUp />
@@ -60,7 +66,7 @@ export function DataTableColumnHeader<TData, TValue>({
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
               className="relative pr-8 pl-2 [&>span:first-child]:right-2 [&>span:first-child]:left-auto [&_svg]:text-muted-foreground"
-              checked={column.getIsSorted() === 'desc'}
+              checked={column.getIsSorted() === "desc"}
               onClick={() => column.toggleSorting(true)}
             >
               <ChevronDown />
@@ -89,5 +95,5 @@ export function DataTableColumnHeader<TData, TValue>({
         )}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

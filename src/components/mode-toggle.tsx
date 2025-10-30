@@ -9,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Moon, Sun } from 'lucide-react'
+import { Sun, Moon } from 'lucide-react'
 
 export function ModeToggle() {
   const { setTheme, theme } = useTheme()
