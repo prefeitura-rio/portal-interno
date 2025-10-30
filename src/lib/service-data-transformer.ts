@@ -2,7 +2,11 @@ import type {
   ModelsPrefRioService,
   ModelsPrefRioServiceRequest,
 } from '@/http-busca-search/models'
-import type { Service, ServiceListItem } from '@/types/service'
+import type {
+  Service,
+  ServiceButton,
+  ServiceListItem,
+} from '@/types/service'
 
 // ServiceFormData type from the form component
 export interface ServiceFormData {
@@ -11,7 +15,7 @@ export interface ServiceFormData {
   targetAudience: string
   title: string
   shortDescription: string
-  urlServico?: string
+  buttons?: ServiceButton[]
   whatServiceDoesNotCover?: string
   serviceTime?: string
   serviceCost?: string
@@ -37,8 +41,8 @@ export function getCurrentTimestamp(): number {
  */
 export function transformToApiRequest(
   formData: ServiceFormData
-): ModelsPrefRioServiceRequest & { is_free?: boolean; url_servico?: string } {
-  const apiRequest = {
+): ModelsPrefRioServiceRequest & { is_free?: boolean; buttons?: ServiceButton[] } {
+  const apiRequest: any = {
     nome_servico: formData.title,
     resumo: formData.shortDescription,
     descricao_completa: formData.fullDescription || '',
@@ -64,9 +68,11 @@ export function transformToApiRequest(
     ),
     is_free: formData.isFree,
     status: 0, // Default to draft status
-    ...(formData.urlServico && formData.urlServico.trim() !== ''
-      ? { url_servico: formData.urlServico.trim() }
-      : {}),
+  }
+
+  // Add buttons if they exist and are not empty
+  if (formData.buttons && formData.buttons.length > 0) {
+    apiRequest.buttons = formData.buttons
   }
 
   return apiRequest
@@ -86,7 +92,7 @@ export function transformFromApiResponse(
     managingOrgan: apiService.orgao_gestor?.[0] || '',
     serviceCategory: apiService.tema_geral,
     targetAudience: apiService.publico_especifico?.[0] || '',
-    urlServico: (apiService as any).url_servico || undefined,
+    buttons: (apiService as any).buttons || undefined,
     serviceCost: apiService.custo_servico,
     serviceTime: apiService.tempo_atendimento,
     requestResult: apiService.resultado_solicitacao,
@@ -137,7 +143,7 @@ export function transformToFormData(service: Service): ServiceFormData {
     targetAudience: service.targetAudience,
     title: service.title,
     shortDescription: service.shortDescription,
-    urlServico: service.urlServico,
+    buttons: service.buttons,
     whatServiceDoesNotCover: service.whatServiceDoesNotCover,
     serviceTime: service.serviceTime,
     serviceCost: service.serviceCost,

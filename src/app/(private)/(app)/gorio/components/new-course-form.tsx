@@ -2121,22 +2121,33 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 control={form.control}
                 name="is_visible"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="translate-y-[2px]"
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Curso visível</FormLabel>
-                      <p className="text-sm text-muted-foreground">
-                        Quando marcado, este curso será exibido para todos os
-                        usuários na plataforma. Se desmarcado, o curso ficará
-                        oculto e não aparecerá nas listagens públicas.
-                      </p>
-                    </div>
+                  <FormItem>
+                    <FormLabel>Visibilidade do Curso*</FormLabel>
+                    <Select
+                      onValueChange={value => field.onChange(value === 'true')}
+                      value={field.value ? 'true' : 'false'}
+                      disabled={isReadOnly}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a visibilidade" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="true">
+                          Curso visível publicamente
+                        </SelectItem>
+                        <SelectItem value="false">
+                          Curso não visível publicamente
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      {field.value
+                        ? 'O curso estará visível na homepage para todos os usuários.'
+                        : 'O curso não estará visível na homepage, somente para pessoas que tiverem o link.'}
+                    </p>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

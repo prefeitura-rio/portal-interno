@@ -24,6 +24,15 @@ export interface ServiceFilters {
   search?: string
 }
 
+// Service Button model
+export interface ServiceButton {
+  titulo: string
+  descricao: string
+  url_service: string
+  is_enabled: boolean
+  ordem: number
+}
+
 // Service model that matches the form structure (Frontend model)
 export interface Service {
   id: string
@@ -32,7 +41,7 @@ export interface Service {
   targetAudience: string // Will convert from publico_especifico: string[]
   title: string // Maps to nome_servico: string
   shortDescription: string // Maps to resumo: string
-  urlServico?: string // Maps to url_servico: string
+  buttons?: ServiceButton[] // Maps to buttons: ServiceButton[]
   whatServiceDoesNotCover?: string // Maps to servico_nao_cobre: string
   serviceTime?: string // Maps to tempo_atendimento: string
   serviceCost?: string // Maps to custo_servico: string
@@ -79,6 +88,13 @@ export interface ApiService {
   status?: number // 0=Draft, 1=Published
   tema_geral: string
   tempo_atendimento: string
+  buttons?: Array<{
+    titulo: string
+    descricao: string
+    url_service: string
+    is_enabled: boolean
+    ordem: number
+  }>
 }
 
 // Utility functions to convert between API and Frontend models
@@ -105,7 +121,7 @@ export const convertApiToFrontend = (
     targetAudience: apiService.publico_especifico?.[0] || '', // Take first audience
     title: apiService.nome_servico,
     shortDescription: apiService.resumo,
-    urlServico: (apiService as any).url_servico || undefined,
+    buttons: (apiService as any).buttons || undefined,
     whatServiceDoesNotCover: apiService.servico_nao_cobre,
     serviceTime: apiService.tempo_atendimento,
     serviceCost: apiService.custo_servico,
@@ -163,6 +179,7 @@ export const convertFrontendToApi = (
       : [],
     instrucoes_solicitante: frontendService.instructionsForRequester,
     last_update: Math.floor(frontendService.last_update.getTime() / 1000),
+    buttons: frontendService.buttons,
     published_at: frontendService.published_at
       ? Math.floor(frontendService.published_at.getTime() / 1000)
       : undefined,
@@ -176,8 +193,5 @@ export const convertFrontendToApi = (
     status: apiStatus,
     tema_geral: frontendService.serviceCategory,
     tempo_atendimento: frontendService.serviceTime || '',
-    ...(frontendService.urlServico && frontendService.urlServico.trim() !== ''
-      ? { url_servico: frontendService.urlServico.trim() }
-      : {}),
-  } as Partial<ModelsPrefRioService & { url_servico?: string }>
+  } as Partial<ModelsPrefRioService>
 }
