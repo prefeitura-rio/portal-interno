@@ -13,6 +13,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { type DragEvent, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import type { SpreadsheetFormProps } from './types'
 
@@ -24,12 +25,13 @@ interface ExpectedField {
 /**
  * Form for adding participants via spreadsheet upload
  */
-export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFormProps) {
+export function SpreadsheetForm({ onBack, onFinish, courseId, courseData }: SpreadsheetFormProps) {
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [validation, setValidation] = useState<Record<string, 'ok' | 'missing' | 'optional'>>({})
   const [missingFields, setMissingFields] = useState<string[]>([])
+  const [isUploading, setIsUploading] = useState(false)
   const dragCounter = useRef(0)
 
   const expectedFields: ExpectedField[] = [
@@ -297,19 +299,43 @@ export function SpreadsheetForm({ onBack, onFinish, courseData }: SpreadsheetFor
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         <Button
-          disabled={!file || !!error || missingFields.length > 0}
+          disabled={!file || !!error || missingFields.length > 0 || isUploading}
           className="gap-2"
           onClick={async () => {
             if (!file) return
+
+            setIsUploading(true)
             try {
-              onFinish(true)
-            } catch {
+              const formData = new FormData()
+              formData.append('file', file)
+
+              const response = await fetch(`/api/enrollments/${courseId}/import`, {
+                method: 'POST',
+                body: formData,
+              })
+
+              if (response.ok) {
+                toast.success('Planilha enviada com sucesso! As inscrições estão sendo processadas.')
+                onFinish(true)
+              } else {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Erro ao enviar planilha')
+              }
+            } catch (error) {
+              console.error('Erro ao enviar planilha:', error)
+              toast.error(
+                error instanceof Error
+                  ? error.message
+                  : 'Erro ao enviar planilha. Tente novamente.'
+              )
               onFinish(false)
+            } finally {
+              setIsUploading(false)
             }
           }}
         >
           <FileSpreadsheet className="h-4 w-4" />
-          Enviar
+          {isUploading ? 'Enviando...' : 'Enviar'}
         </Button>
       </div>
     </div>
