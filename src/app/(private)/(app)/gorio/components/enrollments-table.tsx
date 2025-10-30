@@ -243,11 +243,11 @@ export function EnrollmentsTable({
       filter => filter.id === 'candidateName'
     )
 
-    // For single status filter, convert to array format if value exists and is not empty
-    const statusValue = statusFilter?.value as string
+    // Handle multiple status filters - value should be an array
+    const statusValue = statusFilter?.value as EnrollmentStatus[] | undefined
     const statusArray =
-      statusValue && statusValue !== ''
-        ? [statusValue as EnrollmentStatus]
+      statusValue && Array.isArray(statusValue) && statusValue.length > 0
+        ? statusValue
         : undefined
 
     return {
@@ -659,13 +659,16 @@ export function EnrollmentsTable({
         },
         filterFn: (row, id, value) => {
           const rowValue = row.getValue(id) as string
+          // If value is an array, check if rowValue is in the array
+          if (Array.isArray(value)) {
+            return value.includes(rowValue)
+          }
           return value === rowValue
         },
         meta: {
           label: 'Status',
-          variant: 'select',
+          variant: 'multiSelect',
           options: [
-            { label: 'Todos', value: '' },
             { label: 'Confirmado', value: 'approved' },
             { label: 'Pendente', value: 'pending' },
             { label: 'Cancelado', value: 'cancelled' },
