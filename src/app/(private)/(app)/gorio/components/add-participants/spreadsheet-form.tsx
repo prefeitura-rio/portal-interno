@@ -52,6 +52,7 @@ export function SpreadsheetForm({
   ]
 
   const course = courseData
+
   if (course?.custom_fields && course.custom_fields.length > 0) {
     for (const field of course.custom_fields) {
       expectedFields.push({
