@@ -212,6 +212,17 @@ export function NewServiceForm({
       ? initialData.buttons
       : []
   )
+  const [buttonErrors, setButtonErrors] = useState<
+    Array<{
+      titulo?: string
+      descricao?: string
+      url_service?: string
+    }>
+  >(
+    initialData?.buttons && initialData.buttons.length > 0
+      ? initialData.buttons.map(() => ({}))
+      : []
+  )
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
@@ -391,16 +402,19 @@ export function NewServiceForm({
       ordem: serviceButtons.length,
     }
     setServiceButtons([...serviceButtons, newButton])
+    setButtonErrors([...buttonErrors, {}])
   }
 
   const removeButton = (index: number) => {
     const newButtons = serviceButtons.filter((_, i) => i !== index)
+    const newErrors = buttonErrors.filter((_, i) => i !== index)
     // Update order numbers
     const reorderedButtons = newButtons.map((button, idx) => ({
       ...button,
       ordem: idx,
     }))
     setServiceButtons(reorderedButtons)
+    setButtonErrors(newErrors)
     form.setValue('buttons', reorderedButtons)
   }
 
@@ -410,23 +424,67 @@ export function NewServiceForm({
     value: any
   ) => {
     const newButtons = [...serviceButtons]
+    const newErrors = [...buttonErrors]
+
     newButtons[index] = {
       ...newButtons[index],
       [field]: value,
     }
+
+    // Validate the field
+    if (!newErrors[index]) {
+      newErrors[index] = {}
+    }
+
+    if (field === 'titulo') {
+      if (typeof value === 'string' && value.trim() === '') {
+        newErrors[index] = { ...newErrors[index], titulo: 'Título do botão é obrigatório' }
+      } else {
+        const { titulo, ...rest } = newErrors[index]
+        newErrors[index] = rest
+      }
+    } else if (field === 'descricao') {
+      if (typeof value === 'string' && value.trim() === '') {
+        newErrors[index] = { ...newErrors[index], descricao: 'Descrição do botão é obrigatória' }
+      } else {
+        const { descricao, ...rest } = newErrors[index]
+        newErrors[index] = rest
+      }
+    } else if (field === 'url_service') {
+      if (typeof value === 'string') {
+        if (value.trim() === '') {
+          newErrors[index] = { ...newErrors[index], url_service: 'URL é obrigatória' }
+        } else {
+          try {
+            new URL(value)
+            const { url_service, ...rest } = newErrors[index]
+            newErrors[index] = rest
+          } catch {
+            newErrors[index] = { ...newErrors[index], url_service: 'URL inválida' }
+          }
+        }
+      }
+    }
+
     setServiceButtons(newButtons)
+    setButtonErrors(newErrors)
     form.setValue('buttons', newButtons)
   }
 
   const moveButton = (index: number, direction: 'up' | 'down') => {
     const newButtons = [...serviceButtons]
+    const newErrors = [...buttonErrors]
     const targetIndex = direction === 'up' ? index - 1 : index + 1
 
     if (targetIndex < 0 || targetIndex >= newButtons.length)
-      return // Swap buttons
+      return // Swap buttons and errors
     ;[newButtons[index], newButtons[targetIndex]] = [
       newButtons[targetIndex],
       newButtons[index],
+    ]
+    ;[newErrors[index], newErrors[targetIndex]] = [
+      newErrors[targetIndex],
+      newErrors[index],
     ]
 
     // Update order numbers
@@ -436,22 +494,73 @@ export function NewServiceForm({
     }))
 
     setServiceButtons(reorderedButtons)
+    setButtonErrors(newErrors)
     form.setValue('buttons', reorderedButtons)
   }
 
+  const validateAllButtons = (): boolean => {
+    const newErrors = serviceButtons.map(button => {
+      const errors: {
+        titulo?: string
+        descricao?: string
+        url_service?: string
+      } = {}
+
+      if (!button.titulo || button.titulo.trim() === '') {
+        errors.titulo = 'Título do botão é obrigatório'
+      }
+
+      if (!button.descricao || button.descricao.trim() === '') {
+        errors.descricao = 'Descrição do botão é obrigatória'
+      }
+
+      if (!button.url_service || button.url_service.trim() === '') {
+        errors.url_service = 'URL é obrigatória'
+      } else {
+        try {
+          new URL(button.url_service)
+        } catch {
+          errors.url_service = 'URL inválida'
+        }
+      }
+
+      return errors
+    })
+
+    setButtonErrors(newErrors)
+
+    // Return true if there are no errors
+    return newErrors.every(
+      error =>
+        !error.titulo && !error.descricao && !error.url_service
+    )
+  }
+
   const handleSendToEditClick = (data: ServiceFormData) => {
+    if (!validateAllButtons()) {
+      toast.error('Por favor, preencha todos os campos obrigatórios dos botões.')
+      return
+    }
     const processedData = preprocessFormData(data)
     setPendingFormData(processedData)
     setShowSendToEditDialog(true)
   }
 
   const handlePublishClick = (data: ServiceFormData) => {
+    if (!validateAllButtons()) {
+      toast.error('Por favor, preencha todos os campos obrigatórios dos botões.')
+      return
+    }
     const processedData = preprocessFormData(data)
     setPendingFormData(processedData)
     setShowPublishDialog(true)
   }
 
   const handleSendToApprovalClick = (data: ServiceFormData) => {
+    if (!validateAllButtons()) {
+      toast.error('Por favor, preencha todos os campos obrigatórios dos botões.')
+      return
+    }
     const processedData = preprocessFormData(data)
     setPendingFormData(processedData)
     setShowSendToApprovalDialog(true)
@@ -903,7 +1012,15 @@ export function NewServiceForm({
                                 updateButton(index, 'titulo', e.target.value)
                               }
                               disabled={isLoading || readOnly}
+                              className={
+                                buttonErrors[index]?.titulo ? 'border-destructive' : ''
+                              }
                             />
+                            {buttonErrors[index]?.titulo && (
+                              <p className="text-sm text-destructive mt-1">
+                                {buttonErrors[index].titulo}
+                              </p>
+                            )}
                           </div>
                           <div>
                             <label
@@ -920,7 +1037,15 @@ export function NewServiceForm({
                                 updateButton(index, 'descricao', e.target.value)
                               }
                               disabled={isLoading || readOnly}
+                              className={
+                                buttonErrors[index]?.descricao ? 'border-destructive' : ''
+                              }
                             />
+                            {buttonErrors[index]?.descricao && (
+                              <p className="text-sm text-destructive mt-1">
+                                {buttonErrors[index].descricao}
+                              </p>
+                            )}
                           </div>
                           <div>
                             <label
@@ -941,7 +1066,15 @@ export function NewServiceForm({
                                 )
                               }
                               disabled={isLoading || readOnly}
+                              className={
+                                buttonErrors[index]?.url_service ? 'border-destructive' : ''
+                              }
                             />
+                            {buttonErrors[index]?.url_service && (
+                              <p className="text-sm text-destructive mt-1">
+                                {buttonErrors[index].url_service}
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center space-x-2">
                             <Checkbox
