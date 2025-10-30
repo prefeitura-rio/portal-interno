@@ -94,3 +94,20 @@ export function isBuscaServicesAdmin(roles: string[] | undefined): boolean {
   if (!roles) return false
   return hasAdminPrivileges(roles) || roles.includes('busca:services:admin')
 }
+
+/**
+ * Check if user can edit in GO Rio module
+ * Admin, superadmin, and go:admin can edit
+ */
+export function canEditGoRio(roles: string[] | undefined): boolean {
+  if (!roles) return false
+  return hasAdminPrivileges(roles) || roles.includes('go:admin')
+}
+
+/**
+ * Check if user is admin of GO Rio module
+ */
+export function isGoRioAdmin(roles: string[] | undefined): boolean {
+  if (!roles) return false
+  return hasAdminPrivileges(roles) || roles.includes('go:admin')
+}

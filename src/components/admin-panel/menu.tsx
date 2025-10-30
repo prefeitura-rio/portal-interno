@@ -134,7 +134,7 @@ export function Menu({ isOpen }: MenuProps) {
               )}
             </li>
           ))}
-          <li className="w-full grow flex items-end">
+          <li className="w-full grow flex items-end pb-2">
             <TooltipProvider disableHoverableContent>
               <Tooltip delayDuration={100}>
                 <TooltipTrigger asChild>

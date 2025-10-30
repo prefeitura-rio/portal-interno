@@ -7,7 +7,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { useUserRoleContext } from '@/contexts/user-role-context'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
@@ -16,8 +16,8 @@ import Link from 'next/link'
 import { OportunidadesMEIDataTable } from './components/oportunidades-mei-data-table'
 
 export default function OportunidadesMEIPage() {
-  // Use role-based access control instead of hardcoded value
-  const { hasElevatedPermissions } = useUserRoleContext()
+  // Use Heimdall role-based access control
+  const { canEditGoRio } = useHeimdallUserContext()
 
   return (
     <ContentLayout title="Gestão de Oportunidades MEI">
@@ -42,7 +42,7 @@ export default function OportunidadesMEIPage() {
                 plataforma.
               </p>
             </div>
-            {hasElevatedPermissions && (
+            {canEditGoRio && (
               <Link href="/gorio/oportunidades-mei/new">
                 <Button className="cursor-pointer">
                   <BookPlus className="mr-2 h-4 w-4" />

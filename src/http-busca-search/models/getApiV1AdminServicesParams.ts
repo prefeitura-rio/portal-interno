@@ -32,6 +32,18 @@ export type GetApiV1AdminServicesParams = {
    */
   awaiting_approval?: boolean
   /**
+   * Filtrar por serviços gratuitos
+   */
+  is_free?: boolean
+  /**
+   * Filtrar por data de publicação (timestamp)
+   */
+  published_at?: number
+  /**
+   * Filtrar por nome do serviço
+   */
+  nome_servico?: string
+  /**
    * Campo para filtro dinâmico
    */
   field?: string

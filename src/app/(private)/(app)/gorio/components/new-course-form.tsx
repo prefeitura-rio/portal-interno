@@ -166,6 +166,7 @@ const fullFormSchema = z
       }),
       // Optional fields
       pre_requisitos: z.string().optional(),
+      has_certificate: z.boolean().optional(),
 
       // External partner fields
       is_external_partner: z.boolean().optional(),
@@ -283,6 +284,7 @@ const fullFormSchema = z
       }),
       // Optional fields
       pre_requisitos: z.string().optional(),
+      has_certificate: z.boolean().optional(),
 
       // External partner fields
       is_external_partner: z.boolean().optional(),
@@ -501,6 +503,7 @@ type PartialFormData = Omit<
   workload?: string
   target_audience?: string
   pre_requisitos?: string
+  has_certificate?: boolean
 
   // External partner fields
   is_external_partner?: boolean
@@ -543,6 +546,7 @@ type BackendCourseData = {
   cover_image: string | null
   is_visible?: boolean
   pre_requisitos?: string
+  has_certificate?: boolean
 
   // External partner fields
   is_external_partner?: boolean
@@ -662,6 +666,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             workload: initialData.workload || '',
             target_audience: initialData.target_audience || '',
             pre_requisitos: initialData.pre_requisitos || '',
+            has_certificate: initialData.has_certificate || false,
 
             // External partner fields
             is_external_partner: initialData.is_external_partner || false,
@@ -701,6 +706,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             workload: '',
             target_audience: '',
             pre_requisitos: '',
+            has_certificate: false,
 
             // External partner fields
             is_external_partner: false,
@@ -811,7 +817,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         cover_image: data.cover_image,
         is_visible: data.is_visible,
         pre_requisitos: data.pre_requisitos,
-        has_certificate: Boolean(data.pre_requisitos?.trim()),
+        has_certificate: data.has_certificate || false,
 
         // External partner fields - clear when not external partner
         is_external_partner: data.is_external_partner,
@@ -876,6 +882,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         cover_image: data.cover_image || '',
         is_visible: data.is_visible,
         pre_requisitos: data.pre_requisitos,
+        has_certificate: data.has_certificate || false,
 
         // External partner fields - clear when not external partner
         is_external_partner: data.is_external_partner,
@@ -1836,18 +1843,42 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               />
 
               {/* Optional Fields Section */}
-              <Card className="w-full">
+              <Card className="w-full pointer-events-auto">
                 <CardHeader>
                   <Accordion type="single" collapsible className="w-full">
                     <AccordionItem
                       value="optional-fields"
                       className="border-none"
                     >
-                      <AccordionTrigger className="text-lg font-semibold text-foreground hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                      <AccordionTrigger
+                        disabled={false}
+                        className="text-lg font-semibold text-foreground hover:no-underline [&[data-state=open]>svg]:rotate-180"
+                      >
                         Informações Adicionais do Curso (Opcionais)
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-6 pt-4">
+                          <FormField
+                            control={form.control}
+                            name="has_certificate"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    disabled={isReadOnly}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>
+                                    Geração interna de certificado
+                                  </FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
                           <FormField
                             control={form.control}
                             name="pre_requisitos"
@@ -1861,6 +1892,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                     placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
                                     className="min-h-[80px]"
                                     {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />

@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Trash2 } from 'lucide-react'
+import { Info, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -27,6 +27,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
@@ -62,6 +67,24 @@ const serviceFormSchema = z.object({
     .max(500, {
       message: 'Descrição resumida não pode exceder 500 caracteres.',
     }),
+  urlServico: z
+    .string()
+    .refine(
+      url => {
+        // Allow empty strings (optional field)
+        if (!url || url.trim() === '') return true
+        // Validate URL format
+        try {
+          new URL(url)
+        } catch {
+          return false
+        }
+        return true
+      },
+      { message: 'URL inválida.' }
+    )
+    .optional()
+    .or(z.literal('')),
   whatServiceDoesNotCover: z
     .string()
     .max(300, { message: 'Este campo não pode exceder 300 caracteres.' })
@@ -121,6 +144,7 @@ const defaultValues: ServiceFormData = {
   targetAudience: '',
   title: '',
   shortDescription: '',
+  urlServico: '',
   whatServiceDoesNotCover: '',
   serviceTime: '',
   serviceCost: '',
@@ -141,6 +165,7 @@ interface NewServiceFormProps {
   initialData?: Partial<ServiceFormData>
   serviceStatus?: string
   onSendToApproval?: () => void
+  onPublish?: () => void // Callback for when service is published
   serviceId?: string // For editing existing services
 }
 
@@ -151,6 +176,7 @@ export function NewServiceForm({
   initialData,
   serviceStatus,
   onSendToApproval,
+  onPublish,
   serviceId,
 }: NewServiceFormProps) {
   const router = useRouter()
@@ -159,9 +185,10 @@ export function NewServiceForm({
   const {
     createService,
     updateService,
-    publishService,
     loading: operationLoading,
   } = useServiceOperations()
+
+  // Removed tombamento hook since we're redirecting to detail page
   const [showSendToEditDialog, setShowSendToEditDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
   const [showSendToApprovalDialog, setShowSendToApprovalDialog] =
@@ -414,7 +441,17 @@ export function NewServiceForm({
       }
 
       setPendingFormData(null)
-      router.push('/servicos-municipais/servicos?tab=published')
+      setShowPublishDialog(false)
+
+      // If onPublish callback is provided, call it (for editing existing services)
+      if (onPublish) {
+        onPublish()
+      } else {
+        // Redirect to service detail page with tombamento flag (for new services)
+        router.push(
+          `/servicos-municipais/servicos/servico/${savedService.id}?tombamento=true`
+        )
+      }
     } catch (error) {
       console.error('Error publishing service:', error)
       toast.error('Erro ao publicar serviço. Tente novamente.')
@@ -426,9 +463,28 @@ export function NewServiceForm({
 
     try {
       console.log('Enviando serviço para aprovação:', pendingFormData)
+
       if (onSendToApproval) {
+        // For editing existing services - use the provided handler
         onSendToApproval()
+      } else {
+        // For creating new services - create the service with awaiting_approval flag
+        const apiData = transformToApiRequest(pendingFormData)
+        apiData.awaiting_approval = true
+        apiData.status = 0 // Draft status
+
+        if (serviceId) {
+          await updateService(serviceId, apiData)
+          toast.success('Serviço atualizado e enviado para aprovação!')
+        } else {
+          await createService(apiData)
+          toast.success('Serviço criado e enviado para aprovação!')
+        }
+
+        // Redirect to services table with awaiting_approval tab
+        router.push('/servicos-municipais/servicos?tab=awaiting_approval')
       }
+
       setPendingFormData(null)
       setShowSendToApprovalDialog(false)
     } catch (error) {
@@ -577,12 +633,8 @@ export function NewServiceForm({
                       </FormControl>
                       <SelectContent>
                         {SECRETARIAS.map(secretaria => (
-                          <SelectItem
-                            key={secretaria.value}
-                            value={secretaria.value}
-                          >
-                            {secretaria.label}
-                            {secretaria.sigla ? ` - ${secretaria.sigla}` : ''}
+                          <SelectItem key={secretaria} value={secretaria}>
+                            {secretaria}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -609,20 +661,20 @@ export function NewServiceForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="educacao">Educação</SelectItem>
-                        <SelectItem value="cidade">Cidade</SelectItem>
-                        <SelectItem value="transporte">Transporte</SelectItem>
-                        <SelectItem value="licencas">Licenças</SelectItem>
-                        <SelectItem value="animais">Animais</SelectItem>
-                        <SelectItem value="ambiente">Ambiente</SelectItem>
-                        <SelectItem value="saude">Saúde</SelectItem>
-                        <SelectItem value="cidadania">Cidadania</SelectItem>
-                        <SelectItem value="familia">Família</SelectItem>
-                        <SelectItem value="taxas">Taxas</SelectItem>
-                        <SelectItem value="servidor">Servidor</SelectItem>
-                        <SelectItem value="cultura">Cultura</SelectItem>
-                        <SelectItem value="seguranca">Segurança</SelectItem>
-                        <SelectItem value="ouvidoria">Ouvidoria</SelectItem>
+                        <SelectItem value="Educação">Educação</SelectItem>
+                        <SelectItem value="Cidade">Cidade</SelectItem>
+                        <SelectItem value="Transporte">Transporte</SelectItem>
+                        <SelectItem value="Licenças">Licenças</SelectItem>
+                        <SelectItem value="Animais">Animais</SelectItem>
+                        <SelectItem value="Ambiente">Ambiente</SelectItem>
+                        <SelectItem value="Saúde">Saúde</SelectItem>
+                        <SelectItem value="Cidadania">Cidadania</SelectItem>
+                        <SelectItem value="Família">Família</SelectItem>
+                        <SelectItem value="Taxas">Taxas</SelectItem>
+                        <SelectItem value="Servidor">Servidor</SelectItem>
+                        <SelectItem value="Cultura">Cultura</SelectItem>
+                        <SelectItem value="Segurança">Segurança</SelectItem>
+                        <SelectItem value="Ouvidoria">Ouvidoria</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -647,25 +699,27 @@ export function NewServiceForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="geral">Público em geral</SelectItem>
-                        <SelectItem value="criancas">Crianças</SelectItem>
-                        <SelectItem value="adolescentes">
+                        <SelectItem value="Público em geral">
+                          Público em geral
+                        </SelectItem>
+                        <SelectItem value="Crianças">Crianças</SelectItem>
+                        <SelectItem value="Adolescentes">
                           Adolescentes
                         </SelectItem>
-                        <SelectItem value="jovens">Jovens</SelectItem>
-                        <SelectItem value="adultos">Adultos</SelectItem>
-                        <SelectItem value="idosos">Idosos</SelectItem>
-                        <SelectItem value="mulheres">Mulheres</SelectItem>
-                        <SelectItem value="pcd">
+                        <SelectItem value="Jovens">Jovens</SelectItem>
+                        <SelectItem value="Adultos">Adultos</SelectItem>
+                        <SelectItem value="Idosos">Idosos</SelectItem>
+                        <SelectItem value="Mulheres">Mulheres</SelectItem>
+                        <SelectItem value="Pessoas com Deficiência">
                           Pessoas com Deficiência
                         </SelectItem>
-                        <SelectItem value="empresarios">Empresários</SelectItem>
-                        <SelectItem value="estudantes">Estudantes</SelectItem>
-                        <SelectItem value="profissionais">
+                        <SelectItem value="Empresários">Empresários</SelectItem>
+                        <SelectItem value="Estudantes">Estudantes</SelectItem>
+                        <SelectItem value="Profissionais">
                           Profissionais
                         </SelectItem>
-                        <SelectItem value="familias">Famílias</SelectItem>
-                        <SelectItem value="vulnerabilidade">
+                        <SelectItem value="Famílias">Famílias</SelectItem>
+                        <SelectItem value="Pessoas em situação de vulnerabilidade">
                           Pessoas em situação de vulnerabilidade
                         </SelectItem>
                       </SelectContent>
@@ -703,6 +757,38 @@ export function NewServiceForm({
                       <Textarea
                         className="min-h-[100px]"
                         placeholder="Descreva resumidamente o serviço oferecido"
+                        {...field}
+                        disabled={isLoading || readOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="urlServico"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>Url do serviço</FormLabel>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-70!">
+                          <p>
+                            Url da página nativa do serviço no pref.rio,
+                            referente ao botão de "acessar serviço" na página de
+                            descrição.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <FormControl>
+                      <Input
+                        placeholder="https://pref.rio/servicos/iptu"
                         {...field}
                         disabled={isLoading || readOnly}
                       />

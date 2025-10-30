@@ -92,6 +92,19 @@ export async function middleware(request: NextRequest) {
     contentSecurityPolicyHeaderValue
   )
 
+  // TEMPORARY: Block access to "oportunidades-mei" routes when feature flag is enabled
+  // TODO: Remove this block once the feature is ready
+  if (
+    path.includes('oportunidades-mei') &&
+    process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
+  ) {
+    return await handleUnauthorizedUser(
+      request,
+      requestHeaders,
+      contentSecurityPolicyHeaderValue
+    )
+  }
+
   if (!authToken && publicRoute) {
     const response = NextResponse.next({
       request: {
@@ -130,10 +143,10 @@ export async function middleware(request: NextRequest) {
     // Role-based access control (RBAC) using Heimdall API
     // Fetch user roles and verify route access
     const userRoles = await getUserRolesInMiddleware(authToken.value)
-    
+
     // Check if user has access to the requested route
     const hasAccess = hasRouteAccess(path, userRoles)
-    
+
     if (!hasAccess) {
       // User doesn't have required roles for this route
       return await handleUnauthorizedUser(

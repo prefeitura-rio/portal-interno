@@ -87,7 +87,17 @@ export function getMenuList(pathname: string): Group[] {
             },
           ],
         },
-      ],
+      ].filter(menu => {
+        // TEMPORARY: Hide "Emprego e trabalho" menu when feature flag is enabled
+        // TODO: Remove this filter once the feature is ready
+        if (
+          menu.label === 'Emprego e trabalho' &&
+          process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
+        ) {
+          return false
+        }
+        return true
+      }),
     },
     {
       groupLabel: 'Serviços municipais',
@@ -116,7 +126,12 @@ export function getMenuList(pathname: string): Group[] {
             {
               href: '/servicos-municipais/servicos/new',
               label: 'Novo Serviço',
-              allowedRoles: ['admin', 'superadmin', 'busca:services:admin'],
+              allowedRoles: [
+                'admin',
+                'superadmin',
+                'busca:services:admin',
+                'busca:services:editor',
+              ],
             },
           ],
         },

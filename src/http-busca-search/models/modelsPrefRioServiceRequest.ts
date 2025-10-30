@@ -13,19 +13,22 @@ export interface ModelsPrefRioServiceRequest {
   awaiting_approval?: boolean
   canais_digitais?: string[]
   canais_presenciais?: string[]
-  custo_servico: string
-  descricao_completa: string
+  custo_servico?: string
+  descricao_completa?: string
   documentos_necessarios?: string[]
   extra_fields?: ModelsPrefRioServiceRequestExtraFields
   fixar_destaque?: boolean
   instrucoes_solicitante?: string
+  is_free?: boolean
   legislacao_relacionada?: string[]
   /** @maxLength 255 */
   nome_servico: string
   /** @minItems 1 */
   orgao_gestor: string[]
-  publico_especifico?: string[]
-  resultado_solicitacao: string
+  /** @minItems 1 */
+  publico_especifico: string[]
+  published_at?: number
+  resultado_solicitacao?: string
   /** @maxLength 350 */
   resumo: string
   servico_nao_cobre?: string
@@ -35,5 +38,5 @@ export interface ModelsPrefRioServiceRequest {
    */
   status?: number
   tema_geral: string
-  tempo_atendimento: string
+  tempo_atendimento?: string
 }

@@ -54,6 +54,7 @@ import {
 } from '@/components/ui/sheet'
 import { useEnrollments } from '@/hooks/use-enrollments'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { AddParticipantsModal } from './add-participants'
 
@@ -130,6 +131,7 @@ export function EnrollmentsTable({
   courseTitle,
   course,
 }: EnrollmentsTableProps) {
+  const router = useRouter()
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'enrollmentDate', desc: true },
   ])
@@ -149,6 +151,9 @@ export function EnrollmentsTable({
   })
   const [isAddParticipantsModalOpen, setIsAddParticipantsModalOpen] =
     React.useState(false)
+
+  // Feature flag to hide the "Adicionar participantes" button
+  const hideAddParticipants = process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
 
   // Hook do formulário para validação do certificado
   const certificateForm = useForm<CertificateFormData>({
@@ -992,12 +997,14 @@ export function EnrollmentsTable({
           Inscrições no Curso
         </h2>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setIsAddParticipantsModalOpen(true)}
-          >
-            Adicionar participantes
-          </Button>
+          {!hideAddParticipants && (
+            <Button
+              variant="outline"
+              onClick={() => setIsAddParticipantsModalOpen(true)}
+            >
+              Adicionar participantes
+            </Button>
+          )}
           <Button variant="outline" onClick={handleDownloadSpreadsheet}>
             <FileDown className="mr-2 h-4 w-4" />
             Exportar CSV

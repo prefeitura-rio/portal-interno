@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useUserRoleContext } from '@/contexts/user-role-context'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useMEIOpportunityOperations } from '@/hooks/use-mei-opportunity-operations'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -119,11 +119,10 @@ export function OportunidadesMEIDataTable() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const {
-    userRole,
     loading: userRoleLoading,
     isAdmin,
-    hasElevatedPermissions,
-  } = useUserRoleContext()
+    canEditGoRio,
+  } = useHeimdallUserContext()
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'expiresAt', desc: true },
@@ -422,22 +421,8 @@ export function OportunidadesMEIDataTable() {
         cell: function Cell({ row }) {
           const oportunidade = row.original
 
-          // Helper function to check if user can edit the oportunidade
-          const canEditOportunidade = () => {
-            if (!userRole) return false
-
-            // Admin and geral users can always edit oportunidades
-            if (userRole === 'admin' || userRole === 'geral') {
-              return true
-            }
-
-            // Editor users can only edit oportunidades that are drafts
-            if (userRole === 'editor') {
-              return oportunidade.status === 'draft'
-            }
-
-            return false
-          }
+          // Check if user can edit this opportunity
+          const canEditOportunidade = canEditGoRio
 
           return (
             <div className="flex items-center gap-2">
@@ -458,7 +443,7 @@ export function OportunidadesMEIDataTable() {
                       Visualizar
                     </Link>
                   </DropdownMenuItem>
-                  {canEditOportunidade() && (
+                  {canEditOportunidade && (
                     <DropdownMenuItem asChild>
                       <Link
                         href={`/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}?edit=true`}
@@ -491,7 +476,7 @@ export function OportunidadesMEIDataTable() {
         size: 32,
       },
     ]
-  }, [isAdmin, userRole, activeTab, handleDeleteOportunidade])
+  }, [isAdmin, canEditGoRio, activeTab, handleDeleteOportunidade])
 
   const table = useReactTable({
     data: transformedOpportunities,
@@ -542,7 +527,9 @@ export function OportunidadesMEIDataTable() {
             table={table}
             loading={loading || userRoleLoading}
             onRowClick={oportunidade => {
-              window.location.href = `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
+              router.push(
+                `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
+              )
             }}
           >
             <DataTableToolbar table={table} />
@@ -554,7 +541,9 @@ export function OportunidadesMEIDataTable() {
             table={table}
             loading={loading || userRoleLoading}
             onRowClick={oportunidade => {
-              window.location.href = `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
+              router.push(
+                `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
+              )
             }}
           >
             <DataTableToolbar table={table} />
@@ -566,7 +555,9 @@ export function OportunidadesMEIDataTable() {
             table={table}
             loading={loading || userRoleLoading}
             onRowClick={oportunidade => {
-              window.location.href = `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
+              router.push(
+                `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
+              )
             }}
           >
             <DataTableToolbar table={table} />
