@@ -79,7 +79,12 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
   }
 
   // 2. "Recebendo Inscrições" - currently in enrollment period
-  if (enrollmentStart && enrollmentEnd && now >= enrollmentStart && now <= enrollmentEnd) {
+  if (
+    enrollmentStart &&
+    enrollmentEnd &&
+    now >= enrollmentStart &&
+    now <= enrollmentEnd
+  ) {
     return 'accepting_enrollments' as CourseStatus
   }
 
@@ -89,7 +94,8 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
 
   // Handle ONLINE/Remoto courses (remote_class)
   if (
-    (courseData.modalidade === 'ONLINE' || courseData.modalidade === 'Remoto') &&
+    (courseData.modalidade === 'ONLINE' ||
+      courseData.modalidade === 'Remoto') &&
     courseData.remote_class
   ) {
     const remoteClass = courseData.remote_class
@@ -120,8 +126,10 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
   // If we have class dates, determine status based on them
   if (classStartDates.length > 0 && classEndDates.length > 0) {
     // Get the earliest start date and latest end date
-    const earliestStart = new Date(Math.min(...classStartDates.map((d) => d.getTime())))
-    const latestEnd = new Date(Math.max(...classEndDates.map((d) => d.getTime())))
+    const earliestStart = new Date(
+      Math.min(...classStartDates.map(d => d.getTime()))
+    )
+    const latestEnd = new Date(Math.max(...classEndDates.map(d => d.getTime())))
 
     // 3. "Em andamento" - currently in class period
     if (now >= earliestStart && now <= latestEnd) {
@@ -172,11 +180,14 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     provider: courseData.orgao?.nome || courseData.organization || '',
     theme: courseData.theme || '',
     modalidade: (() => {
-      const modalidade = courseData.modalidade?.nome || courseData.modalidade || ''
+      const modalidade =
+        courseData.modalidade?.nome || courseData.modalidade || ''
       // Map API modalidade values to frontend expected values
-      if (modalidade === 'Presencial' || modalidade === 'PRESENCIAL') return 'PRESENCIAL'
+      if (modalidade === 'Presencial' || modalidade === 'PRESENCIAL')
+        return 'PRESENCIAL'
       if (modalidade === 'Remoto' || modalidade === 'ONLINE') return 'ONLINE'
-      if (modalidade === 'Semipresencial' || modalidade === 'HIBRIDO') return 'HIBRIDO'
+      if (modalidade === 'Semipresencial' || modalidade === 'HIBRIDO')
+        return 'HIBRIDO'
       return modalidade
     })(),
     orgao: courseData.orgao || null,
@@ -213,8 +224,10 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     targetAudience: courseData.target_audience || '',
     pre_requisitos: courseData.pre_requisitos || courseData.prerequisites || '',
     prerequisites: courseData.pre_requisitos || courseData.prerequisites || '',
-    has_certificate: courseData.has_certificate || courseData.certificacao_oferecida || false,
-    hasCertificate: courseData.has_certificate || courseData.certificacao_oferecida || false,
+    has_certificate:
+      courseData.has_certificate || courseData.certificacao_oferecida || false,
+    hasCertificate:
+      courseData.has_certificate || courseData.certificacao_oferecida || false,
     accessibility: courseData.accessibility || '',
     facilitator: courseData.facilitator || '',
     objectives: courseData.objectives || '',
@@ -229,16 +242,44 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     materialUsed: courseData.material_used || '',
     teaching_material: courseData.teaching_material || '',
     teachingMaterial: courseData.teaching_material || '',
-    locations: (courseData.locations || []).map((location: any) => ({
-      id: location.id || '',
-      address: location.address || '',
-      neighborhood: location.neighborhood || '',
-      vacancies: location.vacancies || 0,
-      classStartDate: safeParseDate(location.class_start_date) || new Date(),
-      classEndDate: safeParseDate(location.class_end_date) || new Date(),
-      classTime: location.class_time || '',
-      classDays: location.class_days || '',
-    })),
+    locations: (courseData.locations || []).map((location: any) => {
+      // Handle both new format (with schedules) and old format (backward compatibility)
+      const hasSchedules =
+        location.schedules && Array.isArray(location.schedules)
+
+      if (hasSchedules) {
+        // New format with schedules
+        return {
+          id: location.id || '',
+          address: location.address || '',
+          neighborhood: location.neighborhood || '',
+          schedules: location.schedules.map((schedule: any) => ({
+            vacancies: schedule.vacancies || 0,
+            classStartDate:
+              safeParseDate(schedule.class_start_date) || new Date(),
+            classEndDate: safeParseDate(schedule.class_end_date) || new Date(),
+            classTime: schedule.class_time || '',
+            classDays: schedule.class_days || '',
+          })),
+        }
+      }
+      // Old format - convert to new format with a single schedule
+      return {
+        id: location.id || '',
+        address: location.address || '',
+        neighborhood: location.neighborhood || '',
+        schedules: [
+          {
+            vacancies: location.vacancies || 0,
+            classStartDate:
+              safeParseDate(location.class_start_date) || new Date(),
+            classEndDate: safeParseDate(location.class_end_date) || new Date(),
+            classTime: location.class_time || '',
+            classDays: location.class_days || '',
+          },
+        ],
+      }
+    }),
     institutional_logo: courseData.institutional_logo || '',
     institutionalLogo: courseData.institutional_logo || '',
     cover_image: courseData.cover_image || '',
@@ -249,8 +290,11 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     remote_class: courseData.remote_class
       ? {
           vacancies: courseData.remote_class.vacancies || 0,
-          classStartDate: safeParseDate(courseData.remote_class.class_start_date) || new Date(),
-          classEndDate: safeParseDate(courseData.remote_class.class_end_date) || new Date(),
+          classStartDate:
+            safeParseDate(courseData.remote_class.class_start_date) ||
+            new Date(),
+          classEndDate:
+            safeParseDate(courseData.remote_class.class_end_date) || new Date(),
           classTime: courseData.remote_class.class_time || '',
           classDays: courseData.remote_class.class_days || '',
         }

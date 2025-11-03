@@ -335,15 +335,17 @@ export default function CourseDetailPage({
       id: location.id,
       address: location.address,
       neighborhood: location.neighborhood,
-      vacancies: location.vacancies,
-      class_start_date: location.classStartDate
-        ? new Date(location.classStartDate).toISOString()
-        : location.class_start_date,
-      class_end_date: location.classEndDate
-        ? new Date(location.classEndDate).toISOString()
-        : location.class_end_date,
-      class_time: location.classTime || location.class_time,
-      class_days: location.classDays || location.class_days,
+      schedules: (location.schedules || []).map((schedule: any) => ({
+        vacancies: schedule.vacancies,
+        class_start_date: schedule.classStartDate
+          ? new Date(schedule.classStartDate).toISOString()
+          : schedule.class_start_date,
+        class_end_date: schedule.classEndDate
+          ? new Date(schedule.classEndDate).toISOString()
+          : schedule.class_end_date,
+        class_time: schedule.classTime || schedule.class_time,
+        class_days: schedule.classDays || schedule.class_days,
+      })),
     }))
   }
 
