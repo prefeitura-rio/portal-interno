@@ -104,16 +104,6 @@ export async function middleware(request: NextRequest) {
       contentSecurityPolicyHeaderValue
     )
   }
-  if (
-    path.includes('servicos') &&
-    process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
-  ) {
-    return await handleUnauthorizedUser(
-      request,
-      requestHeaders,
-      contentSecurityPolicyHeaderValue
-    )
-  }
 
   if (!authToken && publicRoute) {
     const response = NextResponse.next({
