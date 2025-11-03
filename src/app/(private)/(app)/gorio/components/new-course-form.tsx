@@ -56,6 +56,27 @@ const accessibilityLabel: Record<Accessibility, string> = {
   NAO_ACESSIVEL: 'Não acessível para pessoas com deficiência',
 }
 
+// Course categories
+const CATEGORY_OPTIONS = [
+  'Tecnologia',
+  'Marketing',
+  'Finanças',
+  'Gestão',
+  'Games',
+  'Nutrição',
+  'Educação',
+  'Gastronomia',
+  'Saúde',
+  'Veterinária',
+  'Carreira',
+  'Estética',
+  'Sustentabilidade',
+  'Artes',
+  'Cultura',
+] as const
+
+export type Category = (typeof CATEGORY_OPTIONS)[number]
+
 // Define the schema for location/class information
 const locationClassSchema = z.object({
   address: z
@@ -121,6 +142,9 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
+      category: z.enum(CATEGORY_OPTIONS, {
+        required_error: 'Categoria é obrigatória.',
+      }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -239,6 +263,9 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
+      category: z.enum(CATEGORY_OPTIONS, {
+        required_error: 'Categoria é obrigatória.',
+      }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -390,6 +417,7 @@ const fullFormSchema = z
 const draftFormSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
+  category: z.enum(CATEGORY_OPTIONS).optional(),
   enrollment_start_date: z.date().optional(),
   enrollment_end_date: z.date().optional(),
   orgao: z
@@ -499,6 +527,7 @@ type PartialFormData = Omit<
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
+  category?: Category
   theme?: 'Educação' | 'Saúde' | 'Esportes'
   workload?: string
   target_audience?: string
@@ -533,6 +562,7 @@ type PartialFormData = Omit<
 type BackendCourseData = {
   title: string
   description: string
+  category?: string
   enrollment_start_date: string | undefined
   enrollment_end_date: string | undefined
   orgao: { id: number; nome: string }
@@ -657,6 +687,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         ? {
             title: initialData.title || '',
             description: initialData.description || '',
+            category: initialData.category,
             enrollment_start_date:
               initialData.enrollment_start_date || new Date(),
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
@@ -696,6 +727,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         : {
             title: '',
             description: '',
+            category: undefined,
             enrollment_start_date: new Date(),
             enrollment_end_date: new Date(),
             orgao: undefined,
@@ -798,6 +830,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       return {
         title: data.title,
         description: data.description,
+        category: data.category,
         enrollment_start_date: data.enrollment_start_date
           ? formatDateTimeToUTC(data.enrollment_start_date)
           : undefined,
@@ -869,6 +902,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         description:
           data.description ||
           'Descrição em desenvolvimento. Edite antes de publicar!',
+        category: data.category,
         enrollment_start_date: data.enrollment_start_date || currentDate,
         enrollment_end_date: data.enrollment_end_date || nextMonth,
         orgao:
@@ -1224,6 +1258,35 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         disabled={isReadOnly}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria*</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isReadOnly}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma categoria" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CATEGORY_OPTIONS.map(category => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

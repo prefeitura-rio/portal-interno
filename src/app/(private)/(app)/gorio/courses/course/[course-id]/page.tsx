@@ -1,5 +1,6 @@
 'use client'
 
+import { DuplicateCourseButton } from '@/app/(private)/(app)/gorio/components/duplicate-course-button'
 import { EnrollmentsTable } from '@/app/(private)/(app)/gorio/components/enrollments-table'
 import {
   NewCourseForm,
@@ -716,6 +717,9 @@ export default function CourseDetailPage({
               {/* Show action buttons based on course status */}
               {!isEditing ? (
                 <>
+                  {/* Duplicate Course button */}
+                  <DuplicateCourseButton course={course} disabled={isLoading} />
+
                   {/* Edit button - don't show for closed, canceled, finished, or encerrado courses when not in enrollments tab */}
                   {actualStatus !== 'closed' &&
                     actualStatus !== 'canceled' &&
