@@ -99,6 +99,7 @@ export interface Course {
   id: string
   title: string
   description: string
+  categorias?: Array<{ id: number; nome?: string }>
   organization: string
   provider: string
   orgao?: {

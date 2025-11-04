@@ -169,6 +169,7 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     id: courseData.id?.toString() || '',
     title: courseData.title || '',
     description: courseData.description || '',
+    categorias: courseData.categorias || [],
     provider: courseData.orgao?.nome || courseData.organization || '',
     theme: courseData.theme || '',
     modalidade: (() => {
