@@ -1,7 +1,13 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import React, { forwardRef, useImperativeHandle, useState } from 'react'
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -40,6 +46,7 @@ import {
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
@@ -56,26 +63,13 @@ const accessibilityLabel: Record<Accessibility, string> = {
   NAO_ACESSIVEL: 'Não acessível para pessoas com deficiência',
 }
 
-// Course categories
-const CATEGORY_OPTIONS = [
-  'Tecnologia',
-  'Marketing',
-  'Finanças',
-  'Gestão',
-  'Games',
-  'Nutrição',
-  'Educação',
-  'Gastronomia',
-  'Saúde',
-  'Veterinária',
-  'Carreira',
-  'Estética',
-  'Sustentabilidade',
-  'Artes',
-  'Cultura',
-] as const
+// Category type from API
+export interface Category {
+  id: number
+  nome: string
+}
 
-export type Category = (typeof CATEGORY_OPTIONS)[number]
+// Static category options removed - using dynamic categories from API
 
 // Define the schema for location/class information
 const locationClassSchema = z.object({
@@ -142,9 +136,7 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
-      category: z.enum(CATEGORY_OPTIONS, {
-        required_error: 'Categoria é obrigatória.',
-      }),
+      category: z.number().min(1, { message: 'Categoria é obrigatória.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -263,9 +255,7 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
-      category: z.enum(CATEGORY_OPTIONS, {
-        required_error: 'Categoria é obrigatória.',
-      }),
+      category: z.number().min(1, { message: 'Categoria é obrigatória.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -417,7 +407,7 @@ const fullFormSchema = z
 const draftFormSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
-  category: z.enum(CATEGORY_OPTIONS).optional(),
+  category: z.number().optional(),
   enrollment_start_date: z.date().optional(),
   enrollment_end_date: z.date().optional(),
   orgao: z
@@ -527,7 +517,7 @@ type PartialFormData = Omit<
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
-  category?: Category
+  category?: number
   theme?: 'Educação' | 'Saúde' | 'Esportes'
   workload?: string
   target_audience?: string
@@ -562,7 +552,7 @@ type PartialFormData = Omit<
 type BackendCourseData = {
   title: string
   description: string
-  category?: string
+  categorias?: Array<{ id: number }>
   enrollment_start_date: string | undefined
   enrollment_end_date: string | undefined
   orgao: { id: number; nome: string }
@@ -663,9 +653,53 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     )
     const [loadingOrgaos, setLoadingOrgaos] = useState(false)
 
+    // State for categories
+    const [categories, setCategories] = useState<Category[]>([])
+    const [loadingCategories, setLoadingCategories] = useState(false)
+
+    // Memoize category options to avoid re-rendering the dropdown unnecessarily
+    const categoryOptions = useMemo(() => {
+      return categories.map(category => ({
+        id: category.id,
+        nome: category.nome,
+      }))
+    }, [categories])
+
     const instituicaoId = Number(
       process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
     )
+
+    // Fetch categories from API with cache
+    useEffect(() => {
+      const fetchCategories = async () => {
+        // Check cache first
+        const cachedData = getCachedCategorias()
+        if (cachedData) {
+          console.log('CACHEE')
+          setCategories(cachedData)
+          return
+        }
+
+        // If no cache, fetch from API
+        try {
+          setLoadingCategories(true)
+          const response = await fetch('/api/categorias?page=1&pageSize=100')
+          const data = await response.json()
+          const categoriesData = data || []
+
+          // Update state and cache
+          setCategories(categoriesData)
+          setCachedCategorias(categoriesData)
+        } catch (error) {
+          console.error('Erro ao buscar categorias:', error)
+          toast.error('Erro ao carregar categorias')
+        } finally {
+          setLoadingCategories(false)
+        }
+      }
+
+      fetchCategories()
+    }, [])
 
     // Dialog states
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -687,7 +721,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         ? {
             title: initialData.title || '',
             description: initialData.description || '',
-            category: initialData.category,
+            category:
+              initialData.category ||
+              ((initialData as any).categorias?.[0]?.id as number | undefined),
             enrollment_start_date:
               initialData.enrollment_start_date || new Date(),
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
@@ -830,7 +866,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       return {
         title: data.title,
         description: data.description,
-        category: data.category,
+        categorias: data.category ? [{ id: data.category }] : [],
         enrollment_start_date: data.enrollment_start_date
           ? formatDateTimeToUTC(data.enrollment_start_date)
           : undefined,
@@ -1270,22 +1306,35 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <FormItem>
                     <FormLabel>Categoria*</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={isReadOnly}
+                      onValueChange={value => field.onChange(Number(value))}
+                      value={field.value?.toString() || ''}
+                      disabled={isReadOnly || loadingCategories}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma categoria" />
+                          <SelectValue
+                            placeholder={
+                              loadingCategories
+                                ? 'Carregando categorias...'
+                                : categoryOptions.length === 0
+                                  ? 'Nenhuma categoria encontrada'
+                                  : 'Selecione uma categoria'
+                            }
+                          />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {CATEGORY_OPTIONS.map(category => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
+                      {!loadingCategories && categoryOptions.length > 0 && (
+                        <SelectContent>
+                          {categoryOptions.map(category => (
+                            <SelectItem
+                              key={category.id}
+                              value={category.id.toString()}
+                            >
+                              {category.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      )}
                     </Select>
                     <FormMessage />
                   </FormItem>
