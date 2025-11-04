@@ -11,6 +11,7 @@ import type { ServiceButton } from '@/types/service'
 
 import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
@@ -1193,18 +1194,21 @@ export function NewServiceForm({
                 control={form.control}
                 name="isFree"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isLoading || readOnly}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Serviço gratuito</FormLabel>
-                    </div>
-                  </FormItem>
+                  <Card className="p-4 bg-card">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          className="border-1 border-foreground!"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isLoading || readOnly}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Serviço gratuito</FormLabel>
+                      </div>
+                    </FormItem>
+                  </Card>
                 )}
               />
             </div>
