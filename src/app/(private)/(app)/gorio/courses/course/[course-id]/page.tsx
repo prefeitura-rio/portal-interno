@@ -219,6 +219,7 @@ export default function CourseDetailPage({
       const updateData = {
         ...data,
         title: data.title || course?.title,
+        categorias: data.categorias || course?.categorias || [],
         modalidade: data.modalidade || course?.modalidade,
         status: data.status || course?.status,
         // Ensure organization is synced with orgao.nome
@@ -268,6 +269,7 @@ export default function CourseDetailPage({
       const publishData = {
         ...data,
         title: data.title || course?.title,
+        categorias: data.categorias || course?.categorias || [],
         modalidade: data.modalidade || course?.modalidade,
         status: 'opened',
         // Ensure organization is synced with orgao.nome
@@ -371,6 +373,7 @@ export default function CourseDetailPage({
     return {
       title: course.title,
       description: course.description,
+      categorias: course.categorias || [],
       enrollment_start_date:
         (course as any).enrollment_start_date ||
         (course.enrollmentStartDate
