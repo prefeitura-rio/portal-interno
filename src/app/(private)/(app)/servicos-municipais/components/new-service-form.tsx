@@ -9,6 +9,7 @@ import { z } from 'zod'
 
 import type { ServiceButton } from '@/types/service'
 
+import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -28,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
@@ -96,8 +96,8 @@ const serviceFormSchema = z.object({
   isFree: z.boolean().optional(),
   requestResult: z
     .string()
-    .max(500, {
-      message: 'Resultado da solicitação não pode exceder 500 caracteres.',
+    .max(10000, {
+      message: 'Resultado da solicitação não pode exceder 10000 caracteres.',
     })
     .optional(),
   fullDescription: z
@@ -438,14 +438,20 @@ export function NewServiceForm({
 
     if (field === 'titulo') {
       if (typeof value === 'string' && value.trim() === '') {
-        newErrors[index] = { ...newErrors[index], titulo: 'Título do botão é obrigatório' }
+        newErrors[index] = {
+          ...newErrors[index],
+          titulo: 'Título do botão é obrigatório',
+        }
       } else {
         const { titulo, ...rest } = newErrors[index]
         newErrors[index] = rest
       }
     } else if (field === 'descricao') {
       if (typeof value === 'string' && value.trim() === '') {
-        newErrors[index] = { ...newErrors[index], descricao: 'Descrição do botão é obrigatória' }
+        newErrors[index] = {
+          ...newErrors[index],
+          descricao: 'Descrição do botão é obrigatória',
+        }
       } else {
         const { descricao, ...rest } = newErrors[index]
         newErrors[index] = rest
@@ -453,14 +459,20 @@ export function NewServiceForm({
     } else if (field === 'url_service') {
       if (typeof value === 'string') {
         if (value.trim() === '') {
-          newErrors[index] = { ...newErrors[index], url_service: 'URL é obrigatória' }
+          newErrors[index] = {
+            ...newErrors[index],
+            url_service: 'URL é obrigatória',
+          }
         } else {
           try {
             new URL(value)
             const { url_service, ...rest } = newErrors[index]
             newErrors[index] = rest
           } catch {
-            newErrors[index] = { ...newErrors[index], url_service: 'URL inválida' }
+            newErrors[index] = {
+              ...newErrors[index],
+              url_service: 'URL inválida',
+            }
           }
         }
       }
@@ -531,14 +543,15 @@ export function NewServiceForm({
 
     // Return true if there are no errors
     return newErrors.every(
-      error =>
-        !error.titulo && !error.descricao && !error.url_service
+      error => !error.titulo && !error.descricao && !error.url_service
     )
   }
 
   const handleSendToEditClick = (data: ServiceFormData) => {
     if (!validateAllButtons()) {
-      toast.error('Por favor, preencha todos os campos obrigatórios dos botões.')
+      toast.error(
+        'Por favor, preencha todos os campos obrigatórios dos botões.'
+      )
       return
     }
     const processedData = preprocessFormData(data)
@@ -548,7 +561,9 @@ export function NewServiceForm({
 
   const handlePublishClick = (data: ServiceFormData) => {
     if (!validateAllButtons()) {
-      toast.error('Por favor, preencha todos os campos obrigatórios dos botões.')
+      toast.error(
+        'Por favor, preencha todos os campos obrigatórios dos botões.'
+      )
       return
     }
     const processedData = preprocessFormData(data)
@@ -558,7 +573,9 @@ export function NewServiceForm({
 
   const handleSendToApprovalClick = (data: ServiceFormData) => {
     if (!validateAllButtons()) {
-      toast.error('Por favor, preencha todos os campos obrigatórios dos botões.')
+      toast.error(
+        'Por favor, preencha todos os campos obrigatórios dos botões.'
+      )
       return
     }
     const processedData = preprocessFormData(data)
@@ -928,11 +945,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Descrição resumida do serviço*</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Descreva resumidamente o serviço oferecido"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={500}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1013,7 +1032,9 @@ export function NewServiceForm({
                               }
                               disabled={isLoading || readOnly}
                               className={
-                                buttonErrors[index]?.titulo ? 'border-destructive' : ''
+                                buttonErrors[index]?.titulo
+                                  ? 'border-destructive'
+                                  : ''
                               }
                             />
                             {buttonErrors[index]?.titulo && (
@@ -1038,7 +1059,9 @@ export function NewServiceForm({
                               }
                               disabled={isLoading || readOnly}
                               className={
-                                buttonErrors[index]?.descricao ? 'border-destructive' : ''
+                                buttonErrors[index]?.descricao
+                                  ? 'border-destructive'
+                                  : ''
                               }
                             />
                             {buttonErrors[index]?.descricao && (
@@ -1067,7 +1090,9 @@ export function NewServiceForm({
                               }
                               disabled={isLoading || readOnly}
                               className={
-                                buttonErrors[index]?.url_service ? 'border-destructive' : ''
+                                buttonErrors[index]?.url_service
+                                  ? 'border-destructive'
+                                  : ''
                               }
                             />
                             {buttonErrors[index]?.url_service && (
@@ -1193,11 +1218,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Resultado da solicitação</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Descreva o que o cidadão receberá após a solicitação"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={500}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1212,11 +1239,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Descrição completa do serviço</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[120px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Descrição detalhada do serviço, seus objetivos e benefícios"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={2000}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1231,11 +1260,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Documentos necessários</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Liste os documentos necessários para solicitar o serviço"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={1000}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1250,11 +1281,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Instruções para o solicitante</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Instruções passo a passo para o cidadão"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={1000}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
