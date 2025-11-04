@@ -72,6 +72,7 @@ export function DuplicateCourseButton({
       const draftData = {
         title: `${course.title} - Cópia`,
         description: course.description,
+        categorias: course.categorias || [],
         enrollment_start_date:
           (course as any).enrollment_start_date ||
           (course.enrollmentStartDate
@@ -130,7 +131,7 @@ export function DuplicateCourseButton({
         throw new Error(errorData.error || 'Failed to duplicate course')
       }
 
-      const result = await response.json()
+      const _result = await response.json()
 
       toast.success('Curso duplicado com sucesso!')
 
