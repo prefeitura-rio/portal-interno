@@ -1325,22 +1325,25 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 control={form.control}
                 name="is_external_partner"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isReadOnly}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Curso de parceiro externo</FormLabel>
-                      <p className="text-[0.8rem] text-muted-foreground">
-                        Marque esta opção se o curso é oferecido por uma
-                        organização parceira externa.
-                      </p>
-                    </div>
-                  </FormItem>
+                  <Card className="p-4 bg-card">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          className="border-1 border-foreground!"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isReadOnly}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Curso de parceiro externo</FormLabel>
+                        <p className="text-[0.8rem] text-muted-foreground">
+                          Marque esta opção se o curso é oferecido por uma
+                          organização parceira externa.
+                        </p>
+                      </div>
+                    </FormItem>
+                  </Card>
                 )}
               />
 
@@ -1862,20 +1865,29 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             control={form.control}
                             name="has_certificate"
                             render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                    disabled={isReadOnly}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>
-                                    Geração interna de certificado
-                                  </FormLabel>
-                                </div>
-                              </FormItem>
+                              <Card className="p-4 bg-card">
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      className="border-1 border-foreground!"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                      disabled={isReadOnly}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>
+                                      Geração interna de certificado
+                                    </FormLabel>
+                                    <p className="text-[0.8rem] text-muted-foreground">
+                                      Marque esta opção se o certificado será
+                                      gerado pelo portal interno (url do
+                                      certificado ou de forma automática após
+                                      marcar aluno como concluído.)
+                                    </p>
+                                  </div>
+                                </FormItem>
+                              </Card>
                             )}
                           />
 
