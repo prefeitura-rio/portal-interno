@@ -723,7 +723,9 @@ export default function CourseDetailPage({
               {!isEditing ? (
                 <>
                   {/* Duplicate Course button */}
-                  <DuplicateCourseButton course={course} disabled={isLoading} />
+                  {process.env.NEXT_PUBLIC_FEATURE_FLAG !== 'true' && (
+                    <DuplicateCourseButton course={course} disabled={isLoading} />
+                  )}
 
                   {/* Edit button - don't show for closed, canceled, finished, or encerrado courses when not in enrollments tab */}
                   {actualStatus !== 'closed' &&
