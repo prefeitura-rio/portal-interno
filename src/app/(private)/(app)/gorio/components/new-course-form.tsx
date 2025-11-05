@@ -1,7 +1,13 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import React, { forwardRef, useImperativeHandle, useState } from 'react'
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -40,6 +46,7 @@ import {
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
@@ -55,6 +62,14 @@ const accessibilityLabel: Record<Accessibility, string> = {
   EXCLUSIVO: 'Exclusivo para pessoas com deficiência',
   NAO_ACESSIVEL: 'Não acessível para pessoas com deficiência',
 }
+
+// Category type from API
+export interface Category {
+  id: number
+  nome: string
+}
+
+// Static category options removed - using dynamic categories from API
 
 // Define the schema for schedule (turma) information
 const scheduleSchema = z.object({
@@ -128,6 +143,7 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
+      category: z.number().min(1, { message: 'Categoria é obrigatória.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -246,6 +262,7 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
+      category: z.number().min(1, { message: 'Categoria é obrigatória.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -399,6 +416,7 @@ const fullFormSchema = z
 const draftFormSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
+  category: z.number().optional(),
   enrollment_start_date: z.date().optional(),
   enrollment_end_date: z.date().optional(),
   orgao: z
@@ -514,6 +532,7 @@ type PartialFormData = Omit<
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
+  category?: number
   theme?: 'Educação' | 'Saúde' | 'Esportes'
   workload?: string
   target_audience?: string
@@ -548,6 +567,7 @@ type PartialFormData = Omit<
 type BackendCourseData = {
   title: string
   description: string
+  categorias?: Array<{ id: number }>
   enrollment_start_date: string | undefined
   enrollment_end_date: string | undefined
   orgao: { id: number; nome: string }
@@ -650,9 +670,53 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     )
     const [loadingOrgaos, setLoadingOrgaos] = useState(false)
 
+    // State for categories
+    const [categories, setCategories] = useState<Category[]>([])
+    const [loadingCategories, setLoadingCategories] = useState(false)
+
+    // Memoize category options to avoid re-rendering the dropdown unnecessarily
+    const categoryOptions = useMemo(() => {
+      return categories.map(category => ({
+        id: category.id,
+        nome: category.nome,
+      }))
+    }, [categories])
+
     const instituicaoId = Number(
       process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
     )
+
+    // Fetch categories from API with cache
+    useEffect(() => {
+      const fetchCategories = async () => {
+        // Check cache first
+        const cachedData = getCachedCategorias()
+        if (cachedData) {
+          console.log('CACHEE')
+          setCategories(cachedData)
+          return
+        }
+
+        // If no cache, fetch from API
+        try {
+          setLoadingCategories(true)
+          const response = await fetch('/api/categorias?page=1&pageSize=100')
+          const data = await response.json()
+          const categoriesData = data || []
+
+          // Update state and cache
+          setCategories(categoriesData)
+          setCachedCategorias(categoriesData)
+        } catch (error) {
+          console.error('Erro ao buscar categorias:', error)
+          toast.error('Erro ao carregar categorias')
+        } finally {
+          setLoadingCategories(false)
+        }
+      }
+
+      fetchCategories()
+    }, [])
 
     // Dialog states
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -674,6 +738,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         ? {
             title: initialData.title || '',
             description: initialData.description || '',
+            category:
+              initialData.category ||
+              ((initialData as any).categorias?.[0]?.id as number | undefined),
             enrollment_start_date:
               initialData.enrollment_start_date || new Date(),
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
@@ -736,6 +803,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         : {
             title: '',
             description: '',
+            category: undefined,
             enrollment_start_date: new Date(),
             enrollment_end_date: new Date(),
             orgao: undefined,
@@ -874,6 +942,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       return {
         title: data.title,
         description: data.description,
+        categorias: data.category ? [{ id: data.category }] : [],
         enrollment_start_date: data.enrollment_start_date
           ? formatDateTimeToUTC(data.enrollment_start_date)
           : undefined,
@@ -945,6 +1014,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         description:
           data.description ||
           'Descrição em desenvolvimento. Edite antes de publicar!',
+        category: data.category,
         enrollment_start_date: data.enrollment_start_date || currentDate,
         enrollment_end_date: data.enrollment_end_date || nextMonth,
         orgao:
@@ -1317,6 +1387,48 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria*</FormLabel>
+                    <Select
+                      onValueChange={value => field.onChange(Number(value))}
+                      value={field.value?.toString() || ''}
+                      disabled={isReadOnly || loadingCategories}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              loadingCategories
+                                ? 'Carregando categorias...'
+                                : categoryOptions.length === 0
+                                  ? 'Nenhuma categoria encontrada'
+                                  : 'Selecione uma categoria'
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      {!loadingCategories && categoryOptions.length > 0 && (
+                        <SelectContent>
+                          {categoryOptions.map(category => (
+                            <SelectItem
+                              key={category.id}
+                              value={category.id.toString()}
+                            >
+                              {category.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      )}
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="flex flex-wrap items-start gap-4">
                 <FormField
                   control={form.control}
@@ -1413,22 +1525,25 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 control={form.control}
                 name="is_external_partner"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isReadOnly}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Curso de parceiro externo</FormLabel>
-                      <p className="text-[0.8rem] text-muted-foreground">
-                        Marque esta opção se o curso é oferecido por uma
-                        organização parceira externa.
-                      </p>
-                    </div>
-                  </FormItem>
+                  <Card className="p-4 bg-card">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          className="border-1 border-foreground!"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isReadOnly}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Curso de parceiro externo</FormLabel>
+                        <p className="text-[0.8rem] text-muted-foreground">
+                          Marque esta opção se o curso é oferecido por uma
+                          organização parceira externa.
+                        </p>
+                      </div>
+                    </FormItem>
+                  </Card>
                 )}
               />
 
@@ -2024,20 +2139,29 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             control={form.control}
                             name="has_certificate"
                             render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                    disabled={isReadOnly}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>
-                                    Geração interna de certificado
-                                  </FormLabel>
-                                </div>
-                              </FormItem>
+                              <Card className="p-4 bg-card">
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      className="border-1 border-foreground!"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                      disabled={isReadOnly}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>
+                                      Geração interna de certificado
+                                    </FormLabel>
+                                    <p className="text-[0.8rem] text-muted-foreground">
+                                      Marque esta opção se o certificado será
+                                      gerado pelo portal interno (url do
+                                      certificado ou de forma automática após
+                                      marcar aluno como concluído.)
+                                    </p>
+                                  </div>
+                                </FormItem>
+                              </Card>
                             )}
                           />
 

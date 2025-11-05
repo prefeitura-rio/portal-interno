@@ -43,7 +43,8 @@ export const getGetApiV1CategoriasUrl = (params?: GetApiV1CategoriasParams) => {
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      const paramKey = key === 'limit' ? 'pageSize' : key
+      normalizedParams.append(paramKey, value === null ? 'null' : value.toString())
     }
   })
 
