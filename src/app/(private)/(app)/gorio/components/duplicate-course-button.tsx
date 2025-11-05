@@ -30,20 +30,37 @@ export function DuplicateCourseButton({
         process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
       )
 
-      // Transform locations to API format
+      // Transform locations to API format with schedules (turmas)
       const transformedLocations = course.locations
         ? course.locations.map(location => ({
             address: location.address,
             neighborhood: location.neighborhood,
-            vacancies: location.vacancies,
-            class_start_date: location.classStartDate
-              ? new Date(location.classStartDate).toISOString()
-              : undefined,
-            class_end_date: location.classEndDate
-              ? new Date(location.classEndDate).toISOString()
-              : undefined,
-            class_time: location.classTime,
-            class_days: location.classDays,
+            schedules: location.schedules
+              ? location.schedules.map(schedule => ({
+                  vacancies: schedule.vacancies,
+                  class_start_date: schedule.classStartDate
+                    ? new Date(schedule.classStartDate).toISOString()
+                    : undefined,
+                  class_end_date: schedule.classEndDate
+                    ? new Date(schedule.classEndDate).toISOString()
+                    : undefined,
+                  class_time: schedule.classTime,
+                  class_days: schedule.classDays,
+                }))
+              : // Fallback for old format without schedules
+                [
+                  {
+                    vacancies: location.vacancies || 1,
+                    class_start_date: location.classStartDate
+                      ? new Date(location.classStartDate).toISOString()
+                      : undefined,
+                    class_end_date: location.classEndDate
+                      ? new Date(location.classEndDate).toISOString()
+                      : undefined,
+                    class_time: location.classTime || '',
+                    class_days: location.classDays || '',
+                  },
+                ],
           }))
         : []
 

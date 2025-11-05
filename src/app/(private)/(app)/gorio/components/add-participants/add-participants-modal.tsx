@@ -63,6 +63,7 @@ export function AddParticipantsModal({
                   courseId={courseId}
                   onBack={handleBack}
                   onFinish={handleFinish}
+                  courseData={courseData}
                 />
               </AnimatedStep>
             )}

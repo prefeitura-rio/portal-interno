@@ -255,6 +255,7 @@ export function transformApiCourseToCourse(apiCourse: any): any {
           address: location.address || '',
           neighborhood: location.neighborhood || '',
           schedules: location.schedules.map((schedule: any) => ({
+            id: schedule.id || '',
             vacancies: schedule.vacancies || 0,
             classStartDate:
               safeParseDate(schedule.class_start_date) || new Date(),
