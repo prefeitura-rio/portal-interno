@@ -61,13 +61,8 @@ function convertFrontendStatusToApi(
 function convertApiEnrollmentToFrontend(
   apiEnrollment: ModelsInscricao
 ): Enrollment {
-  // Calculate age from enrolled_at date (rough estimate - ideally should use birth date)
-  const enrolledDate = new Date((apiEnrollment.enrolled_at as string) || '')
-  const currentYear = new Date().getFullYear()
-  const enrolledYear = enrolledDate.getFullYear()
-  const estimatedAge = Math.max(18, 30 + (currentYear - enrolledYear)) // Fallback age calculation
 
-  return {
+  const converted = {
     id: (apiEnrollment.id as string) || '',
     courseId: (apiEnrollment.course_id as number)?.toString() || '',
     candidateName: (apiEnrollment.name as string) || '',
@@ -95,11 +90,14 @@ function convertApiEnrollmentToFrontend(
           )
         : [],
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
+    schedule_id: (apiEnrollment as any).schedule_id as string | undefined,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     updated_at:
       (apiEnrollment.updated_at as string) || new Date().toISOString(),
   }
+
+  return converted
 }
 
 export async function GET(
@@ -377,7 +375,8 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { name, cpf, age, phone, email, address, neighborhood } = body
+    const { name, cpf, age, phone, email, address, neighborhood, schedule_id } =
+      body
 
     if (!name || !cpf || !age || !phone || !email || !address || !neighborhood) {
       return NextResponse.json(
@@ -386,18 +385,24 @@ export async function POST(
       )
     }
 
+    // Prepare enrollment data
+    const enrollmentData = {
+      name,
+      cpf,
+      age,
+      phone,
+      email,
+      address,
+      neighborhood,
+      ...(schedule_id && { schedule_id }), // Only include schedule_id if provided
+    }
+
+    console.log('[Enrollment POST] Sending to backend:', enrollmentData)
+
     // Call the API to create manual enrollment
     const response = await postApiV1CoursesCourseIdEnrollmentsManual(
       Number.parseInt(courseId, 10),
-      {
-        name,
-        cpf,
-        age,
-        phone,
-        email,
-        address,
-        neighborhood,
-      }
+      enrollmentData
     )
 
     if (response.status === 201) {

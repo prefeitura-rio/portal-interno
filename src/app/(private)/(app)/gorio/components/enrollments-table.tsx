@@ -20,6 +20,7 @@ import {
   FileDown,
   Hash,
   Mail,
+  MapPin,
   Phone,
   Text,
   User,
@@ -57,6 +58,8 @@ import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { AddParticipantsModal } from './add-participants'
+import { getScheduleOptions } from './add-participants/utils/schedule-helpers'
+import type { CourseData } from './add-participants/types'
 
 // Constantes para validação de certificados
 const VALID_CERTIFICATE_EXTENSIONS = [
@@ -102,15 +105,9 @@ interface EnrollmentsTableProps {
   /** Título do curso para exibição */
   courseTitle?: string
   /** Dados do curso necessários para validações */
-  course?: {
+  course?: CourseData & {
     /** Se o curso oferece certificado */
     has_certificate?: boolean
-    /** Localizações do curso (para cursos presenciais) */
-    locations?: Array<{ class_end_date?: string }>
-    /** Classe remota do curso (para cursos online) */
-    remote_class?: { class_end_date?: string }
-    /** Modalidade do curso (ONLINE, PRESENCIAL, etc.) */
-    modalidade?: string
     /** Status atual do curso */
     status?: string
     custom_fields?: Array<{
@@ -1175,6 +1172,24 @@ export function EnrollmentsTable({
                           </p>
                         </div>
                       </div>
+                      {/* Schedule/Class Information */}
+                      {selectedEnrollment.schedule_id && course && (() => {
+                        const scheduleOptions = getScheduleOptions(course)
+                        const selectedSchedule = scheduleOptions.find(
+                          opt => opt.id === selectedEnrollment.schedule_id
+                        )
+                        return selectedSchedule ? (
+                          <div className="flex items-start gap-3">
+                            <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Turma/Horário
+                              </Label>
+                              <p className="text-sm">{selectedSchedule.label}</p>
+                            </div>
+                          </div>
+                        ) : null
+                      })()}
                       <div className="flex items-center gap-3">
                         <div>
                           <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">

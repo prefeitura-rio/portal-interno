@@ -16,12 +16,22 @@ export interface CourseLocation {
   id?: string
   address?: string
   neighborhood?: string
+  // Old format fields (for backward compatibility)
   vacancies?: number
-  classStartDate?: Date
-  classEndDate?: Date
+  classStartDate?: Date | string
+  classEndDate?: Date | string
   class_end_date?: string
   classTime?: string
   classDays?: string
+  // New format with schedules (turmas)
+  schedules?: Array<{
+    id?: string
+    vacancies: number
+    classStartDate?: Date | string
+    classEndDate?: Date | string
+    classTime?: string
+    classDays?: string
+  }>
 }
 
 export interface CourseData {
@@ -54,6 +64,7 @@ export interface StepComponentProps {
 
 export interface ManualFormProps extends StepComponentProps {
   courseId: string
+  courseData?: CourseData | null
 }
 
 export interface SpreadsheetFormProps extends StepComponentProps {
