@@ -12,10 +12,12 @@ import {
   X,
   XCircle,
 } from 'lucide-react'
-import { type DragEvent, useRef, useState } from 'react'
+import { type DragEvent, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import type { SpreadsheetFormProps } from './types'
+import { getScheduleOptions, hasMultipleSchedules } from './utils/schedule-helpers'
+import { normalizeString } from './utils/string-utils'
 
 interface ExpectedField {
   name: string
@@ -62,7 +64,18 @@ export function SpreadsheetForm({
     }
   }
 
-  if (course?.locations && course.locations.length > 1) {
+  // Check if course has multiple schedules and add Turma field
+  const requiresScheduleSelection = useMemo(
+    () => hasMultipleSchedules(courseData),
+    [courseData]
+  )
+
+  const scheduleOptions = useMemo(
+    () => getScheduleOptions(courseData),
+    [courseData]
+  )
+
+  if (requiresScheduleSelection) {
     expectedFields.push({ name: 'Turma', required: true })
   }
 
@@ -136,7 +149,9 @@ export function SpreadsheetForm({
     const workbook = XLSX.read(data, { type: 'array' })
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 })
-    const headerRow = rows[0]?.map(cell => String(cell).trim().toLowerCase())
+
+    // Normalize header row - remove accents and lowercase
+    const headerRow = rows[0]?.map(cell => normalizeString(String(cell)))
 
     if (!headerRow || headerRow.length === 0) {
       setError('Não foi possível ler o cabeçalho da planilha.')
@@ -147,9 +162,12 @@ export function SpreadsheetForm({
     const missing: string[] = []
 
     for (const field of expectedFields) {
+      // Normalize expected field name as well
+      const fieldNameNormalized = normalizeString(field.name)
       const found = headerRow.some(
-        col => col === field.name.toLowerCase().trim()
+        col => col === fieldNameNormalized
       )
+
       if (found) {
         status[field.name] = 'ok'
       } else if (field.required) {
@@ -266,35 +284,79 @@ export function SpreadsheetForm({
         <h3 className="text-sm font-medium">
           Campos esperados para inscrição deste curso:
         </h3>
-        <ul className="space-y-1">
-          {expectedFields.map(field => {
-            const status = validation[field.name]
-            const isOk = status === 'ok'
-            const isMissing = status === 'missing'
+        <div className={cn("grid gap-4", requiresScheduleSelection ? "grid-cols-2" : "grid-cols-1")}>
+          {/* Primeira coluna - Campos principais */}
+          <div>
+            <ul className="space-y-1">
+              {expectedFields
+                .filter(field => field.name !== 'Turma')
+                .map(field => {
+                  const status = validation[field.name]
+                  const isOk = status === 'ok'
+                  const isMissing = status === 'missing'
 
-            return (
-              <li key={field.name} className="flex items-center text-sm gap-2">
-                {isOk ? (
+                  return (
+                    <li key={field.name} className="flex items-center text-sm gap-2">
+                      {isOk ? (
+                        <Check className="text-green-500 h-4 w-4" />
+                      ) : isMissing ? (
+                        <X className="text-red-500 h-4 w-4" />
+                      ) : (
+                        <div className="h-2 w-2 rounded-full border border-zinc-400" />
+                      )}
+                      <span
+                        className={cn({
+                          'text-red-600': isMissing,
+                          'text-green-600': isOk,
+                          'text-muted-foreground': !isOk && !isMissing,
+                        })}
+                      >
+                        {field.name}
+                        {field.required ? '*' : ' (opcional)'}
+                      </span>
+                    </li>
+                  )
+                })}
+            </ul>
+          </div>
+
+          {/* Segunda coluna - Turmas (se aplicável) */}
+          {requiresScheduleSelection && (
+            <div className="space-y-2">
+              <div className="flex items-center text-sm gap-2">
+                {validation.Turma === 'ok' ? (
                   <Check className="text-green-500 h-4 w-4" />
-                ) : isMissing ? (
+                ) : validation.Turma === 'missing' ? (
                   <X className="text-red-500 h-4 w-4" />
                 ) : (
                   <div className="h-2 w-2 rounded-full border border-zinc-400" />
                 )}
                 <span
                   className={cn({
-                    'text-red-600': isMissing,
-                    'text-green-600': isOk,
-                    'text-muted-foreground': !isOk && !isMissing,
+                    'text-red-600': validation.Turma === 'missing',
+                    'text-green-600': validation.Turma === 'ok',
+                    'text-muted-foreground': validation.Turma !== 'ok' && validation.Turma !== 'missing',
                   })}
                 >
-                  {field.name}
-                  {field.required ? '*' : ' (opcional)'}
+                  Turma*
                 </span>
-              </li>
-            )
-          })}
-        </ul>
+              </div>
+
+              <div className="mt-3 p-3 bg-muted/50 rounded-md border border-border">
+                <p className="text-xs font-medium text-muted-foreground mb-2">
+                  Turmas disponíveis:
+                </p>
+                <ul className="space-y-1">
+                  {scheduleOptions.map(option => (
+                    <li key={option.id} className="text-xs text-foreground/80">
+                      • {option.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Resumo de validação */}
         {file && (
