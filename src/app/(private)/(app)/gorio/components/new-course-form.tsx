@@ -32,6 +32,8 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
+import { MarkdownEditor } from '@/components/blocks/editor-md'
+
 import {
   Accordion,
   AccordionContent,
@@ -1376,10 +1378,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <FormItem>
                     <FormLabel>Descrição*</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[120px]"
-                        {...field}
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        placeholder="Descreva o curso de forma detalhada"
                         disabled={isReadOnly}
+                        maxLength={600}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -2108,10 +2113,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <FormItem>
                     <FormLabel>Público-alvo*</FormLabel>
                     <FormControl>
-                      <Textarea
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Ex: Servidores públicos, estudantes, profissionais da área de tecnologia..."
-                        className="min-h-[80px]"
-                        {...field}
+                        disabled={isReadOnly}
+                        maxLength={600}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -2174,10 +2182,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                   Pré-requisitos para receber certificado
                                 </FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
-                                    className="min-h-[80px]"
-                                    {...field}
                                     disabled={isReadOnly}
                                   />
                                 </FormControl>
@@ -2241,10 +2249,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Objetivos da capacitação</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Desenvolver habilidades em gestão de projetos, capacitar para uso de ferramentas específicas..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2259,10 +2268,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Resultados esperados</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Ao final do curso, os participantes estarão aptos a..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2277,10 +2287,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Conteúdo programático</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Módulo 1: Introdução, Módulo 2: Conceitos básicos..."
-                                    className="min-h-[120px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2295,10 +2306,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Metodologia</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Aulas expositivas, exercícios práticos, estudos de caso..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2313,10 +2325,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Recursos Utilizados</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Computadores, projetor, software específico..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2331,10 +2344,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Material utilizado</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Apostilas, slides, vídeos..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2349,10 +2363,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Material didático</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Livros, artigos, exercícios práticos..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
