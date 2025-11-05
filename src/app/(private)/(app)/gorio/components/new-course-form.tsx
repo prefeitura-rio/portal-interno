@@ -71,16 +71,8 @@ export interface Category {
 
 // Static category options removed - using dynamic categories from API
 
-// Define the schema for location/class information
-const locationClassSchema = z.object({
-  address: z
-    .string()
-    .min(1, { message: 'Endereço é obrigatório.' })
-    .min(10, { message: 'Endereço deve ter pelo menos 10 caracteres.' }),
-  neighborhood: z
-    .string()
-    .min(1, { message: 'Bairro é obrigatório.' })
-    .min(3, { message: 'Bairro deve ter pelo menos 3 caracteres.' }),
+// Define the schema for schedule (turma) information
+const scheduleSchema = z.object({
   vacancies: z.coerce
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
@@ -93,6 +85,21 @@ const locationClassSchema = z.object({
   }),
   classTime: z.string().min(1, { message: 'Horário das aulas é obrigatório.' }),
   classDays: z.string().min(1, { message: 'Dias de aula é obrigatório.' }),
+})
+
+// Define the schema for location/class information
+const locationClassSchema = z.object({
+  address: z
+    .string()
+    .min(1, { message: 'Endereço é obrigatório.' })
+    .min(10, { message: 'Endereço deve ter pelo menos 10 caracteres.' }),
+  neighborhood: z
+    .string()
+    .min(1, { message: 'Bairro é obrigatório.' })
+    .min(3, { message: 'Bairro deve ter pelo menos 3 caracteres.' }),
+  schedules: z
+    .array(scheduleSchema)
+    .min(1, { message: 'Pelo menos uma turma deve ser informada.' }),
 })
 
 // Define the schema for remote class information
@@ -372,8 +379,10 @@ const fullFormSchema = z
           data.remote_class.classEndDate >= data.remote_class.classStartDate
         )
       }
-      return data.locations.every(
-        location => location.classEndDate >= location.classStartDate
+      return data.locations.every(location =>
+        location.schedules.every(
+          schedule => schedule.classEndDate >= schedule.classStartDate
+        )
       )
     },
     {
@@ -485,11 +494,17 @@ const draftFormSchema = z.object({
       z.object({
         address: z.string().optional(),
         neighborhood: z.string().optional(),
-        vacancies: z.number().optional(),
-        classStartDate: z.date().optional(),
-        classEndDate: z.date().optional(),
-        classTime: z.string().optional(),
-        classDays: z.string().optional(),
+        schedules: z
+          .array(
+            z.object({
+              vacancies: z.number().optional(),
+              classStartDate: z.date().optional(),
+              classEndDate: z.date().optional(),
+              classTime: z.string().optional(),
+              classDays: z.string().optional(),
+            })
+          )
+          .optional(),
       })
     )
     .optional(),
@@ -588,11 +603,13 @@ type BackendCourseData = {
   locations?: Array<{
     address: string
     neighborhood: string
-    vacancies: number
-    class_start_date: string | undefined
-    class_end_date: string | undefined
-    class_time: string
-    class_days: string
+    schedules: Array<{
+      vacancies: number
+      class_start_date: string | undefined
+      class_end_date: string | undefined
+      class_time: string
+      class_days: string
+    }>
   }>
   remote_class?: {
     vacancies: number
@@ -757,7 +774,30 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             is_visible: initialData?.is_visible ?? true,
             custom_fields: initialData.custom_fields || [],
             // Handle locations and remote_class based on modalidade
-            locations: initialData.locations || [],
+            // Normalize locations to ensure they have schedules array
+            locations: (initialData.locations || []).map((location: any) => {
+              // If location already has schedules, use it
+              if (
+                location.schedules &&
+                Array.isArray(location.schedules) &&
+                location.schedules.length > 0
+              ) {
+                return location
+              }
+              // Otherwise, convert old format to new format with a single schedule
+              return {
+                ...location,
+                schedules: [
+                  {
+                    vacancies: location.vacancies || 1,
+                    classStartDate: location.classStartDate || new Date(),
+                    classEndDate: location.classEndDate || new Date(),
+                    classTime: location.classTime || '',
+                    classDays: location.classDays || '',
+                  },
+                ],
+              }
+            }),
             remote_class: initialData.remote_class,
           }
         : {
@@ -806,6 +846,40 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       name: 'locations',
     })
 
+    // Helper function to get schedules for a location
+    const getLocationSchedules = (locationIndex: number) => {
+      const location = form.watch(`locations.${locationIndex}`)
+      return location?.schedules || []
+    }
+
+    // Helper function to add a schedule to a location
+    const addSchedule = (locationIndex: number) => {
+      const currentSchedules =
+        form.getValues(`locations.${locationIndex}.schedules`) || []
+      form.setValue(`locations.${locationIndex}.schedules`, [
+        ...currentSchedules,
+        {
+          vacancies: 1,
+          classStartDate: new Date(),
+          classEndDate: new Date(),
+          classTime: '',
+          classDays: '',
+        },
+      ])
+    }
+
+    // Helper function to remove a schedule from a location
+    const removeSchedule = (locationIndex: number, scheduleIndex: number) => {
+      const currentSchedules =
+        form.getValues(`locations.${locationIndex}.schedules`) || []
+      if (currentSchedules.length > 1) {
+        const newSchedules = currentSchedules.filter(
+          (_: any, idx: number) => idx !== scheduleIndex
+        )
+        form.setValue(`locations.${locationIndex}.schedules`, newSchedules)
+      }
+    }
+
     // Fetch organizations on component mount
     React.useEffect(() => {
       const fetchOrgaos = async () => {
@@ -852,15 +926,17 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       const transformedLocations = data.locations?.map(location => ({
         address: location.address,
         neighborhood: location.neighborhood,
-        vacancies: location.vacancies,
-        class_start_date: location.classStartDate
-          ? formatDateTimeToUTC(location.classStartDate)
-          : undefined,
-        class_end_date: location.classEndDate
-          ? formatDateTimeToUTC(location.classEndDate)
-          : undefined,
-        class_time: location.classTime,
-        class_days: location.classDays,
+        schedules: location.schedules.map(schedule => ({
+          vacancies: schedule.vacancies,
+          class_start_date: schedule.classStartDate
+            ? formatDateTimeToUTC(schedule.classStartDate)
+            : undefined,
+          class_end_date: schedule.classEndDate
+            ? formatDateTimeToUTC(schedule.classEndDate)
+            : undefined,
+          class_time: schedule.classTime,
+          class_days: schedule.classDays,
+        })),
       }))
 
       return {
@@ -987,11 +1063,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   {
                     address: '',
                     neighborhood: '',
-                    vacancies: 1,
-                    classStartDate: currentDate,
-                    classEndDate: nextMonth,
-                    classTime: '',
-                    classDays: '',
+                    schedules: [
+                      {
+                        vacancies: 1,
+                        classStartDate: currentDate,
+                        classEndDate: nextMonth,
+                        classTime: 'Horário em definição',
+                        classDays: 'Dias em definição',
+                      },
+                    ],
                   },
                 ]
             : undefined,
@@ -1047,11 +1127,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             {
               address: '',
               neighborhood: '',
-              vacancies: 1,
-              classStartDate: new Date(),
-              classEndDate: new Date(),
-              classTime: '',
-              classDays: '',
+              schedules: [
+                {
+                  vacancies: 1,
+                  classStartDate: new Date(),
+                  classEndDate: new Date(),
+                  classTime: '',
+                  classDays: '',
+                },
+              ],
             },
           ])
         }
@@ -1062,11 +1146,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       append({
         address: '',
         neighborhood: '',
-        vacancies: 1,
-        classStartDate: new Date(),
-        classEndDate: new Date(),
-        classTime: '',
-        classDays: '',
+        schedules: [
+          {
+            vacancies: 1,
+            classStartDate: new Date(),
+            classEndDate: new Date(),
+            classTime: '',
+            classDays: '',
+          },
+        ],
       })
     }
 
@@ -1813,99 +1901,173 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name={`locations.${index}.vacancies`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Número de vagas*</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  value={field.value || ''}
-                                  onChange={e =>
-                                    field.onChange(Number(e.target.value))
-                                  }
-                                  onBlur={field.onBlur}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {/* Schedules (Turmas) */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-semibold">Turmas</h4>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addSchedule(index)}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Adicionar Turma
+                            </Button>
+                          </div>
 
-                        <div className="flex flex-wrap items-start gap-4">
-                          <FormField
-                            control={form.control}
-                            name={`locations.${index}.classStartDate`}
-                            render={({ field }) => (
-                              <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                                <FormLabel>Início das aulas*</FormLabel>
-                                <FormControl>
-                                  <DateTimePicker
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Selecionar data e hora de início"
-                                    disabled={isReadOnly}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name={`locations.${index}.classEndDate`}
-                            render={({ field }) => (
-                              <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                                <FormLabel>Fim das aulas*</FormLabel>
-                                <FormControl>
-                                  <DateTimePicker
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Selecionar data e hora de fim"
-                                    disabled={isReadOnly}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          {(() => {
+                            const location = form.watch(`locations.${index}`)
+                            const schedules = location?.schedules || []
+                            // Ensure at least one schedule is shown - if empty, form will initialize it
+                            if (schedules.length === 0) {
+                              // Initialize with one schedule if none exists
+                              form.setValue(`locations.${index}.schedules`, [
+                                {
+                                  vacancies: 1,
+                                  classStartDate: new Date(),
+                                  classEndDate: new Date(),
+                                  classTime: '',
+                                  classDays: '',
+                                },
+                              ])
+                              return null // Will re-render with the schedule
+                            }
+                            return schedules.map(
+                              (schedule: any, scheduleIndex: number) => (
+                                <Card
+                                  key={scheduleIndex}
+                                  className="bg-muted/30"
+                                >
+                                  <CardHeader className="flex flex-row items-center justify-between pb-3">
+                                    <CardTitle className="text-base">
+                                      Turma {scheduleIndex + 1}
+                                    </CardTitle>
+                                    {schedules && schedules.length > 1 && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          removeSchedule(index, scheduleIndex)
+                                        }
+                                        className="text-destructive hover:text-destructive"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </CardHeader>
+                                  <CardContent className="space-y-4">
+                                    <FormField
+                                      control={form.control}
+                                      name={`locations.${index}.schedules.${scheduleIndex}.vacancies`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>
+                                            Número de vagas*
+                                          </FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              type="number"
+                                              min="1"
+                                              value={field.value || ''}
+                                              onChange={e =>
+                                                field.onChange(
+                                                  Number(e.target.value)
+                                                )
+                                              }
+                                              onBlur={field.onBlur}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <div className="flex flex-wrap items-start gap-4">
+                                      <FormField
+                                        control={form.control}
+                                        name={`locations.${index}.schedules.${scheduleIndex}.classStartDate`}
+                                        render={({ field }) => (
+                                          <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                                            <FormLabel>
+                                              Início das aulas*
+                                            </FormLabel>
+                                            <FormControl>
+                                              <DateTimePicker
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                placeholder="Selecionar data e hora de início"
+                                                disabled={isReadOnly}
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name={`locations.${index}.schedules.${scheduleIndex}.classEndDate`}
+                                        render={({ field }) => (
+                                          <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                                            <FormLabel>
+                                              Fim das aulas*
+                                            </FormLabel>
+                                            <FormControl>
+                                              <DateTimePicker
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                placeholder="Selecionar data e hora de fim"
+                                                disabled={isReadOnly}
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    </div>
+
+                                    <FormField
+                                      control={form.control}
+                                      name={`locations.${index}.schedules.${scheduleIndex}.classTime`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>
+                                            Horário das aulas*
+                                          </FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
+                                              {...field}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={form.control}
+                                      name={`locations.${index}.schedules.${scheduleIndex}.classDays`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Dias de aula*</FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
+                                              {...field}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </CardContent>
+                                </Card>
+                              )
+                            )
+                          })()}
                         </div>
-
-                        <FormField
-                          control={form.control}
-                          name={`locations.${index}.classTime`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Horário das aulas*</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name={`locations.${index}.classDays`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Dias de aula*</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </CardContent>
                     </Card>
                   ))}
