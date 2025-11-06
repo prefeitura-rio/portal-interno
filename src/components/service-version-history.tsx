@@ -7,18 +7,25 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Input } from '@/components/ui/input'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useIsBuscaServicesAdmin } from '@/hooks/use-heimdall-user'
 import { useServiceVersions } from '@/hooks/use-service-versions'
 import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsFieldChange } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsFieldChange'
 import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsServiceVersion } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsServiceVersion'
 import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { RotateCcw } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 interface ServiceVersionHistoryProps {
   serviceId: string
+  onRollbackSuccess?: () => void
 }
 
 // Mapeamento de nomes de campos para labels em português
@@ -281,9 +288,21 @@ function VersionDiffDisplay({
 
 export function ServiceVersionHistory({
   serviceId,
+  onRollbackSuccess,
 }: ServiceVersionHistoryProps) {
-  const { versions, loading, error, getVersionDiff } =
+  const { versions, loading, error, getVersionDiff, rollbackToVersion } =
     useServiceVersions(serviceId)
+  const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
+  const [rollbackDialog, setRollbackDialog] = useState<{
+    open: boolean
+    versionNumber: number | null
+    changeReason: string
+  }>({
+    open: false,
+    versionNumber: null,
+    changeReason: '',
+  })
+  const [isRollingBack, setIsRollingBack] = useState(false)
 
   if (loading) {
     return (
@@ -347,6 +366,51 @@ export function ServiceVersionHistory({
     (a, b) => (b.version_number || 0) - (a.version_number || 0)
   )
 
+  // Obter a versão atual (a mais recente)
+  const currentVersionNumber = sortedVersions[0]?.version_number || 0
+
+  const handleRollbackClick = (versionNumber: number) => {
+    setRollbackDialog({
+      open: true,
+      versionNumber,
+      changeReason: '',
+    })
+  }
+
+  const handleConfirmRollback = async () => {
+    if (rollbackDialog.versionNumber === null) return
+
+    try {
+      setIsRollingBack(true)
+      const result = await rollbackToVersion(
+        rollbackDialog.versionNumber,
+        rollbackDialog.changeReason || undefined
+      )
+
+      if (result.success) {
+        toast.success(
+          `Serviço revertido para a versão ${rollbackDialog.versionNumber} com sucesso!`
+        )
+        setRollbackDialog({
+          open: false,
+          versionNumber: null,
+          changeReason: '',
+        })
+        // Notify parent component to refetch service data
+        if (onRollbackSuccess) {
+          onRollbackSuccess()
+        }
+      } else {
+        toast.error(result.error || 'Erro ao fazer rollback da versão')
+      }
+    } catch (error) {
+      console.error('Error in rollback:', error)
+      toast.error('Erro ao fazer rollback da versão')
+    } finally {
+      setIsRollingBack(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <Accordion type="multiple" className="w-full">
@@ -355,6 +419,7 @@ export function ServiceVersionHistory({
           const versionId = version.id || `version-${versionNumber}-${index}`
           const previousVersion = sortedVersions[index + 1]?.version_number
           const timestamp = version.created_at || version.published_at
+          const isCurrentVersion = versionNumber === currentVersionNumber
 
           return (
             <AccordionItem key={versionId} value={`version-${versionId}`}>
@@ -367,6 +432,11 @@ export function ServiceVersionHistory({
                     <span className="text-sm text-muted-foreground">
                       {formatTimestamp(timestamp)}
                     </span>
+                    {isCurrentVersion && (
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                        Versão atual
+                      </span>
+                    )}
                   </div>
                 </div>
               </AccordionTrigger>
@@ -389,12 +459,62 @@ export function ServiceVersionHistory({
                     previousVersion={previousVersion}
                     getVersionDiff={getVersionDiff}
                   />
+                  {isBuscaServicesAdmin && !isCurrentVersion && (
+                    <div className="pt-2 flex justify-end">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={e => {
+                          e.stopPropagation()
+                          handleRollbackClick(versionNumber)
+                        }}
+                        disabled={isRollingBack}
+                        className="sm:w-auto"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Reverter para esta versão
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </AccordionContent>
             </AccordionItem>
           )
         })}
       </Accordion>
+
+      {/* Rollback Confirmation Dialog */}
+      <ConfirmDialog
+        open={rollbackDialog.open}
+        onOpenChange={open => setRollbackDialog(prev => ({ ...prev, open }))}
+        title="Reverter para versão anterior"
+        description={`Tem certeza que deseja reverter o serviço para a versão ${rollbackDialog.versionNumber}? Esta ação criará uma nova versão que restaura o estado da versão selecionada.`}
+        confirmText={isRollingBack ? 'Revertendo...' : 'Reverter'}
+        cancelText="Cancelar"
+        variant="default"
+        onConfirm={handleConfirmRollback}
+      >
+        <div className="space-y-2">
+          <label
+            htmlFor="rollback-reason"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Motivo da reversão (opcional)
+          </label>
+          <Input
+            id="rollback-reason"
+            placeholder="Descreva o motivo da reversão..."
+            value={rollbackDialog.changeReason}
+            onChange={e =>
+              setRollbackDialog(prev => ({
+                ...prev,
+                changeReason: e.target.value,
+              }))
+            }
+            disabled={isRollingBack}
+          />
+        </div>
+      </ConfirmDialog>
     </div>
   )
 }
