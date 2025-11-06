@@ -55,14 +55,14 @@ const serviceFormSchema = z.object({
     .string()
     .min(1, { message: 'Título do serviço é obrigatório.' })
     .min(3, { message: 'Título deve ter pelo menos 3 caracteres.' })
-    .max(200, { message: 'Título não pode exceder 200 caracteres.' }),
+    .max(500, { message: 'Título não pode exceder 500 caracteres.' }),
   shortDescription: z
     .string()
     .min(1, { message: 'Descrição resumida é obrigatória.' })
     .min(10, {
       message: 'Descrição resumida deve ter pelo menos 10 caracteres.',
     })
-    .max(500, {
+    .max(5000, {
       message: 'Descrição resumida não pode exceder 500 caracteres.',
     }),
   buttons: z
@@ -103,21 +103,21 @@ const serviceFormSchema = z.object({
     .optional(),
   fullDescription: z
     .string()
-    .max(2000, {
-      message: 'Descrição completa não pode exceder 2000 caracteres.',
+    .max(10000, {
+      message: 'Descrição completa não pode exceder 10000 caracteres.',
     })
     .optional(),
   requiredDocuments: z
     .string()
-    .max(1000, {
-      message: 'Documentos necessários não pode exceder 1000 caracteres.',
+    .max(10000, {
+      message: 'Documentos necessários não pode exceder 10000 caracteres.',
     })
     .optional(),
   instructionsForRequester: z
     .string()
-    .max(1000, {
+    .max(10000, {
       message:
-        'Instruções para o solicitante não pode exceder 1000 caracteres.',
+        'Instruções para o solicitante não pode exceder 10000 caracteres.',
     })
     .optional(),
   digitalChannels: z
@@ -951,7 +951,7 @@ export function NewServiceForm({
                         onChange={field.onChange}
                         placeholder="Descreva resumidamente o serviço oferecido"
                         disabled={isLoading || readOnly}
-                        maxLength={500}
+                        maxLength={5000}
                         showCharCount={true}
                       />
                     </FormControl>
@@ -1227,7 +1227,7 @@ export function NewServiceForm({
                         onChange={field.onChange}
                         placeholder="Descreva o que o cidadão receberá após a solicitação"
                         disabled={isLoading || readOnly}
-                        maxLength={500}
+                        maxLength={10000}
                         showCharCount={true}
                       />
                     </FormControl>
@@ -1248,7 +1248,7 @@ export function NewServiceForm({
                         onChange={field.onChange}
                         placeholder="Descrição detalhada do serviço, seus objetivos e benefícios"
                         disabled={isLoading || readOnly}
-                        maxLength={2000}
+                        maxLength={10000}
                         showCharCount={true}
                       />
                     </FormControl>
@@ -1269,7 +1269,7 @@ export function NewServiceForm({
                         onChange={field.onChange}
                         placeholder="Liste os documentos necessários para solicitar o serviço"
                         disabled={isLoading || readOnly}
-                        maxLength={1000}
+                        maxLength={10000}
                         showCharCount={true}
                       />
                     </FormControl>
@@ -1290,7 +1290,7 @@ export function NewServiceForm({
                         onChange={field.onChange}
                         placeholder="Instruções passo a passo para o cidadão"
                         disabled={isLoading || readOnly}
-                        maxLength={1000}
+                        maxLength={10000}
                         showCharCount={true}
                       />
                     </FormControl>
