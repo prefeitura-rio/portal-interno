@@ -8,6 +8,7 @@ import TaskList from '@tiptap/extension-task-list'
 import Typography from '@tiptap/extension-typography'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { useEffect } from 'react'
 
 interface MarkdownViewerProps {
   content: string
@@ -39,6 +40,17 @@ export function MarkdownViewer({ content, className }: MarkdownViewerProps) {
       },
     },
   })
+
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && content !== undefined) {
+      const htmlContent = parseMarkdownToHtml(content || '')
+      const currentContent = editor.getHTML()
+      if (htmlContent !== currentContent) {
+        editor.commands.setContent(htmlContent)
+      }
+    }
+  }, [content, editor])
 
   if (!content || content.trim() === '') {
     return (

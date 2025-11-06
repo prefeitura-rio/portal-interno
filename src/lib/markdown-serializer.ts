@@ -173,18 +173,18 @@ function jsonToMarkdown(node: any, listLevel = 0): string {
 export function parseMarkdownToHtml(markdown: string): string {
   if (!markdown || markdown.trim() === '') return '<p></p>'
 
-  let html = markdown
+  // First, normalize multiple newlines to double newlines
+  // Then split by double newlines for paragraphs
+  const normalized = markdown.replace(/\n{3,}/g, '\n\n')
+  const blocks = normalized.split(/\n\n+/)
 
-  // Split by double newlines for paragraphs
-  const blocks = html.split(/\n\n+/)
-
-  html = blocks
+  const html = blocks
     .map(block => {
       // Headings
       if (block.match(/^#{1,6}\s/)) {
         const level = block.match(/^#+/)?.[0].length || 1
         const text = block.replace(/^#+\s/, '')
-        return `<h${level}>${parseInlineMarkdown(text)}</h${level}>`
+        return `<h${level}>${parseInlineMarkdown(text, true)}</h${level}>`
       }
 
       // Task lists
@@ -194,7 +194,7 @@ export function parseMarkdownToHtml(markdown: string): string {
           .map(line => {
             const checked = line.includes('[x]')
             const text = line.replace(/^- \[[ x]\]\s*/, '')
-            return `<li data-type="taskItem" data-checked="${checked}">${parseInlineMarkdown(text)}</li>`
+            return `<li data-type="taskItem" data-checked="${checked}">${parseInlineMarkdown(text, true)}</li>`
           })
           .join('')
         return `<ul data-type="taskList">${items}</ul>`
@@ -206,7 +206,7 @@ export function parseMarkdownToHtml(markdown: string): string {
           .split('\n')
           .map(line => {
             const text = line.replace(/^[-*]\s/, '')
-            return `<li><p>${parseInlineMarkdown(text)}</p></li>`
+            return `<li><p>${parseInlineMarkdown(text, true)}</p></li>`
           })
           .join('')
         return `<ul>${items}</ul>`
@@ -218,7 +218,7 @@ export function parseMarkdownToHtml(markdown: string): string {
           .split('\n')
           .map(line => {
             const text = line.replace(/^\d+\.\s/, '')
-            return `<li><p>${parseInlineMarkdown(text)}</p></li>`
+            return `<li><p>${parseInlineMarkdown(text, true)}</p></li>`
           })
           .join('')
         return `<ol>${items}</ol>`
@@ -236,7 +236,7 @@ export function parseMarkdownToHtml(markdown: string): string {
           .split('\n')
           .map(line => line.replace(/^>\s?/, ''))
           .join('\n')
-        return `<blockquote><p>${parseInlineMarkdown(text)}</p></blockquote>`
+        return `<blockquote><p>${parseInlineMarkdown(text, true)}</p></blockquote>`
       }
 
       // Horizontal rule
@@ -244,8 +244,8 @@ export function parseMarkdownToHtml(markdown: string): string {
         return '<hr>'
       }
 
-      // Regular paragraph
-      return `<p>${parseInlineMarkdown(block)}</p>`
+      // Regular paragraph - convert single \n to <br>
+      return `<p>${parseInlineMarkdown(block, true)}</p>`
     })
     .join('')
 
@@ -254,8 +254,13 @@ export function parseMarkdownToHtml(markdown: string): string {
 
 /**
  * Parse inline markdown (bold, italic, links, etc.)
+ * @param text - Text to parse
+ * @param convertSingleNewlines - If true, converts single \n to <br>
  */
-function parseInlineMarkdown(text: string): string {
+function parseInlineMarkdown(
+  text: string,
+  convertSingleNewlines = false
+): string {
   let result = text
 
   // Links
@@ -274,7 +279,16 @@ function parseInlineMarkdown(text: string): string {
   result = result.replace(/`([^`]+)`/g, '<code>$1</code>')
 
   // Line breaks
-  result = result.replace(/ {2}\n/g, '<br>')
+  if (convertSingleNewlines) {
+    // Convert all single \n to <br> (since we're already inside a block that was split by \n\n)
+    // First handle two spaces + \n (standard markdown line break)
+    result = result.replace(/ {2}\n/g, '<br>')
+    // Then convert remaining single \n to <br>
+    result = result.replace(/\n/g, '<br>')
+  } else {
+    // Only handle two spaces + \n (standard markdown line break)
+    result = result.replace(/ {2}\n/g, '<br>')
+  }
 
   return result
 }
