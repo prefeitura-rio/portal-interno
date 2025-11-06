@@ -20,9 +20,9 @@ import type {
   GetApiV1AdminTombamentosId404,
   GetApiV1AdminTombamentosId500,
   GetApiV1AdminTombamentosParams,
-  ModelsTombamento,
-  ModelsTombamentoRequest,
-  ModelsTombamentoResponse,
+  GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamento,
+  GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoRequest,
+  GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoResponse,
   PostApiV1AdminTombamentos400,
   PostApiV1AdminTombamentos401,
   PostApiV1AdminTombamentos404,
@@ -41,7 +41,7 @@ import { customFetchBuscaSearch } from '../../../custom-fetch-busca-search'
  * @summary Lista tombamentos com paginação e filtros
  */
 export type getApiV1AdminTombamentosResponse200 = {
-  data: ModelsTombamentoResponse
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoResponse
   status: 200
 }
 
@@ -101,7 +101,7 @@ export const getApiV1AdminTombamentos = async (
  * @summary Cria um novo tombamento
  */
 export type postApiV1AdminTombamentosResponse201 = {
-  data: ModelsTombamento
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamento
   status: 201
 }
 
@@ -148,7 +148,7 @@ export const getPostApiV1AdminTombamentosUrl = () => {
 }
 
 export const postApiV1AdminTombamentos = async (
-  modelsTombamentoRequest: ModelsTombamentoRequest,
+  githubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoRequest: GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoRequest,
   options?: RequestInit
 ): Promise<postApiV1AdminTombamentosResponse> => {
   return customFetchBuscaSearch<postApiV1AdminTombamentosResponse>(
@@ -157,186 +157,9 @@ export const postApiV1AdminTombamentos = async (
       ...options,
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(modelsTombamentoRequest),
-    }
-  )
-}
-
-/**
- * Busca um tombamento pelo ID do serviço antigo e origem
- * @summary Busca tombamento por serviço antigo
- */
-export type getApiV1AdminTombamentosByOldServiceResponse200 = {
-  data: ModelsTombamento
-  status: 200
-}
-
-export type getApiV1AdminTombamentosByOldServiceResponse400 = {
-  data: GetApiV1AdminTombamentosByOldService400
-  status: 400
-}
-
-export type getApiV1AdminTombamentosByOldServiceResponse404 = {
-  data: GetApiV1AdminTombamentosByOldService404
-  status: 404
-}
-
-export type getApiV1AdminTombamentosByOldServiceResponse500 = {
-  data: GetApiV1AdminTombamentosByOldService500
-  status: 500
-}
-
-export type getApiV1AdminTombamentosByOldServiceResponseComposite =
-  | getApiV1AdminTombamentosByOldServiceResponse200
-  | getApiV1AdminTombamentosByOldServiceResponse400
-  | getApiV1AdminTombamentosByOldServiceResponse404
-  | getApiV1AdminTombamentosByOldServiceResponse500
-
-export type getApiV1AdminTombamentosByOldServiceResponse =
-  getApiV1AdminTombamentosByOldServiceResponseComposite & {
-    headers: Headers
-  }
-
-export const getGetApiV1AdminTombamentosByOldServiceUrl = (
-  params: GetApiV1AdminTombamentosByOldServiceParams
-) => {
-  const normalizedParams = new URLSearchParams()
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  })
-
-  const stringifiedParams = normalizedParams.toString()
-
-  return stringifiedParams.length > 0
-    ? `/api/v1/admin/tombamentos/by-old-service?${stringifiedParams}`
-    : `/api/v1/admin/tombamentos/by-old-service`
-}
-
-export const getApiV1AdminTombamentosByOldService = async (
-  params: GetApiV1AdminTombamentosByOldServiceParams,
-  options?: RequestInit
-): Promise<getApiV1AdminTombamentosByOldServiceResponse> => {
-  return customFetchBuscaSearch<getApiV1AdminTombamentosByOldServiceResponse>(
-    getGetApiV1AdminTombamentosByOldServiceUrl(params),
-    {
-      ...options,
-      method: 'GET',
-    }
-  )
-}
-
-/**
- * Busca um tombamento específico por ID
- * @summary Busca um tombamento por ID
- */
-export type getApiV1AdminTombamentosIdResponse200 = {
-  data: ModelsTombamento
-  status: 200
-}
-
-export type getApiV1AdminTombamentosIdResponse400 = {
-  data: GetApiV1AdminTombamentosId400
-  status: 400
-}
-
-export type getApiV1AdminTombamentosIdResponse404 = {
-  data: GetApiV1AdminTombamentosId404
-  status: 404
-}
-
-export type getApiV1AdminTombamentosIdResponse500 = {
-  data: GetApiV1AdminTombamentosId500
-  status: 500
-}
-
-export type getApiV1AdminTombamentosIdResponseComposite =
-  | getApiV1AdminTombamentosIdResponse200
-  | getApiV1AdminTombamentosIdResponse400
-  | getApiV1AdminTombamentosIdResponse404
-  | getApiV1AdminTombamentosIdResponse500
-
-export type getApiV1AdminTombamentosIdResponse =
-  getApiV1AdminTombamentosIdResponseComposite & {
-    headers: Headers
-  }
-
-export const getGetApiV1AdminTombamentosIdUrl = (id: string) => {
-  return `/api/v1/admin/tombamentos/${id}`
-}
-
-export const getApiV1AdminTombamentosId = async (
-  id: string,
-  options?: RequestInit
-): Promise<getApiV1AdminTombamentosIdResponse> => {
-  return customFetchBuscaSearch<getApiV1AdminTombamentosIdResponse>(
-    getGetApiV1AdminTombamentosIdUrl(id),
-    {
-      ...options,
-      method: 'GET',
-    }
-  )
-}
-
-/**
- * Atualiza um tombamento existente
- * @summary Atualiza um tombamento existente
- */
-export type putApiV1AdminTombamentosIdResponse200 = {
-  data: ModelsTombamento
-  status: 200
-}
-
-export type putApiV1AdminTombamentosIdResponse400 = {
-  data: PutApiV1AdminTombamentosId400
-  status: 400
-}
-
-export type putApiV1AdminTombamentosIdResponse401 = {
-  data: PutApiV1AdminTombamentosId401
-  status: 401
-}
-
-export type putApiV1AdminTombamentosIdResponse404 = {
-  data: PutApiV1AdminTombamentosId404
-  status: 404
-}
-
-export type putApiV1AdminTombamentosIdResponse500 = {
-  data: PutApiV1AdminTombamentosId500
-  status: 500
-}
-
-export type putApiV1AdminTombamentosIdResponseComposite =
-  | putApiV1AdminTombamentosIdResponse200
-  | putApiV1AdminTombamentosIdResponse400
-  | putApiV1AdminTombamentosIdResponse401
-  | putApiV1AdminTombamentosIdResponse404
-  | putApiV1AdminTombamentosIdResponse500
-
-export type putApiV1AdminTombamentosIdResponse =
-  putApiV1AdminTombamentosIdResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutApiV1AdminTombamentosIdUrl = (id: string) => {
-  return `/api/v1/admin/tombamentos/${id}`
-}
-
-export const putApiV1AdminTombamentosId = async (
-  id: string,
-  modelsTombamentoRequest: ModelsTombamentoRequest,
-  options?: RequestInit
-): Promise<putApiV1AdminTombamentosIdResponse> => {
-  return customFetchBuscaSearch<putApiV1AdminTombamentosIdResponse>(
-    getPutApiV1AdminTombamentosIdUrl(id),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(modelsTombamentoRequest),
+      body: JSON.stringify(
+        githubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoRequest
+      ),
     }
   )
 }
@@ -395,6 +218,187 @@ export const deleteApiV1AdminTombamentosId = async (
     {
       ...options,
       method: 'DELETE',
+    }
+  )
+}
+
+/**
+ * Busca um tombamento específico por ID
+ * @summary Busca um tombamento por ID
+ */
+export type getApiV1AdminTombamentosIdResponse200 = {
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamento
+  status: 200
+}
+
+export type getApiV1AdminTombamentosIdResponse400 = {
+  data: GetApiV1AdminTombamentosId400
+  status: 400
+}
+
+export type getApiV1AdminTombamentosIdResponse404 = {
+  data: GetApiV1AdminTombamentosId404
+  status: 404
+}
+
+export type getApiV1AdminTombamentosIdResponse500 = {
+  data: GetApiV1AdminTombamentosId500
+  status: 500
+}
+
+export type getApiV1AdminTombamentosIdResponseComposite =
+  | getApiV1AdminTombamentosIdResponse200
+  | getApiV1AdminTombamentosIdResponse400
+  | getApiV1AdminTombamentosIdResponse404
+  | getApiV1AdminTombamentosIdResponse500
+
+export type getApiV1AdminTombamentosIdResponse =
+  getApiV1AdminTombamentosIdResponseComposite & {
+    headers: Headers
+  }
+
+export const getGetApiV1AdminTombamentosIdUrl = (id: string) => {
+  return `/api/v1/admin/tombamentos/${id}`
+}
+
+export const getApiV1AdminTombamentosId = async (
+  id: string,
+  options?: RequestInit
+): Promise<getApiV1AdminTombamentosIdResponse> => {
+  return customFetchBuscaSearch<getApiV1AdminTombamentosIdResponse>(
+    getGetApiV1AdminTombamentosIdUrl(id),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
+}
+
+/**
+ * Atualiza um tombamento existente
+ * @summary Atualiza um tombamento existente
+ */
+export type putApiV1AdminTombamentosIdResponse200 = {
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamento
+  status: 200
+}
+
+export type putApiV1AdminTombamentosIdResponse400 = {
+  data: PutApiV1AdminTombamentosId400
+  status: 400
+}
+
+export type putApiV1AdminTombamentosIdResponse401 = {
+  data: PutApiV1AdminTombamentosId401
+  status: 401
+}
+
+export type putApiV1AdminTombamentosIdResponse404 = {
+  data: PutApiV1AdminTombamentosId404
+  status: 404
+}
+
+export type putApiV1AdminTombamentosIdResponse500 = {
+  data: PutApiV1AdminTombamentosId500
+  status: 500
+}
+
+export type putApiV1AdminTombamentosIdResponseComposite =
+  | putApiV1AdminTombamentosIdResponse200
+  | putApiV1AdminTombamentosIdResponse400
+  | putApiV1AdminTombamentosIdResponse401
+  | putApiV1AdminTombamentosIdResponse404
+  | putApiV1AdminTombamentosIdResponse500
+
+export type putApiV1AdminTombamentosIdResponse =
+  putApiV1AdminTombamentosIdResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1AdminTombamentosIdUrl = (id: string) => {
+  return `/api/v1/admin/tombamentos/${id}`
+}
+
+export const putApiV1AdminTombamentosId = async (
+  id: string,
+  githubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoRequest: GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoRequest,
+  options?: RequestInit
+): Promise<putApiV1AdminTombamentosIdResponse> => {
+  return customFetchBuscaSearch<putApiV1AdminTombamentosIdResponse>(
+    getPutApiV1AdminTombamentosIdUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(
+        githubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoRequest
+      ),
+    }
+  )
+}
+
+/**
+ * Busca um tombamento pelo ID do serviço antigo e origem
+ * @summary Busca tombamento por serviço antigo
+ */
+export type getApiV1AdminTombamentosByOldServiceResponse200 = {
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamento
+  status: 200
+}
+
+export type getApiV1AdminTombamentosByOldServiceResponse400 = {
+  data: GetApiV1AdminTombamentosByOldService400
+  status: 400
+}
+
+export type getApiV1AdminTombamentosByOldServiceResponse404 = {
+  data: GetApiV1AdminTombamentosByOldService404
+  status: 404
+}
+
+export type getApiV1AdminTombamentosByOldServiceResponse500 = {
+  data: GetApiV1AdminTombamentosByOldService500
+  status: 500
+}
+
+export type getApiV1AdminTombamentosByOldServiceResponseComposite =
+  | getApiV1AdminTombamentosByOldServiceResponse200
+  | getApiV1AdminTombamentosByOldServiceResponse400
+  | getApiV1AdminTombamentosByOldServiceResponse404
+  | getApiV1AdminTombamentosByOldServiceResponse500
+
+export type getApiV1AdminTombamentosByOldServiceResponse =
+  getApiV1AdminTombamentosByOldServiceResponseComposite & {
+    headers: Headers
+  }
+
+export const getGetApiV1AdminTombamentosByOldServiceUrl = (
+  params: GetApiV1AdminTombamentosByOldServiceParams
+) => {
+  const normalizedParams = new URLSearchParams()
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  })
+
+  const stringifiedParams = normalizedParams.toString()
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/admin/tombamentos/by-old-service?${stringifiedParams}`
+    : `/api/v1/admin/tombamentos/by-old-service`
+}
+
+export const getApiV1AdminTombamentosByOldService = async (
+  params: GetApiV1AdminTombamentosByOldServiceParams,
+  options?: RequestInit
+): Promise<getApiV1AdminTombamentosByOldServiceResponse> => {
+  return customFetchBuscaSearch<getApiV1AdminTombamentosByOldServiceResponse>(
+    getGetApiV1AdminTombamentosByOldServiceUrl(params),
+    {
+      ...options,
+      method: 'GET',
     }
   )
 }

@@ -5,14 +5,14 @@
  * API para busca textual e vetorial usando Typesense e embeddings gerados via Google Gemini
  * OpenAPI spec version: 1.0
  */
-import type { ModelsTombamentoOrigem } from './modelsTombamentoOrigem'
+import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoOrigem } from './githubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoOrigem'
 
-export interface ModelsTombamento {
+export interface GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamento {
   criado_em?: number
   criado_por: string
   id?: string
   id_servico_antigo: string
   id_servico_novo: string
   observacoes?: string
-  origem: ModelsTombamentoOrigem
+  origem: GithubComPrefeituraRioAppBuscaSearchInternalModelsTombamentoOrigem
 }

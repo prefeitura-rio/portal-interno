@@ -5,11 +5,5 @@
  * API para busca textual e vetorial usando Typesense e embeddings gerados via Google Gemini
  * OpenAPI spec version: 1.0
  */
-import type { ModelsTombamento } from './modelsTombamento'
 
-export interface ModelsTombamentoResponse {
-  found?: number
-  out_of?: number
-  page?: number
-  tombamentos?: ModelsTombamento[]
-}
+export type GetApiV1AdminServicesIdVersions500 = { [key: string]: string }

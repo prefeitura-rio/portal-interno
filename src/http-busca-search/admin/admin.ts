@@ -16,9 +16,9 @@ import type {
   GetApiV1AdminServicesId404,
   GetApiV1AdminServicesId500,
   GetApiV1AdminServicesParams,
-  ModelsPrefRioService,
-  ModelsPrefRioServiceRequest,
-  ModelsPrefRioServiceResponse,
+  GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService,
+  GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest,
+  GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceResponse,
   PatchApiV1AdminServicesIdPublish400,
   PatchApiV1AdminServicesIdPublish401,
   PatchApiV1AdminServicesIdPublish404,
@@ -44,7 +44,7 @@ import { customFetchBuscaSearch } from '../../../custom-fetch-busca-search'
  * @summary Lista serviços com paginação e filtros
  */
 export type getApiV1AdminServicesResponse200 = {
-  data: ModelsPrefRioServiceResponse
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceResponse
   status: 200
 }
 
@@ -104,7 +104,7 @@ export const getApiV1AdminServices = async (
  * @summary Cria um novo serviço
  */
 export type postApiV1AdminServicesResponse201 = {
-  data: ModelsPrefRioService
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
   status: 201
 }
 
@@ -139,7 +139,7 @@ export const getPostApiV1AdminServicesUrl = () => {
 }
 
 export const postApiV1AdminServices = async (
-  modelsPrefRioServiceRequest: ModelsPrefRioServiceRequest,
+  githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest,
   options?: RequestInit
 ): Promise<postApiV1AdminServicesResponse> => {
   return customFetchBuscaSearch<postApiV1AdminServicesResponse>(
@@ -148,120 +148,9 @@ export const postApiV1AdminServices = async (
       ...options,
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(modelsPrefRioServiceRequest),
-    }
-  )
-}
-
-/**
- * Busca um serviço específico por ID
- * @summary Busca um serviço por ID
- */
-export type getApiV1AdminServicesIdResponse200 = {
-  data: ModelsPrefRioService
-  status: 200
-}
-
-export type getApiV1AdminServicesIdResponse400 = {
-  data: GetApiV1AdminServicesId400
-  status: 400
-}
-
-export type getApiV1AdminServicesIdResponse404 = {
-  data: GetApiV1AdminServicesId404
-  status: 404
-}
-
-export type getApiV1AdminServicesIdResponse500 = {
-  data: GetApiV1AdminServicesId500
-  status: 500
-}
-
-export type getApiV1AdminServicesIdResponseComposite =
-  | getApiV1AdminServicesIdResponse200
-  | getApiV1AdminServicesIdResponse400
-  | getApiV1AdminServicesIdResponse404
-  | getApiV1AdminServicesIdResponse500
-
-export type getApiV1AdminServicesIdResponse =
-  getApiV1AdminServicesIdResponseComposite & {
-    headers: Headers
-  }
-
-export const getGetApiV1AdminServicesIdUrl = (id: string) => {
-  return `/api/v1/admin/services/${id}`
-}
-
-export const getApiV1AdminServicesId = async (
-  id: string,
-  options?: RequestInit
-): Promise<getApiV1AdminServicesIdResponse> => {
-  return customFetchBuscaSearch<getApiV1AdminServicesIdResponse>(
-    getGetApiV1AdminServicesIdUrl(id),
-    {
-      ...options,
-      method: 'GET',
-    }
-  )
-}
-
-/**
- * Atualiza um serviço existente
- * @summary Atualiza um serviço existente
- */
-export type putApiV1AdminServicesIdResponse200 = {
-  data: ModelsPrefRioService
-  status: 200
-}
-
-export type putApiV1AdminServicesIdResponse400 = {
-  data: PutApiV1AdminServicesId400
-  status: 400
-}
-
-export type putApiV1AdminServicesIdResponse401 = {
-  data: PutApiV1AdminServicesId401
-  status: 401
-}
-
-export type putApiV1AdminServicesIdResponse404 = {
-  data: PutApiV1AdminServicesId404
-  status: 404
-}
-
-export type putApiV1AdminServicesIdResponse500 = {
-  data: PutApiV1AdminServicesId500
-  status: 500
-}
-
-export type putApiV1AdminServicesIdResponseComposite =
-  | putApiV1AdminServicesIdResponse200
-  | putApiV1AdminServicesIdResponse400
-  | putApiV1AdminServicesIdResponse401
-  | putApiV1AdminServicesIdResponse404
-  | putApiV1AdminServicesIdResponse500
-
-export type putApiV1AdminServicesIdResponse =
-  putApiV1AdminServicesIdResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutApiV1AdminServicesIdUrl = (id: string) => {
-  return `/api/v1/admin/services/${id}`
-}
-
-export const putApiV1AdminServicesId = async (
-  id: string,
-  modelsPrefRioServiceRequest: ModelsPrefRioServiceRequest,
-  options?: RequestInit
-): Promise<putApiV1AdminServicesIdResponse> => {
-  return customFetchBuscaSearch<putApiV1AdminServicesIdResponse>(
-    getPutApiV1AdminServicesIdUrl(id),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(modelsPrefRioServiceRequest),
+      body: JSON.stringify(
+        githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest
+      ),
     }
   )
 }
@@ -325,11 +214,126 @@ export const deleteApiV1AdminServicesId = async (
 }
 
 /**
+ * Busca um serviço específico por ID
+ * @summary Busca um serviço por ID
+ */
+export type getApiV1AdminServicesIdResponse200 = {
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
+  status: 200
+}
+
+export type getApiV1AdminServicesIdResponse400 = {
+  data: GetApiV1AdminServicesId400
+  status: 400
+}
+
+export type getApiV1AdminServicesIdResponse404 = {
+  data: GetApiV1AdminServicesId404
+  status: 404
+}
+
+export type getApiV1AdminServicesIdResponse500 = {
+  data: GetApiV1AdminServicesId500
+  status: 500
+}
+
+export type getApiV1AdminServicesIdResponseComposite =
+  | getApiV1AdminServicesIdResponse200
+  | getApiV1AdminServicesIdResponse400
+  | getApiV1AdminServicesIdResponse404
+  | getApiV1AdminServicesIdResponse500
+
+export type getApiV1AdminServicesIdResponse =
+  getApiV1AdminServicesIdResponseComposite & {
+    headers: Headers
+  }
+
+export const getGetApiV1AdminServicesIdUrl = (id: string) => {
+  return `/api/v1/admin/services/${id}`
+}
+
+export const getApiV1AdminServicesId = async (
+  id: string,
+  options?: RequestInit
+): Promise<getApiV1AdminServicesIdResponse> => {
+  return customFetchBuscaSearch<getApiV1AdminServicesIdResponse>(
+    getGetApiV1AdminServicesIdUrl(id),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
+}
+
+/**
+ * Atualiza um serviço existente
+ * @summary Atualiza um serviço existente
+ */
+export type putApiV1AdminServicesIdResponse200 = {
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
+  status: 200
+}
+
+export type putApiV1AdminServicesIdResponse400 = {
+  data: PutApiV1AdminServicesId400
+  status: 400
+}
+
+export type putApiV1AdminServicesIdResponse401 = {
+  data: PutApiV1AdminServicesId401
+  status: 401
+}
+
+export type putApiV1AdminServicesIdResponse404 = {
+  data: PutApiV1AdminServicesId404
+  status: 404
+}
+
+export type putApiV1AdminServicesIdResponse500 = {
+  data: PutApiV1AdminServicesId500
+  status: 500
+}
+
+export type putApiV1AdminServicesIdResponseComposite =
+  | putApiV1AdminServicesIdResponse200
+  | putApiV1AdminServicesIdResponse400
+  | putApiV1AdminServicesIdResponse401
+  | putApiV1AdminServicesIdResponse404
+  | putApiV1AdminServicesIdResponse500
+
+export type putApiV1AdminServicesIdResponse =
+  putApiV1AdminServicesIdResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1AdminServicesIdUrl = (id: string) => {
+  return `/api/v1/admin/services/${id}`
+}
+
+export const putApiV1AdminServicesId = async (
+  id: string,
+  githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest,
+  options?: RequestInit
+): Promise<putApiV1AdminServicesIdResponse> => {
+  return customFetchBuscaSearch<putApiV1AdminServicesIdResponse>(
+    getPutApiV1AdminServicesIdUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(
+        githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest
+      ),
+    }
+  )
+}
+
+/**
  * Publica um serviço alterando seu status para 1 e awaiting_approval para false. Opcionalmente, pode criar um tombamento se fornecidos os parâmetros origem e id_servico_antigo
  * @summary Publica um serviço (altera status para 1 e marca como aprovado)
  */
 export type patchApiV1AdminServicesIdPublishResponse200 = {
-  data: ModelsPrefRioService
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
   status: 200
 }
 
@@ -403,7 +407,7 @@ export const patchApiV1AdminServicesIdPublish = async (
  * @summary Despublica um serviço (altera status para 0 e marca como aguardando aprovação)
  */
 export type patchApiV1AdminServicesIdUnpublishResponse200 = {
-  data: ModelsPrefRioService
+  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
   status: 200
 }
 

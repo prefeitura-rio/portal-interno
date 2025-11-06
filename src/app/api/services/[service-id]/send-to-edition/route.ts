@@ -2,7 +2,7 @@ import {
   getApiV1AdminServices,
   putApiV1AdminServicesId,
 } from '@/http-busca-search/admin/admin'
-import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
+import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import { convertApiToFrontend } from '@/types/service'
 import { revalidateTag } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -66,7 +66,7 @@ export async function PATCH(
       awaiting_approval: false, // Clear awaiting approval flag
       fixar_destaque: currentService.fixar_destaque,
       status: 0, // Set to draft (in edition)
-    } as ModelsPrefRioServiceRequest
+    } as GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest
 
     // Update the service with the new status
     const response = await putApiV1AdminServicesId(serviceId, serviceRequest)
