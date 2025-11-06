@@ -74,8 +74,8 @@ export function MarkdownEditor({
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-sm max-w-none focus:outline-none min-h-[120px] p-3',
-          disabled && 'bg-muted cursor-not-allowed opacity-60',
+          'prose prose-sm max-w-none focus:outline-none min-h-[120px] p-3 bg-transparent',
+          disabled && 'cursor-not-allowed opacity-50',
           className
         ),
       },
@@ -113,8 +113,9 @@ export function MarkdownEditor({
 
       <div
         className={cn(
-          'border rounded-md',
-          disabled && 'bg-background',
+          'border border-input rounded-md bg-background dark:bg-input/30 shadow-xs transition-[color,box-shadow]',
+          'focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]',
+          disabled && 'opacity-50 cursor-not-allowed',
           isOverLimit && 'border-destructive'
         )}
       >
