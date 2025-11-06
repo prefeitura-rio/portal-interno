@@ -110,7 +110,6 @@ export async function getUserRolesInMiddleware(
     }
 
     const data = await response.json()
-    console.log('data', data)
     return data.roles || []
   } catch (error) {
     console.error(
