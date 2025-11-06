@@ -5,11 +5,5 @@
  * API para busca textual e vetorial usando Typesense e embeddings gerados via Google Gemini
  * OpenAPI spec version: 1.0
  */
-import type { ModelsPrefRioService } from './modelsPrefRioService'
 
-export interface ModelsPrefRioServiceResponse {
-  found?: number
-  out_of?: number
-  page?: number
-  services?: ModelsPrefRioService[]
-}
+export type PostApiV1AdminServicesIdRollback404 = { [key: string]: string }

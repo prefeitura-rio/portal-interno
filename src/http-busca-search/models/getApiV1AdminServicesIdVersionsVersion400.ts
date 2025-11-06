@@ -6,4 +6,6 @@
  * OpenAPI spec version: 1.0
  */
 
-export type ModelsPrefRioServiceRequestExtraFields = { [key: string]: unknown }
+export type GetApiV1AdminServicesIdVersionsVersion400 = {
+  [key: string]: string
+}

@@ -162,6 +162,7 @@ interface NewServiceFormProps {
   onSendToApproval?: () => void
   onPublish?: () => void // Callback for when service is published
   serviceId?: string // For editing existing services
+  onFormChangesDetected?: (hasChanges: boolean) => void // Callback when form changes are detected
 }
 
 export function NewServiceForm({
@@ -173,6 +174,7 @@ export function NewServiceForm({
   onSendToApproval,
   onPublish,
   serviceId,
+  onFormChangesDetected,
 }: NewServiceFormProps) {
   const router = useRouter()
   const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
@@ -224,6 +226,7 @@ export function NewServiceForm({
       ? initialData.buttons.map(() => ({}))
       : []
   )
+  const [hasFormChanges, setHasFormChanges] = useState(false)
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
@@ -243,6 +246,134 @@ export function NewServiceForm({
       })
     }
   }, [initialData, form])
+
+  // Notify parent component when form changes are detected
+  React.useEffect(() => {
+    if (onFormChangesDetected) {
+      onFormChangesDetected(hasFormChanges)
+    }
+  }, [hasFormChanges, onFormChangesDetected])
+
+  // Check for form changes
+  React.useEffect(() => {
+    if (!initialData || !readOnly) {
+      // Only check changes when in edit mode
+      if (readOnly) {
+        setHasFormChanges(false)
+        return
+      }
+
+      const subscription = form.watch(formData => {
+        // Helper function to normalize arrays for comparison
+        const normalizeArray = (arr: any[] | undefined) => {
+          if (!arr || arr.length === 0) return undefined
+          return arr.filter(item => {
+            if (typeof item === 'string') return item.trim() !== ''
+            return true
+          })
+        }
+
+        // Helper function for deep equality check
+        const deepEqual = (a: any, b: any): boolean => {
+          if (a === b) return true
+          if (a == null || b == null) return false
+          if (Array.isArray(a) && Array.isArray(b)) {
+            if (a.length !== b.length) return false
+            return a.every((val, index) => deepEqual(val, b[index]))
+          }
+          if (typeof a === 'object' && typeof b === 'object') {
+            const keysA = Object.keys(a)
+            const keysB = Object.keys(b)
+            if (keysA.length !== keysB.length) return false
+            return keysA.every(key => deepEqual(a[key], b[key]))
+          }
+          return false
+        }
+
+        // Compare each field
+        let hasChanges = false
+
+        // Check regular form fields
+        const fieldsToCheck: (keyof ServiceFormData)[] = [
+          'managingOrgan',
+          'serviceCategory',
+          'targetAudience',
+          'title',
+          'shortDescription',
+          'whatServiceDoesNotCover',
+          'serviceTime',
+          'serviceCost',
+          'isFree',
+          'requestResult',
+          'fullDescription',
+          'requiredDocuments',
+          'instructionsForRequester',
+        ]
+
+        for (const field of fieldsToCheck) {
+          const currentValue = formData[field]
+          const initialValue = initialData?.[field]
+          if (currentValue !== initialValue) {
+            hasChanges = true
+            break
+          }
+        }
+
+        // Check arrays if no changes found yet
+        if (!hasChanges) {
+          // Check digitalChannels
+          const normalizedCurrentDigital = normalizeArray(digitalChannels)
+          const normalizedInitialDigital = normalizeArray(
+            initialData?.digitalChannels
+          )
+          if (!deepEqual(normalizedCurrentDigital, normalizedInitialDigital)) {
+            hasChanges = true
+          }
+
+          // Check physicalChannels
+          const normalizedCurrentPhysical = normalizeArray(physicalChannels)
+          const normalizedInitialPhysical = normalizeArray(
+            initialData?.physicalChannels
+          )
+          if (
+            !deepEqual(normalizedCurrentPhysical, normalizedInitialPhysical)
+          ) {
+            hasChanges = true
+          }
+
+          // Check legislacaoRelacionada
+          const normalizedCurrentLegislacao = normalizeArray(
+            legislacaoRelacionada
+          )
+          const normalizedInitialLegislacao = normalizeArray(
+            initialData?.legislacaoRelacionada
+          )
+          if (
+            !deepEqual(normalizedCurrentLegislacao, normalizedInitialLegislacao)
+          ) {
+            hasChanges = true
+          }
+
+          // Check serviceButtons
+          if (!deepEqual(serviceButtons, initialData?.buttons || [])) {
+            hasChanges = true
+          }
+        }
+
+        setHasFormChanges(hasChanges)
+      })
+
+      return () => subscription.unsubscribe()
+    }
+  }, [
+    form,
+    initialData,
+    readOnly,
+    digitalChannels,
+    physicalChannels,
+    legislacaoRelacionada,
+    serviceButtons,
+  ])
 
   const handleCancel = () => {
     router.push('/servicos-municipais/servicos')

@@ -6,7 +6,5 @@
  * OpenAPI spec version: 1.0
  */
 
-export interface ModelsAgentsConfig {
-  exclusive_for_agents?: boolean
-  tool_hint?: string
-}
+export type GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequestExtraFields =
+  { [key: string]: unknown }

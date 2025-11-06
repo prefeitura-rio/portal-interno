@@ -1,6 +1,7 @@
 'use client'
 
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { ServiceVersionHistory } from '@/components/service-version-history'
 import { TombadoServiceInfo } from '@/components/tombado-service-info'
 import { TombamentoModal } from '@/components/tombamento-modal'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
@@ -87,6 +89,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [tombamentoLoading, setTombamentoLoading] = useState(false)
   const [tombamentoData, setTombamentoData] = useState<Tombamento | null>(null)
   const [showDestombamentoDialog, setShowDestombamentoDialog] = useState(false)
+  const [activeTab, setActiveTab] = useState('details')
 
   useEffect(() => {
     params.then(({ 'servico-id': id }) => {
@@ -635,34 +638,47 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           />
         )}
 
-        <NewServiceForm
-          readOnly={!isEditing}
-          isLoading={isSaving || operationLoading}
-          onSubmit={isEditing ? handleSaveClick : undefined}
-          serviceStatus={service.status}
-          onSendToApproval={handleSendToApproval}
-          onPublish={handleApproveAndPublish}
-          serviceId={servicoId || undefined}
-          initialData={{
-            managingOrgan: service.managingOrgan,
-            serviceCategory: service.serviceCategory,
-            targetAudience: service.targetAudience,
-            title: service.title,
-            shortDescription: service.shortDescription,
-            buttons: service.buttons,
-            whatServiceDoesNotCover: service.whatServiceDoesNotCover,
-            serviceTime: service.serviceTime,
-            serviceCost: service.serviceCost,
-            isFree: service.isFree,
-            requestResult: service.requestResult,
-            fullDescription: service.fullDescription,
-            requiredDocuments: service.requiredDocuments,
-            instructionsForRequester: service.instructionsForRequester,
-            digitalChannels: service.digitalChannels,
-            physicalChannels: service.physicalChannels,
-            legislacaoRelacionada: service.legislacaoRelacionada,
-          }}
-        />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">Detalhes do serviço</TabsTrigger>
+            <TabsTrigger value="history">Histórico de modificações</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="mt-6">
+            <NewServiceForm
+              readOnly={!isEditing}
+              isLoading={isSaving || operationLoading}
+              onSubmit={isEditing ? handleSaveClick : undefined}
+              serviceStatus={service.status}
+              onSendToApproval={handleSendToApproval}
+              onPublish={handleApproveAndPublish}
+              serviceId={servicoId || undefined}
+              initialData={{
+                managingOrgan: service.managingOrgan,
+                serviceCategory: service.serviceCategory,
+                targetAudience: service.targetAudience,
+                title: service.title,
+                shortDescription: service.shortDescription,
+                buttons: service.buttons,
+                whatServiceDoesNotCover: service.whatServiceDoesNotCover,
+                serviceTime: service.serviceTime,
+                serviceCost: service.serviceCost,
+                isFree: service.isFree,
+                requestResult: service.requestResult,
+                fullDescription: service.fullDescription,
+                requiredDocuments: service.requiredDocuments,
+                instructionsForRequester: service.instructionsForRequester,
+                digitalChannels: service.digitalChannels,
+                physicalChannels: service.physicalChannels,
+                legislacaoRelacionada: service.legislacaoRelacionada,
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-6">
+            {servicoId && <ServiceVersionHistory serviceId={servicoId} />}
+          </TabsContent>
+        </Tabs>
 
         {/* Confirmation Dialogs */}
         <ConfirmDialog
