@@ -1,0 +1,1440 @@
+definitions:
+  github_com_prefeitura-rio_app-busca-search_internal_models.AgentsConfig:
+    properties:
+      exclusive_for_agents:
+        type: boolean
+      tool_hint:
+        type: string
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.Button:
+    properties:
+      descricao:
+        type: string
+      is_enabled:
+        type: boolean
+      ordem:
+        type: integer
+      titulo:
+        type: string
+      url_service:
+        type: string
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.FieldChange:
+    properties:
+      field_name:
+        type: string
+      new_value: {}
+      old_value: {}
+      value_type:
+        description: '"string", "int", "bool", "array", "object"'
+        type: string
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioService:
+    properties:
+      agents:
+        $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.AgentsConfig'
+      autor:
+        type: string
+      awaiting_approval:
+        type: boolean
+      buttons:
+        items:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.Button'
+        type: array
+      canais_digitais:
+        items:
+          type: string
+        type: array
+      canais_presenciais:
+        items:
+          type: string
+        type: array
+      created_at:
+        type: integer
+      custo_servico:
+        type: string
+      descricao_completa:
+        type: string
+      documentos_necessarios:
+        items:
+          type: string
+        type: array
+      embedding:
+        items:
+          type: number
+        type: array
+      extra_fields:
+        additionalProperties: true
+        type: object
+      fixar_destaque:
+        type: boolean
+      id:
+        type: string
+      instrucoes_solicitante:
+        type: string
+      is_free:
+        type: boolean
+      last_update:
+        type: integer
+      legislacao_relacionada:
+        items:
+          type: string
+        type: array
+      nome_servico:
+        maxLength: 255
+        type: string
+      orgao_gestor:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      publico_especifico:
+        items:
+          type: string
+        type: array
+      published_at:
+        type: integer
+      resultado_solicitacao:
+        type: string
+      resumo:
+        maxLength: 350
+        type: string
+      search_content:
+        type: string
+      servico_nao_cobre:
+        type: string
+      status:
+        description: 0=Draft, 1=Published
+        maximum: 1
+        minimum: 0
+        type: integer
+      tema_geral:
+        type: string
+      tempo_atendimento:
+        type: string
+    required:
+    - autor
+    - custo_servico
+    - descricao_completa
+    - nome_servico
+    - orgao_gestor
+    - resultado_solicitacao
+    - resumo
+    - tema_geral
+    - tempo_atendimento
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioServiceRequest:
+    properties:
+      agents:
+        $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.AgentsConfig'
+      awaiting_approval:
+        type: boolean
+      buttons:
+        items:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.Button'
+        type: array
+      canais_digitais:
+        items:
+          type: string
+        type: array
+      canais_presenciais:
+        items:
+          type: string
+        type: array
+      custo_servico:
+        type: string
+      descricao_completa:
+        type: string
+      documentos_necessarios:
+        items:
+          type: string
+        type: array
+      extra_fields:
+        additionalProperties: true
+        type: object
+      fixar_destaque:
+        type: boolean
+      instrucoes_solicitante:
+        type: string
+      is_free:
+        type: boolean
+      legislacao_relacionada:
+        items:
+          type: string
+        type: array
+      nome_servico:
+        maxLength: 255
+        type: string
+      orgao_gestor:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      publico_especifico:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      published_at:
+        type: integer
+      resultado_solicitacao:
+        type: string
+      resumo:
+        maxLength: 350
+        type: string
+      servico_nao_cobre:
+        type: string
+      status:
+        maximum: 1
+        minimum: 0
+        type: integer
+      tema_geral:
+        type: string
+      tempo_atendimento:
+        type: string
+    required:
+    - nome_servico
+    - orgao_gestor
+    - publico_especifico
+    - resumo
+    - tema_geral
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioServiceResponse:
+    properties:
+      found:
+        type: integer
+      out_of:
+        type: integer
+      page:
+        type: integer
+      services:
+        items:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioService'
+        type: array
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.RollbackRequest:
+    properties:
+      change_reason:
+        type: string
+      to_version:
+        minimum: 1
+        type: integer
+    required:
+    - to_version
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.ServiceVersion:
+    properties:
+      autor:
+        type: string
+      awaiting_approval:
+        type: boolean
+      canais_digitais:
+        items:
+          type: string
+        type: array
+      canais_presenciais:
+        items:
+          type: string
+        type: array
+      change_reason:
+        type: string
+      change_type:
+        enum:
+        - create
+        - update
+        - publish
+        - unpublish
+        - delete
+        - rollback
+        type: string
+      changed_fields_json:
+        description: Campos de mudança (armazenados como JSON string no Typesense)
+        type: string
+      created_at:
+        type: integer
+      created_by:
+        type: string
+      created_by_cpf:
+        type: string
+      custo_servico:
+        type: string
+      descricao_completa:
+        type: string
+      documentos_necessarios:
+        items:
+          type: string
+        type: array
+      embedding_hash:
+        description: Hash do embedding para verificação (não armazenamos o embedding
+          completo)
+        type: string
+      fixar_destaque:
+        type: boolean
+      id:
+        type: string
+      instrucoes_solicitante:
+        type: string
+      is_free:
+        type: boolean
+      is_rollback:
+        type: boolean
+      legislacao_relacionada:
+        items:
+          type: string
+        type: array
+      nome_servico:
+        description: Snapshot completo do serviço (sem embedding para economizar espaço)
+        type: string
+      orgao_gestor:
+        items:
+          type: string
+        type: array
+      previous_version:
+        type: integer
+      publico_especifico:
+        items:
+          type: string
+        type: array
+      published_at:
+        type: integer
+      resultado_solicitacao:
+        type: string
+      resumo:
+        type: string
+      rollback_to_version:
+        type: integer
+      search_content:
+        type: string
+      service_id:
+        type: string
+      servico_nao_cobre:
+        type: string
+      status:
+        type: integer
+      tema_geral:
+        type: string
+      tempo_atendimento:
+        type: string
+      version_number:
+        type: integer
+    required:
+    - change_type
+    - created_by
+    - created_by_cpf
+    - service_id
+    - version_number
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.Tombamento:
+    properties:
+      criado_em:
+        type: integer
+      criado_por:
+        type: string
+      id:
+        type: string
+      id_servico_antigo:
+        type: string
+      id_servico_novo:
+        type: string
+      observacoes:
+        type: string
+      origem:
+        enum:
+        - 1746_v2_llm
+        - carioca-digital_v2_llm
+        type: string
+    required:
+    - criado_por
+    - id_servico_antigo
+    - id_servico_novo
+    - origem
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.TombamentoRequest:
+    properties:
+      id_servico_antigo:
+        type: string
+      id_servico_novo:
+        type: string
+      observacoes:
+        type: string
+      origem:
+        enum:
+        - 1746_v2_llm
+        - carioca-digital_v2_llm
+        type: string
+    required:
+    - id_servico_antigo
+    - id_servico_novo
+    - origem
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.TombamentoResponse:
+    properties:
+      found:
+        type: integer
+      out_of:
+        type: integer
+      page:
+        type: integer
+      tombamentos:
+        items:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.Tombamento'
+        type: array
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.VersionDiff:
+    properties:
+      change_type:
+        type: string
+      changed_at:
+        type: integer
+      changed_by:
+        type: string
+      changes:
+        items:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.FieldChange'
+        type: array
+      from_version:
+        type: integer
+      to_version:
+        type: integer
+    type: object
+  github_com_prefeitura-rio_app-busca-search_internal_models.VersionHistory:
+    properties:
+      found:
+        type: integer
+      out_of:
+        type: integer
+      page:
+        type: integer
+      versions:
+        items:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.ServiceVersion'
+        type: array
+    type: object
+host: services.staging.app.dados.rio/app-busca-search
+info:
+  contact:
+    email: contato@prefeitura.rio
+    name: Prefeitura do Rio de Janeiro
+    url: https://prefeitura.rio
+  description: API para busca textual e vetorial usando Typesense e embeddings gerados
+    via Google Gemini
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Mecanismo de Busca API
+  version: "1.0"
+paths:
+  /api/v1/admin/services:
+    get:
+      consumes:
+      - application/json
+      description: Lista serviços com paginação e filtros opcionais
+      parameters:
+      - default: 1
+        description: Página
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Resultados por página
+        in: query
+        name: per_page
+        type: integer
+      - description: Status do serviço (0=Draft, 1=Published)
+        in: query
+        name: status
+        type: integer
+      - description: Filtrar por autor
+        in: query
+        name: author
+        type: string
+      - description: Filtrar por tema geral
+        in: query
+        name: tema_geral
+        type: string
+      - description: Filtrar por aguardando aprovação
+        in: query
+        name: awaiting_approval
+        type: boolean
+      - description: Filtrar por serviços gratuitos
+        in: query
+        name: is_free
+        type: boolean
+      - description: Filtrar por data de publicação (timestamp)
+        in: query
+        name: published_at
+        type: integer
+      - description: Filtrar por nome do serviço
+        in: query
+        name: nome_servico
+        type: string
+      - description: Campo para filtro dinâmico
+        in: query
+        name: field
+        type: string
+      - description: Valor para filtro dinâmico (usado com field)
+        in: query
+        name: value
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioServiceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Lista serviços com paginação e filtros
+      tags:
+      - admin
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo serviço na collection prefrio_services_base
+      parameters:
+      - description: Dados do serviço
+        in: body
+        name: service
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioServiceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioService'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Cria um novo serviço
+      tags:
+      - admin
+  /api/v1/admin/services/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deleta um serviço
+      parameters:
+      - description: ID do serviço
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Deleta um serviço
+      tags:
+      - admin
+    get:
+      consumes:
+      - application/json
+      description: Busca um serviço específico por ID
+      parameters:
+      - description: ID do serviço
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioService'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Busca um serviço por ID
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Atualiza um serviço existente
+      parameters:
+      - description: ID do serviço
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados atualizados do serviço
+        in: body
+        name: service
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioServiceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioService'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Atualiza um serviço existente
+      tags:
+      - admin
+  /api/v1/admin/services/{id}/publish:
+    patch:
+      consumes:
+      - application/json
+      description: Publica um serviço alterando seu status para 1 e awaiting_approval
+        para false. Opcionalmente, pode criar um tombamento se fornecidos os parâmetros
+        origem e id_servico_antigo
+      parameters:
+      - description: ID do serviço
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Origem do serviço antigo (1746_v2_llm ou carioca-digital_v2_llm)
+          para criar tombamento
+        in: query
+        name: origem
+        type: string
+      - description: ID do serviço antigo para criar tombamento
+        in: query
+        name: id_servico_antigo
+        type: string
+      - description: Observações sobre o tombamento
+        in: query
+        name: observacoes
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioService'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Publica um serviço (altera status para 1 e marca como aprovado)
+      tags:
+      - admin
+  /api/v1/admin/services/{id}/rollback:
+    post:
+      consumes:
+      - application/json
+      description: Cria uma nova versão que restaura o estado de uma versão anterior
+        (git-revert style)
+      parameters:
+      - description: ID do serviço
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados do rollback
+        in: body
+        name: rollback
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.RollbackRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioService'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Realiza rollback de um serviço para uma versão anterior
+      tags:
+      - versions
+  /api/v1/admin/services/{id}/unpublish:
+    patch:
+      consumes:
+      - application/json
+      description: Despublica um serviço alterando seu status para 0 e awaiting_approval
+        para true
+      parameters:
+      - description: ID do serviço
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.PrefRioService'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Despublica um serviço (altera status para 0 e marca como aguardando
+        aprovação)
+      tags:
+      - admin
+  /api/v1/admin/services/{id}/versions:
+    get:
+      consumes:
+      - application/json
+      description: Retorna o histórico completo de versões de um serviço com paginação
+      parameters:
+      - description: ID do serviço
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 1
+        description: Página
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Resultados por página
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.VersionHistory'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Lista todas as versões de um serviço
+      tags:
+      - versions
+  /api/v1/admin/services/{id}/versions/{version}:
+    get:
+      consumes:
+      - application/json
+      description: Retorna os detalhes de uma versão específica
+      parameters:
+      - description: ID do serviço
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Número da versão
+        in: path
+        name: version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.ServiceVersion'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Busca uma versão específica de um serviço
+      tags:
+      - versions
+  /api/v1/admin/services/{id}/versions/compare:
+    get:
+      consumes:
+      - application/json
+      description: Retorna as diferenças entre duas versões
+      parameters:
+      - description: ID do serviço
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Versão de origem
+        in: query
+        name: from_version
+        required: true
+        type: integer
+      - description: Versão de destino
+        in: query
+        name: to_version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.VersionDiff'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Compara duas versões de um serviço
+      tags:
+      - versions
+  /api/v1/admin/tombamentos:
+    get:
+      consumes:
+      - application/json
+      description: Lista tombamentos com paginação e filtros opcionais
+      parameters:
+      - default: 1
+        description: Página
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Resultados por página
+        in: query
+        name: per_page
+        type: integer
+      - description: Filtrar por origem (1746_v2_llm ou carioca-digital_v2_llm)
+        in: query
+        name: origem
+        type: string
+      - description: Filtrar por criador
+        in: query
+        name: criado_por
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.TombamentoResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Lista tombamentos com paginação e filtros
+      tags:
+      - tombamentos
+    post:
+      consumes:
+      - application/json
+      description: Cria um mapeamento de serviço antigo para serviço novo na collection
+        tombamentos_overlay
+      parameters:
+      - description: Dados do tombamento
+        in: body
+        name: tombamento
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.TombamentoRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.Tombamento'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Cria um novo tombamento
+      tags:
+      - tombamentos
+  /api/v1/admin/tombamentos/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deleta um tombamento, fazendo com que o serviço antigo volte a
+        aparecer normalmente
+      parameters:
+      - description: ID do tombamento
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Deleta um tombamento (reverte substituição)
+      tags:
+      - tombamentos
+    get:
+      consumes:
+      - application/json
+      description: Busca um tombamento específico por ID
+      parameters:
+      - description: ID do tombamento
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.Tombamento'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Busca um tombamento por ID
+      tags:
+      - tombamentos
+    put:
+      consumes:
+      - application/json
+      description: Atualiza um tombamento existente
+      parameters:
+      - description: ID do tombamento
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados atualizados do tombamento
+        in: body
+        name: tombamento
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.TombamentoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.Tombamento'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Atualiza um tombamento existente
+      tags:
+      - tombamentos
+  /api/v1/admin/tombamentos/by-old-service:
+    get:
+      consumes:
+      - application/json
+      description: Busca um tombamento pelo ID do serviço antigo e origem
+      parameters:
+      - description: Origem (1746_v2_llm ou carioca-digital_v2_llm)
+        in: query
+        name: origem
+        required: true
+        type: string
+      - description: ID do serviço antigo
+        in: query
+        name: id_servico_antigo
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_prefeitura-rio_app-busca-search_internal_models.Tombamento'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Busca tombamento por serviço antigo
+      tags:
+      - tombamentos
+  /api/v1/busca-hibrida-multi:
+    get:
+      consumes:
+      - application/json
+      description: Realiza uma busca hibrida em varias colecoes combinando texto e
+        embeddings
+      parameters:
+      - description: Lista de colecoes separadas por virgula
+        in: query
+        name: collections
+        required: true
+        type: string
+      - description: Termo de busca
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: 1
+        description: Pagina
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Resultados por pagina
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Busca hibrida em varias colecoes
+      tags:
+      - busca
+  /api/v1/categoria/{collections}:
+    get:
+      consumes:
+      - application/json
+      description: Busca documentos de uma categoria especifica em uma ou multiplas
+        colecoes retornando informacoes completas
+      parameters:
+      - description: Nome da colecao ou lista de colecoes separadas por virgula
+        in: path
+        name: collections
+        required: true
+        type: string
+      - description: Categoria dos documentos
+        in: query
+        name: categoria
+        required: true
+        type: string
+      - default: 1
+        description: Pagina
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Resultados por pagina
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Busca documentos por categoria
+      tags:
+      - busca
+  /api/v1/categorias-relevancia:
+    get:
+      consumes:
+      - application/json
+      description: Retorna todas as categorias ordenadas por relevancia baseada na
+        volumetria dos servicos
+      parameters:
+      - description: Lista de colecoes separadas por virgula
+        in: query
+        name: collections
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Busca categorias ordenadas por relevancia
+      tags:
+      - busca
+  /api/v1/documento/{collection}/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Busca um documento especifico por ID retornando todos os campos
+        exceto embedding e campos normalizados
+      parameters:
+      - description: Nome da colecao
+        in: path
+        name: collection
+        required: true
+        type: string
+      - description: ID do documento
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Busca documento por ID
+      tags:
+      - busca
+swagger: "2.0"
