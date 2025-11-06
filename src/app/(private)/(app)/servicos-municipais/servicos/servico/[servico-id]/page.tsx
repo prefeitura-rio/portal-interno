@@ -90,6 +90,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [tombamentoData, setTombamentoData] = useState<Tombamento | null>(null)
   const [showDestombamentoDialog, setShowDestombamentoDialog] = useState(false)
   const [activeTab, setActiveTab] = useState('details')
+  const [hasFormChanges, setHasFormChanges] = useState(false)
 
   useEffect(() => {
     params.then(({ 'servico-id': id }) => {
@@ -126,6 +127,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
   const handleCancel = () => {
     setIsEditing(false)
+    setHasFormChanges(false)
     // Reset form to original data
     refetch()
   }
@@ -166,6 +168,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       setIsEditing(false)
       setShowSaveDialog(false)
       setPendingFormData(null)
+      setHasFormChanges(false)
       refetch()
     } catch (error) {
       console.error('Error saving service:', error)
@@ -596,7 +599,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                     <Button
                       type="button"
                       form="service-edit-form"
-                      disabled={isSaving || operationLoading}
+                      disabled={isSaving || operationLoading || !hasFormChanges}
                       className="w-full sm:w-auto"
                       onClick={() => {
                         // We'll use form.handleSubmit to trigger validation and get data
@@ -653,6 +656,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
               onSendToApproval={handleSendToApproval}
               onPublish={handleApproveAndPublish}
               serviceId={servicoId || undefined}
+              onFormChangesDetected={setHasFormChanges}
               initialData={{
                 managingOrgan: service.managingOrgan,
                 serviceCategory: service.serviceCategory,
