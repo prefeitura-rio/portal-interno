@@ -54,9 +54,32 @@ const markdownFields = new Set([
   'search_content',
 ])
 
-function formatFieldValue(value: unknown): string {
+function formatStatusValue(value: unknown): string {
+  // Converte status numérico para texto legível
   if (value === null || value === undefined) {
     return '—'
+  }
+
+  const numValue = typeof value === 'number' ? value : Number(value)
+
+  if (numValue === 1) {
+    return 'Publicado'
+  }
+  if (numValue === 0) {
+    return 'Em edição'
+  }
+
+  return String(value)
+}
+
+function formatFieldValue(value: unknown, fieldName?: string): string {
+  if (value === null || value === undefined) {
+    return '—'
+  }
+
+  // Formatação especial para o campo status
+  if (fieldName === 'status') {
+    return formatStatusValue(value)
   }
 
   if (typeof value === 'boolean') {
@@ -169,9 +192,22 @@ function VersionDiffDisplay({
     )
   }
 
+  // Filtrar alterações para excluir search_content
+  const filteredChanges = diff.changes.filter(
+    change => change.field_name !== 'search_content'
+  )
+
+  if (filteredChanges.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground py-2">
+        Nenhuma alteração registrada nesta versão.
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
-      {diff.changes?.map(
+      {filteredChanges.map(
         (
           change: GithubComPrefeituraRioAppBuscaSearchInternalModelsFieldChange,
           index: number
@@ -181,8 +217,8 @@ function VersionDiffDisplay({
             change.field_name ||
             'Campo desconhecido'
           const isMarkdown = isMarkdownField(change.field_name)
-          const oldValue = formatFieldValue(change.old_value)
-          const newValue = formatFieldValue(change.new_value)
+          const oldValue = formatFieldValue(change.old_value, change.field_name)
+          const newValue = formatFieldValue(change.new_value, change.field_name)
           const oldValueString = getFieldValueAsString(change.old_value)
           const newValueString = getFieldValueAsString(change.new_value)
 
