@@ -1270,10 +1270,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>O que o serviço não cobre</FormLabel>
                     <FormControl>
-                      <Input
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Ex: Não atende casos emergenciais"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={300}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
