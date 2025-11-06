@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory'
 import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff'
+import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory'
+import { useCallback, useEffect, useState } from 'react'
 
 interface UseServiceVersionsReturn {
   versions: GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory | null
@@ -11,12 +11,16 @@ interface UseServiceVersionsReturn {
     fromVersion: number,
     toVersion: number
   ) => Promise<GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff | null>
+  rollbackToVersion: (
+    toVersion: number,
+    changeReason?: string
+  ) => Promise<{ success: boolean; error?: string }>
 }
 
 export function useServiceVersions(
   serviceId: string | null,
-  page: number = 1,
-  perPage: number = 50
+  page = 1,
+  perPage = 50
 ): UseServiceVersionsReturn {
   const [versions, setVersions] =
     useState<GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory | null>(
@@ -71,7 +75,9 @@ export function useServiceVersions(
     } catch (err) {
       console.error('Error fetching service versions:', err)
       setError(
-        err instanceof Error ? err.message : 'Erro ao carregar histórico de versões'
+        err instanceof Error
+          ? err.message
+          : 'Erro ao carregar histórico de versões'
       )
       setVersions(null)
     } finally {
@@ -122,6 +128,62 @@ export function useServiceVersions(
     [serviceId]
   )
 
+  const rollbackToVersion = useCallback(
+    async (
+      toVersion: number,
+      changeReason?: string
+    ): Promise<{ success: boolean; error?: string }> => {
+      if (!serviceId) {
+        return { success: false, error: 'Service ID is required' }
+      }
+
+      try {
+        const url = `/api/services/${serviceId}/rollback`
+
+        console.log('Rolling back service to version:', toVersion)
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to_version: toVersion,
+            change_reason: changeReason || undefined,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(
+            errorData.error || `HTTP error! status: ${response.status}`
+          )
+        }
+
+        const data = await response.json()
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to rollback service')
+        }
+
+        // Refetch versions after successful rollback
+        await fetchVersions()
+
+        return { success: true }
+      } catch (err) {
+        console.error('Error rolling back service:', err)
+        return {
+          success: false,
+          error:
+            err instanceof Error
+              ? err.message
+              : 'Erro ao fazer rollback da versão',
+        }
+      }
+    },
+    [serviceId, fetchVersions]
+  )
+
   useEffect(() => {
     fetchVersions()
   }, [fetchVersions])
@@ -132,6 +194,6 @@ export function useServiceVersions(
     error,
     refetch: fetchVersions,
     getVersionDiff,
+    rollbackToVersion,
   }
 }
-

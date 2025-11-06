@@ -82,7 +82,7 @@ const serviceFormSchema = z.object({
     .optional(),
   whatServiceDoesNotCover: z
     .string()
-    .max(300, { message: 'Este campo não pode exceder 300 caracteres.' })
+    .max(10000, { message: 'Este campo não pode exceder 10000 caracteres.' })
     .optional(),
   serviceTime: z
     .string()
@@ -1275,7 +1275,7 @@ export function NewServiceForm({
                         onChange={field.onChange}
                         placeholder="Ex: Não atende casos emergenciais"
                         disabled={isLoading || readOnly}
-                        maxLength={300}
+                        maxLength={10000}
                         showCharCount={true}
                       />
                     </FormControl>

@@ -680,7 +680,12 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">
-            {servicoId && <ServiceVersionHistory serviceId={servicoId} />}
+            {servicoId && (
+              <ServiceVersionHistory
+                serviceId={servicoId}
+                onRollbackSuccess={refetch}
+              />
+            )}
           </TabsContent>
         </Tabs>
 
