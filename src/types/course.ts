@@ -276,6 +276,28 @@ export interface CourseFilters {
 // Enrollment Types
 export type EnrollmentStatus = 'approved' | 'pending' | 'cancelled' | 'rejected' | 'concluded'
 
+export interface EnrollmentSchedule {
+  id: string
+  location_id: string
+  vacancies: number
+  class_start_date: string
+  class_end_date: string
+  class_time: string
+  class_days: string
+  created_at: string
+  updated_at: string
+}
+
+export interface EnrollmentUnit {
+  id: string
+  curso_id: number
+  address: string
+  neighborhood: string
+  schedules: EnrollmentSchedule[]
+  created_at: string
+  updated_at: string
+}
+
 export interface Enrollment {
   id: string
   courseId: string
@@ -291,6 +313,8 @@ export interface Enrollment {
   created_at: string
   updated_at: string
   certificateUrl?: string
+  schedule_id?: string
+  enrolled_unit?: EnrollmentUnit
 }
 
 export interface EnrollmentSummary {

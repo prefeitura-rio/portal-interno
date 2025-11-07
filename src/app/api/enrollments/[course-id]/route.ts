@@ -62,6 +62,8 @@ function convertApiEnrollmentToFrontend(
   apiEnrollment: ModelsInscricao
 ): Enrollment {
   // Calculate age from enrolled_at date (rough estimate - ideally should use birth date)
+  console.log('📋 API Enrollment Data:', JSON.stringify(apiEnrollment, null, 2))
+
   const enrolledDate = new Date((apiEnrollment.enrolled_at as string) || '')
   const currentYear = new Date().getFullYear()
   const enrolledYear = enrolledDate.getFullYear()
@@ -85,20 +87,22 @@ function convertApiEnrollmentToFrontend(
       apiEnrollment.custom_fields &&
       typeof apiEnrollment.custom_fields === 'object' &&
       !Array.isArray(apiEnrollment.custom_fields)
-        ? Object.entries(apiEnrollment.custom_fields as Record<string, any>).map(
-            ([key, value]) => ({
-              id: key.toLowerCase().replace(/\s+/g, '_'),
-              title: key,
-              value: String(value),
-              required: false,
-            })
-          )
+        ? Object.entries(
+            apiEnrollment.custom_fields as Record<string, any>
+          ).map(([key, value]) => ({
+            id: key.toLowerCase().replace(/\s+/g, '_'),
+            title: key,
+            value: String(value),
+            required: false,
+          }))
         : [],
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     updated_at:
       (apiEnrollment.updated_at as string) || new Date().toISOString(),
+    schedule_id: (apiEnrollment.schedule_id as string) || undefined,
+    enrolled_unit: apiEnrollment.enrolled_unit as any,
   }
 }
 
@@ -379,7 +383,15 @@ export async function POST(
     const body = await request.json()
     const { name, cpf, age, phone, email, address, neighborhood } = body
 
-    if (!name || !cpf || !age || !phone || !email || !address || !neighborhood) {
+    if (
+      !name ||
+      !cpf ||
+      !age ||
+      !phone ||
+      !email ||
+      !address ||
+      !neighborhood
+    ) {
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }

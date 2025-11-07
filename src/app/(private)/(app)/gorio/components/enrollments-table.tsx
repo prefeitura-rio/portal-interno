@@ -1315,6 +1315,105 @@ export function EnrollmentsTable({
                         )}
                     </div>
                   </div>
+
+                  {/* Schedule and Unit Information */}
+                  {selectedEnrollment.enrolled_unit && (
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                        Informações da Turma e Local
+                      </h4>
+                      <div className="grid gap-4">
+                        {/* Unit/Location Information */}
+                        <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Endereço
+                            </Label>
+                            <p className="text-sm font-medium">
+                              {selectedEnrollment.enrolled_unit.address}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Bairro
+                            </Label>
+                            <p className="text-sm font-medium">
+                              {selectedEnrollment.enrolled_unit.neighborhood}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Schedule Information */}
+                        {selectedEnrollment.schedule_id &&
+                          (() => {
+                            const enrolledSchedule =
+                              selectedEnrollment.enrolled_unit?.schedules.find(
+                                s => s.id === selectedEnrollment.schedule_id
+                              )
+
+                            if (!enrolledSchedule) return null
+
+                            return (
+                              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Código da Turma
+                                  </Label>
+                                  <p className="text-sm font-mono font-medium">
+                                    {enrolledSchedule.id}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Dias da Semana
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {enrolledSchedule.class_days}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Horário
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {enrolledSchedule.class_time}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Data de Início
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {new Date(
+                                      enrolledSchedule.class_start_date
+                                    ).toLocaleDateString('pt-BR')}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Data de Término
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {new Date(
+                                      enrolledSchedule.class_end_date
+                                    ).toLocaleDateString('pt-BR')}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Vagas
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {enrolledSchedule.vacancies}
+                                  </p>
+                                </div>
+                              </div>
+                            )
+                          })()}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Campo de certificado - só aparece se o curso tem certificado */}
                   {hasCertificate && (
                     <div className="flex items-start flex-col gap-3">
