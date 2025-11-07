@@ -61,6 +61,13 @@ function convertFrontendStatusToApi(
 function convertApiEnrollmentToFrontend(
   apiEnrollment: ModelsInscricao
 ): Enrollment {
+  // Calculate age from enrolled_at date (rough estimate - ideally should use birth date)
+  console.log('📋 API Enrollment Data:', JSON.stringify(apiEnrollment, null, 2))
+
+  const enrolledDate = new Date((apiEnrollment.enrolled_at as string) || '')
+  const currentYear = new Date().getFullYear()
+  const enrolledYear = enrolledDate.getFullYear()
+  const estimatedAge = Math.max(18, 30 + (currentYear - enrolledYear)) // Fallback age calculation
 
   const converted = {
     id: (apiEnrollment.id as string) || '',
@@ -80,14 +87,14 @@ function convertApiEnrollmentToFrontend(
       apiEnrollment.custom_fields &&
       typeof apiEnrollment.custom_fields === 'object' &&
       !Array.isArray(apiEnrollment.custom_fields)
-        ? Object.entries(apiEnrollment.custom_fields as Record<string, any>).map(
-            ([key, value]) => ({
-              id: key.toLowerCase().replace(/\s+/g, '_'),
-              title: key,
-              value: String(value),
-              required: false,
-            })
-          )
+        ? Object.entries(
+            apiEnrollment.custom_fields as Record<string, any>
+          ).map(([key, value]) => ({
+            id: key.toLowerCase().replace(/\s+/g, '_'),
+            title: key,
+            value: String(value),
+            required: false,
+          }))
         : [],
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
     schedule_id: (apiEnrollment as any).schedule_id as string | undefined,
@@ -95,6 +102,7 @@ function convertApiEnrollmentToFrontend(
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     updated_at:
       (apiEnrollment.updated_at as string) || new Date().toISOString(),
+    enrolled_unit: apiEnrollment.enrolled_unit as any,
   }
 
   return converted
@@ -378,7 +386,15 @@ export async function POST(
     const { name, cpf, age, phone, email, address, neighborhood, schedule_id } =
       body
 
-    if (!name || !cpf || !age || !phone || !email || !address || !neighborhood) {
+    if (
+      !name ||
+      !cpf ||
+      !age ||
+      !phone ||
+      !email ||
+      !address ||
+      !neighborhood
+    ) {
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }

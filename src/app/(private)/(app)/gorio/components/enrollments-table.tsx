@@ -795,10 +795,36 @@ export function EnrollmentsTable({
       'CPF',
       'E-mail',
       'Telefone',
+      'Id do curso',
       'Data de Inscrição',
       'Status',
+      'Endereço',
+      'Bairro',
+      'Código da Turma',
+      'Dias da Semana',
+      'Horário',
+      'Data de Início',
+      'Data de Término',
+      'Vagas',
       ...allCustomFieldTitles,
     ]
+
+    // Helper function to escape CSV fields according to RFC 4180
+    const escapeCsvField = (field: string | number | undefined): string => {
+      // Convert field to string and handle null/undefined
+      const stringField = String(field ?? '')
+
+      // If field contains comma, double quote, or newline, wrap in quotes and escape internal quotes
+      if (
+        stringField.includes(',') ||
+        stringField.includes('"') ||
+        stringField.includes('\n')
+      ) {
+        return `"${stringField.replace(/"/g, '""')}"`
+      }
+
+      return stringField
+    }
 
     // Create CSV content
     const csvContent = [
@@ -838,18 +864,41 @@ export function EnrollmentsTable({
           }
         })
 
+        // Get enrolled unit and schedule information
+        const enrolledUnit = enrollment.enrolled_unit
+        const enrolledSchedule = enrolledUnit?.schedules?.find(
+          s => s.id === enrollment.schedule_id
+        )
+
         return [
           enrollment.candidateName,
-          `${enrollment.cpf}`,
+          enrollment.cpf,
           enrollment.email,
           enrollment.phone || '',
+          enrollment.courseId,
           new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
           enrollment.status,
+          enrolledUnit?.address || '',
+          enrolledUnit?.neighborhood || '',
+          enrolledSchedule?.id || '',
+          enrolledSchedule?.class_days || '',
+          enrolledSchedule?.class_time || '',
+          enrolledSchedule?.class_start_date
+            ? new Date(enrolledSchedule.class_start_date).toLocaleDateString(
+                'pt-BR'
+              )
+            : '',
+          enrolledSchedule?.class_end_date
+            ? new Date(enrolledSchedule.class_end_date).toLocaleDateString(
+                'pt-BR'
+              )
+            : '',
+          enrolledSchedule?.vacancies?.toString() || '',
           ...customFieldValues,
         ]
       }),
     ]
-      .map(row => row.map(field => `="${field}"`).join(','))
+      .map(row => row.map(field => escapeCsvField(field)).join(','))
       .join('\n')
 
     // Create and download file with proper UTF-8 BOM for Excel compatibility
@@ -1160,6 +1209,17 @@ export function EnrollmentsTable({
                     </h4>
                     <div className="grid gap-4">
                       <div className="flex items-center gap-3">
+                        <Hash className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            Id do curso
+                          </Label>
+                          <p className="font-mono text-sm">
+                            {selectedEnrollment.courseId}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
                         <Calendar className="w-4 h-4 text-muted-foreground" />
                         <div>
                           <Label className="text-xs text-muted-foreground">
@@ -1330,6 +1390,105 @@ export function EnrollmentsTable({
                         )}
                     </div>
                   </div>
+
+                  {/* Schedule and Unit Information */}
+                  {selectedEnrollment.enrolled_unit && (
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                        Informações da Turma e Local
+                      </h4>
+                      <div className="grid gap-4">
+                        {/* Unit/Location Information */}
+                        <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Endereço
+                            </Label>
+                            <p className="text-sm font-medium">
+                              {selectedEnrollment.enrolled_unit.address}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Bairro
+                            </Label>
+                            <p className="text-sm font-medium">
+                              {selectedEnrollment.enrolled_unit.neighborhood}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Schedule Information */}
+                        {selectedEnrollment.schedule_id &&
+                          (() => {
+                            const enrolledSchedule =
+                              selectedEnrollment.enrolled_unit?.schedules.find(
+                                s => s.id === selectedEnrollment.schedule_id
+                              )
+
+                            if (!enrolledSchedule) return null
+
+                            return (
+                              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Código da Turma
+                                  </Label>
+                                  <p className="text-sm font-mono font-medium">
+                                    {enrolledSchedule.id}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Dias da Semana
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {enrolledSchedule.class_days}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Horário
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {enrolledSchedule.class_time}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Data de Início
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {new Date(
+                                      enrolledSchedule.class_start_date
+                                    ).toLocaleDateString('pt-BR')}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Data de Término
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {new Date(
+                                      enrolledSchedule.class_end_date
+                                    ).toLocaleDateString('pt-BR')}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Vagas
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {enrolledSchedule.vacancies}
+                                  </p>
+                                </div>
+                              </div>
+                            )
+                          })()}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Campo de certificado - só aparece se o curso tem certificado */}
                   {hasCertificate && (
                     <div className="flex items-start flex-col gap-3">
