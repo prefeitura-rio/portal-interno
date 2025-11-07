@@ -83,19 +83,50 @@ function convertApiEnrollmentToFrontend(
     ),
     notes: apiEnrollment.admin_notes as string | undefined,
     reason: apiEnrollment.reason as string | undefined,
-    customFields:
-      apiEnrollment.custom_fields &&
-      typeof apiEnrollment.custom_fields === 'object' &&
-      !Array.isArray(apiEnrollment.custom_fields)
-        ? Object.entries(
-            apiEnrollment.custom_fields as Record<string, any>
-          ).map(([key, value]) => ({
+    customFields: (() => {
+      const fields = apiEnrollment.custom_fields as unknown
+      if (!fields) {
+        return []
+      }
+
+      if (Array.isArray(fields)) {
+        return fields.map((field, index) => {
+          const item = field as {
+            id?: string
+            title?: string
+            value?: unknown
+            required?: boolean
+          }
+
+          const generatedId =
+            item.title?.toLowerCase().replace(/\s+/g, '_') ??
+            `custom_field_${index}`
+
+          return {
+            id: item.id ?? generatedId,
+            title: item.title ?? item.id ?? 'Campo personalizado',
+            value:
+              item.value !== undefined && item.value !== null
+                ? String(item.value)
+                : '',
+            required: Boolean(item.required),
+          }
+        })
+      }
+
+      if (typeof fields === 'object') {
+        return Object.entries(fields as Record<string, unknown>).map(
+          ([key, value]) => ({
             id: key.toLowerCase().replace(/\s+/g, '_'),
             title: key,
-            value: String(value),
+            value: value !== undefined && value !== null ? String(value) : '',
             required: false,
-          }))
-        : [],
+          })
+        )
+      }
+
+      return []
+    })(),
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
