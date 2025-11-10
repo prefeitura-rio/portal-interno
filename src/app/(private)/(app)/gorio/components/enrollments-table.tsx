@@ -149,9 +149,6 @@ export function EnrollmentsTable({
   const [isAddParticipantsModalOpen, setIsAddParticipantsModalOpen] =
     React.useState(false)
 
-  // Feature flag to hide the "Adicionar participantes" button
-  const hideAddParticipants = process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
-
   // Hook do formulário para validação do certificado
   const certificateForm = useForm<CertificateFormData>({
     resolver: zodResolver(certificateSchema),
@@ -1043,14 +1040,12 @@ export function EnrollmentsTable({
           Inscrições no Curso
         </h2>
         <div className="flex items-center gap-2">
-          {!hideAddParticipants && (
-            <Button
-              variant="outline"
-              onClick={() => setIsAddParticipantsModalOpen(true)}
-            >
-              Adicionar participantes
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            onClick={() => setIsAddParticipantsModalOpen(true)}
+          >
+            Adicionar participantes
+          </Button>
           <Button variant="outline" onClick={handleDownloadSpreadsheet}>
             <FileDown className="mr-2 h-4 w-4" />
             Exportar CSV
