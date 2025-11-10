@@ -1,5 +1,6 @@
 'use client'
 
+import { DuplicateCourseButton } from '@/app/(private)/(app)/gorio/components/duplicate-course-button'
 import { EnrollmentsTable } from '@/app/(private)/(app)/gorio/components/enrollments-table'
 import {
   NewCourseForm,
@@ -218,6 +219,7 @@ export default function CourseDetailPage({
       const updateData = {
         ...data,
         title: data.title || course?.title,
+        categorias: data.categorias || course?.categorias || [],
         modalidade: data.modalidade || course?.modalidade,
         status: data.status || course?.status,
         // Ensure organization is synced with orgao.nome
@@ -267,6 +269,7 @@ export default function CourseDetailPage({
       const publishData = {
         ...data,
         title: data.title || course?.title,
+        categorias: data.categorias || course?.categorias || [],
         modalidade: data.modalidade || course?.modalidade,
         status: 'opened',
         // Ensure organization is synced with orgao.nome
@@ -335,15 +338,17 @@ export default function CourseDetailPage({
       id: location.id,
       address: location.address,
       neighborhood: location.neighborhood,
-      vacancies: location.vacancies,
-      class_start_date: location.classStartDate
-        ? new Date(location.classStartDate).toISOString()
-        : location.class_start_date,
-      class_end_date: location.classEndDate
-        ? new Date(location.classEndDate).toISOString()
-        : location.class_end_date,
-      class_time: location.classTime || location.class_time,
-      class_days: location.classDays || location.class_days,
+      schedules: (location.schedules || []).map((schedule: any) => ({
+        vacancies: schedule.vacancies,
+        class_start_date: schedule.classStartDate
+          ? new Date(schedule.classStartDate).toISOString()
+          : schedule.class_start_date,
+        class_end_date: schedule.classEndDate
+          ? new Date(schedule.classEndDate).toISOString()
+          : schedule.class_end_date,
+        class_time: schedule.classTime || schedule.class_time,
+        class_days: schedule.classDays || schedule.class_days,
+      })),
     }))
   }
 
@@ -370,6 +375,7 @@ export default function CourseDetailPage({
     return {
       title: course.title,
       description: course.description,
+      categorias: course.categorias || [],
       enrollment_start_date:
         (course as any).enrollment_start_date ||
         (course.enrollmentStartDate
@@ -716,6 +722,8 @@ export default function CourseDetailPage({
               {/* Show action buttons based on course status */}
               {!isEditing ? (
                 <>
+                  {/* Duplicate Course button */}
+                  <DuplicateCourseButton course={course} disabled={isLoading} />
                   {/* Edit button - don't show for closed, canceled, finished, or encerrado courses when not in enrollments tab */}
                   {actualStatus !== 'closed' &&
                     actualStatus !== 'canceled' &&

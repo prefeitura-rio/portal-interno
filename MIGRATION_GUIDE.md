@@ -2,14 +2,14 @@
 
 ## Resumo das Mudanças
 
-Este documento descreve as alterações realizadas para criar compatibilidade entre o modelo de dados mockado do frontend e o modelo real da API (`ModelsPrefRioService`).
+Este documento descreve as alterações realizadas para criar compatibilidade entre o modelo de dados mockado do frontend e o modelo real da API (`GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService`).
 
 ## Principais Alterações
 
 ### 1. Atualização dos Tipos (`src/types/service.ts`)
 
 **Novas interfaces adicionadas:**
-- `ApiService`: Interface que corresponde exatamente ao `ModelsPrefRioService`
+- `ApiService`: Interface que corresponde exatamente ao `GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService`
 - Funções de conversão `convertApiToFrontend` e `convertFrontendToApi`
 
 **Lógica de Status Atualizada:**
@@ -34,7 +34,7 @@ interface Service {
 
 **Nova estrutura (API):**
 ```typescript
-interface ModelsPrefRioService {
+interface GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService {
   orgao_gestor: string[]
   publico_especifico?: string[]
   documentos_necessarios?: string[]
@@ -86,7 +86,7 @@ As funções `convertApiToFrontend` e `convertFrontendToApi` em `src/types/servi
 
 ### Mapeamento Completo
 
-| Frontend (Service) | API (ModelsPrefRioService) | Conversão |
+| Frontend (Service) | API (GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService) | Conversão |
 |-------------------|---------------------------|-----------|
 | `id` | `id` | Direto |
 | `managingOrgan` | `orgao_gestor[0]` | Primeiro elemento do array |
@@ -111,10 +111,10 @@ As funções `convertApiToFrontend` e `convertFrontendToApi` em `src/types/servi
 
 ### Campos Exclusivos da API
 
-Campos presentes apenas no `ModelsPrefRioService` que não são usados no frontend:
+Campos presentes apenas no `GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService` que não são usados no frontend:
 - `autor`: string
 - `embedding`: number[]
-- `extra_fields`: ModelsPrefRioServiceExtraFields
+- `extra_fields`: GetApiV1AdminServicesIdVersions400
 - `fixar_destaque`: boolean
 - `legislacao_relacionada`: string[]
 - `search_content`: string
@@ -125,7 +125,7 @@ Campos presentes apenas no `ModelsPrefRioService` que não são usados no fronte
 ```typescript
 import { convertApiToFrontend } from '@/types/service'
 
-const apiResponse: ModelsPrefRioService = {
+const apiResponse: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService = {
   id: '1',
   nome_servico: 'Solicitação de Alvará',
   orgao_gestor: ['smcc'],

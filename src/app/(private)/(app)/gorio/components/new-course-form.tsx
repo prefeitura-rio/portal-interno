@@ -1,7 +1,13 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import React, { forwardRef, useImperativeHandle, useState } from 'react'
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -26,6 +32,8 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
+import { MarkdownEditor } from '@/components/blocks/editor-md'
+
 import {
   Accordion,
   AccordionContent,
@@ -40,6 +48,7 @@ import {
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
@@ -56,16 +65,16 @@ const accessibilityLabel: Record<Accessibility, string> = {
   NAO_ACESSIVEL: 'Não acessível para pessoas com deficiência',
 }
 
-// Define the schema for location/class information
-const locationClassSchema = z.object({
-  address: z
-    .string()
-    .min(1, { message: 'Endereço é obrigatório.' })
-    .min(10, { message: 'Endereço deve ter pelo menos 10 caracteres.' }),
-  neighborhood: z
-    .string()
-    .min(1, { message: 'Bairro é obrigatório.' })
-    .min(3, { message: 'Bairro deve ter pelo menos 3 caracteres.' }),
+// Category type from API
+export interface Category {
+  id: number
+  nome: string
+}
+
+// Static category options removed - using dynamic categories from API
+
+// Define the schema for schedule (turma) information
+const scheduleSchema = z.object({
   vacancies: z.coerce
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
@@ -78,6 +87,21 @@ const locationClassSchema = z.object({
   }),
   classTime: z.string().min(1, { message: 'Horário das aulas é obrigatório.' }),
   classDays: z.string().min(1, { message: 'Dias de aula é obrigatório.' }),
+})
+
+// Define the schema for location/class information
+const locationClassSchema = z.object({
+  address: z
+    .string()
+    .min(1, { message: 'Endereço é obrigatório.' })
+    .min(10, { message: 'Endereço deve ter pelo menos 10 caracteres.' }),
+  neighborhood: z
+    .string()
+    .min(1, { message: 'Bairro é obrigatório.' })
+    .min(3, { message: 'Bairro deve ter pelo menos 3 caracteres.' }),
+  schedules: z
+    .array(scheduleSchema)
+    .min(1, { message: 'Pelo menos uma turma deve ser informada.' }),
 })
 
 // Define the schema for remote class information
@@ -121,6 +145,7 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
+      category: z.number().min(1, { message: 'Categoria é obrigatória.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -239,6 +264,7 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
+      category: z.number().min(1, { message: 'Categoria é obrigatória.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -355,8 +381,10 @@ const fullFormSchema = z
           data.remote_class.classEndDate >= data.remote_class.classStartDate
         )
       }
-      return data.locations.every(
-        location => location.classEndDate >= location.classStartDate
+      return data.locations.every(location =>
+        location.schedules.every(
+          schedule => schedule.classEndDate >= schedule.classStartDate
+        )
       )
     },
     {
@@ -390,6 +418,7 @@ const fullFormSchema = z
 const draftFormSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
+  category: z.number().optional(),
   enrollment_start_date: z.date().optional(),
   enrollment_end_date: z.date().optional(),
   orgao: z
@@ -467,11 +496,17 @@ const draftFormSchema = z.object({
       z.object({
         address: z.string().optional(),
         neighborhood: z.string().optional(),
-        vacancies: z.number().optional(),
-        classStartDate: z.date().optional(),
-        classEndDate: z.date().optional(),
-        classTime: z.string().optional(),
-        classDays: z.string().optional(),
+        schedules: z
+          .array(
+            z.object({
+              vacancies: z.number().optional(),
+              classStartDate: z.date().optional(),
+              classEndDate: z.date().optional(),
+              classTime: z.string().optional(),
+              classDays: z.string().optional(),
+            })
+          )
+          .optional(),
       })
     )
     .optional(),
@@ -499,6 +534,7 @@ type PartialFormData = Omit<
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
+  category?: number
   theme?: 'Educação' | 'Saúde' | 'Esportes'
   workload?: string
   target_audience?: string
@@ -533,6 +569,7 @@ type PartialFormData = Omit<
 type BackendCourseData = {
   title: string
   description: string
+  categorias?: Array<{ id: number }>
   enrollment_start_date: string | undefined
   enrollment_end_date: string | undefined
   orgao: { id: number; nome: string }
@@ -568,11 +605,13 @@ type BackendCourseData = {
   locations?: Array<{
     address: string
     neighborhood: string
-    vacancies: number
-    class_start_date: string | undefined
-    class_end_date: string | undefined
-    class_time: string
-    class_days: string
+    schedules: Array<{
+      vacancies: number
+      class_start_date: string | undefined
+      class_end_date: string | undefined
+      class_time: string
+      class_days: string
+    }>
   }>
   remote_class?: {
     vacancies: number
@@ -633,9 +672,53 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     )
     const [loadingOrgaos, setLoadingOrgaos] = useState(false)
 
+    // State for categories
+    const [categories, setCategories] = useState<Category[]>([])
+    const [loadingCategories, setLoadingCategories] = useState(false)
+
+    // Memoize category options to avoid re-rendering the dropdown unnecessarily
+    const categoryOptions = useMemo(() => {
+      return categories.map(category => ({
+        id: category.id,
+        nome: category.nome,
+      }))
+    }, [categories])
+
     const instituicaoId = Number(
       process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
     )
+
+    // Fetch categories from API with cache
+    useEffect(() => {
+      const fetchCategories = async () => {
+        // Check cache first
+        const cachedData = getCachedCategorias()
+        if (cachedData) {
+          console.log('CACHEE')
+          setCategories(cachedData)
+          return
+        }
+
+        // If no cache, fetch from API
+        try {
+          setLoadingCategories(true)
+          const response = await fetch('/api/categorias?page=1&pageSize=100')
+          const data = await response.json()
+          const categoriesData = data || []
+
+          // Update state and cache
+          setCategories(categoriesData)
+          setCachedCategorias(categoriesData)
+        } catch (error) {
+          console.error('Erro ao buscar categorias:', error)
+          toast.error('Erro ao carregar categorias')
+        } finally {
+          setLoadingCategories(false)
+        }
+      }
+
+      fetchCategories()
+    }, [])
 
     // Dialog states
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -657,6 +740,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         ? {
             title: initialData.title || '',
             description: initialData.description || '',
+            category:
+              initialData.category ||
+              ((initialData as any).categorias?.[0]?.id as number | undefined),
             enrollment_start_date:
               initialData.enrollment_start_date || new Date(),
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
@@ -690,12 +776,36 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             is_visible: initialData?.is_visible ?? true,
             custom_fields: initialData.custom_fields || [],
             // Handle locations and remote_class based on modalidade
-            locations: initialData.locations || [],
+            // Normalize locations to ensure they have schedules array
+            locations: (initialData.locations || []).map((location: any) => {
+              // If location already has schedules, use it
+              if (
+                location.schedules &&
+                Array.isArray(location.schedules) &&
+                location.schedules.length > 0
+              ) {
+                return location
+              }
+              // Otherwise, convert old format to new format with a single schedule
+              return {
+                ...location,
+                schedules: [
+                  {
+                    vacancies: location.vacancies || 1,
+                    classStartDate: location.classStartDate || new Date(),
+                    classEndDate: location.classEndDate || new Date(),
+                    classTime: location.classTime || '',
+                    classDays: location.classDays || '',
+                  },
+                ],
+              }
+            }),
             remote_class: initialData.remote_class,
           }
         : {
             title: '',
             description: '',
+            category: undefined,
             enrollment_start_date: new Date(),
             enrollment_end_date: new Date(),
             orgao: undefined,
@@ -737,6 +847,40 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       control: form.control,
       name: 'locations',
     })
+
+    // Helper function to get schedules for a location
+    const getLocationSchedules = (locationIndex: number) => {
+      const location = form.watch(`locations.${locationIndex}`)
+      return location?.schedules || []
+    }
+
+    // Helper function to add a schedule to a location
+    const addSchedule = (locationIndex: number) => {
+      const currentSchedules =
+        form.getValues(`locations.${locationIndex}.schedules`) || []
+      form.setValue(`locations.${locationIndex}.schedules`, [
+        ...currentSchedules,
+        {
+          vacancies: 1,
+          classStartDate: new Date(),
+          classEndDate: new Date(),
+          classTime: '',
+          classDays: '',
+        },
+      ])
+    }
+
+    // Helper function to remove a schedule from a location
+    const removeSchedule = (locationIndex: number, scheduleIndex: number) => {
+      const currentSchedules =
+        form.getValues(`locations.${locationIndex}.schedules`) || []
+      if (currentSchedules.length > 1) {
+        const newSchedules = currentSchedules.filter(
+          (_: any, idx: number) => idx !== scheduleIndex
+        )
+        form.setValue(`locations.${locationIndex}.schedules`, newSchedules)
+      }
+    }
 
     // Fetch organizations on component mount
     React.useEffect(() => {
@@ -784,20 +928,23 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       const transformedLocations = data.locations?.map(location => ({
         address: location.address,
         neighborhood: location.neighborhood,
-        vacancies: location.vacancies,
-        class_start_date: location.classStartDate
-          ? formatDateTimeToUTC(location.classStartDate)
-          : undefined,
-        class_end_date: location.classEndDate
-          ? formatDateTimeToUTC(location.classEndDate)
-          : undefined,
-        class_time: location.classTime,
-        class_days: location.classDays,
+        schedules: location.schedules.map(schedule => ({
+          vacancies: schedule.vacancies,
+          class_start_date: schedule.classStartDate
+            ? formatDateTimeToUTC(schedule.classStartDate)
+            : undefined,
+          class_end_date: schedule.classEndDate
+            ? formatDateTimeToUTC(schedule.classEndDate)
+            : undefined,
+          class_time: schedule.classTime,
+          class_days: schedule.classDays,
+        })),
       }))
 
       return {
         title: data.title,
         description: data.description,
+        categorias: data.category ? [{ id: data.category }] : [],
         enrollment_start_date: data.enrollment_start_date
           ? formatDateTimeToUTC(data.enrollment_start_date)
           : undefined,
@@ -869,6 +1016,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         description:
           data.description ||
           'Descrição em desenvolvimento. Edite antes de publicar!',
+        category: data.category,
         enrollment_start_date: data.enrollment_start_date || currentDate,
         enrollment_end_date: data.enrollment_end_date || nextMonth,
         orgao:
@@ -917,11 +1065,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   {
                     address: '',
                     neighborhood: '',
-                    vacancies: 1,
-                    classStartDate: currentDate,
-                    classEndDate: nextMonth,
-                    classTime: '',
-                    classDays: '',
+                    schedules: [
+                      {
+                        vacancies: 1,
+                        classStartDate: currentDate,
+                        classEndDate: nextMonth,
+                        classTime: 'Horário em definição',
+                        classDays: 'Dias em definição',
+                      },
+                    ],
                   },
                 ]
             : undefined,
@@ -977,11 +1129,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             {
               address: '',
               neighborhood: '',
-              vacancies: 1,
-              classStartDate: new Date(),
-              classEndDate: new Date(),
-              classTime: '',
-              classDays: '',
+              schedules: [
+                {
+                  vacancies: 1,
+                  classStartDate: new Date(),
+                  classEndDate: new Date(),
+                  classTime: '',
+                  classDays: '',
+                },
+              ],
             },
           ])
         }
@@ -992,11 +1148,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       append({
         address: '',
         neighborhood: '',
-        vacancies: 1,
-        classStartDate: new Date(),
-        classEndDate: new Date(),
-        classTime: '',
-        classDays: '',
+        schedules: [
+          {
+            vacancies: 1,
+            classStartDate: new Date(),
+            classEndDate: new Date(),
+            classTime: '',
+            classDays: '',
+          },
+        ],
       })
     }
 
@@ -1218,12 +1378,57 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <FormItem>
                     <FormLabel>Descrição*</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[120px]"
-                        {...field}
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        placeholder="Descreva o curso de forma detalhada"
                         disabled={isReadOnly}
+                        maxLength={600}
+                        showCharCount={true}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria*</FormLabel>
+                    <Select
+                      onValueChange={value => field.onChange(Number(value))}
+                      value={field.value?.toString() || ''}
+                      disabled={isReadOnly || loadingCategories}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              loadingCategories
+                                ? 'Carregando categorias...'
+                                : categoryOptions.length === 0
+                                  ? 'Nenhuma categoria encontrada'
+                                  : 'Selecione uma categoria'
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      {!loadingCategories && categoryOptions.length > 0 && (
+                        <SelectContent>
+                          {categoryOptions.map(category => (
+                            <SelectItem
+                              key={category.id}
+                              value={category.id.toString()}
+                            >
+                              {category.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      )}
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -1325,22 +1530,25 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 control={form.control}
                 name="is_external_partner"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isReadOnly}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Curso de parceiro externo</FormLabel>
-                      <p className="text-[0.8rem] text-muted-foreground">
-                        Marque esta opção se o curso é oferecido por uma
-                        organização parceira externa.
-                      </p>
-                    </div>
-                  </FormItem>
+                  <Card className="p-4 bg-card">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          className="border-1 border-foreground!"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isReadOnly}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Curso de parceiro externo</FormLabel>
+                        <p className="text-[0.8rem] text-muted-foreground">
+                          Marque esta opção se o curso é oferecido por uma
+                          organização parceira externa.
+                        </p>
+                      </div>
+                    </FormItem>
+                  </Card>
                 )}
               />
 
@@ -1698,99 +1906,173 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name={`locations.${index}.vacancies`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Número de vagas*</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  value={field.value || ''}
-                                  onChange={e =>
-                                    field.onChange(Number(e.target.value))
-                                  }
-                                  onBlur={field.onBlur}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {/* Schedules (Turmas) */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-semibold">Turmas</h4>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addSchedule(index)}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Adicionar Turma
+                            </Button>
+                          </div>
 
-                        <div className="flex flex-wrap items-start gap-4">
-                          <FormField
-                            control={form.control}
-                            name={`locations.${index}.classStartDate`}
-                            render={({ field }) => (
-                              <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                                <FormLabel>Início das aulas*</FormLabel>
-                                <FormControl>
-                                  <DateTimePicker
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Selecionar data e hora de início"
-                                    disabled={isReadOnly}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name={`locations.${index}.classEndDate`}
-                            render={({ field }) => (
-                              <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                                <FormLabel>Fim das aulas*</FormLabel>
-                                <FormControl>
-                                  <DateTimePicker
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Selecionar data e hora de fim"
-                                    disabled={isReadOnly}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          {(() => {
+                            const location = form.watch(`locations.${index}`)
+                            const schedules = location?.schedules || []
+                            // Ensure at least one schedule is shown - if empty, form will initialize it
+                            if (schedules.length === 0) {
+                              // Initialize with one schedule if none exists
+                              form.setValue(`locations.${index}.schedules`, [
+                                {
+                                  vacancies: 1,
+                                  classStartDate: new Date(),
+                                  classEndDate: new Date(),
+                                  classTime: '',
+                                  classDays: '',
+                                },
+                              ])
+                              return null // Will re-render with the schedule
+                            }
+                            return schedules.map(
+                              (schedule: any, scheduleIndex: number) => (
+                                <Card
+                                  key={scheduleIndex}
+                                  className="bg-muted/30"
+                                >
+                                  <CardHeader className="flex flex-row items-center justify-between pb-3">
+                                    <CardTitle className="text-base">
+                                      Turma {scheduleIndex + 1}
+                                    </CardTitle>
+                                    {schedules && schedules.length > 1 && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          removeSchedule(index, scheduleIndex)
+                                        }
+                                        className="text-destructive hover:text-destructive"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </CardHeader>
+                                  <CardContent className="space-y-4">
+                                    <FormField
+                                      control={form.control}
+                                      name={`locations.${index}.schedules.${scheduleIndex}.vacancies`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>
+                                            Número de vagas*
+                                          </FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              type="number"
+                                              min="1"
+                                              value={field.value || ''}
+                                              onChange={e =>
+                                                field.onChange(
+                                                  Number(e.target.value)
+                                                )
+                                              }
+                                              onBlur={field.onBlur}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <div className="flex flex-wrap items-start gap-4">
+                                      <FormField
+                                        control={form.control}
+                                        name={`locations.${index}.schedules.${scheduleIndex}.classStartDate`}
+                                        render={({ field }) => (
+                                          <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                                            <FormLabel>
+                                              Início das aulas*
+                                            </FormLabel>
+                                            <FormControl>
+                                              <DateTimePicker
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                placeholder="Selecionar data e hora de início"
+                                                disabled={isReadOnly}
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name={`locations.${index}.schedules.${scheduleIndex}.classEndDate`}
+                                        render={({ field }) => (
+                                          <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                                            <FormLabel>
+                                              Fim das aulas*
+                                            </FormLabel>
+                                            <FormControl>
+                                              <DateTimePicker
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                placeholder="Selecionar data e hora de fim"
+                                                disabled={isReadOnly}
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    </div>
+
+                                    <FormField
+                                      control={form.control}
+                                      name={`locations.${index}.schedules.${scheduleIndex}.classTime`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>
+                                            Horário das aulas*
+                                          </FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
+                                              {...field}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={form.control}
+                                      name={`locations.${index}.schedules.${scheduleIndex}.classDays`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Dias de aula*</FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
+                                              {...field}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </CardContent>
+                                </Card>
+                              )
+                            )
+                          })()}
                         </div>
-
-                        <FormField
-                          control={form.control}
-                          name={`locations.${index}.classTime`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Horário das aulas*</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name={`locations.${index}.classDays`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Dias de aula*</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </CardContent>
                     </Card>
                   ))}
@@ -1831,10 +2113,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <FormItem>
                     <FormLabel>Público-alvo*</FormLabel>
                     <FormControl>
-                      <Textarea
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Ex: Servidores públicos, estudantes, profissionais da área de tecnologia..."
-                        className="min-h-[80px]"
-                        {...field}
+                        disabled={isReadOnly}
+                        maxLength={600}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1862,20 +2147,29 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             control={form.control}
                             name="has_certificate"
                             render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                    disabled={isReadOnly}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>
-                                    Geração interna de certificado
-                                  </FormLabel>
-                                </div>
-                              </FormItem>
+                              <Card className="p-4 bg-card">
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      className="border-1 border-foreground!"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                      disabled={isReadOnly}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>
+                                      Geração interna de certificado
+                                    </FormLabel>
+                                    <p className="text-[0.8rem] text-muted-foreground">
+                                      Marque esta opção se o certificado será
+                                      gerado pelo portal interno (url do
+                                      certificado ou de forma automática após
+                                      marcar aluno como concluído.)
+                                    </p>
+                                  </div>
+                                </FormItem>
+                              </Card>
                             )}
                           />
 
@@ -1888,10 +2182,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                   Pré-requisitos para receber certificado
                                 </FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Conhecimento básico em informática, ensino médio completo..."
-                                    className="min-h-[80px]"
-                                    {...field}
                                     disabled={isReadOnly}
                                   />
                                 </FormControl>
@@ -1955,10 +2249,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Objetivos da capacitação</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Desenvolver habilidades em gestão de projetos, capacitar para uso de ferramentas específicas..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1973,10 +2268,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Resultados esperados</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Ao final do curso, os participantes estarão aptos a..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1991,10 +2287,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Conteúdo programático</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Módulo 1: Introdução, Módulo 2: Conceitos básicos..."
-                                    className="min-h-[120px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2009,10 +2306,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Metodologia</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Aulas expositivas, exercícios práticos, estudos de caso..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2027,10 +2325,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Recursos Utilizados</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Computadores, projetor, software específico..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2045,10 +2344,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Material utilizado</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Apostilas, slides, vídeos..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2063,10 +2363,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               <FormItem>
                                 <FormLabel>Material didático</FormLabel>
                                 <FormControl>
-                                  <Textarea
+                                  <MarkdownEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     placeholder="Ex: Livros, artigos, exercícios práticos..."
-                                    className="min-h-[80px]"
-                                    {...field}
+                                    disabled={isReadOnly}
                                   />
                                 </FormControl>
                                 <FormMessage />

@@ -62,12 +62,14 @@ function convertApiEnrollmentToFrontend(
   apiEnrollment: ModelsInscricao
 ): Enrollment {
   // Calculate age from enrolled_at date (rough estimate - ideally should use birth date)
+  console.log('📋 API Enrollment Data:', JSON.stringify(apiEnrollment, null, 2))
+
   const enrolledDate = new Date((apiEnrollment.enrolled_at as string) || '')
   const currentYear = new Date().getFullYear()
   const enrolledYear = enrolledDate.getFullYear()
   const estimatedAge = Math.max(18, 30 + (currentYear - enrolledYear)) // Fallback age calculation
 
-  return {
+  const converted = {
     id: (apiEnrollment.id as string) || '',
     courseId: (apiEnrollment.course_id as number)?.toString() || '',
     candidateName: (apiEnrollment.name as string) || '',
@@ -81,25 +83,60 @@ function convertApiEnrollmentToFrontend(
     ),
     notes: apiEnrollment.admin_notes as string | undefined,
     reason: apiEnrollment.reason as string | undefined,
-    customFields:
-      apiEnrollment.custom_fields &&
-      typeof apiEnrollment.custom_fields === 'object' &&
-      !Array.isArray(apiEnrollment.custom_fields)
-        ? Object.entries(apiEnrollment.custom_fields as Record<string, any>).map(
-            ([key, value]) => ({
-              id: key.toLowerCase().replace(/\s+/g, '_'),
-              title: key,
-              value: String(value),
-              required: false,
-            })
-          )
-        : [],
+    customFields: (() => {
+      const fields = apiEnrollment.custom_fields as unknown
+      if (!fields) {
+        return []
+      }
+
+      if (Array.isArray(fields)) {
+        return fields.map((field, index) => {
+          const item = field as {
+            id?: string
+            title?: string
+            value?: unknown
+            required?: boolean
+          }
+
+          const generatedId =
+            item.title?.toLowerCase().replace(/\s+/g, '_') ??
+            `custom_field_${index}`
+
+          return {
+            id: item.id ?? generatedId,
+            title: item.title ?? item.id ?? 'Campo personalizado',
+            value:
+              item.value !== undefined && item.value !== null
+                ? String(item.value)
+                : '',
+            required: Boolean(item.required),
+          }
+        })
+      }
+
+      if (typeof fields === 'object') {
+        return Object.entries(fields as Record<string, unknown>).map(
+          ([key, value]) => ({
+            id: key.toLowerCase().replace(/\s+/g, '_'),
+            title: key,
+            value: value !== undefined && value !== null ? String(value) : '',
+            required: false,
+          })
+        )
+      }
+
+      return []
+    })(),
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
+    schedule_id: (apiEnrollment as any).schedule_id as string | undefined,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     updated_at:
       (apiEnrollment.updated_at as string) || new Date().toISOString(),
+    enrolled_unit: apiEnrollment.enrolled_unit as any,
   }
+
+  return converted
 }
 
 export async function GET(
@@ -377,27 +414,42 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { name, cpf, age, phone, email, address, neighborhood } = body
+    const { name, cpf, age, phone, email, address, neighborhood, schedule_id } =
+      body
 
-    if (!name || !cpf || !age || !phone || !email || !address || !neighborhood) {
+    if (
+      !name ||
+      !cpf ||
+      !age ||
+      !phone ||
+      !email ||
+      !address ||
+      !neighborhood
+    ) {
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }
       )
     }
 
+    // Prepare enrollment data
+    const enrollmentData = {
+      name,
+      cpf,
+      age,
+      phone,
+      email,
+      address,
+      neighborhood,
+      ...(schedule_id && { schedule_id }), // Only include schedule_id if provided
+    }
+
+    console.log('[Enrollment POST] Sending to backend:', enrollmentData)
+
     // Call the API to create manual enrollment
     const response = await postApiV1CoursesCourseIdEnrollmentsManual(
       Number.parseInt(courseId, 10),
-      {
-        name,
-        cpf,
-        age,
-        phone,
-        email,
-        address,
-        neighborhood,
-      }
+      enrollmentData
     )
 
     if (response.status === 201) {

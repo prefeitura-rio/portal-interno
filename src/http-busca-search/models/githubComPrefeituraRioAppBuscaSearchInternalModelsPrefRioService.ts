@@ -5,13 +5,15 @@
  * API para busca textual e vetorial usando Typesense e embeddings gerados via Google Gemini
  * OpenAPI spec version: 1.0
  */
-import type { ModelsAgentsConfig } from './modelsAgentsConfig'
-import type { ModelsPrefRioServiceExtraFields } from './modelsPrefRioServiceExtraFields'
+import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsAgentsConfig } from './githubComPrefeituraRioAppBuscaSearchInternalModelsAgentsConfig'
+import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsButton } from './githubComPrefeituraRioAppBuscaSearchInternalModelsButton'
+import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceExtraFields } from './githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceExtraFields'
 
-export interface ModelsPrefRioService {
-  agents?: ModelsAgentsConfig
+export interface GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService {
+  agents?: GithubComPrefeituraRioAppBuscaSearchInternalModelsAgentsConfig
   autor: string
   awaiting_approval?: boolean
+  buttons?: GithubComPrefeituraRioAppBuscaSearchInternalModelsButton[]
   canais_digitais?: string[]
   canais_presenciais?: string[]
   created_at?: number
@@ -19,7 +21,7 @@ export interface ModelsPrefRioService {
   descricao_completa: string
   documentos_necessarios?: string[]
   embedding?: number[]
-  extra_fields?: ModelsPrefRioServiceExtraFields
+  extra_fields?: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceExtraFields
   fixar_destaque?: boolean
   id?: string
   instrucoes_solicitante?: string

@@ -1,0 +1,199 @@
+import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff'
+import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory'
+import { useCallback, useEffect, useState } from 'react'
+
+interface UseServiceVersionsReturn {
+  versions: GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory | null
+  loading: boolean
+  error: string | null
+  refetch: () => Promise<void>
+  getVersionDiff: (
+    fromVersion: number,
+    toVersion: number
+  ) => Promise<GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff | null>
+  rollbackToVersion: (
+    toVersion: number,
+    changeReason?: string
+  ) => Promise<{ success: boolean; error?: string }>
+}
+
+export function useServiceVersions(
+  serviceId: string | null,
+  page = 1,
+  perPage = 50
+): UseServiceVersionsReturn {
+  const [versions, setVersions] =
+    useState<GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory | null>(
+      null
+    )
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchVersions = useCallback(async () => {
+    if (!serviceId) {
+      setLoading(false)
+      setError(null)
+      setVersions(null)
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Build query parameters
+      const searchParams = new URLSearchParams()
+      if (page) {
+        searchParams.append('page', page.toString())
+      }
+      if (perPage) {
+        searchParams.append('per_page', perPage.toString())
+      }
+
+      const url = `/api/services/${serviceId}/versions${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+
+      console.log('Fetching service versions from internal API:', url)
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch service versions')
+      }
+
+      setVersions(data.data)
+    } catch (err) {
+      console.error('Error fetching service versions:', err)
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Erro ao carregar histórico de versões'
+      )
+      setVersions(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [serviceId, page, perPage])
+
+  const getVersionDiff = useCallback(
+    async (
+      fromVersion: number,
+      toVersion: number
+    ): Promise<GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff | null> => {
+      if (!serviceId) return null
+
+      try {
+        const searchParams = new URLSearchParams({
+          from_version: fromVersion.toString(),
+          to_version: toVersion.toString(),
+        })
+
+        const url = `/api/services/${serviceId}/versions/compare?${searchParams.toString()}`
+
+        console.log('Comparing service versions from internal API:', url)
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to compare service versions')
+        }
+
+        return data.data
+      } catch (err) {
+        console.error('Error fetching version diff:', err)
+        return null
+      }
+    },
+    [serviceId]
+  )
+
+  const rollbackToVersion = useCallback(
+    async (
+      toVersion: number,
+      changeReason?: string
+    ): Promise<{ success: boolean; error?: string }> => {
+      if (!serviceId) {
+        return { success: false, error: 'Service ID is required' }
+      }
+
+      try {
+        const url = `/api/services/${serviceId}/rollback`
+
+        console.log('Rolling back service to version:', toVersion)
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to_version: toVersion,
+            change_reason: changeReason || undefined,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(
+            errorData.error || `HTTP error! status: ${response.status}`
+          )
+        }
+
+        const data = await response.json()
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to rollback service')
+        }
+
+        // Refetch versions after successful rollback
+        await fetchVersions()
+
+        return { success: true }
+      } catch (err) {
+        console.error('Error rolling back service:', err)
+        return {
+          success: false,
+          error:
+            err instanceof Error
+              ? err.message
+              : 'Erro ao fazer rollback da versão',
+        }
+      }
+    },
+    [serviceId, fetchVersions]
+  )
+
+  useEffect(() => {
+    fetchVersions()
+  }, [fetchVersions])
+
+  return {
+    versions,
+    loading,
+    error,
+    refetch: fetchVersions,
+    getVersionDiff,
+    rollbackToVersion,
+  }
+}

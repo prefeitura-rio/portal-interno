@@ -1,4 +1,4 @@
-import { Accessibility } from '../app/(private)/(app)/gorio/components/new-course-form'
+import type { Accessibility } from '../app/(private)/(app)/gorio/components/new-course-form'
 
 // API Response types based on actual API responses
 export interface ApiPagination {
@@ -17,7 +17,12 @@ export interface ApiCourse {
     nome: string
   }
   organization?: string // Keep for backward compatibility
-  modalidade: 'ONLINE' | 'PRESENCIAL' | 'SEMIPRESENCIAL' | 'Remoto' | 'Presencial'
+  modalidade:
+    | 'ONLINE'
+    | 'PRESENCIAL'
+    | 'SEMIPRESENCIAL'
+    | 'Remoto'
+    | 'Presencial'
   status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled'
   created_at: string
   updated_at: string
@@ -99,6 +104,7 @@ export interface Course {
   id: string
   title: string
   description: string
+  categorias?: Array<{ id: number; nome?: string }>
   organization: string
   provider: string
   orgao?: {
@@ -142,11 +148,21 @@ export interface Course {
     id: string
     address: string
     neighborhood: string
-    vacancies: number
-    classStartDate: Date
-    classEndDate: Date
-    classTime: string
-    classDays: string
+    // Old format fields (for backward compatibility)
+    vacancies?: number
+    classStartDate?: Date
+    classEndDate?: Date
+    classTime?: string
+    classDays?: string
+    // New format with schedules (turmas)
+    schedules?: Array<{
+      id?: string
+      vacancies: number
+      classStartDate: Date
+      classEndDate: Date
+      classTime: string
+      classDays: string
+    }>
   }>
   institutionalLogo: string | null
   institutional_logo: string | null // API field name
@@ -273,7 +289,34 @@ export interface CourseFilters {
 }
 
 // Enrollment Types
-export type EnrollmentStatus = 'approved' | 'pending' | 'cancelled' | 'rejected' | 'concluded'
+export type EnrollmentStatus =
+  | 'approved'
+  | 'pending'
+  | 'cancelled'
+  | 'rejected'
+  | 'concluded'
+
+export interface EnrollmentSchedule {
+  id: string
+  location_id: string
+  vacancies: number
+  class_start_date: string
+  class_end_date: string
+  class_time: string
+  class_days: string
+  created_at: string
+  updated_at: string
+}
+
+export interface EnrollmentUnit {
+  id: string
+  curso_id: number
+  address: string
+  neighborhood: string
+  schedules: EnrollmentSchedule[]
+  created_at: string
+  updated_at: string
+}
 
 export interface Enrollment {
   id: string
@@ -290,6 +333,8 @@ export interface Enrollment {
   created_at: string
   updated_at: string
   certificateUrl?: string
+  schedule_id?: string
+  enrolled_unit?: EnrollmentUnit
 }
 
 export interface EnrollmentSummary {

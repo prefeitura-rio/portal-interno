@@ -74,7 +74,7 @@ export async function handleUnauthorizedUser(
 /**
  * Fetches user roles from Heimdall API in middleware context
  * This is optimized for Edge Runtime
- * 
+ *
  * @param accessToken - The user's access token
  * @returns Array of user roles or null if failed
  */
@@ -110,10 +110,12 @@ export async function getUserRolesInMiddleware(
     }
 
     const data = await response.json()
-    
     return data.roles || []
   } catch (error) {
-    console.error('Error fetching user roles from Heimdall in middleware:', error)
+    console.error(
+      'Error fetching user roles from Heimdall in middleware:',
+      error
+    )
     return null
   }
 }

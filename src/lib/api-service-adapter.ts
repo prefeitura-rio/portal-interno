@@ -5,7 +5,7 @@
  * It provides a centralized place to manage the conversion between API models and frontend models.
  */
 
-import type { ModelsPrefRioService } from '@/http-busca-search/models/modelsPrefRioService'
+import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService'
 import type { Service, ServiceListItem } from '@/types/service'
 import { convertApiToFrontend, convertFrontendToApi } from '@/types/service'
 
@@ -61,7 +61,9 @@ export async function fetchServiceById(serviceId: string): Promise<Service> {
   }
 
   // Convert API model to frontend model
-  return convertApiToFrontend(data.service as ModelsPrefRioService)
+  return convertApiToFrontend(
+    data.service as GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
+  )
 }
 
 /**
@@ -142,17 +144,21 @@ export async function fetchServices(params?: {
   }
 
   // Convert API models to frontend models
-  const services = data.services.map((apiService: ModelsPrefRioService) => {
-    const converted = convertApiToFrontend(apiService)
-    return {
-      id: converted.id,
-      title: converted.title,
-      managingOrgan: converted.managingOrgan,
-      published_at: converted.published_at,
-      last_update: converted.last_update,
-      status: converted.status,
-    } as ServiceListItem
-  })
+  const services = data.services.map(
+    (
+      apiService: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
+    ) => {
+      const converted = convertApiToFrontend(apiService)
+      return {
+        id: converted.id,
+        title: converted.title,
+        managingOrgan: converted.managingOrgan,
+        published_at: converted.published_at,
+        last_update: converted.last_update,
+        status: converted.status,
+      } as ServiceListItem
+    }
+  )
 
   return {
     services,
@@ -205,7 +211,9 @@ export async function createService(
     throw new Error(data.error || 'Failed to create service')
   }
 
-  return convertApiToFrontend(data.service as ModelsPrefRioService)
+  return convertApiToFrontend(
+    data.service as GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
+  )
 }
 
 /**
@@ -249,7 +257,9 @@ export async function updateService(
     throw new Error(data.error || 'Failed to update service')
   }
 
-  return convertApiToFrontend(data.service as ModelsPrefRioService)
+  return convertApiToFrontend(
+    data.service as GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
+  )
 }
 
 /**

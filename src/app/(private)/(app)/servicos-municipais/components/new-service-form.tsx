@@ -9,7 +9,9 @@ import { z } from 'zod'
 
 import type { ServiceButton } from '@/types/service'
 
+import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
@@ -28,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
@@ -54,14 +55,14 @@ const serviceFormSchema = z.object({
     .string()
     .min(1, { message: 'Título do serviço é obrigatório.' })
     .min(3, { message: 'Título deve ter pelo menos 3 caracteres.' })
-    .max(200, { message: 'Título não pode exceder 200 caracteres.' }),
+    .max(500, { message: 'Título não pode exceder 500 caracteres.' }),
   shortDescription: z
     .string()
     .min(1, { message: 'Descrição resumida é obrigatória.' })
     .min(10, {
       message: 'Descrição resumida deve ter pelo menos 10 caracteres.',
     })
-    .max(500, {
+    .max(5000, {
       message: 'Descrição resumida não pode exceder 500 caracteres.',
     }),
   buttons: z
@@ -81,7 +82,7 @@ const serviceFormSchema = z.object({
     .optional(),
   whatServiceDoesNotCover: z
     .string()
-    .max(300, { message: 'Este campo não pode exceder 300 caracteres.' })
+    .max(10000, { message: 'Este campo não pode exceder 10000 caracteres.' })
     .optional(),
   serviceTime: z
     .string()
@@ -96,27 +97,27 @@ const serviceFormSchema = z.object({
   isFree: z.boolean().optional(),
   requestResult: z
     .string()
-    .max(500, {
-      message: 'Resultado da solicitação não pode exceder 500 caracteres.',
+    .max(10000, {
+      message: 'Resultado da solicitação não pode exceder 10000 caracteres.',
     })
     .optional(),
   fullDescription: z
     .string()
-    .max(2000, {
-      message: 'Descrição completa não pode exceder 2000 caracteres.',
+    .max(10000, {
+      message: 'Descrição completa não pode exceder 10000 caracteres.',
     })
     .optional(),
   requiredDocuments: z
     .string()
-    .max(1000, {
-      message: 'Documentos necessários não pode exceder 1000 caracteres.',
+    .max(10000, {
+      message: 'Documentos necessários não pode exceder 10000 caracteres.',
     })
     .optional(),
   instructionsForRequester: z
     .string()
-    .max(1000, {
+    .max(10000, {
       message:
-        'Instruções para o solicitante não pode exceder 1000 caracteres.',
+        'Instruções para o solicitante não pode exceder 10000 caracteres.',
     })
     .optional(),
   digitalChannels: z
@@ -161,6 +162,7 @@ interface NewServiceFormProps {
   onSendToApproval?: () => void
   onPublish?: () => void // Callback for when service is published
   serviceId?: string // For editing existing services
+  onFormChangesDetected?: (hasChanges: boolean) => void // Callback when form changes are detected
 }
 
 export function NewServiceForm({
@@ -172,6 +174,7 @@ export function NewServiceForm({
   onSendToApproval,
   onPublish,
   serviceId,
+  onFormChangesDetected,
 }: NewServiceFormProps) {
   const router = useRouter()
   const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
@@ -223,6 +226,7 @@ export function NewServiceForm({
       ? initialData.buttons.map(() => ({}))
       : []
   )
+  const [hasFormChanges, setHasFormChanges] = useState(false)
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
@@ -242,6 +246,130 @@ export function NewServiceForm({
       })
     }
   }, [initialData, form])
+
+  // Notify parent component when form changes are detected
+  React.useEffect(() => {
+    if (onFormChangesDetected) {
+      onFormChangesDetected(hasFormChanges)
+    }
+  }, [hasFormChanges, onFormChangesDetected])
+
+  // Check for form changes
+  React.useEffect(() => {
+    // Only check changes when in edit mode (not read-only) and we have initial data
+    if (readOnly || !initialData) {
+      setHasFormChanges(false)
+      return
+    }
+
+    const subscription = form.watch(formData => {
+      // Helper function to normalize arrays for comparison
+      const normalizeArray = (arr: any[] | undefined) => {
+        if (!arr || arr.length === 0) return undefined
+        return arr.filter(item => {
+          if (typeof item === 'string') return item.trim() !== ''
+          return true
+        })
+      }
+
+      // Helper function for deep equality check
+      const deepEqual = (a: any, b: any): boolean => {
+        if (a === b) return true
+        if (a == null || b == null) return false
+        if (Array.isArray(a) && Array.isArray(b)) {
+          if (a.length !== b.length) return false
+          return a.every((val, index) => deepEqual(val, b[index]))
+        }
+        if (typeof a === 'object' && typeof b === 'object') {
+          const keysA = Object.keys(a)
+          const keysB = Object.keys(b)
+          if (keysA.length !== keysB.length) return false
+          return keysA.every(key => deepEqual(a[key], b[key]))
+        }
+        return false
+      }
+
+      // Compare each field
+      let hasChanges = false
+
+      // Check regular form fields
+      const fieldsToCheck: (keyof ServiceFormData)[] = [
+        'managingOrgan',
+        'serviceCategory',
+        'targetAudience',
+        'title',
+        'shortDescription',
+        'whatServiceDoesNotCover',
+        'serviceTime',
+        'serviceCost',
+        'isFree',
+        'requestResult',
+        'fullDescription',
+        'requiredDocuments',
+        'instructionsForRequester',
+      ]
+
+      for (const field of fieldsToCheck) {
+        const currentValue = formData[field]
+        const initialValue = initialData?.[field]
+        if (currentValue !== initialValue) {
+          hasChanges = true
+          break
+        }
+      }
+
+      // Check arrays if no changes found yet
+      if (!hasChanges) {
+        // Check digitalChannels
+        const normalizedCurrentDigital = normalizeArray(digitalChannels)
+        const normalizedInitialDigital = normalizeArray(
+          initialData?.digitalChannels
+        )
+        if (!deepEqual(normalizedCurrentDigital, normalizedInitialDigital)) {
+          hasChanges = true
+        }
+
+        // Check physicalChannels
+        const normalizedCurrentPhysical = normalizeArray(physicalChannels)
+        const normalizedInitialPhysical = normalizeArray(
+          initialData?.physicalChannels
+        )
+        if (!deepEqual(normalizedCurrentPhysical, normalizedInitialPhysical)) {
+          hasChanges = true
+        }
+
+        // Check legislacaoRelacionada
+        const normalizedCurrentLegislacao = normalizeArray(
+          legislacaoRelacionada
+        )
+        const normalizedInitialLegislacao = normalizeArray(
+          initialData?.legislacaoRelacionada
+        )
+        if (
+          !deepEqual(normalizedCurrentLegislacao, normalizedInitialLegislacao)
+        ) {
+          hasChanges = true
+        }
+
+        // Check serviceButtons
+        if (!deepEqual(serviceButtons, initialData?.buttons || [])) {
+          hasChanges = true
+        }
+      }
+
+      setHasFormChanges(hasChanges)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [
+    form,
+    initialData,
+    readOnly,
+    digitalChannels,
+    physicalChannels,
+    legislacaoRelacionada,
+    serviceButtons,
+  ])
 
   const handleCancel = () => {
     router.push('/servicos-municipais/servicos')
@@ -438,14 +566,20 @@ export function NewServiceForm({
 
     if (field === 'titulo') {
       if (typeof value === 'string' && value.trim() === '') {
-        newErrors[index] = { ...newErrors[index], titulo: 'Título do botão é obrigatório' }
+        newErrors[index] = {
+          ...newErrors[index],
+          titulo: 'Título do botão é obrigatório',
+        }
       } else {
         const { titulo, ...rest } = newErrors[index]
         newErrors[index] = rest
       }
     } else if (field === 'descricao') {
       if (typeof value === 'string' && value.trim() === '') {
-        newErrors[index] = { ...newErrors[index], descricao: 'Descrição do botão é obrigatória' }
+        newErrors[index] = {
+          ...newErrors[index],
+          descricao: 'Descrição do botão é obrigatória',
+        }
       } else {
         const { descricao, ...rest } = newErrors[index]
         newErrors[index] = rest
@@ -453,14 +587,20 @@ export function NewServiceForm({
     } else if (field === 'url_service') {
       if (typeof value === 'string') {
         if (value.trim() === '') {
-          newErrors[index] = { ...newErrors[index], url_service: 'URL é obrigatória' }
+          newErrors[index] = {
+            ...newErrors[index],
+            url_service: 'URL é obrigatória',
+          }
         } else {
           try {
             new URL(value)
             const { url_service, ...rest } = newErrors[index]
             newErrors[index] = rest
           } catch {
-            newErrors[index] = { ...newErrors[index], url_service: 'URL inválida' }
+            newErrors[index] = {
+              ...newErrors[index],
+              url_service: 'URL inválida',
+            }
           }
         }
       }
@@ -531,14 +671,15 @@ export function NewServiceForm({
 
     // Return true if there are no errors
     return newErrors.every(
-      error =>
-        !error.titulo && !error.descricao && !error.url_service
+      error => !error.titulo && !error.descricao && !error.url_service
     )
   }
 
   const handleSendToEditClick = (data: ServiceFormData) => {
     if (!validateAllButtons()) {
-      toast.error('Por favor, preencha todos os campos obrigatórios dos botões.')
+      toast.error(
+        'Por favor, preencha todos os campos obrigatórios dos botões.'
+      )
       return
     }
     const processedData = preprocessFormData(data)
@@ -548,7 +689,9 @@ export function NewServiceForm({
 
   const handlePublishClick = (data: ServiceFormData) => {
     if (!validateAllButtons()) {
-      toast.error('Por favor, preencha todos os campos obrigatórios dos botões.')
+      toast.error(
+        'Por favor, preencha todos os campos obrigatórios dos botões.'
+      )
       return
     }
     const processedData = preprocessFormData(data)
@@ -558,7 +701,9 @@ export function NewServiceForm({
 
   const handleSendToApprovalClick = (data: ServiceFormData) => {
     if (!validateAllButtons()) {
-      toast.error('Por favor, preencha todos os campos obrigatórios dos botões.')
+      toast.error(
+        'Por favor, preencha todos os campos obrigatórios dos botões.'
+      )
       return
     }
     const processedData = preprocessFormData(data)
@@ -928,11 +1073,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Descrição resumida do serviço*</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Descreva resumidamente o serviço oferecido"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={5000}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1013,7 +1160,9 @@ export function NewServiceForm({
                               }
                               disabled={isLoading || readOnly}
                               className={
-                                buttonErrors[index]?.titulo ? 'border-destructive' : ''
+                                buttonErrors[index]?.titulo
+                                  ? 'border-destructive'
+                                  : ''
                               }
                             />
                             {buttonErrors[index]?.titulo && (
@@ -1038,7 +1187,9 @@ export function NewServiceForm({
                               }
                               disabled={isLoading || readOnly}
                               className={
-                                buttonErrors[index]?.descricao ? 'border-destructive' : ''
+                                buttonErrors[index]?.descricao
+                                  ? 'border-destructive'
+                                  : ''
                               }
                             />
                             {buttonErrors[index]?.descricao && (
@@ -1067,7 +1218,9 @@ export function NewServiceForm({
                               }
                               disabled={isLoading || readOnly}
                               className={
-                                buttonErrors[index]?.url_service ? 'border-destructive' : ''
+                                buttonErrors[index]?.url_service
+                                  ? 'border-destructive'
+                                  : ''
                               }
                             />
                             {buttonErrors[index]?.url_service && (
@@ -1117,10 +1270,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>O que o serviço não cobre</FormLabel>
                     <FormControl>
-                      <Input
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Ex: Não atende casos emergenciais"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={10000}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1168,18 +1324,21 @@ export function NewServiceForm({
                 control={form.control}
                 name="isFree"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isLoading || readOnly}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Serviço gratuito</FormLabel>
-                    </div>
-                  </FormItem>
+                  <Card className="p-4 bg-card">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          className="border-1 border-foreground!"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isLoading || readOnly}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Serviço gratuito</FormLabel>
+                      </div>
+                    </FormItem>
+                  </Card>
                 )}
               />
             </div>
@@ -1193,11 +1352,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Resultado da solicitação</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Descreva o que o cidadão receberá após a solicitação"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={10000}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1212,11 +1373,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Descrição completa do serviço</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[120px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Descrição detalhada do serviço, seus objetivos e benefícios"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={10000}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1231,11 +1394,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Documentos necessários</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Liste os documentos necessários para solicitar o serviço"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={10000}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1250,11 +1415,13 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Instruções para o solicitante</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Instruções passo a passo para o cidadão"
-                        {...field}
                         disabled={isLoading || readOnly}
+                        maxLength={10000}
+                        showCharCount={true}
                       />
                     </FormControl>
                     <FormMessage />
