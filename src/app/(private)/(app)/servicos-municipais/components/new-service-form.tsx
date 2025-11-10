@@ -121,7 +121,11 @@ const serviceFormSchema = z.object({
     })
     .optional(),
   digitalChannels: z
-    .array(z.string().url({ message: 'URL inválida.' }))
+    .array(
+      z
+        .string()
+        .max(5000, { message: 'Canal digital não pode exceder 5000 caracteres.' })
+    )
     .optional(),
   physicalChannels: z
     .array(z.string().min(1, { message: 'Endereço não pode estar vazio.' }))
@@ -417,13 +421,12 @@ export function NewServiceForm({
 
     newChannels[index] = value
 
-    // Validate URL
+    // Validate character limit
     if (value.trim() !== '') {
-      try {
-        new URL(value)
+      if (value.length > 5000) {
+        newErrors[index] = 'Canal digital não pode exceder 5000 caracteres'
+      } else {
         newErrors[index] = ''
-      } catch {
-        newErrors[index] = 'URL inválida'
       }
     } else {
       newErrors[index] = ''
@@ -432,17 +435,10 @@ export function NewServiceForm({
     setDigitalChannels(newChannels)
     setChannelErrors(newErrors)
 
-    // Only include valid URLs in form data
+    // Only include valid channels (non-empty and within character limit) in form data
     const validChannels = newChannels
       .filter(channel => channel.trim() !== '')
-      .filter(channel => {
-        try {
-          new URL(channel)
-          return true
-        } catch {
-          return false
-        }
-      })
+      .filter(channel => channel.length <= 5000)
 
     form.setValue('digitalChannels', validChannels)
   }
@@ -804,17 +800,10 @@ export function NewServiceForm({
   }
 
   const preprocessFormData = (data: ServiceFormData): ServiceFormData => {
-    // Filter out empty and invalid digital channels
+    // Filter out empty digital channels and those exceeding character limit
     const validDigitalChannels = digitalChannels
       .filter(channel => channel.trim() !== '')
-      .filter(channel => {
-        try {
-          new URL(channel)
-          return true
-        } catch {
-          return false
-        }
-      })
+      .filter(channel => channel.length <= 5000)
 
     // Filter out empty and invalid physical channels
     const validPhysicalChannels = physicalChannels
@@ -1447,7 +1436,7 @@ export function NewServiceForm({
                         <div className="flex gap-2 items-start">
                           <div className="flex-1">
                             <Input
-                              placeholder="http://exemplo.com"
+                              placeholder="Ex: Portal de Serviços - http://exemplo.com"
                               value={channel}
                               onChange={e =>
                                 updateDigitalChannel(index, e.target.value)
