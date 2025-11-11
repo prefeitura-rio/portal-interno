@@ -66,12 +66,26 @@ export function hasRouteAccess(
   route: string,
   userRoles: string[] | null | undefined
 ): boolean {
-  if (!userRoles || userRoles.length === 0) return false
+  if (!userRoles || userRoles.length === 0) {
+    console.warn(
+      `[ROUTE_PERMISSIONS] Access denied for route "${route}": No user roles provided (userRoles is ${userRoles === null ? 'null' : userRoles === undefined ? 'undefined' : 'empty array'})`
+    )
+    return false
+  }
 
   // Check exact match first
   const exactMatch = ROUTE_PERMISSIONS[route]
   if (exactMatch) {
-    return userRoles.some(role => exactMatch.includes(role))
+    const hasAccess = userRoles.some(role => exactMatch.includes(role))
+    console.log(
+      `[ROUTE_PERMISSIONS] Exact match for route "${route}":`,
+      hasAccess,
+      'Required roles:',
+      exactMatch,
+      'User roles:',
+      userRoles
+    )
+    return hasAccess
   }
 
   // Check wildcard matches
@@ -81,12 +95,25 @@ export function hasRouteAccess(
     if (routePattern.endsWith('/*')) {
       const baseRoute = routePattern.slice(0, -2)
       if (route.startsWith(baseRoute)) {
-        return userRoles.some(role => allowedRoles.includes(role))
+        const hasAccess = userRoles.some(role => allowedRoles.includes(role))
+        console.log(
+          `[ROUTE_PERMISSIONS] Wildcard match for route "${route}" (pattern: "${routePattern}"):`,
+          hasAccess,
+          'Required roles:',
+          allowedRoles,
+          'User roles:',
+          userRoles
+        )
+        return hasAccess
       }
     }
   }
 
   // Default to denying access for unmatched routes
+  console.warn(
+    `[ROUTE_PERMISSIONS] No permission rule found for route "${route}". Access denied by default. User roles:`,
+    userRoles
+  )
   return false
 }
 
