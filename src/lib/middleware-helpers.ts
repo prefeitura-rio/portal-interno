@@ -81,11 +81,15 @@ export async function handleUnauthorizedUser(
 export async function getUserRolesInMiddleware(
   accessToken: string
 ): Promise<string[] | null> {
+  const requestId = Math.random().toString(36).substring(7)
+
   try {
     const baseUrl = process.env.NEXT_PUBLIC_HEIMDALL_BASE_API_URL
 
     if (!baseUrl) {
-      console.error('NEXT_PUBLIC_HEIMDALL_BASE_API_URL is not set')
+      console.error(
+        `[${requestId}] NEXT_PUBLIC_HEIMDALL_BASE_API_URL is not set`
+      )
       return null
     }
 
@@ -93,28 +97,71 @@ export async function getUserRolesInMiddleware(
     const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
     const apiUrl = new URL('api/v1/users/me', normalizedBaseUrl)
 
-    // Make the request to Heimdall API
-    const response = await fetch(apiUrl.toString(), {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      // Add cache control to avoid stale data
-      cache: 'no-store',
-    })
+    console.log(
+      `[${requestId}] Fetching user roles from Heimdall API: ${apiUrl.toString()}`
+    )
 
-    if (!response.ok) {
-      console.error(`Heimdall API returned status ${response.status}`)
+    // Make the request to Heimdall API with timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
+    try {
+      const response = await fetch(apiUrl.toString(), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        // Add cache control to avoid stale data
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      console.log(
+        `[${requestId}] Heimdall API response status: ${response.status}`
+      )
+
+      if (!response.ok) {
+        const errorText = await response
+          .text()
+          .catch(() => 'Unable to read error body')
+        console.error(
+          `[${requestId}] Heimdall API returned status ${response.status}. Error body:`,
+          errorText
+        )
+        return null
+      }
+
+      const data = await response.json()
+      const roles = data.roles || []
+      console.log(
+        `[${requestId}] Successfully fetched ${roles.length} roles:`,
+        roles
+      )
+      return roles
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        console.error(
+          `[${requestId}] Heimdall API request timed out after 10 seconds`
+        )
+      } else {
+        console.error(
+          `[${requestId}] Fetch error when calling Heimdall API:`,
+          fetchError instanceof Error ? fetchError.message : String(fetchError),
+          fetchError instanceof Error ? fetchError.stack : ''
+        )
+      }
       return null
     }
-
-    const data = await response.json()
-    return data.roles || []
   } catch (error) {
     console.error(
-      'Error fetching user roles from Heimdall in middleware:',
-      error
+      `[${requestId}] Error fetching user roles from Heimdall in middleware:`,
+      error instanceof Error ? error.message : String(error),
+      error instanceof Error ? error.stack : ''
     )
     return null
   }

@@ -132,6 +132,7 @@ export async function middleware(request: NextRequest) {
   if (authToken && !publicRoute) {
     // Check if JWT is expired
     if (isJwtExpired(authToken.value)) {
+      console.log(`[MIDDLEWARE] JWT expired for path: ${path}`)
       return await handleExpiredToken(
         request,
         refreshToken?.value,
@@ -142,19 +143,32 @@ export async function middleware(request: NextRequest) {
 
     // Role-based access control (RBAC) using Heimdall API
     // Fetch user roles and verify route access
+    console.log(`[MIDDLEWARE] Checking access for path: ${path}`)
     const userRoles = await getUserRolesInMiddleware(authToken.value)
+
+    console.log(`[MIDDLEWARE] User roles retrieved:`, userRoles)
 
     // Check if user has access to the requested route
     const hasAccess = hasRouteAccess(path, userRoles)
 
+    console.log(`[MIDDLEWARE] Access check result for ${path}:`, hasAccess)
+
     if (!hasAccess) {
       // User doesn't have required roles for this route
+      console.error(
+        `[MIDDLEWARE] Access DENIED for path: ${path}. User roles:`,
+        userRoles,
+        'Required roles for this route:',
+        hasAccess ? 'N/A' : 'Check route-permissions.ts'
+      )
       return await handleUnauthorizedUser(
         request,
         requestHeaders,
         contentSecurityPolicyHeaderValue
       )
     }
+
+    console.log(`[MIDDLEWARE] Access GRANTED for path: ${path}`)
 
     const response = NextResponse.next({
       request: {
