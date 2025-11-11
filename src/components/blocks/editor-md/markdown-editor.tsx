@@ -84,19 +84,49 @@ export function MarkdownEditor({
       const markdown = getMarkdownFromEditor(editor)
       onChange(markdown)
     },
+    onBlur: ({ editor }) => {
+      // Force sync on blur to ensure value is always up to date
+      const markdown = getMarkdownFromEditor(editor)
+      onChange(markdown)
+    },
+    onCreate: ({ editor }) => {
+      // Ensure initial sync when editor is created
+      const markdown = getMarkdownFromEditor(editor)
+      if (markdown !== value) {
+        onChange(markdown)
+      }
+    },
   })
 
   // Update editor content when value changes externally
+  // Only update if the editor is not focused to avoid disrupting user input
   useEffect(() => {
-    if (editor && value !== getMarkdownFromEditor(editor)) {
+    if (!editor) return
+
+    const currentMarkdown = getMarkdownFromEditor(editor)
+    // Normalize both values for comparison (trim whitespace)
+    const normalizedValue = (value || '').trim()
+    const normalizedCurrent = currentMarkdown.trim()
+    const hasExternalChange = normalizedValue !== normalizedCurrent
+
+    // Only update content if:
+    // 1. There's an actual change from external source
+    // 2. The editor is not focused (to avoid disrupting user input)
+    if (hasExternalChange && !editor.isFocused) {
       editor.commands.setContent(parseMarkdownToHtml(value || ''))
     }
   }, [value, editor])
 
   // Update editable state when disabled prop changes
   useEffect(() => {
-    if (editor) {
-      editor.setEditable(!disabled)
+    if (!editor) return
+
+    const isCurrentlyEditable = editor.isEditable
+    const shouldBeEditable = !disabled
+
+    // Only update if there's a change to avoid unnecessary re-renders
+    if (isCurrentlyEditable !== shouldBeEditable) {
+      editor.setEditable(shouldBeEditable)
     }
   }, [disabled, editor])
 
