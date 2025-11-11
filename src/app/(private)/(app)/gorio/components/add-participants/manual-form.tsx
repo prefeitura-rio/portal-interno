@@ -335,7 +335,7 @@ export function ManualForm({
                 )}
 
                 {/* Select/Radio field */}
-                {fieldType === 'radio' && (
+                {(fieldType === 'radio' || fieldType === 'select') && (
                   <Controller
                     name={`custom_fields.${fieldId}` as any}
                     control={control}
