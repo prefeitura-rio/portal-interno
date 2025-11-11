@@ -1,3 +1,4 @@
+import { getApiV1CoursesCourseId } from '@/http-gorio/courses/courses'
 import {
   getApiV1CoursesCourseIdEnrollments,
   postApiV1CoursesCourseIdEnrollmentsManual,
@@ -59,7 +60,8 @@ function convertFrontendStatusToApi(
 
 // Helper function to convert API enrollment to frontend enrollment
 function convertApiEnrollmentToFrontend(
-  apiEnrollment: ModelsInscricao
+  apiEnrollment: ModelsInscricao,
+  courseCustomFields?: Array<{ id: string; title?: string; name?: string; required?: boolean }>
 ): Enrollment {
   // Calculate age from enrolled_at date (rough estimate - ideally should use birth date)
   console.log('📋 API Enrollment Data:', JSON.stringify(apiEnrollment, null, 2))
@@ -115,13 +117,21 @@ function convertApiEnrollmentToFrontend(
       }
 
       if (typeof fields === 'object') {
+        // fields is an object where keys are UUIDs and values are the responses
         return Object.entries(fields as Record<string, unknown>).map(
-          ([key, value]) => ({
-            id: key.toLowerCase().replace(/\s+/g, '_'),
-            title: key,
-            value: value !== undefined && value !== null ? String(value) : '',
-            required: false,
-          })
+          ([fieldId, value]) => {
+            // Try to find the field definition in course custom fields
+            const fieldDefinition = courseCustomFields?.find(cf => cf.id === fieldId)
+
+            return {
+              id: fieldId,
+              title: fieldDefinition?.title || fieldDefinition?.name || fieldId,
+              value: Array.isArray(value)
+                ? value.join(', ')
+                : (value !== undefined && value !== null ? String(value) : ''),
+              required: fieldDefinition?.required || false,
+            }
+          }
         )
       }
 
@@ -182,6 +192,12 @@ export async function GET(
       }
     }
 
+    // Fetch course data to get custom fields definitions
+    const courseResponse = await getApiV1CoursesCourseId(Number.parseInt(courseId, 10))
+    const courseCustomFields = courseResponse.status === 200
+      ? ((courseResponse.data as any)?.data?.custom_fields || [])
+      : []
+
     // Call the API
     const response = await getApiV1CoursesCourseIdEnrollments(
       Number.parseInt(courseId, 10),
@@ -210,8 +226,8 @@ export async function GET(
         apiData.data?.enrollments &&
         Array.isArray(apiData.data.enrollments)
       ) {
-        enrollments = apiData.data.enrollments.map(
-          convertApiEnrollmentToFrontend
+        enrollments = apiData.data.enrollments.map((enrollment: ModelsInscricao) =>
+          convertApiEnrollmentToFrontend(enrollment, courseCustomFields)
         )
       }
 
@@ -298,6 +314,12 @@ export async function PATCH(
     // Convert frontend status to API status
     const apiStatus = convertFrontendStatusToApi(status as EnrollmentStatus)
 
+    // Fetch course data to get custom fields definitions
+    const courseResponse = await getApiV1CoursesCourseId(Number.parseInt(courseId, 10))
+    const courseCustomFields = courseResponse.status === 200
+      ? ((courseResponse.data as any)?.data?.custom_fields || [])
+      : []
+
     // Call the API to update individual enrollment status
     const response = await putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus(
       Number.parseInt(courseId, 10),
@@ -311,7 +333,7 @@ export async function PATCH(
 
     if (response.status === 200) {
       const apiEnrollment = response.data as ModelsInscricao
-      const updatedEnrollment = convertApiEnrollmentToFrontend(apiEnrollment)
+      const updatedEnrollment = convertApiEnrollmentToFrontend(apiEnrollment, courseCustomFields)
 
       return NextResponse.json(updatedEnrollment)
     }
@@ -414,7 +436,7 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { name, cpf, age, phone, email, address, neighborhood, schedule_id } =
+    const { name, cpf, age, phone, email, address, neighborhood, schedule_id, custom_fields } =
       body
 
     if (
@@ -442,34 +464,43 @@ export async function POST(
       address,
       neighborhood,
       ...(schedule_id && { schedule_id }), // Only include schedule_id if provided
+      ...(custom_fields && { custom_fields }), // Include custom_fields if provided
     }
 
-    console.log('[Enrollment POST] Sending to backend:', enrollmentData)
+    // Fetch course data to get custom fields definitions
+    const courseResponse = await getApiV1CoursesCourseId(Number.parseInt(courseId, 10))
+    const courseCustomFields = courseResponse.status === 200
+      ? ((courseResponse.data as any)?.data?.custom_fields || [])
+      : []
 
     // Call the API to create manual enrollment
     const response = await postApiV1CoursesCourseIdEnrollmentsManual(
       Number.parseInt(courseId, 10),
       enrollmentData
     )
-
     if (response.status === 201) {
       const apiEnrollment = response.data as ModelsInscricao
-      const newEnrollment = convertApiEnrollmentToFrontend(apiEnrollment)
+      const newEnrollment = convertApiEnrollmentToFrontend(apiEnrollment, courseCustomFields)
 
       return NextResponse.json(newEnrollment, { status: 201 })
     }
 
     // Handle error responses
+    console.error('[Enrollment POST] Backend error response:', response)
     return NextResponse.json(
-      { error: 'Failed to create manual enrollment' },
+      {
+        error: 'Failed to create manual enrollment',
+        backendError: response.data,
+        status: response.status
+      },
       { status: response.status }
     )
   } catch (error) {
-    console.error('Error creating manual enrollment:', error)
     return NextResponse.json(
       {
         error: 'Failed to create manual enrollment',
         details: error instanceof Error ? error.message : 'Unknown error',
+        type: error instanceof Error ? error.constructor.name : typeof error,
       },
       { status: 500 }
     )
