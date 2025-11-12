@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react'
+import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -219,105 +219,125 @@ export function DepartmentCombobox({
     placeholder,
   ])
 
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onValueChange('')
+    setSelectedDepartment(null)
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <div className="flex gap-2 w-full">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            className={cn(
+              'truncate! relative! overflow-hidden! flex-1 justify-between text-left',
+              !value && 'text-muted-foreground',
+              className
+            )}
+          >
+            <span className="truncate relative! overflow-hidden! flex-1 min-w-0">
+              {displayValue}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-full p-0"
+          align="start"
+          style={{ width: 'var(--radix-popover-trigger-width)' }}
+        >
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder="Buscar órgão..."
+              value={search}
+              onValueChange={handleSearchChange}
+            />
+            <CommandList>
+              <CommandEmpty>
+                {loading ? 'Carregando...' : 'Nenhum órgão encontrado.'}
+              </CommandEmpty>
+              <CommandGroup>
+                {departments.map(department => (
+                  <CommandItem
+                    key={department.cd_ua}
+                    value={department.cd_ua}
+                    onSelect={currentValue => {
+                      onValueChange(currentValue === value ? '' : currentValue)
+                      setSelectedDepartment(department)
+                      setOpen(false)
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4',
+                        value === department.cd_ua ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                    <div className="flex flex-col">
+                      <span className="font-medium">
+                        {department.nome_ua || department.cd_ua}
+                      </span>
+                      {department.sigla_ua && (
+                        <span className="text-xs text-muted-foreground">
+                          {department.sigla_ua}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+
+              {/* Load More Button */}
+              {hasMore && (
+                <div className="p-2 border-t">
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={loadMore}
+                    disabled={loading}
+                    size="sm"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      <>
+                        Carregar mais ({page} de {totalPages})
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Loading indicator for first page */}
+              {loading && page === 1 && departments.length === 0 && (
+                <div className="py-6 text-center text-sm">
+                  <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                </div>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {value && (
         <Button
           variant="outline"
-          role="combobox"
-          aria-expanded={open}
+          size="icon"
+          onClick={handleClear}
           disabled={disabled}
-          className={cn(
-            'truncate! relative! overflow-hidden! w-full justify-between text-left',
-            !value && 'text-muted-foreground',
-            className
-          )}
+          className="shrink-0 h-14! w-14!"
+          aria-label="Limpar seleção"
         >
-          <span className="truncate relative! overflow-hidden! flex-1 min-w-0">
-            {displayValue}
-          </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <X className="h-4 w-4" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-full p-0"
-        align="start"
-        style={{ width: 'var(--radix-popover-trigger-width)' }}
-      >
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder="Buscar órgão..."
-            value={search}
-            onValueChange={handleSearchChange}
-          />
-          <CommandList>
-            <CommandEmpty>
-              {loading ? 'Carregando...' : 'Nenhum órgão encontrado.'}
-            </CommandEmpty>
-            <CommandGroup>
-              {departments.map(department => (
-                <CommandItem
-                  key={department.cd_ua}
-                  value={department.cd_ua}
-                  onSelect={currentValue => {
-                    onValueChange(currentValue === value ? '' : currentValue)
-                    setSelectedDepartment(department)
-                    setOpen(false)
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      value === department.cd_ua ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium">
-                      {department.nome_ua || department.cd_ua}
-                    </span>
-                    {department.sigla_ua && (
-                      <span className="text-xs text-muted-foreground">
-                        {department.sigla_ua}
-                      </span>
-                    )}
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-
-            {/* Load More Button */}
-            {hasMore && (
-              <div className="p-2 border-t">
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={loadMore}
-                  disabled={loading}
-                  size="sm"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Carregando...
-                    </>
-                  ) : (
-                    <>
-                      Carregar mais ({page} de {totalPages})
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {/* Loading indicator for first page */}
-            {loading && page === 1 && departments.length === 0 && (
-              <div className="py-6 text-center text-sm">
-                <Loader2 className="mx-auto h-4 w-4 animate-spin" />
-              </div>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+      )}
+    </div>
   )
 }
