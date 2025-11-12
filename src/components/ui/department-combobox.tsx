@@ -31,6 +31,7 @@ interface DepartmentComboboxProps {
   disabled?: boolean
   placeholder?: string
   className?: string
+  clearButtonSize?: string
 }
 
 export function DepartmentCombobox({
@@ -39,6 +40,7 @@ export function DepartmentCombobox({
   disabled = false,
   placeholder = 'Selecione um órgão',
   className,
+  clearButtonSize = 'h-9! w-9!',
 }: DepartmentComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [departments, setDepartments] = React.useState<Department[]>([])
@@ -332,7 +334,7 @@ export function DepartmentCombobox({
           size="icon"
           onClick={handleClear}
           disabled={disabled}
-          className="shrink-0 h-14! w-14!"
+          className={cn('shrink-0', clearButtonSize)}
           aria-label="Limpar seleção"
         >
           <X className="h-4 w-4" />
