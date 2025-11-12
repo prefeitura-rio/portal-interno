@@ -12,11 +12,7 @@ export interface ApiCourse {
   id: number
   title: string
   description: string
-  orgao?: {
-    id: number
-    nome: string
-  }
-  organization?: string // Keep for backward compatibility
+  orgao_id?: string | null
   modalidade:
     | 'ONLINE'
     | 'PRESENCIAL'
@@ -64,7 +60,6 @@ export interface ApiDraftsResponse {
 export interface CourseListItem {
   id: string
   title: string
-  provider: string
   duration: number
   vacancies: number
   status: CourseStatus
@@ -73,7 +68,7 @@ export interface CourseListItem {
   registration_start: Date | null
   registration_end: Date | null
   modalidade: string
-  organization: string
+  orgao_id?: string | null
   // External partner fields (optional for CourseListItem)
   is_external_partner?: boolean
   external_partner_name?: string
@@ -105,13 +100,7 @@ export interface Course {
   title: string
   description: string
   categorias?: Array<{ id: number; nome?: string }>
-  organization: string
-  provider: string
-  orgao?: {
-    id: number
-    nome: string
-  }
-  orgao_id?: number | null
+  orgao_id?: string | null
   modalidade: string
   theme?: string
   enrollmentStartDate: Date
@@ -249,7 +238,7 @@ export interface RemoteClass {
 export interface CourseFormData {
   title: string
   description: string
-  organization: string
+  orgao_id: string
   modalidade: CourseModality
   enrollmentStartDate: Date
   enrollmentEndDate: Date

@@ -65,8 +65,7 @@ export const customFetchRmi = async <T>(
     headers: requestHeaders,
   }
 
-  console.log('RequestInit:', requestInit)
-
+  console.log('requestUrl:', requestUrl)
   const response = await fetch(requestUrl, requestInit)
   const data = await getBody<T>(response)
 
