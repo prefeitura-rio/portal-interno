@@ -1,9 +1,8 @@
 'use client'
 
-import * as React from 'react'
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react'
+import * as React from 'react'
 
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -18,6 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 interface Department {
   cd_ua: string
@@ -47,78 +47,81 @@ export function DepartmentCombobox({
   const [page, setPage] = React.useState(1)
   const [totalPages, setTotalPages] = React.useState(1)
   const [hasMore, setHasMore] = React.useState(false)
-  
+
   const limit = 20 // Items per page
 
   // Selected department for display
-  const [selectedDepartment, setSelectedDepartment] = React.useState<Department | null>(null)
+  const [selectedDepartment, setSelectedDepartment] =
+    React.useState<Department | null>(null)
+  const [selectedDepartmentLoaded, setSelectedDepartmentLoaded] =
+    React.useState(false)
 
   // Fetch departments
-  const fetchDepartments = React.useCallback(async (currentPage: number, searchQuery: string) => {
-    try {
-      setLoading(true)
-      const url = new URL('/api/departments', window.location.origin)
-      url.searchParams.set('page', currentPage.toString())
-      url.searchParams.set('limit', limit.toString())
-      if (searchQuery.trim()) {
-        url.searchParams.set('search', searchQuery.trim())
-      }
-
-      const response = await fetch(url.toString())
-      if (response.ok) {
-        const data = await response.json()
-        const fetchedDepartments = data.data || []
-        
-        // If appending (pagination), merge with existing and remove duplicates
-        if (currentPage === 1) {
-          setDepartments(fetchedDepartments)
-        } else {
-          setDepartments(prev => {
-            // Create a Map to track unique departments by cd_ua
-            const uniqueDepartments = new Map<string, Department>()
-            
-            // Add existing departments first
-            prev.forEach(dept => {
-              uniqueDepartments.set(dept.cd_ua, dept)
-            })
-            
-            // Add new departments (will overwrite if duplicate)
-            fetchedDepartments.forEach((dept: Department) => {
-              uniqueDepartments.set(dept.cd_ua, dept)
-            })
-            
-            // Convert Map back to array
-            return Array.from(uniqueDepartments.values())
-          })
+  const fetchDepartments = React.useCallback(
+    async (currentPage: number, searchQuery: string) => {
+      try {
+        setLoading(true)
+        const url = new URL('/api/departments', window.location.origin)
+        url.searchParams.set('page', currentPage.toString())
+        url.searchParams.set('limit', limit.toString())
+        if (searchQuery.trim()) {
+          url.searchParams.set('search', searchQuery.trim())
         }
-        
-        // Calculate pagination info
-        const total = data.total_count || data.pagination?.total || 0
-        const calculatedTotalPages = Math.ceil(total / limit)
-        setTotalPages(calculatedTotalPages)
-        setHasMore(currentPage < calculatedTotalPages)
-      }
-    } catch (error) {
-      console.error('Error fetching departments:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
-  // Debounced search
-  const debouncedSearch = React.useMemo(
-    () => {
-      let timeoutId: NodeJS.Timeout
-      return (searchValue: string) => {
-        clearTimeout(timeoutId)
-        timeoutId = setTimeout(() => {
-          setPage(1)
-          fetchDepartments(1, searchValue)
-        }, 300)
+        const response = await fetch(url.toString())
+        if (response.ok) {
+          const data = await response.json()
+          const fetchedDepartments = data.data || []
+
+          // If appending (pagination), merge with existing and remove duplicates
+          if (currentPage === 1) {
+            setDepartments(fetchedDepartments)
+          } else {
+            setDepartments(prev => {
+              // Create a Map to track unique departments by cd_ua
+              const uniqueDepartments = new Map<string, Department>()
+
+              // Add existing departments first
+              prev.forEach(dept => {
+                uniqueDepartments.set(dept.cd_ua, dept)
+              })
+
+              // Add new departments (will overwrite if duplicate)
+              fetchedDepartments.forEach((dept: Department) => {
+                uniqueDepartments.set(dept.cd_ua, dept)
+              })
+
+              // Convert Map back to array
+              return Array.from(uniqueDepartments.values())
+            })
+          }
+
+          // Calculate pagination info
+          const total = data.total_count || data.pagination?.total || 0
+          const calculatedTotalPages = Math.ceil(total / limit)
+          setTotalPages(calculatedTotalPages)
+          setHasMore(currentPage < calculatedTotalPages)
+        }
+      } catch (error) {
+        console.error('Error fetching departments:', error)
+      } finally {
+        setLoading(false)
       }
     },
-    [fetchDepartments]
+    []
   )
+
+  // Debounced search
+  const debouncedSearch = React.useMemo(() => {
+    let timeoutId: NodeJS.Timeout
+    return (searchValue: string) => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        setPage(1)
+        fetchDepartments(1, searchValue)
+      }, 300)
+    }
+  }, [fetchDepartments])
 
   // Handle search input change
   const handleSearchChange = (value: string) => {
@@ -143,24 +146,50 @@ export function DepartmentCombobox({
     }
   }, [open, fetchDepartments])
 
-  // Fetch selected department details if value exists
+  // Reset selected department state when value changes
+  React.useEffect(() => {
+    if (!value) {
+      setSelectedDepartment(null)
+      setSelectedDepartmentLoaded(true)
+    } else {
+      setSelectedDepartment(null)
+      setSelectedDepartmentLoaded(false)
+    }
+  }, [value])
+
+  // Fetch selected department details if value exists and isn't already loaded
   React.useEffect(() => {
     const fetchSelectedDepartment = async () => {
-      if (value && !selectedDepartment) {
-        try {
-          const response = await fetch(`/api/departments/${value}`)
-          if (response.ok) {
-            const data = await response.json()
-            setSelectedDepartment(data.data)
-          }
-        } catch (error) {
-          console.error('Error fetching selected department:', error)
+      if (!value || selectedDepartmentLoaded) {
+        return
+      }
+
+      // If department is already in the loaded list, use it
+      const existingDepartment = departments.find(dept => dept.cd_ua === value)
+      if (existingDepartment) {
+        setSelectedDepartment(existingDepartment)
+        setSelectedDepartmentLoaded(true)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/departments/${value}`)
+        if (response.ok) {
+          const data = await response.json()
+          setSelectedDepartment(data.data || null)
+        } else {
+          setSelectedDepartment(null)
         }
+      } catch (error) {
+        console.error('Error fetching selected department:', error)
+        setSelectedDepartment(null)
+      } finally {
+        setSelectedDepartmentLoaded(true)
       }
     }
-    
+
     fetchSelectedDepartment()
-  }, [value, selectedDepartment])
+  }, [value, departments, selectedDepartmentLoaded])
 
   // Display value for selected department
   const displayValue = React.useMemo(() => {
@@ -177,8 +206,18 @@ export function DepartmentCombobox({
       return `${selectedDepartment.nome_ua || selectedDepartment.cd_ua}${selectedDepartment.sigla_ua ? ` (${selectedDepartment.sigla_ua})` : ''}`
     }
 
-    return value
-  }, [value, departments, selectedDepartment, placeholder])
+    if (!selectedDepartmentLoaded) {
+      return 'Carregando...'
+    }
+
+    return placeholder
+  }, [
+    value,
+    departments,
+    selectedDepartment,
+    selectedDepartmentLoaded,
+    placeholder,
+  ])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -189,16 +228,22 @@ export function DepartmentCombobox({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            'w-full justify-between',
+            'truncate! relative! overflow-hidden! w-full justify-between text-left',
             !value && 'text-muted-foreground',
             className
           )}
         >
-          <span className="truncate">{displayValue}</span>
+          <span className="truncate relative! overflow-hidden! flex-1 min-w-0">
+            {displayValue}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+      <PopoverContent
+        className="w-full p-0"
+        align="start"
+        style={{ width: 'var(--radix-popover-trigger-width)' }}
+      >
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Buscar órgão..."
@@ -214,7 +259,7 @@ export function DepartmentCombobox({
                 <CommandItem
                   key={department.cd_ua}
                   value={department.cd_ua}
-                  onSelect={(currentValue) => {
+                  onSelect={currentValue => {
                     onValueChange(currentValue === value ? '' : currentValue)
                     setSelectedDepartment(department)
                     setOpen(false)
@@ -239,7 +284,7 @@ export function DepartmentCombobox({
                 </CommandItem>
               ))}
             </CommandGroup>
-            
+
             {/* Load More Button */}
             {hasMore && (
               <div className="p-2 border-t">
@@ -256,12 +301,14 @@ export function DepartmentCombobox({
                       Carregando...
                     </>
                   ) : (
-                    <>Carregar mais ({page} de {totalPages})</>
+                    <>
+                      Carregar mais ({page} de {totalPages})
+                    </>
                   )}
                 </Button>
               </div>
             )}
-            
+
             {/* Loading indicator for first page */}
             {loading && page === 1 && departments.length === 0 && (
               <div className="py-6 text-center text-sm">
@@ -274,4 +321,3 @@ export function DepartmentCombobox({
     </Popover>
   )
 }
-
