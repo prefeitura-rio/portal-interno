@@ -37,10 +37,11 @@ if (!hasAccess) {
 
 ### 1. Logging Detalhado em `middleware-helpers.ts`
 
-Adicionado logging completo com ID único de requisição:
+Adicionado logging completo com CPF do usuário e ID único de requisição:
 
 ```typescript
 // Logs adicionados:
+- CPF do usuário (extraído do token JWT via preferred_username)
 - URL da API Heimdall sendo chamada
 - Status da resposta HTTP
 - Corpo do erro (se houver)
@@ -53,6 +54,7 @@ Adicionado logging completo com ID único de requisição:
 
 ```typescript
 // Logs adicionados em cada etapa:
+- CPF do usuário (extraído do token JWT)
 - Path sendo acessado
 - Roles do usuário retornadas
 - Resultado da verificação de acesso
@@ -63,6 +65,7 @@ Adicionado logging completo com ID único de requisição:
 
 ```typescript
 // Logs detalhados de:
+- CPF do usuário (quando disponível)
 - Quando userRoles é null/undefined/vazio
 - Match exato de rotas
 - Match de wildcards
@@ -80,39 +83,41 @@ Quando um usuário reportar o problema, peça para ele tentar acessar novamente.
 No terminal onde o Next.js está rodando, você verá logs como:
 
 ```
-[abc123] Fetching user roles from Heimdall API: https://heimdall.api.url/api/v1/users/me
-[abc123] Heimdall API response status: 200
-[abc123] Successfully fetched 2 roles: ["admin", "go:admin"]
-[MIDDLEWARE] Checking access for path: /gorio/courses
-[MIDDLEWARE] User roles retrieved: ["admin", "go:admin"]
-[ROUTE_PERMISSIONS] Wildcard match for route "/gorio/courses": true
-[MIDDLEWARE] Access GRANTED for path: /gorio/courses
+[12345678901] [abc123] Fetching user roles from Heimdall API: https://heimdall.api.url/api/v1/users/me
+[12345678901] [abc123] Heimdall API response status: 200
+[12345678901] [abc123] Successfully fetched 2 roles: ["admin", "go:admin"]
+[12345678901] [MIDDLEWARE] Checking access for path: /gorio/courses
+[12345678901] [MIDDLEWARE] User roles retrieved: ["admin", "go:admin"]
+[12345678901] [ROUTE_PERMISSIONS] Wildcard match for route "/gorio/courses": true
+[12345678901] [MIDDLEWARE] Access GRANTED for path: /gorio/courses
 ```
+
+**Nota:** O primeiro número entre colchetes (ex: `[12345678901]`) é o CPF do usuário, facilitando a identificação de qual usuário está tendo problemas.
 
 ### Passo 3: Identificar o problema
 
 #### **Se você ver erro de timeout:**
 ```
-[abc123] Heimdall API request timed out after 10 seconds
-[ROUTE_PERMISSIONS] Access denied: No user roles provided (userRoles is null)
+[12345678901] [abc123] Heimdall API request timed out after 10 seconds
+[12345678901] [ROUTE_PERMISSIONS] Access denied: No user roles provided (userRoles is null)
 ```
 **Causa:** Rede corporativa lenta ou firewall bloqueando a conexão.
 
 #### **Se você ver erro HTTP (ex: 401, 403, 500):**
 ```
-[abc123] Heimdall API returned status 401. Error body: Unauthorized
+[12345678901] [abc123] Heimdall API returned status 401. Error body: Unauthorized
 ```
 **Causa:** Token JWT pode estar corrompido ou expirado prematuramente.
 
 #### **Se você ver erro de conexão:**
 ```
-[abc123] Fetch error when calling Heimdall API: Failed to fetch
+[12345678901] [abc123] Fetch error when calling Heimdall API: Failed to fetch
 ```
 **Causa:** Firewall/antivírus bloqueando, proxy corporativo, ou certificado SSL inválido.
 
 #### **Se você ver erro de DNS:**
 ```
-[abc123] Fetch error: getaddrinfo ENOTFOUND heimdall.api.url
+[12345678901] [abc123] Fetch error: getaddrinfo ENOTFOUND heimdall.api.url
 ```
 **Causa:** DNS corporativo não consegue resolver o domínio do Heimdall.
 
