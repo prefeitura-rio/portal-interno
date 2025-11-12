@@ -42,47 +42,50 @@ export function AddParticipantsModal({
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-xs" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[99999]" />
 
         <Dialog.Content
           className="fixed top-1/2 left-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2
-                     rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-xl space-y-6"
+                     rounded-xl bg-white dark:bg-zinc-900 shadow-xl z-[1000000]
+                     max-h-[90vh] overflow-hidden flex flex-col p-6 space-y-6"
         >
           <ModalHeader step={step} onClose={onClose} />
 
-          <AnimatePresence mode="wait">
-            {step === 'options' && (
-              <AnimatedStep stepKey="options">
-                <OptionsStep onSelect={handleSelectMode} />
-              </AnimatedStep>
-            )}
+          <div className="overflow-y-auto flex-1 -mx-6 px-6">
+            <AnimatePresence mode="wait">
+              {step === 'options' && (
+                <AnimatedStep stepKey="options">
+                  <OptionsStep onSelect={handleSelectMode} />
+                </AnimatedStep>
+              )}
 
-            {step === 'manual' && (
-              <AnimatedStep stepKey="manual">
-                <ManualForm
-                  courseId={courseId}
-                  onBack={handleBack}
-                  onFinish={handleFinish}
-                  courseData={courseData}
-                />
-              </AnimatedStep>
-            )}
+              {step === 'manual' && (
+                <AnimatedStep stepKey="manual">
+                  <ManualForm
+                    courseId={courseId}
+                    onBack={handleBack}
+                    onFinish={handleFinish}
+                    courseData={courseData}
+                  />
+                </AnimatedStep>
+              )}
 
-            {step === 'spreadsheet' && (
-              <AnimatedStep stepKey="spreadsheet">
-                <SpreadsheetForm
-                  courseId={courseId}
-                  onBack={handleBack}
-                  onFinish={handleFinish}
-                  courseData={courseData}
-                />
-              </AnimatedStep>
-            )}
+              {step === 'spreadsheet' && (
+                <AnimatedStep stepKey="spreadsheet">
+                  <SpreadsheetForm
+                    courseId={courseId}
+                    onBack={handleBack}
+                    onFinish={handleFinish}
+                    courseData={courseData}
+                  />
+                </AnimatedStep>
+              )}
 
-            {step === 'finish' && (
-              <FinishStep status={finishStatus} onRetry={handleRetry} />
-            )}
-          </AnimatePresence>
+              {step === 'finish' && (
+                <FinishStep status={finishStatus} onRetry={handleRetry} />
+              )}
+            </AnimatePresence>
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
