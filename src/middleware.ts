@@ -53,60 +53,10 @@ function getCpfFromToken(accessToken: string): string {
 }
 
 export async function middleware(request: NextRequest) {
-  // Generate nonce for CSP
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
-
-  // Define CSP header with nonce support
-  const isDevelopment = process.env.NODE_ENV === 'development'
-
-  // SHA256 hashes for inline scripts
-  const scriptHashes = [
-    'sha256-UnthrFpGFotkvMOTp/ghVMSXoZZj9Y6epaMsaBAbUtg=',
-    'sha256-TtbCxulSBIRcXKJGEUTNzReCryzD01lKLU4IQV8Ips0=',
-    'sha256-QaDv8TLjywIM3mKcA73bK0btmqNpUfcuwzqZ4U9KTsk=',
-    'sha256-rbbnijHn7DZ6ps39myQ3cVQF1H+U/PJfHh5ei/Q2kb8=',
-  ]
-
-  const scriptSrcDirectives = [
-    "'self'",
-    `'nonce-${nonce}'`,
-    "'strict-dynamic'",
-    ...scriptHashes.map(hash => `'${hash}'`),
-    ...(isDevelopment ? ["'unsafe-eval'"] : []),
-  ]
-
-  const cspHeader = `
-    default-src 'self' https://*.googleapis.com/rj-escritorio-dev-public/;
-    script-src ${scriptSrcDirectives.join(' ')};
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://*.google-analytics.com https://*.googletagmanager.com https://www.googletagmanager.com https://static.hotjar.com https://script.hotjar.com https://flagcdn.com https://*.doubleclick.net https://*.apps.rio.gov.br https://*.googleapis.com/;
-    font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com;
-    connect-src 'self' https://*.google.com/ https://www.google.com/* https://*.acesso.gov.br/ https://auth-idriohom.apps.rio.gov.br/ https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.googletagmanager.com https://*.hotjar.com https://*.hotjar.io https://metrics.hotjar.io wss://*.hotjar.com https://*.doubleclick.net https://*.app.dados.rio;
-    frame-src 'self' https://*.google.com/ https://www.google.com/* https://*.acesso.gov.br/ https://www.googletagmanager.com https://vars.hotjar.com https://*.doubleclick.net;
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self' https://*.acesso.gov.br/ https://*.google-analytics.com https://*.googletagmanager.com https://www.googletagmanager.com https://www.googletagmanager.com/* https://static.hotjar.com https://script.hotjar.com https://flagcdn.com https://*.doubleclick.net;
-    frame-ancestors 'none';
-    upgrade-insecure-requests;
-  `.trim()
-
-  // Clean up CSP header
-  const contentSecurityPolicyHeaderValue = cspHeader
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-
   const path = request.nextUrl.pathname
   const publicRoute = publicRoutes.find(route => matchRoute(path, route.path))
   const authToken = request.cookies.get('access_token')
   const refreshToken = request.cookies.get('refresh_token')
-
-  // Set up request headers with nonce and CSP
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-nonce', nonce)
-  requestHeaders.set(
-    'Content-Security-Policy',
-    contentSecurityPolicyHeaderValue
-  )
 
   // TEMPORARY: Block access to "oportunidades-mei" routes when feature flag is enabled
   // TODO: Remove this block once the feature is ready
@@ -114,35 +64,17 @@ export async function middleware(request: NextRequest) {
     path.includes('oportunidades-mei') &&
     process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
   ) {
-    return await handleUnauthorizedUser(
-      request,
-      requestHeaders,
-      contentSecurityPolicyHeaderValue
-    )
+    return await handleUnauthorizedUser(request)
   }
 
   if (!authToken && publicRoute) {
-    const response = NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    })
-    response.headers.set(
-      'Content-Security-Policy',
-      contentSecurityPolicyHeaderValue
-    )
-    return response
+    return NextResponse.next()
   }
 
   if (!authToken && !publicRoute) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.href = REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE
-    const response = NextResponse.redirect(redirectUrl)
-    response.headers.set(
-      'Content-Security-Policy',
-      contentSecurityPolicyHeaderValue
-    )
-    return response
+    return NextResponse.redirect(redirectUrl)
   }
 
   if (authToken && !publicRoute) {
@@ -151,12 +83,7 @@ export async function middleware(request: NextRequest) {
     // Check if JWT is expired
     if (isJwtExpired(authToken.value)) {
       console.log(`[${cpf}] [MIDDLEWARE] JWT expired for path: ${path}`)
-      return await handleExpiredToken(
-        request,
-        refreshToken?.value,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
+      return await handleExpiredToken(request, refreshToken?.value)
     }
 
     // Role-based access control (RBAC) using Heimdall API
@@ -169,7 +96,10 @@ export async function middleware(request: NextRequest) {
     // Check if user has access to the requested route
     const hasAccess = hasRouteAccess(path, userRoles, cpf)
 
-    console.log(`[${cpf}] [MIDDLEWARE] Access check result for ${path}:`, hasAccess)
+    console.log(
+      `[${cpf}] [MIDDLEWARE] Access check result for ${path}:`,
+      hasAccess
+    )
 
     if (!hasAccess) {
       // User doesn't have required roles for this route
@@ -179,63 +109,27 @@ export async function middleware(request: NextRequest) {
         'Required roles for this route:',
         hasAccess ? 'N/A' : 'Check route-permissions.ts'
       )
-      return await handleUnauthorizedUser(
-        request,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
+      return await handleUnauthorizedUser(request)
     }
 
     console.log(`[${cpf}] [MIDDLEWARE] Access GRANTED for path: ${path}`)
 
-    const response = NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    })
-    response.headers.set(
-      'Content-Security-Policy',
-      contentSecurityPolicyHeaderValue
-    )
-    return response
+    return NextResponse.next()
   }
 
   // Handle case where user has auth token but is accessing a public route
   if (authToken && publicRoute) {
     // Skip token validation for special error pages to prevent redirect loops
     if (path === '/session-expired' || path === '/unauthorized') {
-      const response = NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      })
-      response.headers.set(
-        'Content-Security-Policy',
-        contentSecurityPolicyHeaderValue
-      )
-      return response
+      return NextResponse.next()
     }
 
     // Check if JWT is expired even for public routes when user is authenticated
     if (isJwtExpired(authToken.value)) {
-      return await handleExpiredToken(
-        request,
-        refreshToken?.value,
-        requestHeaders,
-        contentSecurityPolicyHeaderValue
-      )
+      return await handleExpiredToken(request, refreshToken?.value)
     }
 
-    const response = NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    })
-    response.headers.set(
-      'Content-Security-Policy',
-      contentSecurityPolicyHeaderValue
-    )
-    return response
+    return NextResponse.next()
   }
 }
 
