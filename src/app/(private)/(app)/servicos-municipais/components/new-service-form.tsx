@@ -122,9 +122,11 @@ const serviceFormSchema = z.object({
     .optional(),
   digitalChannels: z
     .array(
-      z.string().max(5000, {
-        message: 'Canal digital não pode exceder 5000 caracteres.',
-      })
+      z
+        .string()
+        .max(5000, {
+          message: 'Canal digital não pode exceder 5000 caracteres.',
+        })
     )
     .optional(),
   physicalChannels: z
@@ -1620,6 +1622,8 @@ export function NewServiceForm({
               </Button>
               {(() => {
                 const buttonConfig = getFormButtonConfiguration()
+                // Disable action buttons if editing existing service and no changes were made
+                const shouldDisableActions = initialData && !hasFormChanges
 
                 return (
                   <>
@@ -1629,7 +1633,9 @@ export function NewServiceForm({
                         variant="outline"
                         className="w-full"
                         onClick={form.handleSubmit(handleSendToEditClick)}
-                        disabled={isLoading || operationLoading}
+                        disabled={
+                          isLoading || operationLoading || shouldDisableActions
+                        }
                       >
                         {isLoading || operationLoading
                           ? 'Enviando...'
@@ -1642,7 +1648,9 @@ export function NewServiceForm({
                         variant="outline"
                         className="w-full"
                         onClick={form.handleSubmit(handleSendToApprovalClick)}
-                        disabled={isLoading || operationLoading}
+                        disabled={
+                          isLoading || operationLoading || shouldDisableActions
+                        }
                       >
                         {isLoading || operationLoading
                           ? 'Enviando...'
@@ -1654,7 +1662,9 @@ export function NewServiceForm({
                         type="button"
                         className="w-full"
                         onClick={form.handleSubmit(handlePublishClick)}
-                        disabled={isLoading || operationLoading}
+                        disabled={
+                          isLoading || operationLoading || shouldDisableActions
+                        }
                       >
                         {isLoading || operationLoading
                           ? 'Publicando...'

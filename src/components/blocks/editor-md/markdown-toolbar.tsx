@@ -104,7 +104,10 @@ export function MarkdownToolbar({ editor }: MarkdownToolbarProps) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={button.action}
+              onMouseDown={e => {
+                e.preventDefault()
+                button.action()
+              }}
               className={cn('h-8 w-8 p-0', button.isActive && 'bg-muted')}
               title={button.label}
             >
