@@ -65,14 +65,34 @@ export function DuplicateCourseButton({
         : []
 
       // Transform remote class to API format
+      // Backend expects: { schedules: [...] }
       const transformedRemoteClass = course.remote_class
-        ? {
-            vacancies: course.remote_class.vacancies,
-            class_start_date: course.remote_class.class_start_date,
-            class_end_date: course.remote_class.class_end_date,
-            class_time: course.remote_class.class_time,
-            class_days: course.remote_class.class_days,
-          }
+        ? (() => {
+            // Check if remote_class has schedules array (new format)
+            if ((course.remote_class as any).schedules && Array.isArray((course.remote_class as any).schedules)) {
+              return {
+                schedules: (course.remote_class as any).schedules.map((schedule: any) => ({
+                  vacancies: schedule.vacancies,
+                  class_start_date: schedule.class_start_date ||
+                    (schedule.classStartDate ? new Date(schedule.classStartDate).toISOString() : undefined),
+                  class_end_date: schedule.class_end_date ||
+                    (schedule.classEndDate ? new Date(schedule.classEndDate).toISOString() : undefined),
+                  class_time: schedule.class_time || schedule.classTime || '',
+                  class_days: schedule.class_days || schedule.classDays || '',
+                }))
+              }
+            }
+            // Legacy format - single object, wrap in schedules array
+            return {
+              schedules: [{
+                vacancies: (course.remote_class as any).vacancies,
+                class_start_date: (course.remote_class as any).class_start_date,
+                class_end_date: (course.remote_class as any).class_end_date,
+                class_time: (course.remote_class as any).class_time,
+                class_days: (course.remote_class as any).class_days,
+              }]
+            }
+          })()
         : undefined
 
       // Transform custom fields to API format (remove IDs for new course)

@@ -104,8 +104,8 @@ const locationClassSchema = z.object({
     .min(1, { message: 'Pelo menos uma turma deve ser informada.' }),
 })
 
-// Define the schema for remote class information
-const remoteClassSchema = z.object({
+// Define the schema for remote schedule (turma remote) information
+const remoteScheduleSchema = z.object({
   vacancies: z.coerce
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
@@ -119,6 +119,11 @@ const remoteClassSchema = z.object({
   classTime: z.string().min(1, { message: 'Horário das aulas é obrigatório.' }),
   classDays: z.string().min(1, { message: 'Dias de aula é obrigatório.' }),
 })
+
+// Define the schema for remote class information (array of schedules)
+const remoteClassSchema = z
+  .array(remoteScheduleSchema)
+  .min(1, { message: 'Pelo menos uma turma deve ser informada.' })
 
 // Custom validation function for Google Cloud Storage URLs
 const validateGoogleCloudStorageURL = (url: string | undefined) => {
@@ -377,8 +382,8 @@ const fullFormSchema = z
   .refine(
     data => {
       if (data.modalidade === 'ONLINE') {
-        return (
-          data.remote_class.classEndDate >= data.remote_class.classStartDate
+        return data.remote_class.every(
+          schedule => schedule.classEndDate >= schedule.classStartDate
         )
       }
       return data.locations.every(location =>
@@ -511,13 +516,15 @@ const draftFormSchema = z.object({
     )
     .optional(),
   remote_class: z
-    .object({
-      vacancies: z.number().optional(),
-      classStartDate: z.date().optional(),
-      classEndDate: z.date().optional(),
-      classTime: z.string().optional(),
-      classDays: z.string().optional(),
-    })
+    .array(
+      z.object({
+        vacancies: z.number().optional(),
+        classStartDate: z.date().optional(),
+        classEndDate: z.date().optional(),
+        classTime: z.string().optional(),
+        classDays: z.string().optional(),
+      })
+    )
     .optional(),
 })
 
@@ -614,11 +621,13 @@ type BackendCourseData = {
     }>
   }>
   remote_class?: {
-    vacancies: number
-    class_start_date: string | undefined
-    class_end_date: string | undefined
-    class_time: string
-    class_days: string
+    schedules: Array<{
+      vacancies: number
+      class_start_date: string | undefined
+      class_end_date: string | undefined
+      class_time: string
+      class_days: string
+    }>
   }
   turno: string
   formato_aula: string
@@ -800,7 +809,56 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 ],
               }
             }),
-            remote_class: initialData.remote_class,
+            remote_class: (() => {
+              console.log(
+                '🔍 Processing remote_class from initialData:',
+                initialData.remote_class
+              )
+
+              if (!initialData.remote_class) {
+                console.log('❌ No remote_class found')
+                return undefined
+              }
+
+              const remoteClassData = initialData.remote_class as any
+
+              // Backend returns: { schedules: [...] }
+              if (
+                remoteClassData.schedules &&
+                Array.isArray(remoteClassData.schedules)
+              ) {
+                console.log(
+                  '✅ Found schedules array:',
+                  remoteClassData.schedules.length,
+                  'schedules'
+                )
+                const transformed = remoteClassData.schedules.map(
+                  (schedule: any) => ({
+                    vacancies: schedule.vacancies,
+                    classStartDate: schedule.class_start_date
+                      ? new Date(schedule.class_start_date)
+                      : new Date(),
+                    classEndDate: schedule.class_end_date
+                      ? new Date(schedule.class_end_date)
+                      : new Date(),
+                    classTime: schedule.class_time || '',
+                    classDays: schedule.class_days || '',
+                  })
+                )
+                console.log('✅ Transformed schedules:', transformed)
+                return transformed
+              }
+
+              // Legacy: array format
+              if (Array.isArray(remoteClassData)) {
+                console.log('📦 Legacy array format')
+                return remoteClassData
+              }
+
+              // Legacy: single object format
+              console.log('📦 Legacy single object format')
+              return [remoteClassData]
+            })(),
           }
         : {
             title: '',
@@ -843,9 +901,21 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     })
 
     const modalidade = form.watch('modalidade')
+
+    // UseFieldArray for locations (PRESENCIAL/HIBRIDO)
     const { fields, append, remove } = useFieldArray({
       control: form.control,
       name: 'locations',
+    })
+
+    // UseFieldArray for remote schedules (ONLINE)
+    const {
+      fields: remoteScheduleFields,
+      append: appendRemoteSchedule,
+      remove: removeRemoteSchedule,
+    } = useFieldArray({
+      control: form.control,
+      name: 'remote_class',
     })
 
     // Helper function to get schedules for a location
@@ -882,6 +952,17 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       }
     }
 
+    // Helper function to add a remote schedule (for ONLINE courses)
+    const addRemoteSchedule = () => {
+      appendRemoteSchedule({
+        vacancies: 1,
+        classStartDate: new Date(),
+        classEndDate: new Date(),
+        classTime: '',
+        classDays: '',
+      })
+    }
+
     // Fetch organizations on component mount
     React.useEffect(() => {
       const fetchOrgaos = async () => {
@@ -910,18 +991,42 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     // Transform form data to snake_case for backend API
     const transformFormDataToSnakeCase = (data: PartialFormData) => {
       // Transform remote_class fields to snake_case if it exists
+      // Backend expects: { remote_class: { schedules: [...] } }
       const transformedRemoteClass = data.remote_class
-        ? {
-            vacancies: data.remote_class.vacancies,
-            class_start_date: data.remote_class.classStartDate
-              ? formatDateTimeToUTC(data.remote_class.classStartDate)
-              : undefined,
-            class_end_date: data.remote_class.classEndDate
-              ? formatDateTimeToUTC(data.remote_class.classEndDate)
-              : undefined,
-            class_time: data.remote_class.classTime,
-            class_days: data.remote_class.classDays,
-          }
+        ? Array.isArray(data.remote_class)
+          ? {
+              schedules: data.remote_class.map(schedule => ({
+                vacancies: schedule.vacancies,
+                class_start_date: schedule.classStartDate
+                  ? formatDateTimeToUTC(schedule.classStartDate)
+                  : undefined,
+                class_end_date: schedule.classEndDate
+                  ? formatDateTimeToUTC(schedule.classEndDate)
+                  : undefined,
+                class_time: schedule.classTime,
+                class_days: schedule.classDays,
+              })),
+            }
+          : {
+              // Legacy single object format - wrap in schedules array
+              schedules: [
+                {
+                  vacancies: (data.remote_class as any).vacancies,
+                  class_start_date: (data.remote_class as any).classStartDate
+                    ? formatDateTimeToUTC(
+                        (data.remote_class as any).classStartDate
+                      )
+                    : undefined,
+                  class_end_date: (data.remote_class as any).classEndDate
+                    ? formatDateTimeToUTC(
+                        (data.remote_class as any).classEndDate
+                      )
+                    : undefined,
+                  class_time: (data.remote_class as any).classTime,
+                  class_days: (data.remote_class as any).classDays,
+                },
+              ],
+            }
         : undefined
 
       // Transform locations fields to snake_case if they exist
@@ -1079,13 +1184,17 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             : undefined,
         remote_class:
           modalidade === 'ONLINE'
-            ? data.remote_class || {
-                vacancies: 1,
-                classStartDate: currentDate,
-                classEndDate: nextMonth,
-                classTime: 'Horário em definição',
-                classDays: 'Dias em definição',
-              }
+            ? data.remote_class && data.remote_class.length > 0
+              ? data.remote_class
+              : [
+                  {
+                    vacancies: 1,
+                    classStartDate: currentDate,
+                    classEndDate: nextMonth,
+                    classTime: 'Horário em definição',
+                    classDays: 'Dias em definição',
+                  },
+                ]
             : undefined,
       }
 
@@ -1110,15 +1219,17 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       value: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
     ) => {
       if (value === 'ONLINE') {
-        // Clear locations array and initialize remote class fields
+        // Clear locations array and initialize remote class fields with array
         form.setValue('locations', [])
-        form.setValue('remote_class', {
-          vacancies: 1,
-          classStartDate: new Date(),
-          classEndDate: new Date(),
-          classTime: '',
-          classDays: '',
-        })
+        form.setValue('remote_class', [
+          {
+            vacancies: 1,
+            classStartDate: new Date(),
+            classEndDate: new Date(),
+            classTime: '',
+            classDays: '',
+          },
+        ] as any)
       } else if (value === 'PRESENCIAL' || value === 'HIBRIDO') {
         // Clear remote class and initialize locations if not already set
         form.setValue('remote_class', undefined)
@@ -1750,109 +1861,159 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
               {/* Conditional rendering based on modalidade */}
               {modalidade === 'ONLINE' && (
-                <Card className="-mt-2">
-                  <div>
-                    <CardTitle className="px-2! md:px-4! flex flex-start">
-                      Informações das Aulas Remotas
-                    </CardTitle>
-                  </div>
-                  <CardContent className="space-y-4 px-2 md:px-4">
-                    <FormField
-                      control={form.control}
-                      name="remote_class.vacancies"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Número de vagas*</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={field.value || ''}
-                              onChange={e =>
-                                field.onChange(Number(e.target.value))
-                              }
-                              onBlur={field.onBlur}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <div className="space-y-4 -mt-2">
+                  {(() => {
+                    const remoteSchedulesRaw = form.watch('remote_class')
+                    const remoteSchedules = Array.isArray(remoteSchedulesRaw)
+                      ? remoteSchedulesRaw
+                      : []
 
-                    <div className="flex flex-wrap items-start gap-4">
-                      <FormField
-                        control={form.control}
-                        name="remote_class.classStartDate"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                            <FormLabel>Início das aulas*</FormLabel>
-                            <FormControl>
-                              <DateTimePicker
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="Selecionar data e hora de início"
-                                disabled={isReadOnly}
+                    // Ensure at least one schedule exists
+                    if (remoteSchedules.length === 0) {
+                      form.setValue('remote_class', [
+                        {
+                          vacancies: 1,
+                          classStartDate: new Date(),
+                          classEndDate: new Date(),
+                          classTime: '',
+                          classDays: '',
+                        },
+                      ])
+                      return null // Will re-render with the schedule
+                    }
+
+                    return remoteSchedules.map(
+                      (schedule: any, index: number) => (
+                        <Card key={index}>
+                          <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>
+                              {index === 0
+                                ? 'Informações da Turma Online'
+                                : `Informações da Turma Online ${index + 1}`}
+                            </CardTitle>
+                            {index > 0 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeRemoteSchedule(index)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name={`remote_class.${index}.vacancies`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Número de vagas*</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={field.value || ''}
+                                      onChange={e =>
+                                        field.onChange(Number(e.target.value))
+                                      }
+                                      onBlur={field.onBlur}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <div className="flex flex-wrap items-start gap-4">
+                              <FormField
+                                control={form.control}
+                                name={`remote_class.${index}.classStartDate`}
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                                    <FormLabel>Início das aulas*</FormLabel>
+                                    <FormControl>
+                                      <DateTimePicker
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        placeholder="Selecionar data e hora de início"
+                                        disabled={isReadOnly}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
                               />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="remote_class.classEndDate"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                            <FormLabel>Fim das aulas*</FormLabel>
-                            <FormControl>
-                              <DateTimePicker
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="Selecionar data e hora de fim"
-                                disabled={isReadOnly}
+                              <FormField
+                                control={form.control}
+                                name={`remote_class.${index}.classEndDate`}
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                                    <FormLabel>Fim das aulas*</FormLabel>
+                                    <FormControl>
+                                      <DateTimePicker
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        placeholder="Selecionar data e hora de fim"
+                                        disabled={isReadOnly}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
                               />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                            </div>
 
-                    <FormField
-                      control={form.control}
-                      name="remote_class.classTime"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Horário das aulas*</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
-                              {...field}
+                            <FormField
+                              control={form.control}
+                              name={`remote_class.${index}.classTime`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Horário das aulas*</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
-                    <FormField
-                      control={form.control}
-                      name="remote_class.classDays"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Dias de aula*</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
-                              {...field}
+                            <FormField
+                              control={form.control}
+                              name={`remote_class.${index}.classDays`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Dias de aula*</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
+                          </CardContent>
+                        </Card>
+                      )
+                    )
+                  })()}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addRemoteSchedule}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar outra turma
+                  </Button>
+                </div>
               )}
 
               {(modalidade === 'PRESENCIAL' || modalidade === 'HIBRIDO') && (
