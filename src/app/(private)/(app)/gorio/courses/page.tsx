@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import { useDepartment } from '@/hooks/use-department'
 import type {
   CourseListItem,
   CourseStatus,
@@ -127,6 +128,25 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
     variant: 'outline',
     className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
+}
+
+// Component to fetch and display department name
+function DepartmentName({ orgao_id }: { orgao_id?: string | null }) {
+  const { department, loading } = useDepartment(orgao_id)
+
+  if (loading) {
+    return <span className="text-muted-foreground">Carregando...</span>
+  }
+
+  if (!orgao_id) {
+    return <span className="text-muted-foreground">Não informado</span>
+  }
+
+  if (!department) {
+    return <span className="text-muted-foreground">Órgão não encontrado</span>
+  }
+
+  return <span>{department.nome_ua || department.cd_ua}</span>
 }
 
 export default function Courses() {
@@ -361,20 +381,14 @@ export default function Courses() {
       },
       {
         id: 'provider',
-        accessorKey: 'provider',
+        accessorKey: 'orgao_id',
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Quem oferece" />
         ),
-        cell: ({ cell, row }) => {
+        cell: ({ row }) => {
           const isExternalPartner = row.original.is_external_partner
-          const provider = cell.getValue<CourseListItem['provider']>()
           const externalPartnerName = row.original.external_partner_name
-
-          // Use external partner name if it's a partnership and the name exists
-          const displayName =
-            isExternalPartner && externalPartnerName
-              ? externalPartnerName
-              : provider
+          const orgao_id = row.original.orgao_id
 
           return (
             <div className="flex items-center gap-2">
@@ -392,7 +406,13 @@ export default function Courses() {
                     Parceria
                   </Badge>
                 )}
-                <span className="max-w-[300px] truncate">{displayName}</span>
+                <span className="max-w-[300px] truncate">
+                  {isExternalPartner && externalPartnerName ? (
+                    externalPartnerName
+                  ) : (
+                    <DepartmentName orgao_id={orgao_id} />
+                  )}
+                </span>
               </div>
             </div>
           )

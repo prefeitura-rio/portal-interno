@@ -123,8 +123,6 @@ export function transformApiCourseToCourseListItem(
   return {
     id: apiCourse.id.toString(),
     title: apiCourse.title || 'Sem título',
-    provider:
-      apiCourse.orgao?.nome || apiCourse.organization || 'Não informado',
     duration: apiCourse.carga_horaria || 0,
     vacancies: apiCourse.numero_vagas || 0,
     status: displayStatus,
@@ -138,8 +136,7 @@ export function transformApiCourseToCourseListItem(
       ? new Date(apiCourse.enrollment_end_date)
       : null,
     modalidade: apiCourse.modalidade,
-    organization:
-      apiCourse.orgao?.nome || apiCourse.organization || 'Não informado',
+    orgao_id: apiCourse.orgao_id,
     // Include external partner info if available (for potential future use)
     is_external_partner: apiCourse.is_external_partner,
     external_partner_name: apiCourse.external_partner_name,

@@ -178,7 +178,6 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     title: courseData.title || '',
     description: courseData.description || '',
     categorias: courseData.categorias || [],
-    provider: courseData.orgao?.nome || courseData.organization || '',
     theme: courseData.theme || '',
     modalidade: (() => {
       const modalidade =
@@ -191,10 +190,7 @@ export function transformApiCourseToCourse(apiCourse: any): any {
         return 'HIBRIDO'
       return modalidade
     })(),
-    orgao: courseData.orgao || null,
-    orgao_id: courseData.orgao_id || courseData.orgao?.id || null,
-    // Ensure organization field is properly mapped from orgao.nome or existing organization
-    organization: courseData.orgao?.nome || courseData.organization || '',
+    orgao_id: courseData.orgao_id || null,
     // External partner fields
     is_external_partner: courseData.is_external_partner || false,
     external_partner_name: courseData.external_partner_name || '',
