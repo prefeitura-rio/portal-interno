@@ -798,6 +798,7 @@ export function EnrollmentsTable({
       'Endereço',
       'Bairro',
       'Código da Turma',
+      'Turma',
       'Dias da Semana',
       'Horário',
       'Data de Início',
@@ -867,30 +868,80 @@ export function EnrollmentsTable({
           s => s.id === enrollment.schedule_id
         )
 
+        // Get the Turma label and schedule details using the same logic as in the sidesheet
+        let turmaLabel = ''
+        let scheduleDetails = {
+          id: '',
+          class_days: '',
+          class_time: '',
+          class_start_date: '',
+          class_end_date: '',
+          vacancies: '',
+        }
+
+        if (enrollment.schedule_id && course) {
+          const scheduleOptions = getScheduleOptions(course)
+          const selectedSchedule = scheduleOptions.find(
+            opt => opt.id === enrollment.schedule_id
+          )
+          if (selectedSchedule) {
+            turmaLabel = selectedSchedule.label
+
+            // Try to get schedule details from enrolled_unit first, then from course data
+            if (enrolledSchedule) {
+              scheduleDetails = {
+                id: enrolledSchedule.id,
+                class_days: enrolledSchedule.class_days,
+                class_time: enrolledSchedule.class_time,
+                class_start_date: enrolledSchedule.class_start_date
+                  ? new Date(enrolledSchedule.class_start_date).toLocaleDateString('pt-BR')
+                  : '',
+                class_end_date: enrolledSchedule.class_end_date
+                  ? new Date(enrolledSchedule.class_end_date).toLocaleDateString('pt-BR')
+                  : '',
+                vacancies: enrolledSchedule.vacancies?.toString() || '',
+              }
+            } else {
+              // Fallback: get schedule data from course locations
+              scheduleDetails.id = enrollment.schedule_id
+
+              // Find schedule in course data
+              for (const location of course.locations || []) {
+                const schedule = location.schedules?.find(s => s.id === enrollment.schedule_id)
+                if (schedule) {
+                  scheduleDetails.class_days = schedule.classDays || ''
+                  scheduleDetails.class_time = schedule.classTime || ''
+                  scheduleDetails.class_start_date = schedule.classStartDate
+                    ? new Date(schedule.classStartDate).toLocaleDateString('pt-BR')
+                    : ''
+                  scheduleDetails.class_end_date = schedule.classEndDate
+                    ? new Date(schedule.classEndDate).toLocaleDateString('pt-BR')
+                    : ''
+                  scheduleDetails.vacancies = schedule.vacancies?.toString() || ''
+                  break
+                }
+              }
+            }
+          }
+        }
+
         return [
           enrollment.candidateName,
-          enrollment.cpf,
+          `'${enrollment.cpf}`, // Prefix with ' to force text format in spreadsheets
           enrollment.email,
           enrollment.phone || '',
           enrollment.courseId,
           new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
           enrollment.status,
-          enrolledUnit?.address || '',
-          enrolledUnit?.neighborhood || '',
-          enrolledSchedule?.id || '',
-          enrolledSchedule?.class_days || '',
-          enrolledSchedule?.class_time || '',
-          enrolledSchedule?.class_start_date
-            ? new Date(enrolledSchedule.class_start_date).toLocaleDateString(
-                'pt-BR'
-              )
-            : '',
-          enrolledSchedule?.class_end_date
-            ? new Date(enrolledSchedule.class_end_date).toLocaleDateString(
-                'pt-BR'
-              )
-            : '',
-          enrolledSchedule?.vacancies?.toString() || '',
+          enrollment.address || enrolledUnit?.address || '',
+          enrollment.neighborhood || enrolledUnit?.neighborhood || '',
+          scheduleDetails.id,
+          turmaLabel,
+          scheduleDetails.class_days,
+          scheduleDetails.class_time,
+          scheduleDetails.class_start_date,
+          scheduleDetails.class_end_date,
+          scheduleDetails.vacancies,
           ...customFieldValues,
         ]
       }),
@@ -921,7 +972,7 @@ export function EnrollmentsTable({
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  }, [enrollments, courseId, courseTitle])
+  }, [enrollments, courseId, courseTitle, course])
 
   const handleBulkCancelEnrollments = React.useCallback(async () => {
     try {
@@ -1194,6 +1245,32 @@ export function EnrollmentsTable({
                           <p className="text-sm">{selectedEnrollment.phone}</p>
                         </div>
                       </div>
+                      {(selectedEnrollment.address || selectedEnrollment.neighborhood) && (
+                        <>
+                          {selectedEnrollment.address && (
+                            <div className="flex items-center gap-3">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Endereço
+                                </Label>
+                                <p className="text-sm">{selectedEnrollment.address}</p>
+                              </div>
+                            </div>
+                          )}
+                          {selectedEnrollment.neighborhood && (
+                            <div className="flex items-center gap-3">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Bairro
+                                </Label>
+                                <p className="text-sm">{selectedEnrollment.neighborhood}</p>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
 

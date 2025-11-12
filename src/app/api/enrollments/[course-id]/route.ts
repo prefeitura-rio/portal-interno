@@ -78,6 +78,8 @@ function convertApiEnrollmentToFrontend(
     cpf: (apiEnrollment.cpf as string) || '',
     email: (apiEnrollment.email as string) || '',
     phone: (apiEnrollment.phone as string) || '',
+    address: (apiEnrollment.address as string) || undefined,
+    neighborhood: (apiEnrollment.neighborhood as string) || undefined,
     enrollmentDate:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     status: convertApiStatusToFrontend(
