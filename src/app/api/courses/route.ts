@@ -66,10 +66,6 @@ export async function GET(request: Request) {
               return {
                 id: course.id?.toString() || 'unknown',
                 title: course.title || 'Sem título',
-                provider:
-                  (course as any).orgao?.nome ||
-                  course.organization ||
-                  'Não informado',
                 duration: course.carga_horaria || 0,
                 vacancies: course.numero_vagas || 0,
                 status: course.status || 'draft',
@@ -82,10 +78,7 @@ export async function GET(request: Request) {
                   ? new Date(course.enrollment_end_date)
                   : null,
                 modalidade: course.modalidade || 'PRESENCIAL',
-                organization:
-                  (course as any).orgao?.nome ||
-                  course.organization ||
-                  'Não informado',
+                orgao_id: course.orgao_id || null,
               } as CourseListItem
             }
           })

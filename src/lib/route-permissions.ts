@@ -60,18 +60,36 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
  * Checks if a user has access to a specific route based on their roles from Heimdall
  * @param route - The route to check
  * @param userRoles - Array of user's roles from Heimdall API
+ * @param cpf - Optional CPF for logging purposes
  * @returns boolean indicating if access is allowed
  */
 export function hasRouteAccess(
   route: string,
-  userRoles: string[] | null | undefined
+  userRoles: string[] | null | undefined,
+  cpf?: string
 ): boolean {
-  if (!userRoles || userRoles.length === 0) return false
+  const logPrefix = cpf ? `[${cpf}] [ROUTE_PERMISSIONS]` : '[ROUTE_PERMISSIONS]'
+
+  if (!userRoles || userRoles.length === 0) {
+    console.warn(
+      `${logPrefix} Access denied for route "${route}": No user roles provided (userRoles is ${userRoles === null ? 'null' : userRoles === undefined ? 'undefined' : 'empty array'})`
+    )
+    return false
+  }
 
   // Check exact match first
   const exactMatch = ROUTE_PERMISSIONS[route]
   if (exactMatch) {
-    return userRoles.some(role => exactMatch.includes(role))
+    const hasAccess = userRoles.some(role => exactMatch.includes(role))
+    console.log(
+      `${logPrefix} Exact match for route "${route}":`,
+      hasAccess,
+      'Required roles:',
+      exactMatch,
+      'User roles:',
+      userRoles
+    )
+    return hasAccess
   }
 
   // Check wildcard matches
@@ -81,12 +99,25 @@ export function hasRouteAccess(
     if (routePattern.endsWith('/*')) {
       const baseRoute = routePattern.slice(0, -2)
       if (route.startsWith(baseRoute)) {
-        return userRoles.some(role => allowedRoles.includes(role))
+        const hasAccess = userRoles.some(role => allowedRoles.includes(role))
+        console.log(
+          `${logPrefix} Wildcard match for route "${route}" (pattern: "${routePattern}"):`,
+          hasAccess,
+          'Required roles:',
+          allowedRoles,
+          'User roles:',
+          userRoles
+        )
+        return hasAccess
       }
     }
   }
 
   // Default to denying access for unmatched routes
+  console.warn(
+    `${logPrefix} No permission rule found for route "${route}". Access denied by default. User roles:`,
+    userRoles
+  )
   return false
 }
 

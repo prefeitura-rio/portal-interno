@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import { DepartmentName } from '@/components/ui/department-name'
 import type {
   CourseListItem,
   CourseStatus,
@@ -361,20 +362,14 @@ export default function Courses() {
       },
       {
         id: 'provider',
-        accessorKey: 'provider',
+        accessorKey: 'orgao_id',
         header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
           <DataTableColumnHeader column={column} title="Quem oferece" />
         ),
-        cell: ({ cell, row }) => {
+        cell: ({ row }) => {
           const isExternalPartner = row.original.is_external_partner
-          const provider = cell.getValue<CourseListItem['provider']>()
           const externalPartnerName = row.original.external_partner_name
-
-          // Use external partner name if it's a partnership and the name exists
-          const displayName =
-            isExternalPartner && externalPartnerName
-              ? externalPartnerName
-              : provider
+          const orgao_id = row.original.orgao_id
 
           return (
             <div className="flex items-center gap-2">
@@ -392,7 +387,13 @@ export default function Courses() {
                     Parceria
                   </Badge>
                 )}
-                <span className="max-w-[300px] truncate">{displayName}</span>
+                <span className="max-w-[300px] truncate">
+                  {isExternalPartner && externalPartnerName ? (
+                    externalPartnerName
+                  ) : (
+                    <DepartmentName cd_ua={orgao_id} />
+                  )}
+                </span>
               </div>
             </div>
           )

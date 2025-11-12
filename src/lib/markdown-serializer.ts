@@ -5,7 +5,9 @@ import type { Editor } from '@tiptap/react'
  */
 export function getMarkdownFromEditor(editor: Editor): string {
   const json = editor.getJSON()
-  return jsonToMarkdown(json)
+  const markdown = jsonToMarkdown(json)
+  // Trim the result to handle empty content properly
+  return markdown.trim()
 }
 
 /**

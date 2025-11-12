@@ -51,7 +51,8 @@ jobs:
             --build-arg NEXT_PUBLIC_COURSES_BASE_API_URL="https://services.staging.app.dados.rio/go" \
             --build-arg NEXT_PUBLIC_BUSCA_SEARCH_API_URL="https://services.staging.app.dados.rio/app-busca-search" \
             --build-arg NEXT_PUBLIC_HEIMDALL_BASE_API_URL="https://services.staging.app.dados.rio/heimdall-admin" \
-          --build-arg NEXT_PUBLIC_BUSCA_1746_COLLECTION=1746_v2_llm \
+            --build-arg NEXT_PUBLIC_RMI_BASE_API_URL="https://services.staging.app.dados.rio/rmi/v1" \
+            --build-arg NEXT_PUBLIC_BUSCA_1746_COLLECTION=1746_v2_llm \
             --build-arg NEXT_PUBLIC_BUSCA_CARIOCA_DIGITAL_COLLECTION=carioca-digital_v2_llm \
             --build-arg NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT=5 \
             --build-arg NEXT_PUBLIC_FEATURE_FLAG=false \
@@ -70,6 +71,7 @@ jobs:
             --build-arg NEXT_PUBLIC_COURSES_BASE_API_URL="https://services.pref.rio/go" \
             --build-arg NEXT_PUBLIC_BUSCA_SEARCH_API_URL="https://services.pref.rio/app-busca-search" \
             --build-arg NEXT_PUBLIC_HEIMDALL_BASE_API_URL="https://services.pref.rio/heimdall-admin" \
+            --build-arg NEXT_PUBLIC_RMI_BASE_API_URL="https://services.pref.rio/rmi/v1" \
             --build-arg NEXT_PUBLIC_BUSCA_1746_COLLECTION=1746 \
             --build-arg NEXT_PUBLIC_BUSCA_CARIOCA_DIGITAL_COLLECTION=carioca-digital \
             --build-arg NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT=1 \

@@ -151,7 +151,6 @@ export function DuplicateCourseButton({
         turno: 'LIVRE',
         formato_aula: course.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
         status: 'draft',
-        organization: course.organization || course.orgao?.nome,
       }
 
       // Call the draft API endpoint

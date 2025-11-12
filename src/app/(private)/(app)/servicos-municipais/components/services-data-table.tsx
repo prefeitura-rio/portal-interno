@@ -6,8 +6,9 @@ import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
 import { TombamentoModal } from '@/components/tombamento-modal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Combobox } from '@/components/ui/combobox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
+import { DepartmentName } from '@/components/ui/department-name'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +25,6 @@ import {
 import { useServiceOperationsWithTombamento } from '@/hooks/use-service-operations-with-tombamento'
 import { useServices } from '@/hooks/use-services'
 import { useTombamentos } from '@/hooks/use-tombamentos'
-import { SECRETARIAS } from '@/lib/secretarias'
 import type {
   ServiceListItem,
   ServiceStatus,
@@ -546,7 +546,7 @@ export function ServicesDataTable() {
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <span className="max-w-[200px] truncate">
-                {managingOrganValue}
+                <DepartmentName cd_ua={managingOrganValue} />
               </span>
             </div>
           )
@@ -946,18 +946,13 @@ export function ServicesDataTable() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col pb-4">
-        <Label className="py-4">Selecione uma secretaria</Label>
-        <Combobox
-          options={SECRETARIAS.map(secretaria => ({
-            value: secretaria,
-            label: secretaria,
-          }))}
+        <Label className="py-4">Filtrar por órgão/secretaria</Label>
+        <DepartmentCombobox
           value={selectedSecretaria}
           onValueChange={handleSecretariaChange}
-          placeholder="Todas as secretarias"
-          searchPlaceholder="Buscar secretaria..."
-          emptyMessage="Nenhuma secretaria encontrada."
+          placeholder="Todos os órgãos"
           className="md:w-auto h-14!"
+          clearButtonSize="h-14! w-14!"
         />
       </div>
       <Tabs

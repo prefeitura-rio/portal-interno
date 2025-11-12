@@ -8,6 +8,7 @@ import {
 } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { Badge } from '@/components/ui/badge'
+import { useDepartment } from '@/hooks/use-department'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -222,10 +223,7 @@ export default function CourseDetailPage({
         categorias: data.categorias || course?.categorias || [],
         modalidade: data.modalidade || course?.modalidade,
         status: data.status || course?.status,
-        // Ensure organization is synced with orgao.nome
-        organization:
-          data.orgao?.nome || data.organization || course?.organization,
-        orgao_id: (data.orgao as any)?.id || data.orgao_id || course?.orgao_id,
+        orgao_id: data.orgao_id || course?.orgao_id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -272,10 +270,7 @@ export default function CourseDetailPage({
         categorias: data.categorias || course?.categorias || [],
         modalidade: data.modalidade || course?.modalidade,
         status: 'opened',
-        // Ensure organization is synced with orgao.nome
-        organization:
-          data.orgao?.nome || data.organization || course?.organization,
-        orgao_id: (data.orgao as any)?.id || data.orgao_id || course?.orgao_id,
+        orgao_id: data.orgao_id || course?.orgao_id,
       }
 
       const response = await fetch(`/api/courses/${courseId}`, {
@@ -362,7 +357,6 @@ export default function CourseDetailPage({
     // Debug logging for course data
     console.log('Course data for buildCompleteUpdateData:', {
       orgao_id: course.orgao_id,
-      orgao: course.orgao,
       status: course.status,
       statusOverride,
     })
@@ -416,7 +410,6 @@ export default function CourseDetailPage({
       turno: 'LIVRE',
       formato_aula: course.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
       status: statusOverride || course.status,
-      organization: course.organization || course.orgao?.nome,
     }
   }
 
