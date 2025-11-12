@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
-import { useDepartment } from '@/hooks/use-department'
+import { DepartmentName } from '@/components/ui/department-name'
 import type {
   CourseListItem,
   CourseStatus,
@@ -128,25 +128,6 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
     variant: 'outline',
     className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
-}
-
-// Component to fetch and display department name
-function DepartmentName({ orgao_id }: { orgao_id?: string | null }) {
-  const { department, loading } = useDepartment(orgao_id)
-
-  if (loading) {
-    return <span className="text-muted-foreground">Carregando...</span>
-  }
-
-  if (!orgao_id) {
-    return <span className="text-muted-foreground">Não informado</span>
-  }
-
-  if (!department) {
-    return <span className="text-muted-foreground">Órgão não encontrado</span>
-  }
-
-  return <span>{department.nome_ua || department.cd_ua}</span>
 }
 
 export default function Courses() {
@@ -410,7 +391,7 @@ export default function Courses() {
                   {isExternalPartner && externalPartnerName ? (
                     externalPartnerName
                   ) : (
-                    <DepartmentName orgao_id={orgao_id} />
+                    <DepartmentName cd_ua={orgao_id} />
                   )}
                 </span>
               </div>

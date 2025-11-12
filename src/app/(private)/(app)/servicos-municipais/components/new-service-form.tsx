@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import {
   Form,
   FormControl,
@@ -35,7 +36,6 @@ import {
   useIsBuscaServicesAdmin,
 } from '@/hooks/use-heimdall-user'
 import { useServiceOperations } from '@/hooks/use-service-operations'
-import { SECRETARIAS } from '@/lib/secretarias'
 import {
   getCurrentTimestamp,
   transformToApiRequest,
@@ -931,24 +931,14 @@ export function NewServiceForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Órgão gestor*</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isLoading || readOnly}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o órgão gestor" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {SECRETARIAS.map(secretaria => (
-                          <SelectItem key={secretaria} value={secretaria}>
-                            {secretaria}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <DepartmentCombobox
+                        value={field.value || ''}
+                        onValueChange={field.onChange}
+                        disabled={isLoading || readOnly}
+                        placeholder={readOnly ? '' : 'Selecione o órgão gestor'}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
