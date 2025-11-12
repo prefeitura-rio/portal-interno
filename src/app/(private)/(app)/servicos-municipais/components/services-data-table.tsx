@@ -952,6 +952,7 @@ export function ServicesDataTable() {
           onValueChange={handleSecretariaChange}
           placeholder="Todos os órgãos"
           className="md:w-auto h-14!"
+          clearButtonSize="h-14! w-14!"
         />
       </div>
       <Tabs
