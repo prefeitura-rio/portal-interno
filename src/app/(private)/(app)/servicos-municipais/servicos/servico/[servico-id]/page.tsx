@@ -41,7 +41,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NewServiceForm } from '../../../components/new-service-form'
 
@@ -120,6 +120,32 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const { fetchTombamentos, deleteTombamento } = useTombamentos()
   const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
   const canEditServices = useCanEditBuscaServices()
+
+  const initialFormData = useMemo(() => {
+    if (!service) {
+      return null
+    }
+
+    return {
+      managingOrgan: service.managingOrgan,
+      serviceCategory: service.serviceCategory,
+      targetAudience: service.targetAudience,
+      title: service.title,
+      shortDescription: service.shortDescription,
+      buttons: service.buttons,
+      whatServiceDoesNotCover: service.whatServiceDoesNotCover,
+      serviceTime: service.serviceTime,
+      serviceCost: service.serviceCost,
+      isFree: service.isFree,
+      requestResult: service.requestResult,
+      fullDescription: service.fullDescription,
+      requiredDocuments: service.requiredDocuments,
+      instructionsForRequester: service.instructionsForRequester,
+      digitalChannels: service.digitalChannels,
+      physicalChannels: service.physicalChannels,
+      legislacaoRelacionada: service.legislacaoRelacionada,
+    }
+  }, [service])
 
   const handleEdit = () => {
     setIsEditing(true)
@@ -657,25 +683,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
               onPublish={handleApproveAndPublish}
               serviceId={servicoId || undefined}
               onFormChangesDetected={setHasFormChanges}
-              initialData={{
-                managingOrgan: service.managingOrgan,
-                serviceCategory: service.serviceCategory,
-                targetAudience: service.targetAudience,
-                title: service.title,
-                shortDescription: service.shortDescription,
-                buttons: service.buttons,
-                whatServiceDoesNotCover: service.whatServiceDoesNotCover,
-                serviceTime: service.serviceTime,
-                serviceCost: service.serviceCost,
-                isFree: service.isFree,
-                requestResult: service.requestResult,
-                fullDescription: service.fullDescription,
-                requiredDocuments: service.requiredDocuments,
-                instructionsForRequester: service.instructionsForRequester,
-                digitalChannels: service.digitalChannels,
-                physicalChannels: service.physicalChannels,
-                legislacaoRelacionada: service.legislacaoRelacionada,
-              }}
+              initialData={initialFormData ?? undefined}
             />
           </TabsContent>
 

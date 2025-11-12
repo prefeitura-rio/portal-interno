@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
 import { MarkdownEditor } from '@/components/blocks/editor-md'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
 
 import {
   Accordion,
@@ -152,10 +153,7 @@ const fullFormSchema = z
       enrollment_end_date: z.date({
         required_error: 'Data de término é obrigatória.',
       }),
-      orgao: z.object({
-        id: z.number(),
-        nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
-      }),
+      orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.literal('ONLINE'),
       // theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
       //   required_error: 'Tema é obrigatório.',
@@ -271,10 +269,7 @@ const fullFormSchema = z
       enrollment_end_date: z.date({
         required_error: 'Data de término é obrigatória.',
       }),
-      orgao: z.object({
-        id: z.number(),
-        nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
-      }),
+      orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.enum(['PRESENCIAL', 'HIBRIDO']),
       // theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
       //   required_error: 'Tema é obrigatório.',
@@ -421,12 +416,7 @@ const draftFormSchema = z.object({
   category: z.number().optional(),
   enrollment_start_date: z.date().optional(),
   enrollment_end_date: z.date().optional(),
-  orgao: z
-    .object({
-      id: z.number(),
-      nome: z.string(),
-    })
-    .optional(),
+  orgao_id: z.string().optional(),
   modalidade: z.enum(['PRESENCIAL', 'HIBRIDO', 'ONLINE']).optional(),
   // theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
   theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
@@ -572,9 +562,7 @@ type BackendCourseData = {
   categorias?: Array<{ id: number }>
   enrollment_start_date: string | undefined
   enrollment_end_date: string | undefined
-  orgao: { id: number; nome: string }
-  organization: string
-  orgao_id: number | null
+  orgao_id: string | null
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   theme?: string
   workload: string
@@ -666,12 +654,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       return text
     }
 
-    // State for organizations
-    const [orgaos, setOrgaos] = useState<Array<{ id: number; nome: string }>>(
-      []
-    )
-    const [loadingOrgaos, setLoadingOrgaos] = useState(false)
-
     // State for categories
     const [categories, setCategories] = useState<Category[]>([])
     const [loadingCategories, setLoadingCategories] = useState(false)
@@ -746,7 +728,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_start_date:
               initialData.enrollment_start_date || new Date(),
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
-            orgao: initialData.orgao,
+            orgao_id: initialData.orgao_id || '',
             modalidade: initialData.modalidade,
             theme: initialData.theme || undefined,
             workload: initialData.workload || '',
@@ -808,7 +790,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             category: undefined,
             enrollment_start_date: new Date(),
             enrollment_end_date: new Date(),
-            orgao: undefined,
+            orgao_id: '',
             modalidade: undefined,
             theme: undefined,
             locations: [],
@@ -882,30 +864,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       }
     }
 
-    // Fetch organizations on component mount
-    React.useEffect(() => {
-      const fetchOrgaos = async () => {
-        try {
-          setLoadingOrgaos(true)
-          const response = await fetch('/api/orgaos')
-
-          if (response.ok) {
-            const data = await response.json()
-            setOrgaos(data.data || [])
-          } else {
-            console.error('Failed to fetch organizations')
-            toast.error('Erro ao carregar organizações')
-          }
-        } catch (error) {
-          console.error('Error fetching organizations:', error)
-          toast.error('Erro ao carregar organizações')
-        } finally {
-          setLoadingOrgaos(false)
-        }
-      }
-
-      fetchOrgaos()
-    }, [])
 
     // Transform form data to snake_case for backend API
     const transformFormDataToSnakeCase = (data: PartialFormData) => {
@@ -951,11 +909,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         enrollment_end_date: data.enrollment_end_date
           ? formatDateTimeToUTC(data.enrollment_end_date)
           : undefined,
-        orgao: data.orgao,
-        // Bind orgao.nome to organization field
-        organization: data.orgao?.nome || '',
-        // Include orgao_id for backend compatibility
-        orgao_id: data.orgao?.id || null,
+        orgao_id: data.orgao_id || null,
         modalidade: data.modalidade,
         theme: data.theme || undefined,
         workload: data.workload,
@@ -1019,9 +973,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         category: data.category,
         enrollment_start_date: data.enrollment_start_date || currentDate,
         enrollment_end_date: data.enrollment_end_date || nextMonth,
-        orgao:
-          data.orgao ||
-          (orgaos.length > 0 ? orgaos[0] : { id: 1, nome: 'Órgão Padrão' }),
+        orgao_id: data.orgao_id || '',
         modalidade: modalidade as 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE',
         theme: data.theme || undefined,
         workload: data.workload,
@@ -1475,51 +1427,18 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
               <FormField
                 control={form.control}
-                name="orgao"
+                name="orgao_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Órgão (Quem oferece o curso)*</FormLabel>
-                    <Select
-                      onValueChange={value => {
-                        const selectedOrgao = orgaos.find(
-                          org => org.id.toString() === value
-                        )
-                        if (selectedOrgao) {
-                          field.onChange(selectedOrgao)
-                        }
-                      }}
-                      value={field.value?.id?.toString() || ''}
-                      disabled={isReadOnly || loadingOrgaos}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              loadingOrgaos
-                                ? 'Carregando organizações...'
-                                : orgaos.length === 0
-                                  ? 'Nenhuma organização encontrada'
-                                  : 'Selecione um órgão'
-                            }
-                          >
-                            {field.value?.nome &&
-                              truncateText(field.value.nome)}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      {!loadingOrgaos && orgaos.length > 0 && (
-                        <SelectContent>
-                          {orgaos.map(orgao => (
-                            <SelectItem
-                              key={orgao.id}
-                              value={orgao.id.toString()}
-                            >
-                              {orgao.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      )}
-                    </Select>
+                    <FormControl>
+                      <DepartmentCombobox
+                        value={field.value || ''}
+                        onValueChange={field.onChange}
+                        disabled={isReadOnly}
+                        placeholder="Selecione um órgão"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

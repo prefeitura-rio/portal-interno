@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import {
   Form,
   FormControl,
@@ -35,7 +36,6 @@ import {
   useIsBuscaServicesAdmin,
 } from '@/hooks/use-heimdall-user'
 import { useServiceOperations } from '@/hooks/use-service-operations'
-import { SECRETARIAS } from '@/lib/secretarias'
 import {
   getCurrentTimestamp,
   transformToApiRequest,
@@ -122,11 +122,9 @@ const serviceFormSchema = z.object({
     .optional(),
   digitalChannels: z
     .array(
-      z
-        .string()
-        .max(5000, {
-          message: 'Canal digital não pode exceder 5000 caracteres.',
-        })
+      z.string().max(5000, {
+        message: 'Canal digital não pode exceder 5000 caracteres.',
+      })
     )
     .optional(),
   physicalChannels: z
@@ -241,6 +239,8 @@ export function NewServiceForm({
       : defaultValues,
   })
 
+  const watchedValues = form.watch()
+
   // Update form values when initialData changes
   React.useEffect(() => {
     if (initialData) {
@@ -262,113 +262,108 @@ export function NewServiceForm({
 
   // Check for form changes
   React.useEffect(() => {
-    // Only check changes when in edit mode (not read-only) and we have initial data
     if (readOnly || !initialData) {
       setHasFormChanges(false)
       return
     }
 
-    const subscription = form.watch(formData => {
-      // Helper function to normalize arrays for comparison
-      const normalizeArray = (arr: any[] | undefined) => {
-        if (!arr || arr.length === 0) return undefined
-        return arr.filter(item => {
-          if (typeof item === 'string') return item.trim() !== ''
-          return true
-        })
+    const formData = watchedValues as Partial<ServiceFormData>
+
+    // Helper function to normalize arrays for comparison
+    const normalizeArray = (arr: any[] | undefined) => {
+      if (!arr || arr.length === 0) return undefined
+      return arr.filter(item => {
+        if (typeof item === 'string') return item.trim() !== ''
+        return true
+      })
+    }
+
+    // Helper function for deep equality check
+    const deepEqual = (a: any, b: any): boolean => {
+      if (a === b) return true
+      if (a == null || b == null) return false
+      if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) return false
+        return a.every((val, index) => deepEqual(val, b[index]))
+      }
+      if (typeof a === 'object' && typeof b === 'object') {
+        const keysA = Object.keys(a)
+        const keysB = Object.keys(b)
+        if (keysA.length !== keysB.length) return false
+        return keysA.every(key => deepEqual(a[key], b[key]))
+      }
+      return false
+    }
+
+    // Compare each field
+    let hasChanges = false
+
+    // Check regular form fields
+    const fieldsToCheck: (keyof ServiceFormData)[] = [
+      'managingOrgan',
+      'serviceCategory',
+      'targetAudience',
+      'title',
+      'shortDescription',
+      'whatServiceDoesNotCover',
+      'serviceTime',
+      'serviceCost',
+      'isFree',
+      'requestResult',
+      'fullDescription',
+      'requiredDocuments',
+      'instructionsForRequester',
+    ]
+
+    for (const field of fieldsToCheck) {
+      const currentValue = formData[field]
+      const initialValue = initialData?.[field]
+      if (currentValue !== initialValue) {
+        hasChanges = true
+        break
+      }
+    }
+
+    // Check arrays if no changes found yet
+    if (!hasChanges) {
+      // Check digitalChannels
+      const normalizedCurrentDigital = normalizeArray(digitalChannels)
+      const normalizedInitialDigital = normalizeArray(
+        initialData?.digitalChannels
+      )
+      if (!deepEqual(normalizedCurrentDigital, normalizedInitialDigital)) {
+        hasChanges = true
       }
 
-      // Helper function for deep equality check
-      const deepEqual = (a: any, b: any): boolean => {
-        if (a === b) return true
-        if (a == null || b == null) return false
-        if (Array.isArray(a) && Array.isArray(b)) {
-          if (a.length !== b.length) return false
-          return a.every((val, index) => deepEqual(val, b[index]))
-        }
-        if (typeof a === 'object' && typeof b === 'object') {
-          const keysA = Object.keys(a)
-          const keysB = Object.keys(b)
-          if (keysA.length !== keysB.length) return false
-          return keysA.every(key => deepEqual(a[key], b[key]))
-        }
-        return false
+      // Check physicalChannels
+      const normalizedCurrentPhysical = normalizeArray(physicalChannels)
+      const normalizedInitialPhysical = normalizeArray(
+        initialData?.physicalChannels
+      )
+      if (!deepEqual(normalizedCurrentPhysical, normalizedInitialPhysical)) {
+        hasChanges = true
       }
 
-      // Compare each field
-      let hasChanges = false
-
-      // Check regular form fields
-      const fieldsToCheck: (keyof ServiceFormData)[] = [
-        'managingOrgan',
-        'serviceCategory',
-        'targetAudience',
-        'title',
-        'shortDescription',
-        'whatServiceDoesNotCover',
-        'serviceTime',
-        'serviceCost',
-        'isFree',
-        'requestResult',
-        'fullDescription',
-        'requiredDocuments',
-        'instructionsForRequester',
-      ]
-
-      for (const field of fieldsToCheck) {
-        const currentValue = formData[field]
-        const initialValue = initialData?.[field]
-        if (currentValue !== initialValue) {
-          hasChanges = true
-          break
-        }
+      // Check legislacaoRelacionada
+      const normalizedCurrentLegislacao = normalizeArray(legislacaoRelacionada)
+      const normalizedInitialLegislacao = normalizeArray(
+        initialData?.legislacaoRelacionada
+      )
+      if (
+        !deepEqual(normalizedCurrentLegislacao, normalizedInitialLegislacao)
+      ) {
+        hasChanges = true
       }
 
-      // Check arrays if no changes found yet
-      if (!hasChanges) {
-        // Check digitalChannels
-        const normalizedCurrentDigital = normalizeArray(digitalChannels)
-        const normalizedInitialDigital = normalizeArray(
-          initialData?.digitalChannels
-        )
-        if (!deepEqual(normalizedCurrentDigital, normalizedInitialDigital)) {
-          hasChanges = true
-        }
-
-        // Check physicalChannels
-        const normalizedCurrentPhysical = normalizeArray(physicalChannels)
-        const normalizedInitialPhysical = normalizeArray(
-          initialData?.physicalChannels
-        )
-        if (!deepEqual(normalizedCurrentPhysical, normalizedInitialPhysical)) {
-          hasChanges = true
-        }
-
-        // Check legislacaoRelacionada
-        const normalizedCurrentLegislacao = normalizeArray(
-          legislacaoRelacionada
-        )
-        const normalizedInitialLegislacao = normalizeArray(
-          initialData?.legislacaoRelacionada
-        )
-        if (
-          !deepEqual(normalizedCurrentLegislacao, normalizedInitialLegislacao)
-        ) {
-          hasChanges = true
-        }
-
-        // Check serviceButtons
-        if (!deepEqual(serviceButtons, initialData?.buttons || [])) {
-          hasChanges = true
-        }
+      // Check serviceButtons
+      if (!deepEqual(serviceButtons, initialData?.buttons || [])) {
+        hasChanges = true
       }
+    }
 
-      setHasFormChanges(hasChanges)
-    })
-
-    return () => subscription.unsubscribe()
+    setHasFormChanges(hasChanges)
   }, [
-    form,
+    watchedValues,
     initialData,
     readOnly,
     digitalChannels,
@@ -931,24 +926,14 @@ export function NewServiceForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Órgão gestor*</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isLoading || readOnly}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o órgão gestor" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {SECRETARIAS.map(secretaria => (
-                          <SelectItem key={secretaria} value={secretaria}>
-                            {secretaria}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <DepartmentCombobox
+                        value={field.value || ''}
+                        onValueChange={field.onChange}
+                        disabled={isLoading || readOnly}
+                        placeholder={readOnly ? '' : 'Selecione o órgão gestor'}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
