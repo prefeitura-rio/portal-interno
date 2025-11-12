@@ -36,6 +36,22 @@ function matchRoute(pathname: string, routePath: string): boolean {
 
 export const REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE = `${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_BASE_URL}/auth?client_id=${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_REDIRECT_URI}&response_type=code`
 
+/**
+ * Extracts CPF from JWT token for logging purposes
+ * @param accessToken - The user's access token
+ * @returns CPF string or 'unknown' if not found
+ */
+function getCpfFromToken(accessToken: string): string {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(accessToken.split('.')[1], 'base64').toString()
+    )
+    return payload.preferred_username || payload.cpf || payload.sub || 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
 export async function middleware(request: NextRequest) {
   // Generate nonce for CSP
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
@@ -130,9 +146,11 @@ export async function middleware(request: NextRequest) {
   }
 
   if (authToken && !publicRoute) {
+    const cpf = getCpfFromToken(authToken.value)
+
     // Check if JWT is expired
     if (isJwtExpired(authToken.value)) {
-      console.log(`[MIDDLEWARE] JWT expired for path: ${path}`)
+      console.log(`[${cpf}] [MIDDLEWARE] JWT expired for path: ${path}`)
       return await handleExpiredToken(
         request,
         refreshToken?.value,
@@ -143,20 +161,20 @@ export async function middleware(request: NextRequest) {
 
     // Role-based access control (RBAC) using Heimdall API
     // Fetch user roles and verify route access
-    console.log(`[MIDDLEWARE] Checking access for path: ${path}`)
+    console.log(`[${cpf}] [MIDDLEWARE] Checking access for path: ${path}`)
     const userRoles = await getUserRolesInMiddleware(authToken.value)
 
-    console.log(`[MIDDLEWARE] User roles retrieved:`, userRoles)
+    console.log(`[${cpf}] [MIDDLEWARE] User roles retrieved:`, userRoles)
 
     // Check if user has access to the requested route
-    const hasAccess = hasRouteAccess(path, userRoles)
+    const hasAccess = hasRouteAccess(path, userRoles, cpf)
 
-    console.log(`[MIDDLEWARE] Access check result for ${path}:`, hasAccess)
+    console.log(`[${cpf}] [MIDDLEWARE] Access check result for ${path}:`, hasAccess)
 
     if (!hasAccess) {
       // User doesn't have required roles for this route
       console.error(
-        `[MIDDLEWARE] Access DENIED for path: ${path}. User roles:`,
+        `[${cpf}] [MIDDLEWARE] Access DENIED for path: ${path}. User roles:`,
         userRoles,
         'Required roles for this route:',
         hasAccess ? 'N/A' : 'Check route-permissions.ts'
@@ -168,7 +186,7 @@ export async function middleware(request: NextRequest) {
       )
     }
 
-    console.log(`[MIDDLEWARE] Access GRANTED for path: ${path}`)
+    console.log(`[${cpf}] [MIDDLEWARE] Access GRANTED for path: ${path}`)
 
     const response = NextResponse.next({
       request: {

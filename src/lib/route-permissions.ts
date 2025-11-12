@@ -60,15 +60,19 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
  * Checks if a user has access to a specific route based on their roles from Heimdall
  * @param route - The route to check
  * @param userRoles - Array of user's roles from Heimdall API
+ * @param cpf - Optional CPF for logging purposes
  * @returns boolean indicating if access is allowed
  */
 export function hasRouteAccess(
   route: string,
-  userRoles: string[] | null | undefined
+  userRoles: string[] | null | undefined,
+  cpf?: string
 ): boolean {
+  const logPrefix = cpf ? `[${cpf}] [ROUTE_PERMISSIONS]` : '[ROUTE_PERMISSIONS]'
+
   if (!userRoles || userRoles.length === 0) {
     console.warn(
-      `[ROUTE_PERMISSIONS] Access denied for route "${route}": No user roles provided (userRoles is ${userRoles === null ? 'null' : userRoles === undefined ? 'undefined' : 'empty array'})`
+      `${logPrefix} Access denied for route "${route}": No user roles provided (userRoles is ${userRoles === null ? 'null' : userRoles === undefined ? 'undefined' : 'empty array'})`
     )
     return false
   }
@@ -78,7 +82,7 @@ export function hasRouteAccess(
   if (exactMatch) {
     const hasAccess = userRoles.some(role => exactMatch.includes(role))
     console.log(
-      `[ROUTE_PERMISSIONS] Exact match for route "${route}":`,
+      `${logPrefix} Exact match for route "${route}":`,
       hasAccess,
       'Required roles:',
       exactMatch,
@@ -97,7 +101,7 @@ export function hasRouteAccess(
       if (route.startsWith(baseRoute)) {
         const hasAccess = userRoles.some(role => allowedRoles.includes(role))
         console.log(
-          `[ROUTE_PERMISSIONS] Wildcard match for route "${route}" (pattern: "${routePattern}"):`,
+          `${logPrefix} Wildcard match for route "${route}" (pattern: "${routePattern}"):`,
           hasAccess,
           'Required roles:',
           allowedRoles,
@@ -111,7 +115,7 @@ export function hasRouteAccess(
 
   // Default to denying access for unmatched routes
   console.warn(
-    `[ROUTE_PERMISSIONS] No permission rule found for route "${route}". Access denied by default. User roles:`,
+    `${logPrefix} No permission rule found for route "${route}". Access denied by default. User roles:`,
     userRoles
   )
   return false
