@@ -314,6 +314,8 @@ export interface Enrollment {
   cpf: string
   email: string
   phone: string
+  address?: string
+  neighborhood?: string
   enrollmentDate: string
   status: EnrollmentStatus
   notes?: string
