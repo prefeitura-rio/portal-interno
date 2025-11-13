@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to create draft course' },
+      { error: 'Failed to create draft course', message: response.data },
       { status: response.status }
     )
   } catch (error) {

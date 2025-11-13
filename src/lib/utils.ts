@@ -285,18 +285,7 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     coverImage: courseData.cover_image || '',
     custom_fields: courseData.custom_fields || [],
     customFields: courseData.custom_fields || [],
-    remote_class: courseData.remote_class
-      ? {
-          vacancies: courseData.remote_class.vacancies || 0,
-          classStartDate:
-            safeParseDate(courseData.remote_class.class_start_date) ||
-            new Date(),
-          classEndDate:
-            safeParseDate(courseData.remote_class.class_end_date) || new Date(),
-          classTime: courseData.remote_class.class_time || '',
-          classDays: courseData.remote_class.class_days || '',
-        }
-      : undefined,
+    remote_class: courseData.remote_class,
     status: getDynamicCourseStatus(courseData),
     originalStatus: courseData.status,
     created_at: safeParseDate(courseData.created_at) || new Date(),
