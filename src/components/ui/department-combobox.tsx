@@ -228,7 +228,7 @@ export function DepartmentCombobox({
   }
 
   return (
-    <div className="flex gap-2 w-full">
+    <div className="flex gap-2 w-full min-w-0">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -237,12 +237,15 @@ export function DepartmentCombobox({
             aria-expanded={open}
             disabled={disabled}
             className={cn(
-              'truncate! relative! overflow-hidden! flex-1 justify-between text-left',
+              'truncate! relative! overflow-hidden! flex-1 justify-between text-left min-w-0 w-full',
               !value && 'text-muted-foreground',
               className
             )}
           >
-            <span className="truncate relative! overflow-hidden! flex-1 min-w-0">
+            <span
+              className="truncate relative! overflow-hidden! flex-1 min-w-0"
+              title={typeof displayValue === 'string' ? displayValue : undefined}
+            >
               {displayValue}
             </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
