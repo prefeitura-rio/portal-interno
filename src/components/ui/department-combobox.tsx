@@ -244,7 +244,9 @@ export function DepartmentCombobox({
           >
             <span
               className="truncate relative! overflow-hidden! flex-1 min-w-0"
-              title={typeof displayValue === 'string' ? displayValue : undefined}
+              title={
+                typeof displayValue === 'string' ? displayValue : undefined
+              }
             >
               {displayValue}
             </span>
