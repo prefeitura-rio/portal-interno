@@ -16,10 +16,9 @@
 * https://raw.githubusercontent.com/prefeitura-rio/app-busca-search/refs/heads/staging/docs/openapi-v3.json
 
 ```
-api: {
+ api: {
     input:
-     // 'https://raw.githubusercontent.com/prefeitura-rio/app-busca-search/refs/heads/staging/docs/openapi-v3.json',
-       './app-busca-search.yaml',
+      'https://raw.githubusercontent.com/prefeitura-rio/app-busca-search/refs/heads/staging/docs/openapi-v3.json',
     output: {
       target: './src/http-busca-search/api.ts',
       schemas: './src/http-busca-search/models',
@@ -93,7 +92,6 @@ api: {
     },
   },
 ```
-
 
 > ## API RMI
 

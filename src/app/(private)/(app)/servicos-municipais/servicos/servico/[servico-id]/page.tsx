@@ -564,17 +564,21 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
                   <span>
-                    Criado em{' '}
-                    {format(service.created_at || new Date(), 'dd/MM/yyyy', {
-                      locale: ptBR,
-                    })}
+                    Última modificação em{' '}
+                    {format(
+                      service.last_update || new Date(),
+                      'dd/MM/yyyy HH:mm:ss',
+                      {
+                        locale: ptBR,
+                      }
+                    )}
                   </span>
                   {service.published_at && (
                     <>
                       <span className="hidden sm:inline">•</span>
                       <span>
                         Publicado em{' '}
-                        {format(service.published_at, 'dd/MM/yyyy', {
+                        {format(service.published_at, 'dd/MM/yyyy HH:mm:ss', {
                           locale: ptBR,
                         })}
                       </span>
