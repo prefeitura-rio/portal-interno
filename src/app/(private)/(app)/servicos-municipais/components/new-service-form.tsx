@@ -42,6 +42,187 @@ import {
 } from '@/lib/service-data-transformer'
 import { toast } from 'sonner'
 
+const sanitizeStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter(item => typeof item === 'string')
+    .map(item => item as string)
+}
+
+const sanitizeButtons = (value: unknown): ServiceButton[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter(button => button && typeof button === 'object')
+    .map((button, index) => {
+      const typedButton = button as Partial<ServiceButton>
+
+      return {
+        titulo:
+          typeof typedButton.titulo === 'string' ? typedButton.titulo : '',
+        descricao:
+          typeof typedButton.descricao === 'string'
+            ? typedButton.descricao
+            : '',
+        url_service:
+          typeof typedButton.url_service === 'string'
+            ? typedButton.url_service
+            : '',
+        is_enabled:
+          typeof typedButton.is_enabled === 'boolean'
+            ? typedButton.is_enabled
+            : true,
+        ordem:
+          typeof typedButton.ordem === 'number' &&
+          !Number.isNaN(typedButton.ordem)
+            ? typedButton.ordem
+            : index,
+      }
+    })
+}
+
+type ButtonErrorState = {
+  titulo?: string
+  descricao?: string
+  url_service?: string
+}
+
+const buildDigitalChannelErrors = (channels: string[]): string[] => {
+  const hasMultipleFields = channels.length > 1
+  const hasAnyFilled = channels.some(channel => channel.trim() !== '')
+
+  return channels.map(channel => {
+    const trimmed = channel.trim()
+
+    if (!hasMultipleFields && !hasAnyFilled && trimmed === '') {
+      return ''
+    }
+
+    if (trimmed === '') {
+      return 'Preencha este canal digital ou remova o campo.'
+    }
+
+    if (trimmed.length > 5000) {
+      return 'Canal digital não pode exceder 5000 caracteres.'
+    }
+
+    return ''
+  })
+}
+
+const buildPhysicalChannelErrors = (channels: string[]): string[] => {
+  const hasMultipleFields = channels.length > 1
+  const hasAnyFilled = channels.some(channel => channel.trim() !== '')
+
+  return channels.map(channel => {
+    const trimmed = channel.trim()
+
+    if (!hasMultipleFields && !hasAnyFilled && trimmed === '') {
+      return ''
+    }
+
+    if (trimmed === '') {
+      return 'Preencha este endereço ou remova o campo.'
+    }
+
+    if (trimmed.length < 5) {
+      return 'Endereço muito curto.'
+    }
+
+    return ''
+  })
+}
+
+const buildLegislacaoErrors = (entries: string[]): string[] => {
+  const hasMultipleFields = entries.length > 1
+  const hasAnyFilled = entries.some(entry => entry.trim() !== '')
+
+  return entries.map(entry => {
+    const trimmed = entry.trim()
+
+    if (!hasMultipleFields && !hasAnyFilled && trimmed === '') {
+      return ''
+    }
+
+    if (trimmed === '') {
+      return 'Informe a legislação ou remova o campo.'
+    }
+
+    if (trimmed.length < 5) {
+      return 'Legislação muito curta.'
+    }
+
+    return ''
+  })
+}
+
+const isValidUrl = (value: string) => {
+  try {
+    const parsedUrl = new URL(value)
+    return Boolean(parsedUrl)
+  } catch {
+    return false
+  }
+}
+
+const isButtonCompleteAndValid = (button: ServiceButton) => {
+  if (
+    !button.titulo ||
+    button.titulo.trim() === '' ||
+    !button.descricao ||
+    button.descricao.trim() === '' ||
+    !button.url_service ||
+    button.url_service.trim() === ''
+  ) {
+    return false
+  }
+
+  return isValidUrl(button.url_service)
+}
+
+const getValidDigitalChannels = (channels: string[]) =>
+  channels
+    .filter(channel => channel.trim() !== '')
+    .filter(channel => channel.trim().length <= 5000)
+    .map(channel => channel.trim())
+
+const getValidPhysicalChannels = (channels: string[]) =>
+  channels
+    .filter(channel => channel.trim() !== '')
+    .filter(channel => channel.trim().length >= 5)
+    .map(channel => channel.trim())
+
+const getValidLegislacaoEntries = (entries: string[]) =>
+  entries
+    .filter(entry => entry.trim() !== '')
+    .filter(entry => entry.trim().length >= 5)
+    .map(entry => entry.trim())
+
+const buildButtonErrors = (button: ServiceButton): ButtonErrorState => {
+  const errors: ButtonErrorState = {}
+
+  if (!button.titulo || button.titulo.trim() === '') {
+    errors.titulo = 'Título do botão é obrigatório'
+  }
+
+  if (!button.descricao || button.descricao.trim() === '') {
+    errors.descricao = 'Descrição do botão é obrigatória'
+  }
+
+  if (!button.url_service || button.url_service.trim() === '') {
+    errors.url_service = 'URL é obrigatória'
+  } else if (!isValidUrl(button.url_service)) {
+    errors.url_service = 'URL inválida'
+  }
+
+  return errors
+}
+
 // Define the schema for service form validation
 const serviceFormSchema = z.object({
   managingOrgan: z.string().min(1, { message: 'Órgão gestor é obrigatório.' }),
@@ -189,6 +370,33 @@ export function NewServiceForm({
     loading: operationLoading,
   } = useServiceOperations()
 
+  const sanitizedInitialData = React.useMemo(() => {
+    if (!initialData) {
+      return undefined
+    }
+
+    const sanitizedDigitalChannels = sanitizeStringArray(
+      (initialData.digitalChannels ?? []) as unknown
+    )
+    const sanitizedPhysicalChannels = sanitizeStringArray(
+      (initialData.physicalChannels ?? []) as unknown
+    )
+    const sanitizedLegislacao = sanitizeStringArray(
+      (initialData.legislacaoRelacionada ?? []) as unknown
+    )
+    const sanitizedButtons = sanitizeButtons(
+      (initialData.buttons ?? []) as unknown
+    )
+
+    return {
+      ...initialData,
+      digitalChannels: sanitizedDigitalChannels,
+      physicalChannels: sanitizedPhysicalChannels,
+      legislacaoRelacionada: sanitizedLegislacao,
+      buttons: sanitizedButtons,
+    }
+  }, [initialData])
+
   // Removed tombamento hook since we're redirecting to detail page
   const [showSendToEditDialog, setShowSendToEditDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
@@ -197,61 +405,114 @@ export function NewServiceForm({
   const [pendingFormData, setPendingFormData] =
     useState<ServiceFormData | null>(null)
   const [digitalChannels, setDigitalChannels] = useState<string[]>(
-    initialData?.digitalChannels || ['']
+    sanitizedInitialData && sanitizedInitialData.digitalChannels.length > 0
+      ? sanitizedInitialData.digitalChannels
+      : ['']
   )
   const [channelErrors, setChannelErrors] = useState<string[]>(
-    initialData?.digitalChannels?.map(() => '') || ['']
+    sanitizedInitialData && sanitizedInitialData.digitalChannels.length > 0
+      ? sanitizedInitialData.digitalChannels.map(() => '')
+      : ['']
   )
   const [physicalChannels, setPhysicalChannels] = useState<string[]>(
-    initialData?.physicalChannels || ['']
+    sanitizedInitialData && sanitizedInitialData.physicalChannels.length > 0
+      ? sanitizedInitialData.physicalChannels
+      : ['']
   )
   const [physicalChannelErrors, setPhysicalChannelErrors] = useState<string[]>(
-    initialData?.physicalChannels?.map(() => '') || ['']
+    sanitizedInitialData && sanitizedInitialData.physicalChannels.length > 0
+      ? sanitizedInitialData.physicalChannels.map(() => '')
+      : ['']
   )
   const [legislacaoRelacionada, setLegislacaoRelacionada] = useState<string[]>(
-    initialData?.legislacaoRelacionada || ['']
+    sanitizedInitialData &&
+      sanitizedInitialData.legislacaoRelacionada.length > 0
+      ? sanitizedInitialData.legislacaoRelacionada
+      : ['']
   )
   const [legislacaoErrors, setLegislacaoErrors] = useState<string[]>(
-    initialData?.legislacaoRelacionada?.map(() => '') || ['']
+    sanitizedInitialData &&
+      sanitizedInitialData.legislacaoRelacionada.length > 0
+      ? sanitizedInitialData.legislacaoRelacionada.map(() => '')
+      : ['']
   )
   const [serviceButtons, setServiceButtons] = useState<ServiceButton[]>(
-    initialData?.buttons && initialData.buttons.length > 0
-      ? initialData.buttons
+    sanitizedInitialData?.buttons && sanitizedInitialData.buttons.length > 0
+      ? sanitizedInitialData.buttons
       : []
   )
-  const [buttonErrors, setButtonErrors] = useState<
-    Array<{
-      titulo?: string
-      descricao?: string
-      url_service?: string
-    }>
-  >(
-    initialData?.buttons && initialData.buttons.length > 0
-      ? initialData.buttons.map(() => ({}))
+  const [buttonErrors, setButtonErrors] = useState<ButtonErrorState[]>(
+    sanitizedInitialData?.buttons && sanitizedInitialData.buttons.length > 0
+      ? sanitizedInitialData.buttons.map(() => ({}))
       : []
   )
   const [hasFormChanges, setHasFormChanges] = useState(false)
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
-    defaultValues: initialData
-      ? { ...defaultValues, ...initialData }
+    defaultValues: sanitizedInitialData
+      ? { ...defaultValues, ...sanitizedInitialData }
       : defaultValues,
   })
 
   const watchedValues = form.watch()
 
-  // Update form values when initialData changes
-  React.useEffect(() => {
-    if (initialData) {
-      Object.keys(initialData).forEach(key => {
-        const value = initialData[key as keyof ServiceFormData]
-        if (value !== undefined) {
-          form.setValue(key as keyof ServiceFormData, value)
-        }
+  const syncButtonsFormValue = React.useCallback(
+    (buttons: ServiceButton[]) => {
+      const validButtons = buttons.filter(isButtonCompleteAndValid)
+      form.setValue('buttons', validButtons, {
+        shouldDirty: buttons.length > 0,
+        shouldTouch: true,
       })
+    },
+    [form]
+  )
+
+  React.useEffect(() => {
+    if (!sanitizedInitialData) {
+      return
     }
-  }, [initialData, form])
+
+    const normalizedDigitalChannels =
+      sanitizedInitialData.digitalChannels.length > 0
+        ? sanitizedInitialData.digitalChannels
+        : ['']
+    const normalizedPhysicalChannels =
+      sanitizedInitialData.physicalChannels.length > 0
+        ? sanitizedInitialData.physicalChannels
+        : ['']
+    const normalizedLegislacao =
+      sanitizedInitialData.legislacaoRelacionada.length > 0
+        ? sanitizedInitialData.legislacaoRelacionada
+        : ['']
+    const normalizedButtons =
+      sanitizedInitialData.buttons && sanitizedInitialData.buttons.length > 0
+        ? sanitizedInitialData.buttons
+        : []
+    const validInitialButtons = normalizedButtons.filter(
+      isButtonCompleteAndValid
+    )
+
+    setDigitalChannels(normalizedDigitalChannels)
+    setChannelErrors(buildDigitalChannelErrors(normalizedDigitalChannels))
+
+    setPhysicalChannels(normalizedPhysicalChannels)
+    setPhysicalChannelErrors(
+      buildPhysicalChannelErrors(normalizedPhysicalChannels)
+    )
+
+    setLegislacaoRelacionada(normalizedLegislacao)
+    setLegislacaoErrors(buildLegislacaoErrors(normalizedLegislacao))
+
+    setServiceButtons(normalizedButtons)
+    setButtonErrors(normalizedButtons.map(buildButtonErrors))
+
+    form.reset({
+      ...defaultValues,
+      ...sanitizedInitialData,
+      buttons: validInitialButtons,
+    })
+  }, [sanitizedInitialData, form])
 
   // Notify parent component when form changes are detected
   React.useEffect(() => {
@@ -262,7 +523,7 @@ export function NewServiceForm({
 
   // Check for form changes
   React.useEffect(() => {
-    if (readOnly || !initialData) {
+    if (readOnly || !sanitizedInitialData) {
       setHasFormChanges(false)
       return
     }
@@ -317,7 +578,7 @@ export function NewServiceForm({
 
     for (const field of fieldsToCheck) {
       const currentValue = formData[field]
-      const initialValue = initialData?.[field]
+      const initialValue = sanitizedInitialData?.[field]
       if (currentValue !== initialValue) {
         hasChanges = true
         break
@@ -329,7 +590,7 @@ export function NewServiceForm({
       // Check digitalChannels
       const normalizedCurrentDigital = normalizeArray(digitalChannels)
       const normalizedInitialDigital = normalizeArray(
-        initialData?.digitalChannels
+        sanitizedInitialData?.digitalChannels
       )
       if (!deepEqual(normalizedCurrentDigital, normalizedInitialDigital)) {
         hasChanges = true
@@ -338,7 +599,7 @@ export function NewServiceForm({
       // Check physicalChannels
       const normalizedCurrentPhysical = normalizeArray(physicalChannels)
       const normalizedInitialPhysical = normalizeArray(
-        initialData?.physicalChannels
+        sanitizedInitialData?.physicalChannels
       )
       if (!deepEqual(normalizedCurrentPhysical, normalizedInitialPhysical)) {
         hasChanges = true
@@ -347,7 +608,7 @@ export function NewServiceForm({
       // Check legislacaoRelacionada
       const normalizedCurrentLegislacao = normalizeArray(legislacaoRelacionada)
       const normalizedInitialLegislacao = normalizeArray(
-        initialData?.legislacaoRelacionada
+        sanitizedInitialData?.legislacaoRelacionada
       )
       if (
         !deepEqual(normalizedCurrentLegislacao, normalizedInitialLegislacao)
@@ -356,7 +617,7 @@ export function NewServiceForm({
       }
 
       // Check serviceButtons
-      if (!deepEqual(serviceButtons, initialData?.buttons || [])) {
+      if (!deepEqual(serviceButtons, sanitizedInitialData?.buttons || [])) {
         hasChanges = true
       }
     }
@@ -364,7 +625,7 @@ export function NewServiceForm({
     setHasFormChanges(hasChanges)
   }, [
     watchedValues,
-    initialData,
+    sanitizedInitialData,
     readOnly,
     digitalChannels,
     physicalChannels,
@@ -377,141 +638,117 @@ export function NewServiceForm({
   }
 
   const addDigitalChannel = () => {
-    setDigitalChannels([...digitalChannels, ''])
-    setChannelErrors([...channelErrors, ''])
+    const newChannels = [...digitalChannels, '']
+    setDigitalChannels(newChannels)
+    setChannelErrors(buildDigitalChannelErrors(newChannels))
+    form.setValue('digitalChannels', getValidDigitalChannels(newChannels), {
+      shouldDirty: true,
+      shouldTouch: true,
+    })
   }
 
   const removeDigitalChannel = (index: number) => {
     if (digitalChannels.length > 1) {
       const newChannels = digitalChannels.filter((_, i) => i !== index)
-      const newErrors = channelErrors.filter((_, i) => i !== index)
       setDigitalChannels(newChannels)
-      setChannelErrors(newErrors)
-      form.setValue(
-        'digitalChannels',
-        newChannels.filter(channel => channel.trim() !== '')
-      )
+      setChannelErrors(buildDigitalChannelErrors(newChannels))
+      form.setValue('digitalChannels', getValidDigitalChannels(newChannels), {
+        shouldDirty: true,
+        shouldTouch: true,
+      })
     }
   }
 
   const addPhysicalChannel = () => {
-    setPhysicalChannels([...physicalChannels, ''])
-    setPhysicalChannelErrors([...physicalChannelErrors, ''])
+    const newChannels = [...physicalChannels, '']
+    setPhysicalChannels(newChannels)
+    setPhysicalChannelErrors(buildPhysicalChannelErrors(newChannels))
+    form.setValue('physicalChannels', getValidPhysicalChannels(newChannels), {
+      shouldDirty: true,
+      shouldTouch: true,
+    })
   }
 
   const removePhysicalChannel = (index: number) => {
     if (physicalChannels.length > 1) {
       const newChannels = physicalChannels.filter((_, i) => i !== index)
-      const newErrors = physicalChannelErrors.filter((_, i) => i !== index)
       setPhysicalChannels(newChannels)
-      setPhysicalChannelErrors(newErrors)
-      form.setValue(
-        'physicalChannels',
-        newChannels.filter(channel => channel.trim() !== '')
-      )
+      setPhysicalChannelErrors(buildPhysicalChannelErrors(newChannels))
+      form.setValue('physicalChannels', getValidPhysicalChannels(newChannels), {
+        shouldDirty: true,
+        shouldTouch: true,
+      })
     }
   }
 
   const updateDigitalChannel = (index: number, value: string) => {
     const newChannels = [...digitalChannels]
-    const newErrors = [...channelErrors]
-
     newChannels[index] = value
 
-    // Validate character limit
-    if (value.trim() !== '') {
-      if (value.length > 5000) {
-        newErrors[index] = 'Canal digital não pode exceder 5000 caracteres'
-      } else {
-        newErrors[index] = ''
-      }
-    } else {
-      newErrors[index] = ''
-    }
-
     setDigitalChannels(newChannels)
-    setChannelErrors(newErrors)
-
-    // Only include valid channels (non-empty and within character limit) in form data
-    const validChannels = newChannels
-      .filter(channel => channel.trim() !== '')
-      .filter(channel => channel.length <= 5000)
-
-    form.setValue('digitalChannels', validChannels)
+    setChannelErrors(buildDigitalChannelErrors(newChannels))
+    form.setValue('digitalChannels', getValidDigitalChannels(newChannels), {
+      shouldDirty: true,
+      shouldTouch: true,
+    })
   }
 
   const updatePhysicalChannel = (index: number, value: string) => {
     const newChannels = [...physicalChannels]
-    const newErrors = [...physicalChannelErrors]
-
     newChannels[index] = value
 
-    // Validate address (simple validation - not empty)
-    if (value.trim() !== '') {
-      if (value.trim().length < 5) {
-        newErrors[index] = 'Endereço muito curto'
-      } else {
-        newErrors[index] = ''
-      }
-    } else {
-      newErrors[index] = ''
-    }
-
     setPhysicalChannels(newChannels)
-    setPhysicalChannelErrors(newErrors)
-
-    // Only include valid addresses in form data
-    const validChannels = newChannels
-      .filter(channel => channel.trim() !== '')
-      .filter(channel => channel.trim().length >= 5)
-
-    form.setValue('physicalChannels', validChannels)
+    setPhysicalChannelErrors(buildPhysicalChannelErrors(newChannels))
+    form.setValue('physicalChannels', getValidPhysicalChannels(newChannels), {
+      shouldDirty: true,
+      shouldTouch: true,
+    })
   }
 
   const addLegislacao = () => {
-    setLegislacaoRelacionada([...legislacaoRelacionada, ''])
-    setLegislacaoErrors([...legislacaoErrors, ''])
+    const newLegislacoes = [...legislacaoRelacionada, '']
+    setLegislacaoRelacionada(newLegislacoes)
+    setLegislacaoErrors(buildLegislacaoErrors(newLegislacoes))
+    form.setValue(
+      'legislacaoRelacionada',
+      getValidLegislacaoEntries(newLegislacoes),
+      {
+        shouldDirty: true,
+        shouldTouch: true,
+      }
+    )
   }
 
   const removeLegislacao = (index: number) => {
     if (legislacaoRelacionada.length > 1) {
       const newLegislacoes = legislacaoRelacionada.filter((_, i) => i !== index)
-      const newErrors = legislacaoErrors.filter((_, i) => i !== index)
       setLegislacaoRelacionada(newLegislacoes)
-      setLegislacaoErrors(newErrors)
+      setLegislacaoErrors(buildLegislacaoErrors(newLegislacoes))
       form.setValue(
         'legislacaoRelacionada',
-        newLegislacoes.filter(legislacao => legislacao.trim() !== '')
+        getValidLegislacaoEntries(newLegislacoes),
+        {
+          shouldDirty: true,
+          shouldTouch: true,
+        }
       )
     }
   }
 
   const updateLegislacao = (index: number, value: string) => {
     const newLegislacoes = [...legislacaoRelacionada]
-    const newErrors = [...legislacaoErrors]
-
     newLegislacoes[index] = value
 
-    // Validate legislation (simple validation - not empty and minimum length)
-    if (value.trim() !== '') {
-      if (value.trim().length < 5) {
-        newErrors[index] = 'Legislação muito curta'
-      } else {
-        newErrors[index] = ''
-      }
-    } else {
-      newErrors[index] = ''
-    }
-
     setLegislacaoRelacionada(newLegislacoes)
-    setLegislacaoErrors(newErrors)
-
-    // Only include valid legislations in form data
-    const validLegislacoes = newLegislacoes
-      .filter(legislacao => legislacao.trim() !== '')
-      .filter(legislacao => legislacao.trim().length >= 5)
-
-    form.setValue('legislacaoRelacionada', validLegislacoes)
+    setLegislacaoErrors(buildLegislacaoErrors(newLegislacoes))
+    form.setValue(
+      'legislacaoRelacionada',
+      getValidLegislacaoEntries(newLegislacoes),
+      {
+        shouldDirty: true,
+        shouldTouch: true,
+      }
+    )
   }
 
   const addButton = () => {
@@ -522,21 +759,22 @@ export function NewServiceForm({
       is_enabled: true,
       ordem: serviceButtons.length,
     }
-    setServiceButtons([...serviceButtons, newButton])
-    setButtonErrors([...buttonErrors, {}])
+    const updatedButtons = [...serviceButtons, newButton]
+    setServiceButtons(updatedButtons)
+    setButtonErrors([...buttonErrors, buildButtonErrors(newButton)])
+    syncButtonsFormValue(updatedButtons)
   }
 
   const removeButton = (index: number) => {
     const newButtons = serviceButtons.filter((_, i) => i !== index)
-    const newErrors = buttonErrors.filter((_, i) => i !== index)
     // Update order numbers
     const reorderedButtons = newButtons.map((button, idx) => ({
       ...button,
       ordem: idx,
     }))
     setServiceButtons(reorderedButtons)
-    setButtonErrors(newErrors)
-    form.setValue('buttons', reorderedButtons)
+    setButtonErrors(reorderedButtons.map(buildButtonErrors))
+    syncButtonsFormValue(reorderedButtons)
   }
 
   const updateButton = (
@@ -545,68 +783,19 @@ export function NewServiceForm({
     value: any
   ) => {
     const newButtons = [...serviceButtons]
-    const newErrors = [...buttonErrors]
 
     newButtons[index] = {
       ...newButtons[index],
       [field]: value,
     }
 
-    // Validate the field
-    if (!newErrors[index]) {
-      newErrors[index] = {}
-    }
-
-    if (field === 'titulo') {
-      if (typeof value === 'string' && value.trim() === '') {
-        newErrors[index] = {
-          ...newErrors[index],
-          titulo: 'Título do botão é obrigatório',
-        }
-      } else {
-        const { titulo, ...rest } = newErrors[index]
-        newErrors[index] = rest
-      }
-    } else if (field === 'descricao') {
-      if (typeof value === 'string' && value.trim() === '') {
-        newErrors[index] = {
-          ...newErrors[index],
-          descricao: 'Descrição do botão é obrigatória',
-        }
-      } else {
-        const { descricao, ...rest } = newErrors[index]
-        newErrors[index] = rest
-      }
-    } else if (field === 'url_service') {
-      if (typeof value === 'string') {
-        if (value.trim() === '') {
-          newErrors[index] = {
-            ...newErrors[index],
-            url_service: 'URL é obrigatória',
-          }
-        } else {
-          try {
-            new URL(value)
-            const { url_service, ...rest } = newErrors[index]
-            newErrors[index] = rest
-          } catch {
-            newErrors[index] = {
-              ...newErrors[index],
-              url_service: 'URL inválida',
-            }
-          }
-        }
-      }
-    }
-
     setServiceButtons(newButtons)
-    setButtonErrors(newErrors)
-    form.setValue('buttons', newButtons)
+    setButtonErrors(newButtons.map(buildButtonErrors))
+    syncButtonsFormValue(newButtons)
   }
 
   const moveButton = (index: number, direction: 'up' | 'down') => {
     const newButtons = [...serviceButtons]
-    const newErrors = [...buttonErrors]
     const targetIndex = direction === 'up' ? index - 1 : index + 1
 
     if (targetIndex < 0 || targetIndex >= newButtons.length)
@@ -614,10 +803,6 @@ export function NewServiceForm({
     ;[newButtons[index], newButtons[targetIndex]] = [
       newButtons[targetIndex],
       newButtons[index],
-    ]
-    ;[newErrors[index], newErrors[targetIndex]] = [
-      newErrors[targetIndex],
-      newErrors[index],
     ]
 
     // Update order numbers
@@ -627,52 +812,91 @@ export function NewServiceForm({
     }))
 
     setServiceButtons(reorderedButtons)
-    setButtonErrors(newErrors)
-    form.setValue('buttons', reorderedButtons)
+    setButtonErrors(reorderedButtons.map(buildButtonErrors))
+    syncButtonsFormValue(reorderedButtons)
   }
 
-  const validateAllButtons = (): boolean => {
-    const newErrors = serviceButtons.map(button => {
-      const errors: {
-        titulo?: string
-        descricao?: string
-        url_service?: string
-      } = {}
-
-      if (!button.titulo || button.titulo.trim() === '') {
-        errors.titulo = 'Título do botão é obrigatório'
-      }
-
-      if (!button.descricao || button.descricao.trim() === '') {
-        errors.descricao = 'Descrição do botão é obrigatória'
-      }
-
-      if (!button.url_service || button.url_service.trim() === '') {
-        errors.url_service = 'URL é obrigatória'
-      } else {
-        try {
-          new URL(button.url_service)
-        } catch {
-          errors.url_service = 'URL inválida'
-        }
-      }
-
-      return errors
-    })
+  const validateAllButtons = React.useCallback((): boolean => {
+    const newErrors = serviceButtons.map(button => buildButtonErrors(button))
 
     setButtonErrors(newErrors)
+    syncButtonsFormValue(serviceButtons)
 
     // Return true if there are no errors
     return newErrors.every(
       error => !error.titulo && !error.descricao && !error.url_service
     )
-  }
+  }, [serviceButtons, syncButtonsFormValue])
+
+  const validateDigitalChannels = React.useCallback(() => {
+    const errors = buildDigitalChannelErrors(digitalChannels)
+    setChannelErrors(errors)
+    form.setValue('digitalChannels', getValidDigitalChannels(digitalChannels), {
+      shouldDirty: true,
+      shouldTouch: true,
+    })
+    return errors.every(error => !error)
+  }, [digitalChannels, form])
+
+  const validatePhysicalChannels = React.useCallback(() => {
+    const errors = buildPhysicalChannelErrors(physicalChannels)
+    setPhysicalChannelErrors(errors)
+    form.setValue(
+      'physicalChannels',
+      getValidPhysicalChannels(physicalChannels),
+      {
+        shouldDirty: true,
+        shouldTouch: true,
+      }
+    )
+    return errors.every(error => !error)
+  }, [physicalChannels, form])
+
+  const validateLegislacao = React.useCallback(() => {
+    const errors = buildLegislacaoErrors(legislacaoRelacionada)
+    setLegislacaoErrors(errors)
+    form.setValue(
+      'legislacaoRelacionada',
+      getValidLegislacaoEntries(legislacaoRelacionada),
+      {
+        shouldDirty: true,
+        shouldTouch: true,
+      }
+    )
+    return errors.every(error => !error)
+  }, [legislacaoRelacionada, form])
+
+  const ensureDynamicListsValid = React.useCallback(
+    (options: { showFeedback?: boolean } = {}) => {
+      const { showFeedback = false } = options
+      const digitalValid = validateDigitalChannels()
+      const physicalValid = validatePhysicalChannels()
+      const legislacaoValid = validateLegislacao()
+      const buttonsValid = validateAllButtons()
+
+      const allValid =
+        digitalValid && physicalValid && legislacaoValid && buttonsValid
+
+      if (!allValid && showFeedback) {
+        toast.error('Preencha os campos destacados antes de continuar.')
+      }
+
+      return allValid
+    },
+    [
+      validateDigitalChannels,
+      validatePhysicalChannels,
+      validateLegislacao,
+      validateAllButtons,
+    ]
+  )
+
+  const handleInvalidSubmit = React.useCallback(() => {
+    ensureDynamicListsValid()
+  }, [ensureDynamicListsValid])
 
   const handleSendToEditClick = (data: ServiceFormData) => {
-    if (!validateAllButtons()) {
-      toast.error(
-        'Por favor, preencha todos os campos obrigatórios dos botões.'
-      )
+    if (!ensureDynamicListsValid({ showFeedback: true })) {
       return
     }
     const processedData = preprocessFormData(data)
@@ -681,10 +905,7 @@ export function NewServiceForm({
   }
 
   const handlePublishClick = (data: ServiceFormData) => {
-    if (!validateAllButtons()) {
-      toast.error(
-        'Por favor, preencha todos os campos obrigatórios dos botões.'
-      )
+    if (!ensureDynamicListsValid({ showFeedback: true })) {
       return
     }
     const processedData = preprocessFormData(data)
@@ -693,10 +914,7 @@ export function NewServiceForm({
   }
 
   const handleSendToApprovalClick = (data: ServiceFormData) => {
-    if (!validateAllButtons()) {
-      toast.error(
-        'Por favor, preencha todos os campos obrigatórios dos botões.'
-      )
+    if (!ensureDynamicListsValid({ showFeedback: true })) {
       return
     }
     const processedData = preprocessFormData(data)
@@ -798,27 +1016,10 @@ export function NewServiceForm({
 
   const preprocessFormData = (data: ServiceFormData): ServiceFormData => {
     // Filter out empty digital channels and those exceeding character limit
-    const validDigitalChannels = digitalChannels
-      .filter(channel => channel.trim() !== '')
-      .filter(channel => channel.length <= 5000)
-
-    // Filter out empty and invalid physical channels
-    const validPhysicalChannels = physicalChannels
-      .filter(channel => channel.trim() !== '')
-      .filter(channel => channel.trim().length >= 5)
-
-    // Filter out empty and invalid legislações
-    const validLegislacoes = legislacaoRelacionada
-      .filter(legislacao => legislacao.trim() !== '')
-      .filter(legislacao => legislacao.trim().length >= 5)
-
-    // Filter out empty and invalid buttons
-    const validButtons = serviceButtons.filter(
-      button =>
-        button.titulo.trim() !== '' &&
-        button.descricao.trim() !== '' &&
-        button.url_service.trim() !== ''
-    )
+    const validDigitalChannels = getValidDigitalChannels(digitalChannels)
+    const validPhysicalChannels = getValidPhysicalChannels(physicalChannels)
+    const validLegislacoes = getValidLegislacaoEntries(legislacaoRelacionada)
+    const validButtons = serviceButtons.filter(isButtonCompleteAndValid)
 
     return {
       ...data,
@@ -833,6 +1034,10 @@ export function NewServiceForm({
   }
 
   const handleSubmit = async (data: ServiceFormData) => {
+    if (!ensureDynamicListsValid({ showFeedback: true })) {
+      return
+    }
+
     try {
       const processedData = preprocessFormData(data)
 
@@ -850,6 +1055,15 @@ export function NewServiceForm({
           await createService(apiData)
           toast.success('Serviço criado com sucesso!')
           form.reset()
+          setDigitalChannels([''])
+          setChannelErrors([''])
+          setPhysicalChannels([''])
+          setPhysicalChannelErrors([''])
+          setLegislacaoRelacionada([''])
+          setLegislacaoErrors([''])
+          setServiceButtons([])
+          setButtonErrors([])
+          syncButtonsFormValue([])
         }
       }
     } catch (error) {
@@ -914,7 +1128,7 @@ export function NewServiceForm({
       <Form {...form}>
         <form
           id="service-edit-form"
-          onSubmit={form.handleSubmit(handleSubmit)}
+          onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)}
           className="space-y-6"
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1627,7 +1841,10 @@ export function NewServiceForm({
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={form.handleSubmit(handleSendToEditClick)}
+                        onClick={form.handleSubmit(
+                          handleSendToEditClick,
+                          handleInvalidSubmit
+                        )}
                         disabled={
                           isLoading || operationLoading || shouldDisableActions
                         }
@@ -1642,7 +1859,10 @@ export function NewServiceForm({
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={form.handleSubmit(handleSendToApprovalClick)}
+                        onClick={form.handleSubmit(
+                          handleSendToApprovalClick,
+                          handleInvalidSubmit
+                        )}
                         disabled={
                           isLoading || operationLoading || shouldDisableActions
                         }
@@ -1656,7 +1876,10 @@ export function NewServiceForm({
                       <Button
                         type="button"
                         className="w-full"
-                        onClick={form.handleSubmit(handlePublishClick)}
+                        onClick={form.handleSubmit(
+                          handlePublishClick,
+                          handleInvalidSubmit
+                        )}
                         disabled={
                           isLoading || operationLoading || shouldDisableActions
                         }

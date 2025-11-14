@@ -218,7 +218,7 @@ export function ServicesDataTable() {
     checkTombamentos()
   }, [services, activeTab, fetchTombamentos])
 
-  // Debounced search function
+  // Debounced search function with cleanup
   const debouncedSearch = useDebouncedCallback((query: string) => {
     setSearchQuery(query)
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
@@ -546,7 +546,11 @@ export function ServicesDataTable() {
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <span className="max-w-[200px] truncate">
-                <DepartmentName cd_ua={managingOrganValue} />
+                {managingOrganValue ? (
+                  <DepartmentName cd_ua={managingOrganValue} />
+                ) : (
+                  <span className="text-muted-foreground">Não informado</span>
+                )}
               </span>
             </div>
           )
@@ -669,7 +673,14 @@ export function ServicesDataTable() {
         ),
         cell: ({ row }: { row: any }) => {
           const service = row.original
-          const hasTombamento = tombamentosMap.get(service.id)
+
+          // Safely access tombamentosMap - prevent crashes during state updates
+          let hasTombamento = false
+          try {
+            hasTombamento = tombamentosMap?.get(service?.id) ?? false
+          } catch (error) {
+            console.error('Error accessing tombamentosMap:', error)
+          }
 
           // Show loading skeleton while tombamentos are being fetched
           if (tombamentosLoading) {
@@ -820,7 +831,7 @@ export function ServicesDataTable() {
                       </DropdownMenuItem>
                     )}
                     {service.status === 'published' &&
-                      !tombamentosMap.get(service.id) && (
+                      !(tombamentosMap?.get(service.id) ?? false) && (
                         <DropdownMenuItem
                           onClick={e => {
                             e.stopPropagation()
@@ -835,7 +846,7 @@ export function ServicesDataTable() {
                         </DropdownMenuItem>
                       )}
                     {service.status === 'published' &&
-                      tombamentosMap.get(service.id) && (
+                      (tombamentosMap?.get(service.id) ?? false) && (
                         <DropdownMenuItem
                           onClick={e => {
                             e.stopPropagation()

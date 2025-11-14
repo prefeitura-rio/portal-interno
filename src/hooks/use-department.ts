@@ -16,19 +16,30 @@ export function useDepartment(cd_ua: string | null | undefined) {
   const [error, setError] = useState<string | null>(null)
 
   const fetchDepartment = useCallback(async (id: string) => {
+    const normalizedId = id.trim()
+
+    if (!/^\d+$/.test(normalizedId)) {
+      setDepartment(null)
+      setError('Invalid department id')
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
 
       // Check cache first
-      const cached = departmentCache.get(id)
+      const cached = departmentCache.get(normalizedId)
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
         setDepartment(cached.data)
         setLoading(false)
         return
       }
 
-      const response = await fetch(`/api/departments/${encodeURIComponent(id)}`)
+      const response = await fetch(
+        `/api/departments/${encodeURIComponent(normalizedId)}`
+      )
 
       if (response.status === 404) {
         setDepartment(null)
@@ -47,7 +58,10 @@ export function useDepartment(cd_ua: string | null | undefined) {
         const deptData = result.data
         setDepartment(deptData)
         // Cache the result
-        departmentCache.set(id, { data: deptData, timestamp: Date.now() })
+        departmentCache.set(normalizedId, {
+          data: deptData,
+          timestamp: Date.now(),
+        })
       } else {
         throw new Error('Invalid response format')
       }

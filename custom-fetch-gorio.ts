@@ -37,7 +37,10 @@ const getUrl = (contextUrl: string): string => {
   return requestUrl.toString()
 }
 
-const getHeaders = async (headers?: HeadersInit, body?: BodyInit): Promise<HeadersInit> => {
+const getHeaders = async (
+  headers?: HeadersInit,
+  body?: BodyInit
+): Promise<HeadersInit> => {
   const cookieStore = await cookies()
   const access_token = cookieStore.get('access_token')?.value
 
@@ -84,15 +87,18 @@ export const customFetchGoRio = async <T>(
   options: RequestInit
 ): Promise<T> => {
   const requestUrl = getUrl(url)
-  const requestHeaders = await getHeaders(options.headers, options.body ?? undefined)
+  const requestHeaders = await getHeaders(
+    options.headers,
+    options.body ?? undefined
+  )
 
   const requestInit: RequestInit = {
     ...options,
     headers: requestHeaders,
   }
 
-  console.log('customFetchGoRio - URL:', requestUrl)
-  console.log('customFetchGoRio - RequestInit:', requestInit)
+  // console.log('customFetchGoRio - URL:', requestUrl)
+  // console.log('customFetchGoRio - RequestInit:', requestInit)
 
   const response = await fetch(requestUrl, requestInit)
   const data = await getBody<T>(response)

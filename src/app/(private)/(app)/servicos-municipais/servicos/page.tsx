@@ -1,6 +1,7 @@
 'use client'
 
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { ErrorBoundary } from '@/components/error-boundary'
 import {
   BreadcrumbItem,
   BreadcrumbList,
@@ -15,7 +16,6 @@ import Link from 'next/link'
 import { ServicesDataTable } from '../components/services-data-table'
 
 export default function ServicesPage() {
-
   return (
     <ContentLayout title="Gestão de Serviços Municipais">
       <div className="space-y-4">
@@ -39,16 +39,22 @@ export default function ServicesPage() {
                 plataforma.
               </p>
             </div>
-              <Link href="/servicos-municipais/servicos/new">
-                <Button className="cursor-pointer">
-                  <BookPlus className="mr-2 h-4 w-4" />
-                  Novo serviço
-                </Button>
-              </Link>
+            <Link href="/servicos-municipais/servicos/new">
+              <Button className="cursor-pointer">
+                <BookPlus className="mr-2 h-4 w-4" />
+                Novo serviço
+              </Button>
+            </Link>
           </div>
         </div>
 
-        <ServicesDataTable />
+        <ErrorBoundary
+          onError={(error, errorInfo) => {
+            console.error('Services table error:', error, errorInfo)
+          }}
+        >
+          <ServicesDataTable />
+        </ErrorBoundary>
       </div>
     </ContentLayout>
   )
