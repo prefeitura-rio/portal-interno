@@ -51,7 +51,7 @@ export async function POST(
     // Call the API to import enrollments
     const response = await postApiV1CoursesCourseIdEnrollmentsImport(
       Number.parseInt(courseId, 10),
-      file
+     { file}
     )
 
     if (response.status === 202) {

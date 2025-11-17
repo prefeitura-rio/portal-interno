@@ -8,7 +8,6 @@
 import type { ModelsEmpresa } from './modelsEmpresa'
 import type { ModelsEscolaridade } from './modelsEscolaridade'
 import type { ModelsJornadaTrabalho } from './modelsJornadaTrabalho'
-import type { ModelsOrgao } from './modelsOrgao'
 import type { ModelsStatusEmprego } from './modelsStatusEmprego'
 import type { ModelsTipoContratacao } from './modelsTipoContratacao'
 import type { ModelsTurno } from './modelsTurno'
@@ -20,6 +19,7 @@ export interface ModelsEmprego {
   data_inicio_prevista?: string
   data_limite_candidatura?: string
   descricao?: string
+  /** Relacionamentos */
   empresa?: ModelsEmpresa
   empresa_id?: number
   escolaridade?: ModelsEscolaridade
@@ -29,9 +29,7 @@ export interface ModelsEmprego {
   latitude?: number
   longitude?: number
   numero_vagas?: number
-  /** Relacionamentos */
-  orgao?: ModelsOrgao
-  orgao_id?: number
+  orgao_id?: string
   pre_requisitos?: string
   salario_max?: number
   salario_min?: number

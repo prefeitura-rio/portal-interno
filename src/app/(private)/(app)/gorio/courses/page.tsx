@@ -164,9 +164,9 @@ export default function Courses() {
     async (pageIndex = 0, pageSize = 10, tab = activeTab, searchQuery = '') => {
       try {
         setLoading(true)
-        console.log(
-          `Fetching ${tab} courses: page ${pageIndex + 1}, size ${pageSize}, search: "${searchQuery}"`
-        )
+        // console.log(
+        //   `Fetching ${tab} courses: page ${pageIndex + 1}, size ${pageSize}, search: "${searchQuery}"`
+        // )
 
         if (tab === 'draft') {
           // Build URL with search parameter for drafts
@@ -180,7 +180,7 @@ export default function Courses() {
           const response = await fetch(url.toString())
           if (response.ok) {
             const data = await response.json()
-            console.log('Drafts API response:', data)
+            // console.log('Drafts API response:', data)
             setDraftCourses(data.courses || [])
             setDraftCoursesTotal(data.total || data.pagination?.total || 0)
             setDraftCoursesPageCount(
@@ -199,7 +199,7 @@ export default function Courses() {
           const response = await fetch(url.toString())
           if (response.ok) {
             const data = await response.json()
-            console.log('Courses API response:', data)
+            // console.log('Courses API response:', data)
             setCourses(data.courses || [])
             setCoursesTotal(data.total || data.pagination?.total || 0)
             setCoursesPageCount(
@@ -262,7 +262,7 @@ export default function Courses() {
     ) => {
       const newPagination =
         typeof updater === 'function' ? updater(pagination) : updater
-      console.log('Pagination changed:', newPagination)
+      // console.log('Pagination changed:', newPagination)
       setPagination(newPagination)
 
       // Fetch new data when pagination changes

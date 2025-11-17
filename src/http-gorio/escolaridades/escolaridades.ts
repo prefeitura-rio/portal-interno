@@ -17,7 +17,7 @@ import type {
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
- * Retorna uma lista paginada de escolaridades
+ * Retorna lista paginada de níveis de escolaridade
  * @summary Listar escolaridades
  */
 export type getApiV1EscolaridadesResponse200 = {
@@ -119,8 +119,8 @@ export const postApiV1Escolaridades = async (
 }
 
 /**
- * Retorna uma escolaridade pelo seu ID
- * @summary Obter escolaridade por ID
+ * Retorna uma escolaridade pelo ID
+ * @summary Buscar escolaridade
  */
 export type getApiV1EscolaridadesIdResponse200 = {
   data: ModelsEscolaridade
@@ -171,7 +171,7 @@ export const getApiV1EscolaridadesId = async (
 }
 
 /**
- * Atualiza os dados de uma escolaridade existente
+ * Atualiza uma escolaridade existente
  * @summary Atualizar escolaridade
  */
 export type putApiV1EscolaridadesIdResponse200 = {
@@ -184,6 +184,11 @@ export type putApiV1EscolaridadesIdResponse400 = {
   status: 400
 }
 
+export type putApiV1EscolaridadesIdResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
 export type putApiV1EscolaridadesIdResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -192,6 +197,7 @@ export type putApiV1EscolaridadesIdResponse500 = {
 export type putApiV1EscolaridadesIdResponseComposite =
   | putApiV1EscolaridadesIdResponse200
   | putApiV1EscolaridadesIdResponse400
+  | putApiV1EscolaridadesIdResponse404
   | putApiV1EscolaridadesIdResponse500
 
 export type putApiV1EscolaridadesIdResponse =
@@ -233,6 +239,11 @@ export type deleteApiV1EscolaridadesIdResponse400 = {
   status: 400
 }
 
+export type deleteApiV1EscolaridadesIdResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
 export type deleteApiV1EscolaridadesIdResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -241,6 +252,7 @@ export type deleteApiV1EscolaridadesIdResponse500 = {
 export type deleteApiV1EscolaridadesIdResponseComposite =
   | deleteApiV1EscolaridadesIdResponse200
   | deleteApiV1EscolaridadesIdResponse400
+  | deleteApiV1EscolaridadesIdResponse404
   | deleteApiV1EscolaridadesIdResponse500
 
 export type deleteApiV1EscolaridadesIdResponse =

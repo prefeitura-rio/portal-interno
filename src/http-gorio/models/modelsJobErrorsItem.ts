@@ -6,4 +6,4 @@
  * OpenAPI spec version: 1.0
  */
 
-export type GetApiV1Orgaos200 = { [key: string]: unknown }
+export type ModelsJobErrorsItem = { [key: string]: unknown }

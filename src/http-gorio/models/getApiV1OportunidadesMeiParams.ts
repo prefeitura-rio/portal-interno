@@ -18,7 +18,7 @@ export type GetApiV1OportunidadesMeiParams = {
   /**
    * Filtrar por órgão
    */
-  orgaoId?: number
+  orgaoId?: string
   /**
    * Filtrar por status (draft, active, expired)
    */

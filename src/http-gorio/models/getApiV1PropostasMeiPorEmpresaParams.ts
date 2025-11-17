@@ -8,9 +8,9 @@
 
 export type GetApiV1PropostasMeiPorEmpresaParams = {
   /**
-   * ID da MEI empresa
+   * CNPJ da MEI empresa
    */
-  meiEmpresaId: number
+  meiEmpresaId: string
   /**
    * Número da página (default: 1)
    */

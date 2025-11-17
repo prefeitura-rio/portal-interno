@@ -6,4 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 
-export type GetApiV1Empresas200 = { [key: string]: unknown }
+export type PostApiV1CoursesCourseIdEnrollmentsImportBody = {
+  /** Arquivo CSV ou XLSX com as inscrições */
+  file: Blob
+}

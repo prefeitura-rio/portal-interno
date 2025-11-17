@@ -6,4 +6,6 @@
  * OpenAPI spec version: 1.0
  */
 
-export type DeleteApiV1CategoriasId200 = { [key: string]: unknown }
+export type DeleteApiV1CategoriasId200 = {
+  message?: string
+}
