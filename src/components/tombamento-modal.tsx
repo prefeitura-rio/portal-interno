@@ -34,22 +34,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { type TombamentoRequest, useTombamentos } from '@/hooks/use-tombamentos'
 import { toast } from 'sonner'
 
-// Get environment variables for tombamento origins
-const getTombamentoOrigins = () => {
-  const origem1746 = process.env.NEXT_PUBLIC_BUSCA_1746_COLLECTION
-  const origemCarioca = process.env.NEXT_PUBLIC_BUSCA_CARIOCA_DIGITAL_COLLECTION
-
-  if (!origem1746 || !origemCarioca) {
-    console.warn(
-      'Environment variables for tombamento origins not found, using fallback values'
-    )
-    return ['1746_v2_llm', 'carioca-digital_v2_llm']
-  }
-
-  return [origem1746, origemCarioca]
-}
-
-const tombamentoOrigins = getTombamentoOrigins()
+const tombamentoOrigins = ['1746_v2_llm', 'carioca-digital_v2_llm']
 
 const tombamentoSchema = z.object({
   origem: z.string().refine(value => tombamentoOrigins.includes(value), {

@@ -113,17 +113,30 @@ export function DepartmentCombobox({
     []
   )
 
-  // Debounced search
-  const debouncedSearch = React.useMemo(() => {
-    let timeoutId: NodeJS.Timeout
-    return (searchValue: string) => {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(() => {
+  // Debounced search with proper cleanup
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+
+  const debouncedSearch = React.useCallback(
+    (searchValue: string) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      timeoutRef.current = setTimeout(() => {
         setPage(1)
         fetchDepartments(1, searchValue)
       }, 300)
+    },
+    [fetchDepartments]
+  )
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
     }
-  }, [fetchDepartments])
+  }, [])
 
   // Handle search input change
   const handleSearchChange = (value: string) => {
@@ -148,34 +161,34 @@ export function DepartmentCombobox({
     }
   }, [open, fetchDepartments])
 
-  // Reset selected department state when value changes
+  // Fetch selected department details when value changes
   React.useEffect(() => {
+    // Reset state when value is cleared
     if (!value) {
       setSelectedDepartment(null)
       setSelectedDepartmentLoaded(true)
-    } else {
-      setSelectedDepartment(null)
-      setSelectedDepartmentLoaded(false)
+      return
     }
-  }, [value])
 
-  // Fetch selected department details if value exists and isn't already loaded
-  React.useEffect(() => {
+    // If department is already in the loaded list, use it
+    const existingDepartment = departments.find(dept => dept.cd_ua === value)
+    if (existingDepartment) {
+      setSelectedDepartment(existingDepartment)
+      setSelectedDepartmentLoaded(true)
+      return
+    }
+
+    // Fetch from API if not in list
+    let isCancelled = false
     const fetchSelectedDepartment = async () => {
-      if (!value || selectedDepartmentLoaded) {
-        return
-      }
-
-      // If department is already in the loaded list, use it
-      const existingDepartment = departments.find(dept => dept.cd_ua === value)
-      if (existingDepartment) {
-        setSelectedDepartment(existingDepartment)
-        setSelectedDepartmentLoaded(true)
-        return
-      }
+      setSelectedDepartmentLoaded(false)
 
       try {
         const response = await fetch(`/api/departments/${value}`)
+
+        // Prevent state update if effect was cancelled
+        if (isCancelled) return
+
         if (response.ok) {
           const data = await response.json()
           setSelectedDepartment(data.data || null)
@@ -183,15 +196,24 @@ export function DepartmentCombobox({
           setSelectedDepartment(null)
         }
       } catch (error) {
-        console.error('Error fetching selected department:', error)
-        setSelectedDepartment(null)
+        if (!isCancelled) {
+          console.error('Error fetching selected department:', error)
+          setSelectedDepartment(null)
+        }
       } finally {
-        setSelectedDepartmentLoaded(true)
+        if (!isCancelled) {
+          setSelectedDepartmentLoaded(true)
+        }
       }
     }
 
     fetchSelectedDepartment()
-  }, [value, departments, selectedDepartmentLoaded])
+
+    // Cleanup function to prevent state updates after deps change
+    return () => {
+      isCancelled = true
+    }
+  }, [value, departments])
 
   // Display value for selected department
   const displayValue = React.useMemo(() => {
