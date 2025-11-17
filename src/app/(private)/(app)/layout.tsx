@@ -15,6 +15,7 @@ export default async function Layout({
 
   return (
     //add shadcn sonner
+    <>
     <UserProvider userInfo={userInfo}>
       <HeimdallUserProvider>
         <Toaster />
@@ -23,5 +24,6 @@ export default async function Layout({
         </AdminPanelLayout>
       </HeimdallUserProvider>
     </UserProvider>
+    </>
   )
 }

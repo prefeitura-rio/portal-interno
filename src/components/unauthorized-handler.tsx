@@ -1,13 +1,17 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 export function UnauthorizedHandler() {
   const pathname = usePathname()
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+  const hasExecutedRef = useRef(false)
 
   useEffect(() => {
-    if (pathname === '/unauthorized') {
+    if (pathname === '/unauthorized' && !hasExecutedRef.current) {
+      hasExecutedRef.current = true
+
       const handleUnauthorizedLogout = async () => {
         try {
           // First logout from Keycloak
@@ -20,21 +24,56 @@ export function UnauthorizedHandler() {
           const iframe = document.createElement('iframe')
           iframe.style.display = 'none'
           iframe.src = govbrLogoutUrl
+          iframeRef.current = iframe
+
           document.body.appendChild(iframe)
-          // Remove the iframe after loading
-          iframe.onload = () => {
-            setTimeout(() => {
-              if (document.body.contains(iframe)) {
-                document.body.removeChild(iframe)
+
+          // Remove the iframe after loading with proper cleanup
+          const cleanupIframe = () => {
+            if (
+              iframeRef.current &&
+              iframeRef.current.parentNode === document.body
+            ) {
+              try {
+                document.body.removeChild(iframeRef.current)
+              } catch (error) {
+                console.error('Error removing iframe:', error)
               }
-            }, 0)
+              iframeRef.current = null
+            }
           }
+
+          iframe.onload = () => {
+            setTimeout(cleanupIframe, 100)
+          }
+
+          iframe.onerror = () => {
+            cleanupIframe()
+          }
+
+          // Fallback cleanup after 5 seconds
+          setTimeout(cleanupIframe, 5000)
         } catch (error) {
           console.error('Error during unauthorized logout:', error)
         }
       }
 
       handleUnauthorizedLogout()
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (
+        iframeRef.current &&
+        iframeRef.current.parentNode === document.body
+      ) {
+        try {
+          document.body.removeChild(iframeRef.current)
+        } catch (error) {
+          // Silently handle cleanup errors
+        }
+        iframeRef.current = null
+      }
     }
   }, [pathname])
 
