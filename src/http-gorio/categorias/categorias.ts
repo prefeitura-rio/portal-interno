@@ -17,7 +17,7 @@ import type {
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
- * Retorna uma lista paginada de categorias
+ * Retorna lista paginada de categorias
  * @summary Listar categorias
  */
 export type getApiV1CategoriasResponse200 = {
@@ -43,8 +43,7 @@ export const getGetApiV1CategoriasUrl = (params?: GetApiV1CategoriasParams) => {
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (value !== undefined) {
-      const paramKey = key === 'limit' ? 'pageSize' : key
-      normalizedParams.append(paramKey, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
   })
 
@@ -69,7 +68,7 @@ export const getApiV1Categorias = async (
 }
 
 /**
- * Cria uma nova categoria
+ * Cria uma nova categoria de curso
  * @summary Criar categoria
  */
 export type postApiV1CategoriasResponse201 = {
@@ -117,8 +116,8 @@ export const postApiV1Categorias = async (
 }
 
 /**
- * Retorna uma categoria pelo seu ID
- * @summary Obter categoria por ID
+ * Retorna uma categoria pelo ID
+ * @summary Buscar categoria
  */
 export type getApiV1CategoriasIdResponse200 = {
   data: ModelsCategoria
@@ -169,7 +168,7 @@ export const getApiV1CategoriasId = async (
 }
 
 /**
- * Atualiza os dados de uma categoria existente
+ * Atualiza uma categoria existente
  * @summary Atualizar categoria
  */
 export type putApiV1CategoriasIdResponse200 = {
@@ -182,6 +181,11 @@ export type putApiV1CategoriasIdResponse400 = {
   status: 400
 }
 
+export type putApiV1CategoriasIdResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
 export type putApiV1CategoriasIdResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -190,6 +194,7 @@ export type putApiV1CategoriasIdResponse500 = {
 export type putApiV1CategoriasIdResponseComposite =
   | putApiV1CategoriasIdResponse200
   | putApiV1CategoriasIdResponse400
+  | putApiV1CategoriasIdResponse404
   | putApiV1CategoriasIdResponse500
 
 export type putApiV1CategoriasIdResponse =
@@ -231,6 +236,11 @@ export type deleteApiV1CategoriasIdResponse400 = {
   status: 400
 }
 
+export type deleteApiV1CategoriasIdResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
 export type deleteApiV1CategoriasIdResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -239,6 +249,7 @@ export type deleteApiV1CategoriasIdResponse500 = {
 export type deleteApiV1CategoriasIdResponseComposite =
   | deleteApiV1CategoriasIdResponse200
   | deleteApiV1CategoriasIdResponse400
+  | deleteApiV1CategoriasIdResponse404
   | deleteApiV1CategoriasIdResponse500
 
 export type deleteApiV1CategoriasIdResponse =

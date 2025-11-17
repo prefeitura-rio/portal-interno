@@ -6,4 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 
-export type DeleteApiV1EmpresasId200 = { [key: string]: unknown }
+/**
+ * Resultado final do processamento
+ */
+export type ModelsJobResult = { [key: string]: unknown }

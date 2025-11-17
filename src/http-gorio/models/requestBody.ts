@@ -6,4 +6,4 @@
  * OpenAPI spec version: 1.0
  */
 
-export type GetApiV1Cnaes200 = { [key: string]: unknown }
+export type RequestBody = { [key: string]: unknown }

@@ -168,7 +168,7 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
 export function transformApiCourseToCourse(apiCourse: any): any {
   if (!apiCourse) return apiCourse
 
-  console.log('Transforming course data:', apiCourse)
+  // console.log('Transforming course data:', apiCourse)
 
   // Extract the actual course data from the nested structure
   const courseData = apiCourse.data || apiCourse
@@ -292,6 +292,6 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     updated_at: safeParseDate(courseData.updated_at) || new Date(),
   }
 
-  console.log('Transformed course data:', transformed)
+  // console.log('Transformed course data:', transformed)
   return transformed
 }

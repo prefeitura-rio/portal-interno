@@ -6,6 +6,6 @@
  * OpenAPI spec version: 1.0
  */
 
-export type PutApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusBody = {
+export type PostApiV1CoursesCourseIdEnrollmentsImport202 = {
   [key: string]: unknown
 }

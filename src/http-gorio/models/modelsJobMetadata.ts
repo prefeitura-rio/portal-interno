@@ -6,4 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 
-export type DeleteApiV1OrgaosId200 = { [key: string]: unknown }
+/**
+ * Metadata adicional (curso_id, file_name, etc)
+ */
+export type ModelsJobMetadata = { [key: string]: unknown }

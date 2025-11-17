@@ -16,6 +16,7 @@ import type {
   ModelsPropostaStatusUpdateRequest,
   ModelsPropostaStatusUpdateResponse,
   PutApiV1OportunidadesMeiIdPropostasPropostaIdStatusBody,
+  RequestBody,
 } from '.././models'
 
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
@@ -77,7 +78,7 @@ export const getApiV1OportunidadesMeiIdPropostas = async (
 }
 
 /**
- * Cria uma nova proposta MEI para uma oportunidade
+ * Cria uma nova proposta MEI para uma oportunidade. Valida que o CNPJ pertence ao usuário e possui CNAE compatível.
  * @summary Criar proposta MEI
  */
 export type postApiV1OportunidadesMeiIdPropostasResponse201 = {
@@ -90,15 +91,33 @@ export type postApiV1OportunidadesMeiIdPropostasResponse400 = {
   status: 400
 }
 
-export type postApiV1OportunidadesMeiIdPropostasResponse500 = {
+export type postApiV1OportunidadesMeiIdPropostasResponse401 = {
   data: ModelsErrorResponse
-  status: 500
+  status: 401
+}
+
+export type postApiV1OportunidadesMeiIdPropostasResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
+export type postApiV1OportunidadesMeiIdPropostasResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
+export type postApiV1OportunidadesMeiIdPropostasResponse503 = {
+  data: ModelsErrorResponse
+  status: 503
 }
 
 export type postApiV1OportunidadesMeiIdPropostasResponseComposite =
   | postApiV1OportunidadesMeiIdPropostasResponse201
   | postApiV1OportunidadesMeiIdPropostasResponse400
-  | postApiV1OportunidadesMeiIdPropostasResponse500
+  | postApiV1OportunidadesMeiIdPropostasResponse401
+  | postApiV1OportunidadesMeiIdPropostasResponse403
+  | postApiV1OportunidadesMeiIdPropostasResponse404
+  | postApiV1OportunidadesMeiIdPropostasResponse503
 
 export type postApiV1OportunidadesMeiIdPropostasResponse =
   postApiV1OportunidadesMeiIdPropostasResponseComposite & {
@@ -226,6 +245,65 @@ export const getApiV1OportunidadesMeiIdPropostasPropostaId = async (
     {
       ...options,
       method: 'GET',
+    }
+  )
+}
+
+/**
+ * Atualiza os dados de uma proposta MEI existente
+ * @summary Atualizar proposta MEI
+ */
+export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse200 = {
+  data: ModelsPropostaMEI
+  status: 200
+}
+
+export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+
+export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
+export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse500 = {
+  data: ModelsErrorResponse
+  status: 500
+}
+
+export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponseComposite =
+  | putApiV1OportunidadesMeiIdPropostasPropostaIdResponse200
+  | putApiV1OportunidadesMeiIdPropostasPropostaIdResponse400
+  | putApiV1OportunidadesMeiIdPropostasPropostaIdResponse404
+  | putApiV1OportunidadesMeiIdPropostasPropostaIdResponse500
+
+export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse =
+  putApiV1OportunidadesMeiIdPropostasPropostaIdResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1OportunidadesMeiIdPropostasPropostaIdUrl = (
+  id: number,
+  propostaId: string
+) => {
+  return `/api/v1/oportunidades-mei/${id}/propostas/${propostaId}`
+}
+
+export const putApiV1OportunidadesMeiIdPropostasPropostaId = async (
+  id: number,
+  propostaId: string,
+  requestBody: RequestBody,
+  options?: RequestInit
+): Promise<putApiV1OportunidadesMeiIdPropostasPropostaIdResponse> => {
+  return customFetchGoRio<putApiV1OportunidadesMeiIdPropostasPropostaIdResponse>(
+    getPutApiV1OportunidadesMeiIdPropostasPropostaIdUrl(id, propostaId),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(requestBody),
     }
   )
 }

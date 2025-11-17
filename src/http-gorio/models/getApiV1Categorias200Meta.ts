@@ -6,9 +6,8 @@
  * OpenAPI spec version: 1.0
  */
 
-export interface ModelsCNAE {
-  codigo?: string
-  id?: number
-  ocupacao?: string
-  servico?: string
+export type GetApiV1Categorias200Meta = {
+  page?: number
+  page_size?: number
+  total?: number
 }

@@ -6,13 +6,8 @@
  * OpenAPI spec version: 1.0
  */
 
-export type GetApiV1OrgaosParams = {
-  /**
-   * Número da página (default: 1)
-   */
+export type GetApiV1Acessibilidades200Meta = {
   page?: number
-  /**
-   * Tamanho da página (default: 10)
-   */
-  pageSize?: number
+  page_size?: number
+  total?: number
 }

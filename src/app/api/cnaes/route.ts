@@ -1,4 +1,4 @@
-import { getApiV1Cnaes } from '@/http-gorio/cnaes/cnaes'
+// import { getApiV1Cnaes } from '@/http-gorio/cnaes/cnaes'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -8,19 +8,19 @@ export async function GET(request: NextRequest) {
     const pageSize = searchParams.get('page_size') || '100'
     const ocupacao = searchParams.get('ocupacao') || undefined
 
-    const response = await getApiV1Cnaes({
-      page: Number(page),
-      pageSize: Number(pageSize),
-      ...(ocupacao && { ocupacao }),
-    })
+    // const response = await getApiV1Cnaes({
+    //   page: Number(page),
+    //   pageSize: Number(pageSize),
+    //   ...(ocupacao && { ocupacao }),
+    // })
 
-    if (response.status === 200) {
-      return NextResponse.json(response.data)
-    }
+    // if (response.status === 200) {
+    //   return NextResponse.json(response.data)
+    // }
 
     return NextResponse.json(
       { error: 'Failed to fetch CNAEs' },
-      { status: response.status }
+      { status: 500 }
     )
   } catch (error) {
     console.error('Error fetching CNAEs:', error)

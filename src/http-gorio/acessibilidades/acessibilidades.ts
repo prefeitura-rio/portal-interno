@@ -17,7 +17,7 @@ import type {
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
- * Retorna uma lista paginada de acessibilidades
+ * Retorna lista paginada de opções de acessibilidade
  * @summary Listar acessibilidades
  */
 export type getApiV1AcessibilidadesResponse200 = {
@@ -71,7 +71,7 @@ export const getApiV1Acessibilidades = async (
 }
 
 /**
- * Cria um novo tipo de acessibilidade
+ * Cria uma nova opção de acessibilidade
  * @summary Criar acessibilidade
  */
 export type postApiV1AcessibilidadesResponse201 = {
@@ -119,8 +119,8 @@ export const postApiV1Acessibilidades = async (
 }
 
 /**
- * Retorna uma acessibilidade pelo seu ID
- * @summary Obter acessibilidade por ID
+ * Retorna uma acessibilidade pelo ID
+ * @summary Buscar acessibilidade
  */
 export type getApiV1AcessibilidadesIdResponse200 = {
   data: ModelsAcessibilidade
@@ -171,7 +171,7 @@ export const getApiV1AcessibilidadesId = async (
 }
 
 /**
- * Atualiza os dados de uma acessibilidade existente
+ * Atualiza uma acessibilidade existente
  * @summary Atualizar acessibilidade
  */
 export type putApiV1AcessibilidadesIdResponse200 = {
@@ -184,6 +184,11 @@ export type putApiV1AcessibilidadesIdResponse400 = {
   status: 400
 }
 
+export type putApiV1AcessibilidadesIdResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
 export type putApiV1AcessibilidadesIdResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -192,6 +197,7 @@ export type putApiV1AcessibilidadesIdResponse500 = {
 export type putApiV1AcessibilidadesIdResponseComposite =
   | putApiV1AcessibilidadesIdResponse200
   | putApiV1AcessibilidadesIdResponse400
+  | putApiV1AcessibilidadesIdResponse404
   | putApiV1AcessibilidadesIdResponse500
 
 export type putApiV1AcessibilidadesIdResponse =
@@ -233,6 +239,11 @@ export type deleteApiV1AcessibilidadesIdResponse400 = {
   status: 400
 }
 
+export type deleteApiV1AcessibilidadesIdResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
 export type deleteApiV1AcessibilidadesIdResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -241,6 +252,7 @@ export type deleteApiV1AcessibilidadesIdResponse500 = {
 export type deleteApiV1AcessibilidadesIdResponseComposite =
   | deleteApiV1AcessibilidadesIdResponse200
   | deleteApiV1AcessibilidadesIdResponse400
+  | deleteApiV1AcessibilidadesIdResponse404
   | deleteApiV1AcessibilidadesIdResponse500
 
 export type deleteApiV1AcessibilidadesIdResponse =

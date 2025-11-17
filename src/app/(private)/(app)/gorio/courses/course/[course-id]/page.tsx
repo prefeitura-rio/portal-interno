@@ -156,14 +156,6 @@ export default function CourseDetailPage({
     courseId?.toString() || null
   )
 
-  // Debug logging
-  useEffect(() => {
-    if (course) {
-      console.log('Course data received:', course)
-      console.log('Course status:', course.status)
-    }
-  }, [course])
-
   // Handle async params
   useEffect(() => {
     params.then(resolvedParams => {
@@ -240,7 +232,7 @@ export default function CourseDetailPage({
       }
 
       const result = await response.json()
-      console.log('Course saved successfully:', result)
+      // console.log('Course saved successfully:', result)
 
       toast.success('Curso salvo com sucesso!')
       setIsEditing(false)
@@ -287,7 +279,7 @@ export default function CourseDetailPage({
       }
 
       const result = await response.json()
-      console.log('Course published successfully:', result)
+      // console.log('Course published successfully:', result)
 
       toast.success('Curso publicado com sucesso!')
       setIsEditing(false)
@@ -355,11 +347,11 @@ export default function CourseDetailPage({
     )
 
     // Debug logging for course data
-    console.log('Course data for buildCompleteUpdateData:', {
-      orgao_id: course.orgao_id,
-      status: course.status,
-      statusOverride,
-    })
+    // console.log('Course data for buildCompleteUpdateData:', {
+    //   orgao_id: course.orgao_id,
+    //   status: course.status,
+    //   statusOverride,
+    // })
 
     // Transform locations to API format
     const transformedLocations = course.locations
@@ -420,10 +412,10 @@ export default function CourseDetailPage({
       // Build complete course data with canceled status
       const cancelData = buildCompleteUpdateData('canceled')
 
-      console.log(
-        'Cancel course data to be sent:',
-        JSON.stringify(cancelData, null, 2)
-      )
+      // console.log(
+      //   'Cancel course data to be sent:',
+      //   JSON.stringify(cancelData, null, 2)
+      // )
 
       const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',

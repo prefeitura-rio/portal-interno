@@ -409,7 +409,7 @@ export type getApiV1UsersUserIdCoursesResponse =
   }
 
 export const getGetApiV1UsersUserIdCoursesUrl = (
-  userId: number,
+  userId: string,
   params?: GetApiV1UsersUserIdCoursesParams
 ) => {
   const normalizedParams = new URLSearchParams()
@@ -428,7 +428,7 @@ export const getGetApiV1UsersUserIdCoursesUrl = (
 }
 
 export const getApiV1UsersUserIdCourses = async (
-  userId: number,
+  userId: string,
   params?: GetApiV1UsersUserIdCoursesParams,
   options?: RequestInit
 ): Promise<getApiV1UsersUserIdCoursesResponse> => {

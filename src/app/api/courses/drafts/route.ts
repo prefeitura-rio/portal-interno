@@ -30,10 +30,10 @@ export async function GET(request: Request) {
     const response = await getApiV1CoursesDrafts(params)
 
     if (response.status === 200) {
-      console.log(
-        'Drafts API Response structure:',
-        JSON.stringify(response.data, null, 2)
-      )
+      // console.log(
+      //   'Drafts API Response structure:',
+      //   JSON.stringify(response.data, null, 2)
+      // )
 
       // Handle different possible response structures
       let courses: any[] = []
@@ -59,8 +59,8 @@ export async function GET(request: Request) {
         pagination = responseData.data.pagination
       }
 
-      console.log('Extracted draft courses:', courses)
-      console.log('Extracted pagination:', pagination)
+      // console.log('Extracted draft courses:', courses)
+      // console.log('Extracted pagination:', pagination)
 
       // Transform the API response to match our CourseListItem interface
       const transformedCourses = Array.isArray(courses)

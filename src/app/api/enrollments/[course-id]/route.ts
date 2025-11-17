@@ -64,7 +64,7 @@ function convertApiEnrollmentToFrontend(
   courseCustomFields?: Array<{ id: string; title?: string; name?: string; required?: boolean }>
 ): Enrollment {
   // Calculate age from enrolled_at date (rough estimate - ideally should use birth date)
-  console.log('📋 API Enrollment Data:', JSON.stringify(apiEnrollment, null, 2))
+  // console.log('📋 API Enrollment Data:', JSON.stringify(apiEnrollment, null, 2))
 
   const enrolledDate = new Date((apiEnrollment.enrolled_at as string) || '')
   const currentYear = new Date().getFullYear()

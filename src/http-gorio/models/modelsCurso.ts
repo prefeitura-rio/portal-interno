@@ -10,58 +10,9 @@ import type { ModelsModalidade } from './modelsModalidade'
 import type { ModelsStatusCurso } from './modelsStatusCurso'
 import type { ModelsTurno } from './modelsTurno'
 
-// Custom field types for external courses
-export type CustomFieldType =
-  | 'text'
-  | 'number'
-  | 'email'
-  | 'date'
-  | 'select'
-  | 'textarea'
-  | 'checkbox'
-  | 'radio'
-  | 'multiselect'
-
-export interface ModelsCustomField {
-  id: string
-  curso_id: number
-  title: string
-  field_type: CustomFieldType
-  required: boolean
-  created_at: string
-  updated_at: string
-  options?: Array<{
-    id: string
-    value: string
-  }>
-}
-
-export interface ModelsRemoteClass {
-  id: string
-  curso_id: number
-  vacancies: number
-  class_start_date: string
-  class_end_date: string
-  class_time: string
-  class_days: string
-  created_at: string
-  updated_at: string
-}
-
-export interface ModelsLocation {
-  id: string
-  curso_id: number
-  address: string
-  neighborhood: string
-  vacancies: number
-  class_start_date: string
-  class_end_date: string
-  class_time: string
-  class_days: string
-  created_at: string
-  updated_at: string
-}
 export interface ModelsCurso {
+  /** Accessibility field - free text field for frontend */
+  accessibility?: string
   carga_horaria?: number
   certificacao_oferecida?: boolean
   contato_duvidas?: string
@@ -87,6 +38,9 @@ export interface ModelsCurso {
   institutional_logo?: string
   /** External partner fields */
   is_external_partner?: boolean
+  /** Visibility field - controls if course appears in public listings (default: true)
+Used for in-person courses that require manual enrollment and should not appear in public course lists */
+  is_visible?: boolean
   link_inscricao?: string
   local_realizacao?: string
   material_used?: string
@@ -95,8 +49,8 @@ export interface ModelsCurso {
   numero_vagas?: number
   objectives?: string
   organization?: string
-  /** Legacy and additional fields */
-  orgao_id?: number
+  /** Legacy and additional fields (optional) */
+  orgao_id?: string
   /** Unified field for prerequisites - using single JSON tag */
   pre_requisitos?: string
   program_content?: string
@@ -110,13 +64,4 @@ export interface ModelsCurso {
   turno?: ModelsTurno
   updated_at?: string
   workload?: string
-
-  // External course fields
-  custom_fields?: ModelsCustomField[]
-  remote_class?: ModelsRemoteClass
-  orgao?: {
-    id: number
-    nome: string
-  }
-  locations?: ModelsLocation[]
 }

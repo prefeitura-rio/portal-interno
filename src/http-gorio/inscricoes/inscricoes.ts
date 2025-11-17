@@ -15,8 +15,11 @@ import type {
   ModelsEnrollmentStatusUpdateResponse,
   ModelsErrorResponse,
   ModelsInscricao,
+  ModelsInscricaoUpdateRequest,
+  PostApiV1CoursesCourseIdEnrollmentsImport202,
+  PostApiV1CoursesCourseIdEnrollmentsImportBody,
   PutApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus200,
-  PutApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusBody,
+  RequestBody,
 } from '.././models'
 
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
@@ -139,6 +142,116 @@ export const postApiV1CoursesCourseIdEnrollments = async (
 }
 
 /**
+ * Faz upload de arquivo CSV ou XLSX para importar inscrições em lote. Processamento assíncrono.
+ * @summary Importar inscrições via CSV/XLSX
+ */
+export type postApiV1CoursesCourseIdEnrollmentsImportResponse202 = {
+  data: PostApiV1CoursesCourseIdEnrollmentsImport202
+  status: 202
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsImportResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsImportResponse500 = {
+  data: ModelsErrorResponse
+  status: 500
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsImportResponseComposite =
+  | postApiV1CoursesCourseIdEnrollmentsImportResponse202
+  | postApiV1CoursesCourseIdEnrollmentsImportResponse400
+  | postApiV1CoursesCourseIdEnrollmentsImportResponse500
+
+export type postApiV1CoursesCourseIdEnrollmentsImportResponse =
+  postApiV1CoursesCourseIdEnrollmentsImportResponseComposite & {
+    headers: Headers
+  }
+
+export const getPostApiV1CoursesCourseIdEnrollmentsImportUrl = (
+  courseId: number
+) => {
+  return `/api/v1/courses/${courseId}/enrollments/import`
+}
+
+export const postApiV1CoursesCourseIdEnrollmentsImport = async (
+  courseId: number,
+  postApiV1CoursesCourseIdEnrollmentsImportBody: PostApiV1CoursesCourseIdEnrollmentsImportBody,
+  options?: RequestInit
+): Promise<postApiV1CoursesCourseIdEnrollmentsImportResponse> => {
+  const formData = new FormData()
+  formData.append(`file`, postApiV1CoursesCourseIdEnrollmentsImportBody.file)
+
+  return customFetchGoRio<postApiV1CoursesCourseIdEnrollmentsImportResponse>(
+    getPostApiV1CoursesCourseIdEnrollmentsImportUrl(courseId),
+    {
+      ...options,
+      method: 'POST',
+      body: formData,
+    }
+  )
+}
+
+/**
+ * Cria uma inscrição manual no curso (para uso do admin). Aplica mesmas validações do endpoint regular.
+ * @summary Criar inscrição manual
+ */
+export type postApiV1CoursesCourseIdEnrollmentsManualResponse201 = {
+  data: ModelsInscricao
+  status: 201
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsManualResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsManualResponse409 = {
+  data: ModelsErrorResponse
+  status: 409
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsManualResponse500 = {
+  data: ModelsErrorResponse
+  status: 500
+}
+
+export type postApiV1CoursesCourseIdEnrollmentsManualResponseComposite =
+  | postApiV1CoursesCourseIdEnrollmentsManualResponse201
+  | postApiV1CoursesCourseIdEnrollmentsManualResponse400
+  | postApiV1CoursesCourseIdEnrollmentsManualResponse409
+  | postApiV1CoursesCourseIdEnrollmentsManualResponse500
+
+export type postApiV1CoursesCourseIdEnrollmentsManualResponse =
+  postApiV1CoursesCourseIdEnrollmentsManualResponseComposite & {
+    headers: Headers
+  }
+
+export const getPostApiV1CoursesCourseIdEnrollmentsManualUrl = (
+  courseId: number
+) => {
+  return `/api/v1/courses/${courseId}/enrollments/manual`
+}
+
+export const postApiV1CoursesCourseIdEnrollmentsManual = async (
+  courseId: number,
+  modelsInscricao: ModelsInscricao,
+  options?: RequestInit
+): Promise<postApiV1CoursesCourseIdEnrollmentsManualResponse> => {
+  return customFetchGoRio<postApiV1CoursesCourseIdEnrollmentsManualResponse>(
+    getPostApiV1CoursesCourseIdEnrollmentsManualUrl(courseId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsInscricao),
+    }
+  )
+}
+
+/**
  * Atualiza o status de várias inscrições de uma vez (aprovação em lote)
  * @summary Atualizar status de múltiplas inscrições
  */
@@ -250,6 +363,68 @@ export const getApiV1CoursesCourseIdEnrollmentsEnrollmentId = async (
     {
       ...options,
       method: 'GET',
+    }
+  )
+}
+
+/**
+ * Atualiza os dados de uma inscrição existente (exceto CPF, curso e status)
+ * @summary Atualizar inscrição
+ */
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse200 = {
+  data: ModelsInscricao
+  status: 200
+}
+
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse500 = {
+  data: ModelsErrorResponse
+  status: 500
+}
+
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponseComposite =
+  | putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse200
+  | putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse400
+  | putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse404
+  | putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse500
+
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse =
+  putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1CoursesCourseIdEnrollmentsEnrollmentIdUrl = (
+  courseId: number,
+  enrollmentId: string
+) => {
+  return `/api/v1/courses/${courseId}/enrollments/${enrollmentId}`
+}
+
+export const putApiV1CoursesCourseIdEnrollmentsEnrollmentId = async (
+  courseId: number,
+  enrollmentId: string,
+  modelsInscricaoUpdateRequest: ModelsInscricaoUpdateRequest,
+  options?: RequestInit
+): Promise<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse> => {
+  return customFetchGoRio<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdResponse>(
+    getPutApiV1CoursesCourseIdEnrollmentsEnrollmentIdUrl(
+      courseId,
+      enrollmentId
+    ),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsInscricaoUpdateRequest),
     }
   )
 }
@@ -431,7 +606,7 @@ export const getPutApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusUrl = (
 export const putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus = async (
   courseId: number,
   enrollmentId: string,
-  putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusBody: PutApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusBody,
+  requestBody: RequestBody,
   options?: RequestInit
 ): Promise<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse> => {
   return customFetchGoRio<putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse>(
@@ -443,119 +618,7 @@ export const putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus = async (
       ...options,
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(
-        putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusBody
-      ),
-    }
-  )
-}
-
-/**
- * Cria uma inscrição manual no curso (para uso do admin). Aplica mesmas validações do endpoint regular.
- * @summary Criar inscrição manual
- */
-export type postApiV1CoursesCourseIdEnrollmentsManualResponse201 = {
-  data: ModelsInscricao
-  status: 201
-}
-
-export type postApiV1CoursesCourseIdEnrollmentsManualResponse400 = {
-  data: ModelsErrorResponse
-  status: 400
-}
-
-export type postApiV1CoursesCourseIdEnrollmentsManualResponse409 = {
-  data: ModelsErrorResponse
-  status: 409
-}
-
-export type postApiV1CoursesCourseIdEnrollmentsManualResponse500 = {
-  data: ModelsErrorResponse
-  status: 500
-}
-
-export type postApiV1CoursesCourseIdEnrollmentsManualResponseComposite =
-  | postApiV1CoursesCourseIdEnrollmentsManualResponse201
-  | postApiV1CoursesCourseIdEnrollmentsManualResponse400
-  | postApiV1CoursesCourseIdEnrollmentsManualResponse409
-  | postApiV1CoursesCourseIdEnrollmentsManualResponse500
-
-export type postApiV1CoursesCourseIdEnrollmentsManualResponse =
-  postApiV1CoursesCourseIdEnrollmentsManualResponseComposite & {
-    headers: Headers
-  }
-
-export const getPostApiV1CoursesCourseIdEnrollmentsManualUrl = (
-  courseId: number
-) => {
-  return `/api/v1/courses/${courseId}/enrollments/manual`
-}
-
-export const postApiV1CoursesCourseIdEnrollmentsManual = async (
-  courseId: number,
-  modelsInscricao: ModelsInscricao,
-  options?: RequestInit
-): Promise<postApiV1CoursesCourseIdEnrollmentsManualResponse> => {
-  return customFetchGoRio<postApiV1CoursesCourseIdEnrollmentsManualResponse>(
-    getPostApiV1CoursesCourseIdEnrollmentsManualUrl(courseId),
-    {
-      ...options,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(modelsInscricao),
-    }
-  )
-}
-
-/**
- * Importa inscrições em lote através de planilha CSV ou XLSX
- * @summary Importar inscrições via planilha
- */
-export type postApiV1CoursesCourseIdEnrollmentsImportResponse202 = {
-  data: { job_id: string; message: string }
-  status: 202
-}
-
-export type postApiV1CoursesCourseIdEnrollmentsImportResponse400 = {
-  data: ModelsErrorResponse
-  status: 400
-}
-
-export type postApiV1CoursesCourseIdEnrollmentsImportResponse500 = {
-  data: ModelsErrorResponse
-  status: 500
-}
-
-export type postApiV1CoursesCourseIdEnrollmentsImportResponseComposite =
-  | postApiV1CoursesCourseIdEnrollmentsImportResponse202
-  | postApiV1CoursesCourseIdEnrollmentsImportResponse400
-  | postApiV1CoursesCourseIdEnrollmentsImportResponse500
-
-export type postApiV1CoursesCourseIdEnrollmentsImportResponse =
-  postApiV1CoursesCourseIdEnrollmentsImportResponseComposite & {
-    headers: Headers
-  }
-
-export const getPostApiV1CoursesCourseIdEnrollmentsImportUrl = (
-  courseId: number
-) => {
-  return `/api/v1/courses/${courseId}/enrollments/import`
-}
-
-export const postApiV1CoursesCourseIdEnrollmentsImport = async (
-  courseId: number,
-  file: File,
-  options?: RequestInit
-): Promise<postApiV1CoursesCourseIdEnrollmentsImportResponse> => {
-  const formData = new FormData()
-  formData.append('file', file)
-
-  return customFetchGoRio<postApiV1CoursesCourseIdEnrollmentsImportResponse>(
-    getPostApiV1CoursesCourseIdEnrollmentsImportUrl(courseId),
-    {
-      ...options,
-      method: 'POST',
-      body: formData,
+      body: JSON.stringify(requestBody),
     }
   )
 }

@@ -5,9 +5,5 @@
  * API de serviços para aplicativos da Prefeitura do Rio
  * OpenAPI spec version: 1.0
  */
-import type { ModelsOrgao } from './modelsOrgao'
 
-/**
- * Dados do órgão
- */
-export type ModelsOrgaoBody = ModelsOrgao
+export type ModelsInscricaoCustomFields = { [key: string]: unknown }

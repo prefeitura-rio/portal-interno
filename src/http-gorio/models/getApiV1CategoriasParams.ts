@@ -8,11 +8,11 @@
 
 export type GetApiV1CategoriasParams = {
   /**
-   * Nu00famero da pu00e1gina (default: 1)
+   * Número da página (default: 1)
    */
   page?: number
   /**
-   * Tamanho da pu00e1gina (default: 10)
+   * Tamanho da página (default: 10)
    */
   pageSize?: number
 }

@@ -15,10 +15,10 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log(
-      'Creating draft course with data:',
-      JSON.stringify(body, null, 2)
-    )
+    // console.log(
+    //   'Creating draft course with data:',
+    //   JSON.stringify(body, null, 2)
+    // )
 
     // Call the external API using the existing client function
     const response = await postApiV1CoursesDraft(body)

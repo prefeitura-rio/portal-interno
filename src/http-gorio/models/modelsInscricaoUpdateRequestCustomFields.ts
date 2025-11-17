@@ -5,9 +5,7 @@
  * API de serviços para aplicativos da Prefeitura do Rio
  * OpenAPI spec version: 1.0
  */
-import type { ModelsMEIEmpresa } from './modelsMEIEmpresa'
 
-/**
- * Dados da MEI empresa
- */
-export type ModelsMEIEmpresaBody = ModelsMEIEmpresa
+export type ModelsInscricaoUpdateRequestCustomFields = {
+  [key: string]: unknown
+}

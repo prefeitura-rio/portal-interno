@@ -16,9 +16,9 @@ export type GetApiV1EmpregosParams = {
    */
   pageSize?: number
   /**
-   * Filtrar por ID do órgão
+   * Filtrar por ID do órgão (external reference)
    */
-  orgao_id?: number
+  orgao_id?: string
   /**
    * Filtrar por ID da empresa
    */
