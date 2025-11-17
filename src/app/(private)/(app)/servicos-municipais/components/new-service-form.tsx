@@ -375,25 +375,36 @@ export function NewServiceForm({
       return undefined
     }
 
-    const sanitizedDigitalChannels = sanitizeStringArray(
-      (initialData.digitalChannels ?? []) as unknown
-    )
-    const sanitizedPhysicalChannels = sanitizeStringArray(
-      (initialData.physicalChannels ?? []) as unknown
-    )
-    const sanitizedLegislacao = sanitizeStringArray(
-      (initialData.legislacaoRelacionada ?? []) as unknown
-    )
-    const sanitizedButtons = sanitizeButtons(
-      (initialData.buttons ?? []) as unknown
-    )
+    try {
+      const sanitizedDigitalChannels = sanitizeStringArray(
+        (initialData.digitalChannels ?? []) as unknown
+      )
+      const sanitizedPhysicalChannels = sanitizeStringArray(
+        (initialData.physicalChannels ?? []) as unknown
+      )
+      const sanitizedLegislacao = sanitizeStringArray(
+        (initialData.legislacaoRelacionada ?? []) as unknown
+      )
+      const sanitizedButtons = sanitizeButtons(
+        (initialData.buttons ?? []) as unknown
+      )
 
-    return {
-      ...initialData,
-      digitalChannels: sanitizedDigitalChannels,
-      physicalChannels: sanitizedPhysicalChannels,
-      legislacaoRelacionada: sanitizedLegislacao,
-      buttons: sanitizedButtons,
+      return {
+        ...initialData,
+        digitalChannels: sanitizedDigitalChannels,
+        physicalChannels: sanitizedPhysicalChannels,
+        legislacaoRelacionada: sanitizedLegislacao,
+        buttons: sanitizedButtons,
+      }
+    } catch (error) {
+      console.error('Error sanitizing initial data:', error)
+      return {
+        ...initialData,
+        digitalChannels: [],
+        physicalChannels: [],
+        legislacaoRelacionada: [],
+        buttons: [],
+      }
     }
   }, [initialData])
 
@@ -404,48 +415,80 @@ export function NewServiceForm({
     useState(false)
   const [pendingFormData, setPendingFormData] =
     useState<ServiceFormData | null>(null)
-  const [digitalChannels, setDigitalChannels] = useState<string[]>(
-    sanitizedInitialData && sanitizedInitialData.digitalChannels.length > 0
-      ? sanitizedInitialData.digitalChannels
-      : ['']
-  )
-  const [channelErrors, setChannelErrors] = useState<string[]>(
-    sanitizedInitialData && sanitizedInitialData.digitalChannels.length > 0
-      ? sanitizedInitialData.digitalChannels.map(() => '')
-      : ['']
-  )
-  const [physicalChannels, setPhysicalChannels] = useState<string[]>(
-    sanitizedInitialData && sanitizedInitialData.physicalChannels.length > 0
-      ? sanitizedInitialData.physicalChannels
-      : ['']
-  )
-  const [physicalChannelErrors, setPhysicalChannelErrors] = useState<string[]>(
-    sanitizedInitialData && sanitizedInitialData.physicalChannels.length > 0
-      ? sanitizedInitialData.physicalChannels.map(() => '')
-      : ['']
-  )
-  const [legislacaoRelacionada, setLegislacaoRelacionada] = useState<string[]>(
-    sanitizedInitialData &&
-      sanitizedInitialData.legislacaoRelacionada.length > 0
-      ? sanitizedInitialData.legislacaoRelacionada
-      : ['']
-  )
-  const [legislacaoErrors, setLegislacaoErrors] = useState<string[]>(
-    sanitizedInitialData &&
-      sanitizedInitialData.legislacaoRelacionada.length > 0
-      ? sanitizedInitialData.legislacaoRelacionada.map(() => '')
-      : ['']
-  )
-  const [serviceButtons, setServiceButtons] = useState<ServiceButton[]>(
-    sanitizedInitialData?.buttons && sanitizedInitialData.buttons.length > 0
-      ? sanitizedInitialData.buttons
-      : []
-  )
-  const [buttonErrors, setButtonErrors] = useState<ButtonErrorState[]>(
-    sanitizedInitialData?.buttons && sanitizedInitialData.buttons.length > 0
-      ? sanitizedInitialData.buttons.map(() => ({}))
-      : []
-  )
+  const [digitalChannels, setDigitalChannels] = useState<string[]>(() => {
+    try {
+      return sanitizedInitialData && sanitizedInitialData.digitalChannels?.length > 0
+        ? sanitizedInitialData.digitalChannels
+        : ['']
+    } catch {
+      return ['']
+    }
+  })
+  const [channelErrors, setChannelErrors] = useState<string[]>(() => {
+    try {
+      return sanitizedInitialData && sanitizedInitialData.digitalChannels?.length > 0
+        ? sanitizedInitialData.digitalChannels.map(() => '')
+        : ['']
+    } catch {
+      return ['']
+    }
+  })
+  const [physicalChannels, setPhysicalChannels] = useState<string[]>(() => {
+    try {
+      return sanitizedInitialData && sanitizedInitialData.physicalChannels?.length > 0
+        ? sanitizedInitialData.physicalChannels
+        : ['']
+    } catch {
+      return ['']
+    }
+  })
+  const [physicalChannelErrors, setPhysicalChannelErrors] = useState<string[]>(() => {
+    try {
+      return sanitizedInitialData && sanitizedInitialData.physicalChannels?.length > 0
+        ? sanitizedInitialData.physicalChannels.map(() => '')
+        : ['']
+    } catch {
+      return ['']
+    }
+  })
+  const [legislacaoRelacionada, setLegislacaoRelacionada] = useState<string[]>(() => {
+    try {
+      return sanitizedInitialData &&
+        sanitizedInitialData.legislacaoRelacionada?.length > 0
+        ? sanitizedInitialData.legislacaoRelacionada
+        : ['']
+    } catch {
+      return ['']
+    }
+  })
+  const [legislacaoErrors, setLegislacaoErrors] = useState<string[]>(() => {
+    try {
+      return sanitizedInitialData &&
+        sanitizedInitialData.legislacaoRelacionada?.length > 0
+        ? sanitizedInitialData.legislacaoRelacionada.map(() => '')
+        : ['']
+    } catch {
+      return ['']
+    }
+  })
+  const [serviceButtons, setServiceButtons] = useState<ServiceButton[]>(() => {
+    try {
+      return sanitizedInitialData?.buttons && sanitizedInitialData.buttons.length > 0
+        ? sanitizedInitialData.buttons
+        : []
+    } catch {
+      return []
+    }
+  })
+  const [buttonErrors, setButtonErrors] = useState<ButtonErrorState[]>(() => {
+    try {
+      return sanitizedInitialData?.buttons && sanitizedInitialData.buttons.length > 0
+        ? sanitizedInitialData.buttons.map(() => ({}))
+        : []
+    } catch {
+      return []
+    }
+  })
   const [hasFormChanges, setHasFormChanges] = useState(false)
 
   const form = useForm<ServiceFormData>({
@@ -521,11 +564,10 @@ export function NewServiceForm({
     }
   }, [hasFormChanges, onFormChangesDetected])
 
-  // Check for form changes
-  React.useEffect(() => {
+  // Check for form changes - optimized with useMemo to prevent excessive recalculations
+  const hasChanges = React.useMemo(() => {
     if (readOnly || !sanitizedInitialData) {
-      setHasFormChanges(false)
-      return
+      return false
     }
 
     const formData = watchedValues as Partial<ServiceFormData>
@@ -556,9 +598,6 @@ export function NewServiceForm({
       return false
     }
 
-    // Compare each field
-    let hasChanges = false
-
     // Check regular form fields
     const fieldsToCheck: (keyof ServiceFormData)[] = [
       'managingOrgan',
@@ -580,49 +619,40 @@ export function NewServiceForm({
       const currentValue = formData[field]
       const initialValue = sanitizedInitialData?.[field]
       if (currentValue !== initialValue) {
-        hasChanges = true
-        break
+        return true
       }
     }
 
-    // Check arrays if no changes found yet
-    if (!hasChanges) {
-      // Check digitalChannels
-      const normalizedCurrentDigital = normalizeArray(digitalChannels)
-      const normalizedInitialDigital = normalizeArray(
-        sanitizedInitialData?.digitalChannels
-      )
-      if (!deepEqual(normalizedCurrentDigital, normalizedInitialDigital)) {
-        hasChanges = true
-      }
-
-      // Check physicalChannels
-      const normalizedCurrentPhysical = normalizeArray(physicalChannels)
-      const normalizedInitialPhysical = normalizeArray(
-        sanitizedInitialData?.physicalChannels
-      )
-      if (!deepEqual(normalizedCurrentPhysical, normalizedInitialPhysical)) {
-        hasChanges = true
-      }
-
-      // Check legislacaoRelacionada
-      const normalizedCurrentLegislacao = normalizeArray(legislacaoRelacionada)
-      const normalizedInitialLegislacao = normalizeArray(
-        sanitizedInitialData?.legislacaoRelacionada
-      )
-      if (
-        !deepEqual(normalizedCurrentLegislacao, normalizedInitialLegislacao)
-      ) {
-        hasChanges = true
-      }
-
-      // Check serviceButtons
-      if (!deepEqual(serviceButtons, sanitizedInitialData?.buttons || [])) {
-        hasChanges = true
-      }
+    // Check arrays
+    const normalizedCurrentDigital = normalizeArray(digitalChannels)
+    const normalizedInitialDigital = normalizeArray(
+      sanitizedInitialData?.digitalChannels
+    )
+    if (!deepEqual(normalizedCurrentDigital, normalizedInitialDigital)) {
+      return true
     }
 
-    setHasFormChanges(hasChanges)
+    const normalizedCurrentPhysical = normalizeArray(physicalChannels)
+    const normalizedInitialPhysical = normalizeArray(
+      sanitizedInitialData?.physicalChannels
+    )
+    if (!deepEqual(normalizedCurrentPhysical, normalizedInitialPhysical)) {
+      return true
+    }
+
+    const normalizedCurrentLegislacao = normalizeArray(legislacaoRelacionada)
+    const normalizedInitialLegislacao = normalizeArray(
+      sanitizedInitialData?.legislacaoRelacionada
+    )
+    if (!deepEqual(normalizedCurrentLegislacao, normalizedInitialLegislacao)) {
+      return true
+    }
+
+    if (!deepEqual(serviceButtons, sanitizedInitialData?.buttons || [])) {
+      return true
+    }
+
+    return false
   }, [
     watchedValues,
     sanitizedInitialData,
@@ -632,6 +662,11 @@ export function NewServiceForm({
     legislacaoRelacionada,
     serviceButtons,
   ])
+
+  // Update state when hasChanges memoized value changes
+  React.useEffect(() => {
+    setHasFormChanges(hasChanges)
+  }, [hasChanges])
 
   const handleCancel = () => {
     router.push('/servicos-municipais/servicos')

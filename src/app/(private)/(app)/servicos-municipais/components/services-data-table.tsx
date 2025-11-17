@@ -179,43 +179,67 @@ export function ServicesDataTable() {
 
   // Check tombamentos for published services
   React.useEffect(() => {
+    // Reset tombamentos when switching away from published tab
+    if (activeTab !== 'published') {
+      setTombamentosMap(new Map())
+      setTombamentosData(new Map())
+      setTombamentosLoading(false)
+      return
+    }
+
+    // Only fetch if we have services and are on published tab
+    if (services.length === 0) {
+      setTombamentosLoading(false)
+      return
+    }
+
+    let isCancelled = false
     const checkTombamentos = async () => {
-      if (services.length > 0 && activeTab === 'published') {
-        setTombamentosLoading(true)
-        try {
-          const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
-          if (tombamentosResponse?.data?.tombamentos) {
-            const tombamentos = tombamentosResponse.data.tombamentos
-            const newTombamentosMap = new Map<string, boolean>()
-            const newTombamentosData = new Map<
-              string,
-              { id: string; origem: string; id_servico_antigo: string }
-            >()
+      setTombamentosLoading(true)
+      try {
+        const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
 
-            // Create a map of service IDs that have tombamentos
-            tombamentos.forEach(tombamento => {
-              newTombamentosMap.set(tombamento.id_servico_novo, true)
-              newTombamentosData.set(tombamento.id_servico_novo, {
-                id: tombamento.id,
-                origem: tombamento.origem,
-                id_servico_antigo: tombamento.id_servico_antigo,
-              })
+        // Prevent state update if effect was cancelled (component unmounted or deps changed)
+        if (isCancelled) return
+
+        if (tombamentosResponse?.data?.tombamentos) {
+          const tombamentos = tombamentosResponse.data.tombamentos
+          const newTombamentosMap = new Map<string, boolean>()
+          const newTombamentosData = new Map<
+            string,
+            { id: string; origem: string; id_servico_antigo: string }
+          >()
+
+          // Create a map of service IDs that have tombamentos
+          tombamentos.forEach(tombamento => {
+            newTombamentosMap.set(tombamento.id_servico_novo, true)
+            newTombamentosData.set(tombamento.id_servico_novo, {
+              id: tombamento.id,
+              origem: tombamento.origem,
+              id_servico_antigo: tombamento.id_servico_antigo,
             })
+          })
 
-            setTombamentosMap(newTombamentosMap)
-            setTombamentosData(newTombamentosData)
-          }
-        } catch (error) {
+          setTombamentosMap(newTombamentosMap)
+          setTombamentosData(newTombamentosData)
+        }
+      } catch (error) {
+        if (!isCancelled) {
           console.error('Error checking tombamentos:', error)
-        } finally {
+        }
+      } finally {
+        if (!isCancelled) {
           setTombamentosLoading(false)
         }
-      } else {
-        setTombamentosLoading(false)
       }
     }
 
     checkTombamentos()
+
+    // Cleanup function to prevent state updates after unmount/deps change
+    return () => {
+      isCancelled = true
+    }
   }, [services, activeTab, fetchTombamentos])
 
   // Debounced search function with cleanup
@@ -232,18 +256,22 @@ export function ServicesDataTable() {
     if (newSearchQuery !== searchQuery) {
       debouncedSearch(newSearchQuery)
     }
-  }, [columnFilters, searchQuery, debouncedSearch])
+  }, [columnFilters, debouncedSearch, searchQuery])
 
   // Handle tab changes
   const handleTabChange = React.useCallback(
     (value: string) => {
+      // Reset to first page when changing tabs
+      setPagination(prev => ({ ...prev, pageIndex: 0 }))
+
+      // Clear any pending debounced searches
+      setSearchQuery('')
+      setColumnFilters([])
+
       // Update URL with tab parameter
       const params = new URLSearchParams(searchParams.toString())
       params.set('tab', value)
       router.push(`/servicos-municipais/servicos?${params.toString()}`)
-
-      // Reset to first page when changing tabs
-      setPagination(prev => ({ ...prev, pageIndex: 0 }))
     },
     [router, searchParams]
   )
@@ -674,13 +702,8 @@ export function ServicesDataTable() {
         cell: ({ row }: { row: any }) => {
           const service = row.original
 
-          // Safely access tombamentosMap - prevent crashes during state updates
-          let hasTombamento = false
-          try {
-            hasTombamento = tombamentosMap?.get(service?.id) ?? false
-          } catch (error) {
-            console.error('Error accessing tombamentosMap:', error)
-          }
+          // Safely access tombamentosMap
+          const hasTombamento = tombamentosMap?.get(service?.id) ?? false
 
           // Show loading skeleton while tombamentos are being fetched
           if (tombamentosLoading) {

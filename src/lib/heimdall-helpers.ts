@@ -6,6 +6,7 @@ import { getCurrentUserInfoApiV1UsersMeGet } from '@/http-heimdall/users/users'
  *
  * @returns Array of user roles or null if failed
  */
+
 export async function getUserRolesFromHeimdall(): Promise<string[] | null> {
   try {
     const response = await getCurrentUserInfoApiV1UsersMeGet()
