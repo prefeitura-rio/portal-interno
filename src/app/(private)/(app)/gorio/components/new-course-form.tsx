@@ -34,6 +34,7 @@ import { toast } from 'sonner'
 
 import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
+import { MultiSelect } from '@/components/ui/multi-select'
 
 import {
   Accordion,
@@ -149,7 +150,9 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
-      category: z.number().min(1, { message: 'Categoria é obrigatória.' }),
+      category: z
+        .array(z.number())
+        .min(1, { message: 'Pelo menos uma categoria é obrigatória.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -261,7 +264,9 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
-      category: z.number().min(1, { message: 'Categoria é obrigatória.' }),
+      category: z
+        .array(z.number())
+        .min(1, { message: 'Pelo menos uma categoria é obrigatória.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -519,7 +524,7 @@ type PartialFormData = Omit<
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
-  category?: number
+  category?: number[]
   workload?: string
   target_audience?: string
   pre_requisitos?: string
@@ -718,7 +723,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             description: initialData.description || '',
             category:
               initialData.category ||
-              ((initialData as any).categorias?.[0]?.id as number | undefined),
+              ((initialData as any).categorias?.map((c: any) => c.id) as
+                | number[]
+                | undefined) ||
+              [],
             enrollment_start_date:
               initialData.enrollment_start_date || new Date(),
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
@@ -829,7 +837,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         : {
             title: '',
             description: '',
-            category: undefined,
+            category: [],
             enrollment_start_date: new Date(),
             enrollment_end_date: new Date(),
             orgao_id: '',
@@ -989,7 +997,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       return {
         title: data.title,
         description: data.description,
-        categorias: data.category ? [{ id: data.category }] : [],
+        categorias: data.category
+          ? data.category.map(id => ({ id }))
+          : [],
         enrollment_start_date: data.enrollment_start_date
           ? formatDateTimeToUTC(data.enrollment_start_date)
           : undefined,
@@ -1440,38 +1450,29 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categoria*</FormLabel>
-                    <Select
-                      onValueChange={value => field.onChange(Number(value))}
-                      value={field.value?.toString() || ''}
-                      disabled={isReadOnly || loadingCategories}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              loadingCategories
-                                ? 'Carregando categorias...'
-                                : categoryOptions.length === 0
-                                  ? 'Nenhuma categoria encontrada'
-                                  : 'Selecione uma categoria'
-                            }
-                          />
-                        </SelectTrigger>
-                      </FormControl>
-                      {!loadingCategories && categoryOptions.length > 0 && (
-                        <SelectContent>
-                          {categoryOptions.map(category => (
-                            <SelectItem
-                              key={category.id}
-                              value={category.id.toString()}
-                            >
-                              {category.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      )}
-                    </Select>
+                    <FormLabel>Categorias*</FormLabel>
+                    <FormControl>
+                      <MultiSelect
+                        options={categoryOptions.map(cat => ({
+                          value: cat.id.toString(),
+                          label: cat.nome,
+                        }))}
+                        value={field.value?.map(id => id.toString()) || []}
+                        onValueChange={values =>
+                          field.onChange(values.map(v => Number(v)))
+                        }
+                        placeholder={
+                          loadingCategories
+                            ? 'Carregando categorias...'
+                            : categoryOptions.length === 0
+                              ? 'Nenhuma categoria encontrada'
+                              : 'Selecione categorias'
+                        }
+                        searchPlaceholder="Buscar categorias..."
+                        emptyMessage="Nenhuma categoria encontrada."
+                        disabled={isReadOnly || loadingCategories}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
