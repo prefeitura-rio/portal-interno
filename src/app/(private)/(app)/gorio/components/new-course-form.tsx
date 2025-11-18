@@ -54,16 +54,14 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
 
-export type Accessibility = 'ACESSIVEL' | 'EXCLUSIVO' | 'NAO_ACESSIVEL'
+export type Accessibility = 'ACESSIVEL' | 'EXCLUSIVO'
 const ACCESSIBILITY_OPTIONS: Accessibility[] = [
   'ACESSIVEL',
-  'EXCLUSIVO',
-  'NAO_ACESSIVEL',
+  'EXCLUSIVO'
 ] as const
 const accessibilityLabel: Record<Accessibility, string> = {
   ACESSIVEL: 'Acessível para pessoas com deficiência',
   EXCLUSIVO: 'Exclusivo para pessoas com deficiência',
-  NAO_ACESSIVEL: 'Não acessível para pessoas com deficiência',
 }
 
 // Category type from API
@@ -212,7 +210,7 @@ const fullFormSchema = z
       external_partner_contact: z.string().optional(),
 
       accessibility: z
-        .enum(['ACESSIVEL', 'EXCLUSIVO', 'NAO_ACESSIVEL'])
+        .enum(['ACESSIVEL', 'EXCLUSIVO'])
         .nullable()
         .optional()
         .or(z.literal('')),
