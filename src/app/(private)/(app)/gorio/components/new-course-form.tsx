@@ -158,10 +158,6 @@ const fullFormSchema = z
       }),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.literal('ONLINE'),
-      // theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
-      //   required_error: 'Tema é obrigatório.',
-      // }),
-      theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -274,10 +270,6 @@ const fullFormSchema = z
       }),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.enum(['PRESENCIAL', 'HIBRIDO']),
-      // theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
-      //   required_error: 'Tema é obrigatório.',
-      // }),
-      theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -421,8 +413,6 @@ const draftFormSchema = z.object({
   enrollment_end_date: z.date().optional(),
   orgao_id: z.string().optional(),
   modalidade: z.enum(['PRESENCIAL', 'HIBRIDO', 'ONLINE']).optional(),
-  // theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
-  theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
   workload: z.string().optional(),
   target_audience: z.string().optional(),
   institutional_logo: z
@@ -530,7 +520,6 @@ type PartialFormData = Omit<
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
   category?: number
-  theme?: 'Educação' | 'Saúde' | 'Esportes'
   workload?: string
   target_audience?: string
   pre_requisitos?: string
@@ -569,7 +558,6 @@ type BackendCourseData = {
   enrollment_end_date: string | undefined
   orgao_id: string | null
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
-  theme?: string
   workload: string
   target_audience: string
   institutional_logo: string | null
@@ -737,7 +725,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
             orgao_id: initialData.orgao_id || '',
             modalidade: initialData.modalidade,
-            theme: initialData.theme || undefined,
             workload: initialData.workload || '',
             target_audience: initialData.target_audience || '',
             pre_requisitos: initialData.pre_requisitos || '',
@@ -848,7 +835,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_end_date: new Date(),
             orgao_id: '',
             modalidade: undefined,
-            theme: undefined,
             locations: [],
             remote_class: undefined,
             workload: '',
@@ -1013,7 +999,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           : undefined,
         orgao_id: data.orgao_id || null,
         modalidade: data.modalidade,
-        theme: data.theme || undefined,
         workload: data.workload,
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo,
@@ -1077,7 +1062,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         enrollment_end_date: data.enrollment_end_date || nextMonth,
         orgao_id: data.orgao_id || '',
         modalidade: modalidade as 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE',
-        theme: data.theme || undefined,
         workload: data.workload,
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo || '',
@@ -1714,33 +1698,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   </CardContent>
                 </Card>
               )}
-
-              <FormField
-                control={form.control}
-                name="theme"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tema</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={isReadOnly}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um tema" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Educação">Educação</SelectItem>
-                        <SelectItem value="Saúde">Saúde</SelectItem>
-                        <SelectItem value="Esportes">Esportes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <FormField
                 control={form.control}
