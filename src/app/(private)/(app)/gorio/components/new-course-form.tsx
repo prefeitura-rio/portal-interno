@@ -671,7 +671,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Check cache first
         const cachedData = getCachedCategorias()
         if (cachedData) {
-          console.log('CACHEE')
           setCategories(cachedData)
           return
         }
@@ -2213,8 +2212,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>
-                                  Pré-requisitos para receber certificado
-                                </FormLabel>
+                                Pré-requisitos para o certificado"                                </FormLabel>
                                 <FormControl>
                                   <MarkdownEditor
                                     value={field.value || ''}
