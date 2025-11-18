@@ -34,6 +34,7 @@ import { toast } from 'sonner'
 
 import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
+import { MultiSelect } from '@/components/ui/multi-select'
 
 import {
   Accordion,
@@ -54,16 +55,14 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
 
-export type Accessibility = 'ACESSIVEL' | 'EXCLUSIVO' | 'NAO_ACESSIVEL'
+export type Accessibility = 'ACESSIVEL' | 'EXCLUSIVO'
 const ACCESSIBILITY_OPTIONS: Accessibility[] = [
   'ACESSIVEL',
-  'EXCLUSIVO',
-  'NAO_ACESSIVEL',
+  'EXCLUSIVO'
 ] as const
 const accessibilityLabel: Record<Accessibility, string> = {
   ACESSIVEL: 'Acessível para pessoas com deficiência',
   EXCLUSIVO: 'Exclusivo para pessoas com deficiência',
-  NAO_ACESSIVEL: 'Não acessível para pessoas com deficiência',
 }
 
 // Category type from API
@@ -151,7 +150,9 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
-      category: z.number().min(1, { message: 'Categoria é obrigatória.' }),
+      category: z
+        .array(z.number())
+        .min(1, { message: 'Pelo menos uma categoria é obrigatória.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -160,10 +161,6 @@ const fullFormSchema = z
       }),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.literal('ONLINE'),
-      // theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
-      //   required_error: 'Tema é obrigatório.',
-      // }),
-      theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -212,7 +209,7 @@ const fullFormSchema = z
       external_partner_contact: z.string().optional(),
 
       accessibility: z
-        .enum(['ACESSIVEL', 'EXCLUSIVO', 'NAO_ACESSIVEL'])
+        .enum(['ACESSIVEL', 'EXCLUSIVO'])
         .nullable()
         .optional()
         .or(z.literal('')),
@@ -267,7 +264,9 @@ const fullFormSchema = z
         .min(1, { message: 'Descrição é obrigatória.' })
         .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
         .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
-      category: z.number().min(1, { message: 'Categoria é obrigatória.' }),
+      category: z
+        .array(z.number())
+        .min(1, { message: 'Pelo menos uma categoria é obrigatória.' }),
       enrollment_start_date: z.date({
         required_error: 'Data de início é obrigatória.',
       }),
@@ -276,10 +275,6 @@ const fullFormSchema = z
       }),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.enum(['PRESENCIAL', 'HIBRIDO']),
-      // theme: z.enum(['Educação', 'Saúde', 'Esportes'], {
-      //   required_error: 'Tema é obrigatório.',
-      // }),
-      theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -423,8 +418,6 @@ const draftFormSchema = z.object({
   enrollment_end_date: z.date().optional(),
   orgao_id: z.string().optional(),
   modalidade: z.enum(['PRESENCIAL', 'HIBRIDO', 'ONLINE']).optional(),
-  // theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
-  theme: z.enum(['Educação', 'Saúde', 'Esportes']).optional(),
   workload: z.string().optional(),
   target_audience: z.string().optional(),
   institutional_logo: z
@@ -531,8 +524,7 @@ type PartialFormData = Omit<
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
-  category?: number
-  theme?: 'Educação' | 'Saúde' | 'Esportes'
+  category?: number[]
   workload?: string
   target_audience?: string
   pre_requisitos?: string
@@ -571,7 +563,6 @@ type BackendCourseData = {
   enrollment_end_date: string | undefined
   orgao_id: string | null
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
-  theme?: string
   workload: string
   target_audience: string
   institutional_logo: string | null
@@ -685,7 +676,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Check cache first
         const cachedData = getCachedCategorias()
         if (cachedData) {
-          console.log('CACHEE')
           setCategories(cachedData)
           return
         }
@@ -733,13 +723,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             description: initialData.description || '',
             category:
               initialData.category ||
-              ((initialData as any).categorias?.[0]?.id as number | undefined),
+              ((initialData as any).categorias?.map((c: any) => c.id) as
+                | number[]
+                | undefined) ||
+              [],
             enrollment_start_date:
               initialData.enrollment_start_date || new Date(),
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
             orgao_id: initialData.orgao_id || '',
             modalidade: initialData.modalidade,
-            theme: initialData.theme || undefined,
             workload: initialData.workload || '',
             target_audience: initialData.target_audience || '',
             pre_requisitos: initialData.pre_requisitos || '',
@@ -845,12 +837,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         : {
             title: '',
             description: '',
-            category: undefined,
+            category: [],
             enrollment_start_date: new Date(),
             enrollment_end_date: new Date(),
             orgao_id: '',
             modalidade: undefined,
-            theme: undefined,
             locations: [],
             remote_class: undefined,
             workload: '',
@@ -1006,7 +997,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       return {
         title: data.title,
         description: data.description,
-        categorias: data.category ? [{ id: data.category }] : [],
+        categorias: data.category
+          ? data.category.map(id => ({ id }))
+          : [],
         enrollment_start_date: data.enrollment_start_date
           ? formatDateTimeToUTC(data.enrollment_start_date)
           : undefined,
@@ -1015,7 +1008,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           : undefined,
         orgao_id: data.orgao_id || null,
         modalidade: data.modalidade,
-        theme: data.theme || undefined,
         workload: data.workload,
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo,
@@ -1079,7 +1071,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         enrollment_end_date: data.enrollment_end_date || nextMonth,
         orgao_id: data.orgao_id || '',
         modalidade: modalidade as 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE',
-        theme: data.theme || undefined,
         workload: data.workload,
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo || '',
@@ -1459,38 +1450,29 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categoria*</FormLabel>
-                    <Select
-                      onValueChange={value => field.onChange(Number(value))}
-                      value={field.value?.toString() || ''}
-                      disabled={isReadOnly || loadingCategories}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              loadingCategories
-                                ? 'Carregando categorias...'
-                                : categoryOptions.length === 0
-                                  ? 'Nenhuma categoria encontrada'
-                                  : 'Selecione uma categoria'
-                            }
-                          />
-                        </SelectTrigger>
-                      </FormControl>
-                      {!loadingCategories && categoryOptions.length > 0 && (
-                        <SelectContent>
-                          {categoryOptions.map(category => (
-                            <SelectItem
-                              key={category.id}
-                              value={category.id.toString()}
-                            >
-                              {category.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      )}
-                    </Select>
+                    <FormLabel>Categorias*</FormLabel>
+                    <FormControl>
+                      <MultiSelect
+                        options={categoryOptions.map(cat => ({
+                          value: cat.id.toString(),
+                          label: cat.nome,
+                        }))}
+                        value={field.value?.map(id => id.toString()) || []}
+                        onValueChange={values =>
+                          field.onChange(values.map(v => Number(v)))
+                        }
+                        placeholder={
+                          loadingCategories
+                            ? 'Carregando categorias...'
+                            : categoryOptions.length === 0
+                              ? 'Nenhuma categoria encontrada'
+                              : 'Selecione categorias'
+                        }
+                        searchPlaceholder="Buscar categorias..."
+                        emptyMessage="Nenhuma categoria encontrada."
+                        disabled={isReadOnly || loadingCategories}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -1716,33 +1698,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   </CardContent>
                 </Card>
               )}
-
-              <FormField
-                control={form.control}
-                name="theme"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tema</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={isReadOnly}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um tema" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Educação">Educação</SelectItem>
-                        <SelectItem value="Saúde">Saúde</SelectItem>
-                        <SelectItem value="Esportes">Esportes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <FormField
                 control={form.control}
@@ -2258,8 +2213,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>
-                                  Pré-requisitos para receber certificado
-                                </FormLabel>
+                                Pré-requisitos para o certificado"                                </FormLabel>
                                 <FormControl>
                                   <MarkdownEditor
                                     value={field.value || ''}

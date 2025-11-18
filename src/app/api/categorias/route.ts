@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     }
 
     if (pageSize) {
-      params.limit = Number.parseInt(pageSize, 10) // Will be mapped to pageSize internally
+      params.pageSize = Number.parseInt(pageSize, 10)
     }
 
     // Call the external API using the Orval-generated client function
