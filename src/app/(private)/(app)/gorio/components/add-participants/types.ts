@@ -41,11 +41,24 @@ export interface CourseData {
   custom_fields?: CustomField[]
   locations?: CourseLocation[]
   remote_class?: {
+    id?: string
     vacancies?: number
     class_start_date?: string
     class_end_date?: string
     class_time?: string
     class_days?: string
+    schedules?: Array<{
+      id?: string
+      remote_class_id?: string
+      vacancies: number
+      class_start_date?: string
+      class_end_date?: string
+      class_time?: string
+      class_days?: string
+      remaining_vacancies?: number
+      created_at?: string
+      updated_at?: string
+    }>
   }
 }
 
