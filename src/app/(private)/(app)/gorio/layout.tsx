@@ -6,8 +6,10 @@ export default function GorioLayout({
   children: React.ReactNode
 }) {
   return (
+    <>
     <ProtectedRoute requiredRoles={['admin', 'superadmin', 'go:admin']}>
       {children}
     </ProtectedRoute>
+    </>
   )
 }

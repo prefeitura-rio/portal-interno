@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 export function useLogout() {
   const [isLoading, setIsLoading] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
   const handleLogout = async () => {
     if (isLoading) return // Prevent multiple clicks
@@ -17,14 +18,38 @@ export function useLogout() {
       const iframe = document.createElement('iframe')
       iframe.style.display = 'none'
       iframe.src = govbrLogoutUrl
+      iframeRef.current = iframe
+
       document.body.appendChild(iframe)
+
       //remover o iframe após o carregamento
       iframe.onload = () => {
         setTimeout(() => {
-          document.body.removeChild(iframe)
+          // Safely remove iframe only if it's still a child of document.body
+          if (iframeRef.current && iframeRef.current.parentNode === document.body) {
+            try {
+              document.body.removeChild(iframeRef.current)
+            } catch (error) {
+              console.error('Error removing iframe:', error)
+            }
+            iframeRef.current = null
+          }
           // Redireciona o usuário após o logout do govbr
           window.location.href = redirectUri
         }, 0) // coloca em ultima prioridade na stack de execução
+      }
+
+      iframe.onerror = () => {
+        // In case of error, still redirect but clean up the iframe
+        if (iframeRef.current && iframeRef.current.parentNode === document.body) {
+          try {
+            document.body.removeChild(iframeRef.current)
+          } catch (error) {
+            console.error('Error removing iframe:', error)
+          }
+          iframeRef.current = null
+        }
+        window.location.href = redirectUri
       }
     } catch (error) {
       console.error('Logout failed:', error)
