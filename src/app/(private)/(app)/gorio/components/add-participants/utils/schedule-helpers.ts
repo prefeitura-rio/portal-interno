@@ -5,6 +5,7 @@ export interface ScheduleOption {
   label: string
   locationId: string
   locationAddress: string
+  isOnline?: boolean
 }
 
 interface Schedule {
@@ -12,19 +13,51 @@ interface Schedule {
   vacancies: number
   classStartDate?: Date | string
   classEndDate?: Date | string
+  class_start_date?: string
+  class_end_date?: string
   classTime?: string
+  class_time?: string
   classDays?: string
+  class_days?: string
 }
 
 /**
- * Extracts all schedules from course locations and formats them for a dropdown
+ * Extracts all schedules from course locations (presencial) or remote_class (online) and formats them for a dropdown
  */
 export function getScheduleOptions(courseData?: CourseData | null): ScheduleOption[] {
-  if (!courseData?.locations || courseData.locations.length === 0) {
+  if (!courseData) {
     return []
   }
 
   const options: ScheduleOption[] = []
+
+  // Check if it's an online course with multiple schedules
+  if (courseData.modalidade === 'ONLINE' && courseData.remote_class?.schedules && courseData.remote_class.schedules.length > 0) {
+    courseData.remote_class.schedules.forEach((schedule: Schedule, index: number) => {
+      if (!schedule.id) {
+        console.error('Schedule without ID found - skipping. Backend should always provide schedule IDs:', schedule)
+        return
+      }
+
+      const classTime = schedule.class_time || schedule.classTime || ''
+      const classDays = schedule.class_days || schedule.classDays || ''
+
+      options.push({
+        id: schedule.id,
+        label: formatOnlineScheduleLabel(index + 1, classTime, classDays),
+        locationId: courseData.remote_class?.id || '',
+        locationAddress: 'Online',
+        isOnline: true,
+      })
+    })
+
+    return options
+  }
+
+  // Handle presencial courses with locations
+  if (!courseData.locations || courseData.locations.length === 0) {
+    return []
+  }
 
   courseData.locations.forEach((location: CourseLocation) => {
     if (!location.schedules || location.schedules.length === 0) {
@@ -39,6 +72,7 @@ export function getScheduleOptions(courseData?: CourseData | null): ScheduleOpti
           ),
           locationId: location.id || '',
           locationAddress: location.address || '',
+          isOnline: false,
         })
       }
       return
@@ -61,6 +95,7 @@ export function getScheduleOptions(courseData?: CourseData | null): ScheduleOpti
         ),
         locationId: location.id || '',
         locationAddress: location.address || '',
+        isOnline: false,
       })
     })
   })
@@ -69,7 +104,7 @@ export function getScheduleOptions(courseData?: CourseData | null): ScheduleOpti
 }
 
 /**
- * Formats a schedule label for display in dropdown
+ * Formats a schedule label for display in dropdown (presencial)
  * Format: "Partial Address | Time | Days"
  * Example: "Rua Planalto | 23h - 00h | Sexta e sábado"
  */
@@ -80,6 +115,19 @@ function formatScheduleLabel(
 ): string {
   const addressPart = getPartialAddress(address)
   return `${addressPart} | ${classTime} | ${classDays}`
+}
+
+/**
+ * Formats a schedule label for online courses
+ * Format: "Turma N | Time | Days"
+ * Example: "Turma 1 | 19:00 - 22:00 | Segunda"
+ */
+function formatOnlineScheduleLabel(
+  turmaNumber: number,
+  classTime: string,
+  classDays: string
+): string {
+  return `Turma ${turmaNumber} | ${classTime} | ${classDays}`
 }
 
 /**
