@@ -65,6 +65,14 @@ const accessibilityLabel: Record<Accessibility, string> = {
   EXCLUSIVO: 'Exclusivo para pessoas com deficiência',
 }
 
+export type FormacaoType = 'Curso' | 'Palestra' | 'Oficina' | 'Workshop'
+const FORMACAO_TYPES: readonly FormacaoType[] = [
+  'Curso',
+  'Palestra',
+  'Oficina',
+  'Workshop',
+] as const
+
 // Category type from API
 export interface Category {
   id: number
@@ -159,6 +167,7 @@ const fullFormSchema = z
       enrollment_end_date: z.date({
         required_error: 'Data de término é obrigatória.',
       }),
+      theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.literal('ONLINE'),
       workload: z
@@ -275,6 +284,7 @@ const fullFormSchema = z
       }),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.enum(['PRESENCIAL', 'HIBRIDO']),
+      theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -420,6 +430,7 @@ const draftFormSchema = z.object({
   modalidade: z.enum(['PRESENCIAL', 'HIBRIDO', 'ONLINE']).optional(),
   workload: z.string().optional(),
   target_audience: z.string().optional(),
+  theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
   institutional_logo: z
     .string()
     .refine(validateGoogleCloudStorageURL, {
@@ -527,6 +538,7 @@ type PartialFormData = Omit<
   category?: number[]
   workload?: string
   target_audience?: string
+  theme?: FormacaoType
   pre_requisitos?: string
   has_certificate?: boolean
 
@@ -565,6 +577,7 @@ type BackendCourseData = {
   modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
   workload: string
   target_audience: string
+  theme?: string
   institutional_logo: string | null
   cover_image: string | null
   is_visible?: boolean
@@ -732,6 +745,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
             orgao_id: initialData.orgao_id || '',
             modalidade: initialData.modalidade,
+            theme: initialData.theme || 'Curso',
             workload: initialData.workload || '',
             target_audience: initialData.target_audience || '',
             pre_requisitos: initialData.pre_requisitos || '',
@@ -842,6 +856,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_end_date: new Date(),
             orgao_id: '',
             modalidade: undefined,
+            theme: 'Curso',
             locations: [],
             remote_class: undefined,
             workload: '',
@@ -1006,6 +1021,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         enrollment_end_date: data.enrollment_end_date
           ? formatDateTimeToUTC(data.enrollment_end_date)
           : undefined,
+          theme: data.theme || undefined,
         orgao_id: data.orgao_id || null,
         modalidade: data.modalidade,
         workload: data.workload,
@@ -1069,6 +1085,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         category: data.category,
         enrollment_start_date: data.enrollment_start_date || currentDate,
         enrollment_end_date: data.enrollment_end_date || nextMonth,
+        theme: data.theme || undefined,
         orgao_id: data.orgao_id || '',
         modalidade: modalidade as 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE',
         workload: data.workload,
@@ -1698,6 +1715,35 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   </CardContent>
                 </Card>
               )}
+
+<FormField
+                control={form.control}
+                name="theme"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de formação</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isReadOnly}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo de formação" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {FORMACAO_TYPES.map((tipo) => (
+                          <SelectItem key={tipo} value={tipo}>
+                            {tipo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
