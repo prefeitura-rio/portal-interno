@@ -116,8 +116,6 @@ export function getModalidadeLabel(modalidade?: string): string {
   const modalidadeMap: Record<string, string> = {
     PRESENCIAL: 'Presencial',
     ONLINE: 'Online',
-    HIBRIDO: 'Híbrido',
-    SEMIPRESENCIAL: 'Semipresencial',
   }
 
   return modalidadeMap[modalidade.toUpperCase()] || modalidade

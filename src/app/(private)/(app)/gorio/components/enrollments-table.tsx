@@ -179,11 +179,10 @@ export function EnrollmentsTable({
       }
     }
 
-    // Para cursos PRESENCIAL/Presencial/SEMIPRESENCIAL
+    // Para cursos PRESENCIAL/Presencial
     if (
       (course.modalidade === 'PRESENCIAL' ||
-        course.modalidade === 'Presencial' ||
-        course.modalidade === 'SEMIPRESENCIAL') &&
+        course.modalidade === 'Presencial') &&
       course.locations
     ) {
       for (const location of course.locations) {

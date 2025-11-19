@@ -11,7 +11,7 @@
 
 ## 🎯 Visão Geral
 
-Esta API permite o gerenciamento completo de cursos no sistema, incluindo criação, edição, consulta, rascunhos e gerenciamento de inscrições. Os cursos podem ser de três modalidades: **Presencial**, **Semipresencial** ou **Remoto**, cada uma com estruturas de dados específicas.
+Esta API permite o gerenciamento completo de cursos no sistema, incluindo criação, edição, consulta, rascunhos e gerenciamento de inscrições. Os cursos podem ser de duas modalidades: **Presencial** ou **Remoto**, cada uma com estruturas de dados específicas.
 
 ### 🔑 Características Principais
 
@@ -390,7 +390,7 @@ interface CourseBase {
   enrollmentStartDate: string;  // ISO 8601
   enrollmentEndDate: string;    // ISO 8601
   organization: string;    // Mínimo 1 caractere
-  modalidade: 'Presencial' | 'Semipresencial' | 'Remoto';
+  modalidade: 'Presencial' | 'Remoto';
   theme: string;           // 3-100 caracteres
   workload: string;        // 3-50 caracteres
   targetAudience: string;  // 10-200 caracteres
@@ -400,7 +400,7 @@ interface CourseBase {
 }
 ```
 
-### 🏠 Cursos Presenciais/Semipresenciais
+### 🏠 Cursos Presenciais
 
 ```typescript
 interface LocationClass {
@@ -414,7 +414,7 @@ interface LocationClass {
 }
 
 interface PresentialCourse extends CourseBase {
-  modalidade: 'Presencial' | 'Semipresencial';
+  modalidade: 'Presencial';
   locations: LocationClass[];  // Mínimo 1 localização
 }
 ```

@@ -105,11 +105,10 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
     if (endDate) classEndDates.push(endDate)
   }
 
-  // Handle PRESENCIAL/Presencial/SEMIPRESENCIAL courses (locations)
+  // Handle PRESENCIAL/Presencial courses (locations)
   else if (
     (courseData.modalidade === 'PRESENCIAL' ||
-      courseData.modalidade === 'Presencial' ||
-      courseData.modalidade === 'SEMIPRESENCIAL') &&
+      courseData.modalidade === 'Presencial') &&
     courseData.locations
   ) {
     const locations = courseData.locations
@@ -186,8 +185,6 @@ export function transformApiCourseToCourse(apiCourse: any): any {
       if (modalidade === 'Presencial' || modalidade === 'PRESENCIAL')
         return 'PRESENCIAL'
       if (modalidade === 'Remoto' || modalidade === 'ONLINE') return 'ONLINE'
-      if (modalidade === 'Semipresencial' || modalidade === 'HIBRIDO')
-        return 'HIBRIDO'
       return modalidade
     })(),
     orgao_id: courseData.orgao_id || null,

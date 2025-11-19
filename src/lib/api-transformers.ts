@@ -50,11 +50,10 @@ function getDynamicCourseStatus(apiCourse: ApiCourse): CourseStatus {
     }
   }
 
-  // Handle PRESENCIAL/Presencial/SEMIPRESENCIAL courses (locations)
+  // Handle PRESENCIAL/Presencial courses (locations)
   else if (
     (apiCourse.modalidade === 'PRESENCIAL' ||
-      apiCourse.modalidade === 'Presencial' ||
-      apiCourse.modalidade === 'SEMIPRESENCIAL') &&
+      apiCourse.modalidade === 'Presencial') &&
     (apiCourse as any).locations
   ) {
     const locations = (apiCourse as any).locations
