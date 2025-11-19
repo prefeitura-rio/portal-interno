@@ -74,7 +74,7 @@ WHERE class_start_date IS NOT NULL;
 
 Todos devem trafegar `locations[].schedules[]` na estrutura nova.
 
-### Exemplo de Request (POST/PUT – PRESENCIAL/HÍBRIDO)
+### Exemplo de Request (POST/PUT – PRESENCIAL)
 
 ```json
 {
@@ -172,6 +172,6 @@ Alternativa: merge por `id` (mais complexo; definir regras claras de criação/a
 - [ ] POST/PUT persistirem `schedules` corretamente
 - [ ] GET retornar `schedules` por `location`
 - [ ] Atualizar documentação (Swagger/OpenAPI)
-- [ ] Testar PRESENCIAL/HÍBRIDO; manter ONLINE com `remote_class`
+- [ ] Testar PRESENCIAL; manter ONLINE com `remote_class`
 
 

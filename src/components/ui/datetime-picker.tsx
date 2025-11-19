@@ -42,6 +42,11 @@ export function DateTimePicker({
     return '10:30:00'
   })
 
+  // Calculate year range: 5 years back and 5 years forward from current year
+  const currentYear = new Date().getFullYear()
+  const fromYear = currentYear - 5
+  const toYear = currentYear + 5
+
   // Sync with external value changes
   React.useEffect(() => {
     if (value) {
@@ -122,6 +127,8 @@ export function DateTimePicker({
               captionLayout="dropdown"
               onSelect={handleDateSelect}
               initialFocus
+              fromYear={fromYear}
+              toYear={toYear}
             />
           </PopoverContent>
         </Popover>

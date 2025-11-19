@@ -16,7 +16,6 @@ export interface ApiCourse {
   modalidade:
     | 'ONLINE'
     | 'PRESENCIAL'
-    | 'SEMIPRESENCIAL'
     | 'Remoto'
     | 'Presencial'
   status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled'

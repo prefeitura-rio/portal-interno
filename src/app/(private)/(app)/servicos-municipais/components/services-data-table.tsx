@@ -309,7 +309,7 @@ export function ServicesDataTable() {
     (serviceId: string, serviceName: string) => {
       openConfirmDialog({
         title: 'Publicar Serviço',
-        description: `Tem certeza que deseja publicar o serviço "${serviceName}"? Ele ficará disponível para todos os cidadãos.`,
+        description: `Tem certeza que deseja publicar o serviço "${serviceName}"? Ele ficará disponível para todos os cidadãos no pref.rio.`,
         confirmText: 'Publicar',
         variant: 'default',
         onConfirm: async () => {

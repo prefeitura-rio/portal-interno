@@ -63,6 +63,8 @@ export async function PATCH(
       canais_digitais: currentService.canais_digitais,
       canais_presenciais: currentService.canais_presenciais,
       legislacao_relacionada: currentService.legislacao_relacionada,
+      buttons: (currentService as any).buttons || undefined, // Preserve buttons
+      is_free: (currentService as any).is_free, // Preserve is_free
       awaiting_approval: true, // Set awaiting approval flag
       fixar_destaque: currentService.fixar_destaque,
       status: 0, // Set to draft
