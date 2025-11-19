@@ -685,6 +685,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
               serviceStatus={service.status}
               onSendToApproval={handleSendToApproval}
               onPublish={handleApproveAndPublish}
+              onSave={async () => {
+                // For already published services, just refetch without publishing again
+                // Don't show toast here - updateService already shows "Serviço atualizado com sucesso!"
+                await refetch()
+              }}
               serviceId={servicoId || undefined}
               onFormChangesDetected={setHasFormChanges}
               initialData={initialFormData ?? undefined}
@@ -717,7 +722,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           open={showApproveDialog}
           onOpenChange={setShowApproveDialog}
           title="Aprovar e publicar"
-          description="Tem certeza que deseja aprovar e publicar este serviço? Ele ficará disponível no pref.rio para todos os cidadãos."
+          description="Tem certeza que deseja aprovar e publicar este serviço? Ele ficará disponível no para todos os cidadãos no pref.rio."
           confirmText="Aprovar e publicar"
           cancelText="Cancelar"
           variant="default"
@@ -739,7 +744,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           open={showSaveDialog}
           onOpenChange={setShowSaveDialog}
           title="Salvar edição"
-          description="Tem certeza que deseja salvar as alterações realizadas no serviço?"
+          description={
+            service?.status === 'published'
+              ? 'Tem certeza que deseja salvar as alterações realizadas no serviço? Esse serviço já está publicado e as alterações aparecerão imediatamente no pref.rio.'
+              : 'Tem certeza que deseja salvar as alterações realizadas no serviço?'
+          }
           confirmText="Salvar alterações"
           cancelText="Cancelar"
           variant="default"

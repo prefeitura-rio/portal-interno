@@ -346,6 +346,7 @@ interface NewServiceFormProps {
   serviceStatus?: string
   onSendToApproval?: () => void
   onPublish?: () => void // Callback for when service is published
+  onSave?: () => void // Callback for when service is saved (for already published services)
   serviceId?: string // For editing existing services
   onFormChangesDetected?: (hasChanges: boolean) => void // Callback when form changes are detected
 }
@@ -358,6 +359,7 @@ export function NewServiceForm({
   serviceStatus,
   onSendToApproval,
   onPublish,
+  onSave,
   serviceId,
   onFormChangesDetected,
 }: NewServiceFormProps) {
@@ -985,7 +987,28 @@ export function NewServiceForm({
     try {
       const apiData = transformToApiRequest(pendingFormData)
 
-      // Set status to published and add published_at timestamp
+      // If service is already published, just save maintaining the published status
+      // Don't update published_at timestamp
+      if (serviceStatus === 'published' && serviceId) {
+        apiData.status = 1 // Keep as published
+        // Don't set published_at - preserve the original publication date
+        
+        await updateService(serviceId, apiData)
+        
+        setPendingFormData(null)
+        setShowPublishDialog(false)
+
+        // Use onSave callback if provided (for refetch), otherwise just show toast
+        // Don't call onPublish to avoid calling the publish endpoint again
+        if (onSave) {
+          onSave()
+        } else {
+          toast.success('Edição salva com sucesso!')
+        }
+        return
+      }
+
+      // For new services or services not yet published, set status to published and add published_at timestamp
       apiData.status = 1
       ;(apiData as any).published_at = getCurrentTimestamp()
 
@@ -1119,11 +1142,21 @@ export function NewServiceForm({
         return {
           showSendToEdit: false, // Don't show "Enviar para edição" button for "Em Edição" status
           showPublish: true, // Admins can publish directly
+          publishButtonText: 'Salvar e publicar', // For new services or services in edition
+        }
+      }
+      if (serviceStatus === 'published' && serviceId) {
+        // If editing a published service, show "Salvar edição" instead
+        return {
+          showSendToEdit: true,
+          showPublish: true,
+          publishButtonText: 'Salvar edição', // For editing published services
         }
       }
       return {
         showSendToEdit: true,
         showPublish: true, // Admins can publish directly
+        publishButtonText: 'Salvar e publicar', // For new services
       }
     }
 
@@ -1920,8 +1953,10 @@ export function NewServiceForm({
                         }
                       >
                         {isLoading || operationLoading
-                          ? 'Publicando...'
-                          : 'Salvar e publicar'}
+                          ? serviceStatus === 'published' && serviceId
+                            ? 'Salvando...'
+                            : 'Publicando...'
+                          : buttonConfig.publishButtonText || 'Salvar e publicar'}
                       </Button>
                     )}
                   </>
@@ -1948,9 +1983,21 @@ export function NewServiceForm({
       <ConfirmDialog
         open={showPublishDialog}
         onOpenChange={setShowPublishDialog}
-        title="Publicar serviço"
-        description="Tem certeza que deseja publicar este serviço? Ele ficará disponível no pref.rio para todos os cidadãos."
-        confirmText="Publicar serviço"
+        title={
+          serviceStatus === 'published' && serviceId
+            ? 'Salvar edição'
+            : 'Publicar serviço'
+        }
+        description={
+          serviceStatus === 'published' && serviceId
+            ? 'Tem certeza que deseja salvar as alterações realizadas no serviço? Esse serviço já está publicado e as alterações aparecerão imediatamente no pref.rio.'
+            : 'Tem certeza que deseja publicar este serviço? Ele ficará disponível no para todos os cidadãos no pref.rio.'
+        }
+        confirmText={
+          serviceStatus === 'published' && serviceId
+            ? 'Salvar edição'
+            : 'Publicar serviço'
+        }
         cancelText="Cancelar"
         variant="default"
         onConfirm={handleConfirmPublish}
