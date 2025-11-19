@@ -166,7 +166,6 @@ interface CourseListItem {
 |--------------|---------------|
 | `ONLINE` | Online |
 | `PRESENCIAL` | Presencial |
-| `SEMIPRESENCIAL` | Semipresencial |
 
 ## Environment Variables
 

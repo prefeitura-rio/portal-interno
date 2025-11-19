@@ -65,6 +65,14 @@ const accessibilityLabel: Record<Accessibility, string> = {
   EXCLUSIVO: 'Exclusivo para pessoas com deficiência',
 }
 
+export type FormacaoType = 'Curso' | 'Palestra' | 'Oficina' | 'Workshop'
+const FORMACAO_TYPES: readonly FormacaoType[] = [
+  'Curso',
+  'Palestra',
+  'Oficina',
+  'Workshop',
+] as const
+
 // Category type from API
 export interface Category {
   id: number
@@ -159,6 +167,7 @@ const fullFormSchema = z
       enrollment_end_date: z.date({
         required_error: 'Data de término é obrigatória.',
       }),
+      theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.literal('ONLINE'),
       workload: z
@@ -274,7 +283,8 @@ const fullFormSchema = z
         required_error: 'Data de término é obrigatória.',
       }),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
-      modalidade: z.enum(['PRESENCIAL', 'HIBRIDO']),
+      modalidade: z.literal('PRESENCIAL'),
+      theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
       workload: z
         .string()
         .min(1, { message: 'Carga horária é obrigatória.' })
@@ -417,9 +427,10 @@ const draftFormSchema = z.object({
   enrollment_start_date: z.date().optional(),
   enrollment_end_date: z.date().optional(),
   orgao_id: z.string().optional(),
-  modalidade: z.enum(['PRESENCIAL', 'HIBRIDO', 'ONLINE']).optional(),
+  modalidade: z.enum(['PRESENCIAL', 'ONLINE']).optional(),
   workload: z.string().optional(),
   target_audience: z.string().optional(),
+  theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
   institutional_logo: z
     .string()
     .refine(validateGoogleCloudStorageURL, {
@@ -521,12 +532,13 @@ type PartialFormData = Omit<
   FormData,
   'modalidade' | 'locations' | 'remote_class'
 > & {
-  modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
+  modalidade?: 'PRESENCIAL' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
   category?: number[]
   workload?: string
   target_audience?: string
+  theme?: FormacaoType
   pre_requisitos?: string
   has_certificate?: boolean
 
@@ -562,9 +574,10 @@ type BackendCourseData = {
   enrollment_start_date: string | undefined
   enrollment_end_date: string | undefined
   orgao_id: string | null
-  modalidade?: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
+  modalidade?: 'PRESENCIAL' | 'ONLINE'
   workload: string
   target_audience: string
+  theme?: string
   institutional_logo: string | null
   cover_image: string | null
   is_visible?: boolean
@@ -732,6 +745,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_end_date: initialData.enrollment_end_date || new Date(),
             orgao_id: initialData.orgao_id || '',
             modalidade: initialData.modalidade,
+            theme: initialData.theme || 'Curso',
             workload: initialData.workload || '',
             target_audience: initialData.target_audience || '',
             pre_requisitos: initialData.pre_requisitos || '',
@@ -841,8 +855,23 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             enrollment_start_date: new Date(),
             enrollment_end_date: new Date(),
             orgao_id: '',
-            modalidade: undefined,
-            locations: [],
+            modalidade: 'PRESENCIAL',
+            theme: 'Curso',
+            locations: [
+              {
+                address: '',
+                neighborhood: '',
+                schedules: [
+                  {
+                    vacancies: 1,
+                    classStartDate: new Date(),
+                    classEndDate: new Date(),
+                    classTime: '',
+                    classDays: '',
+                  },
+                ],
+              },
+            ],
             remote_class: undefined,
             workload: '',
             target_audience: '',
@@ -1006,6 +1035,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         enrollment_end_date: data.enrollment_end_date
           ? formatDateTimeToUTC(data.enrollment_end_date)
           : undefined,
+          theme: data.theme || undefined,
         orgao_id: data.orgao_id || null,
         modalidade: data.modalidade,
         workload: data.workload,
@@ -1069,8 +1099,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         category: data.category,
         enrollment_start_date: data.enrollment_start_date || currentDate,
         enrollment_end_date: data.enrollment_end_date || nextMonth,
+        theme: data.theme || undefined,
         orgao_id: data.orgao_id || '',
-        modalidade: modalidade as 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE',
+        modalidade: modalidade as 'PRESENCIAL' | 'ONLINE',
         workload: data.workload,
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo || '',
@@ -1158,7 +1189,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
     // Handle modalidade change to properly initialize fields
     const handleModalidadeChange = (
-      value: 'PRESENCIAL' | 'HIBRIDO' | 'ONLINE'
+      value: 'PRESENCIAL' | 'ONLINE'
     ) => {
       if (value === 'ONLINE') {
         // Clear locations array and initialize remote class fields with array
@@ -1172,7 +1203,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             classDays: '',
           },
         ] as any)
-      } else if (value === 'PRESENCIAL' || value === 'HIBRIDO') {
+      } else if (value === 'PRESENCIAL') {
         // Clear remote class and initialize locations if not already set
         form.setValue('remote_class', undefined)
 
@@ -1699,6 +1730,35 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 </Card>
               )}
 
+<FormField
+                control={form.control}
+                name="theme"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de formação*</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isReadOnly}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo de formação" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {FORMACAO_TYPES.map((tipo) => (
+                          <SelectItem key={tipo} value={tipo}>
+                            {tipo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="modalidade"
@@ -1709,7 +1769,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       onValueChange={value => {
                         const modalidadeValue = value as
                           | 'PRESENCIAL'
-                          | 'HIBRIDO'
                           | 'ONLINE'
                         field.onChange(modalidadeValue)
                         handleModalidadeChange(modalidadeValue)
@@ -1723,7 +1782,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="PRESENCIAL">Presencial</SelectItem>
-                        <SelectItem value="HIBRIDO">Híbrido</SelectItem>
                         <SelectItem value="ONLINE">Online</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1889,7 +1947,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 </div>
               )}
 
-              {(modalidade === 'PRESENCIAL' || modalidade === 'HIBRIDO') && (
+              {modalidade === 'PRESENCIAL' && (
                 <div className="space-y-4 -mt-2">
                   {fields.map((field, index) => (
                     <Card key={field.id}>
