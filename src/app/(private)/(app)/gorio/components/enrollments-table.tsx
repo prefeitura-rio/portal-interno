@@ -57,6 +57,7 @@ import { useEnrollments } from '@/hooks/use-enrollments'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import * as XLSX from 'xlsx'
 import { AddParticipantsModal } from './add-participants'
 import { getScheduleOptions } from './add-participants/utils/schedule-helpers'
 import type { CourseData } from './add-participants/types'
@@ -785,7 +786,7 @@ export function EnrollmentsTable({
       )
     )
 
-    // Create CSV headers
+    // Create XLSX headers
     const headers = [
       'Nome',
       'CPF',
@@ -806,158 +807,153 @@ export function EnrollmentsTable({
       ...allCustomFieldTitles,
     ]
 
-    // Helper function to escape CSV fields according to RFC 4180
-    const escapeCsvField = (field: string | number | undefined): string => {
-      // Convert field to string and handle null/undefined
-      const stringField = String(field ?? '')
+    // Create worksheet data
+    const worksheetData = enrollmentsToExport.map(enrollment => {
+      const customFieldValues = allCustomFieldTitles.map(title => {
+        const field = enrollment.customFields?.find(f => f.title === title)
+        if (!field) return ''
 
-      // If field contains comma, double quote, or newline, wrap in quotes and escape internal quotes
-      if (
-        stringField.includes(',') ||
-        stringField.includes('"') ||
-        stringField.includes('\n')
-      ) {
-        return `"${stringField.replace(/"/g, '""')}"`
+        // Handle different field types for XLSX export
+        switch (field.field_type) {
+          case 'radio':
+          case 'select': {
+            // For single selection, find the option that matches the value
+            const selectedOption = field.options?.find(
+              option => option.id === field.value
+            )
+            return selectedOption?.value || field.value || ''
+          }
+
+          case 'multiselect': {
+            // For multiple selection, the value might be a comma-separated list of option IDs
+            const selectedOptionIds =
+              field.value?.split(',').filter(Boolean) || []
+            const selectedOptions = field.options?.filter(option =>
+              selectedOptionIds.includes(option.id)
+            )
+            return (
+              selectedOptions?.map(option => option.value).join('; ') ||
+              field.value ||
+              ''
+            )
+          }
+
+          default:
+            // For text fields, return the value as is
+            return field.value || ''
+        }
+      })
+
+      // Get enrolled unit and schedule information
+      const enrolledUnit = enrollment.enrolled_unit
+      const enrolledSchedule = enrolledUnit?.schedules?.find(
+        s => s.id === enrollment.schedule_id
+      )
+
+      // Get the Turma label and schedule details using the same logic as in the sidesheet
+      let turmaLabel = ''
+      let scheduleDetails = {
+        id: '',
+        class_days: '',
+        class_time: '',
+        class_start_date: '',
+        class_end_date: '',
+        vacancies: '',
       }
 
-      return stringField
-    }
-
-    // Create CSV content
-    const csvContent = [
-      headers,
-      ...enrollmentsToExport.map(enrollment => {
-        const customFieldValues = allCustomFieldTitles.map(title => {
-          const field = enrollment.customFields?.find(f => f.title === title)
-          if (!field) return ''
-
-          // Handle different field types for CSV export
-          switch (field.field_type) {
-            case 'radio':
-            case 'select': {
-              // For single selection, find the option that matches the value
-              const selectedOption = field.options?.find(
-                option => option.id === field.value
-              )
-              return selectedOption?.value || field.value
-            }
-
-            case 'multiselect': {
-              // For multiple selection, the value might be a comma-separated list of option IDs
-              const selectedOptionIds =
-                field.value?.split(',').filter(Boolean) || []
-              const selectedOptions = field.options?.filter(option =>
-                selectedOptionIds.includes(option.id)
-              )
-              return (
-                selectedOptions?.map(option => option.value).join('; ') ||
-                field.value
-              )
-            }
-
-            default:
-              // For text fields, return the value as is
-              return field.value
-          }
-        })
-
-        // Get enrolled unit and schedule information
-        const enrolledUnit = enrollment.enrolled_unit
-        const enrolledSchedule = enrolledUnit?.schedules?.find(
-          s => s.id === enrollment.schedule_id
+      if (enrollment.schedule_id && course) {
+        const scheduleOptions = getScheduleOptions(course)
+        const selectedSchedule = scheduleOptions.find(
+          opt => opt.id === enrollment.schedule_id
         )
+        if (selectedSchedule) {
+          turmaLabel = selectedSchedule.label
 
-        // Get the Turma label and schedule details using the same logic as in the sidesheet
-        let turmaLabel = ''
-        let scheduleDetails = {
-          id: '',
-          class_days: '',
-          class_time: '',
-          class_start_date: '',
-          class_end_date: '',
-          vacancies: '',
-        }
+          // Try to get schedule details from enrolled_unit first, then from course data
+          if (enrolledSchedule) {
+            scheduleDetails = {
+              id: enrolledSchedule.id,
+              class_days: enrolledSchedule.class_days || '',
+              class_time: enrolledSchedule.class_time || '',
+              class_start_date: enrolledSchedule.class_start_date
+                ? new Date(enrolledSchedule.class_start_date).toLocaleDateString('pt-BR')
+                : '',
+              class_end_date: enrolledSchedule.class_end_date
+                ? new Date(enrolledSchedule.class_end_date).toLocaleDateString('pt-BR')
+                : '',
+              vacancies: enrolledSchedule.vacancies?.toString() || '',
+            }
+          } else {
+            // Fallback: get schedule data from course locations
+            scheduleDetails.id = enrollment.schedule_id
 
-        if (enrollment.schedule_id && course) {
-          const scheduleOptions = getScheduleOptions(course)
-          const selectedSchedule = scheduleOptions.find(
-            opt => opt.id === enrollment.schedule_id
-          )
-          if (selectedSchedule) {
-            turmaLabel = selectedSchedule.label
-
-            // Try to get schedule details from enrolled_unit first, then from course data
-            if (enrolledSchedule) {
-              scheduleDetails = {
-                id: enrolledSchedule.id,
-                class_days: enrolledSchedule.class_days,
-                class_time: enrolledSchedule.class_time,
-                class_start_date: enrolledSchedule.class_start_date
-                  ? new Date(enrolledSchedule.class_start_date).toLocaleDateString('pt-BR')
-                  : '',
-                class_end_date: enrolledSchedule.class_end_date
-                  ? new Date(enrolledSchedule.class_end_date).toLocaleDateString('pt-BR')
-                  : '',
-                vacancies: enrolledSchedule.vacancies?.toString() || '',
-              }
-            } else {
-              // Fallback: get schedule data from course locations
-              scheduleDetails.id = enrollment.schedule_id
-
-              // Find schedule in course data
-              for (const location of course.locations || []) {
-                const schedule = location.schedules?.find(s => s.id === enrollment.schedule_id)
-                if (schedule) {
-                  scheduleDetails.class_days = schedule.classDays || ''
-                  scheduleDetails.class_time = schedule.classTime || ''
-                  scheduleDetails.class_start_date = schedule.classStartDate
-                    ? new Date(schedule.classStartDate).toLocaleDateString('pt-BR')
-                    : ''
-                  scheduleDetails.class_end_date = schedule.classEndDate
-                    ? new Date(schedule.classEndDate).toLocaleDateString('pt-BR')
-                    : ''
-                  scheduleDetails.vacancies = schedule.vacancies?.toString() || ''
-                  break
-                }
+            // Find schedule in course data
+            for (const location of course.locations || []) {
+              const schedule = location.schedules?.find(s => s.id === enrollment.schedule_id)
+              if (schedule) {
+                scheduleDetails.class_days = schedule.classDays || ''
+                scheduleDetails.class_time = schedule.classTime || ''
+                scheduleDetails.class_start_date = schedule.classStartDate
+                  ? new Date(schedule.classStartDate).toLocaleDateString('pt-BR')
+                  : ''
+                scheduleDetails.class_end_date = schedule.classEndDate
+                  ? new Date(schedule.classEndDate).toLocaleDateString('pt-BR')
+                  : ''
+                scheduleDetails.vacancies = schedule.vacancies?.toString() || ''
+                break
               }
             }
           }
         }
+      }
 
-        return [
-          enrollment.candidateName,
-          `'${enrollment.cpf}`, // Prefix with ' to force text format in spreadsheets
-          enrollment.email,
-          enrollment.phone || '',
-          enrollment.courseId,
-          new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
-          enrollment.status,
-          enrollment.address || enrolledUnit?.address || '',
-          enrollment.neighborhood || enrolledUnit?.neighborhood || '',
-          scheduleDetails.id,
-          turmaLabel,
-          scheduleDetails.class_days,
-          scheduleDetails.class_time,
-          scheduleDetails.class_start_date,
-          scheduleDetails.class_end_date,
-          scheduleDetails.vacancies,
-          ...customFieldValues,
-        ]
-      }),
-    ]
-      .map(row => row.map(field => escapeCsvField(field)).join(','))
-      .join('\n')
+      // Create row object with headers as keys
+      const row: Record<string, string | number> = {
+        'Nome': enrollment.candidateName || '',
+        'CPF': enrollment.cpf || '', // XLSX handles text format automatically
+        'E-mail': enrollment.email || '',
+        'Telefone': enrollment.phone || '',
+        'Id do curso': enrollment.courseId || '',
+        'Data de Inscrição': new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
+        'Status': enrollment.status || '',
+        'Endereço': enrollment.address || enrolledUnit?.address || '',
+        'Bairro': enrollment.neighborhood || enrolledUnit?.neighborhood || '',
+        'Código da Turma': scheduleDetails.id,
+        'Turma': turmaLabel,
+        'Dias da Semana': scheduleDetails.class_days,
+        'Horário': scheduleDetails.class_time,
+        'Data de Início': scheduleDetails.class_start_date,
+        'Data de Término': scheduleDetails.class_end_date,
+        'Vagas': scheduleDetails.vacancies,
+      }
 
-    // Create and download file with proper UTF-8 BOM for Excel compatibility
-    const BOM = '\uFEFF'
-    const blob = new Blob([BOM + csvContent], {
-      type: 'text/csv;charset=utf-8;',
+      // Add custom fields to row
+      allCustomFieldTitles.forEach((title, index) => {
+        row[title] = customFieldValues[index] || ''
+      })
+
+      return row
     })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
 
-    // Use course title if available, otherwise fallback to course ID
+    // Create workbook and worksheet
+    const workbook = XLSX.utils.book_new()
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData)
+
+    // Set column widths for better readability
+    const columnWidths = headers.map(header => {
+      // Calculate approximate width based on header length and content
+      const maxContentLength = Math.max(
+        header.length,
+        ...worksheetData.map(row => String(row[header] || '').length)
+      )
+      return { wch: Math.min(Math.max(maxContentLength + 2, 10), 50) }
+    })
+    worksheet['!cols'] = columnWidths
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Inscrições')
+
+    // Generate file name
     const timestamp = new Date()
       .toISOString()
       .replace(/[:.]/g, '-')
@@ -966,11 +962,8 @@ export function EnrollmentsTable({
       ? `inscricoes_curso_${courseTitle.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}_${timestamp}`
       : `inscricoes_curso_${courseId}_${timestamp}`
 
-    link.setAttribute('download', `${fileName}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    // Write file and trigger download
+    XLSX.writeFile(workbook, `${fileName}.xlsx`)
   }, [enrollments, courseId, courseTitle, course])
 
   const handleBulkCancelEnrollments = React.useCallback(async () => {
@@ -1098,7 +1091,7 @@ export function EnrollmentsTable({
           </Button>
           <Button variant="outline" onClick={handleDownloadSpreadsheet}>
             <FileDown className="mr-2 h-4 w-4" />
-            Exportar CSV
+            Exportar XLSX
           </Button>
         </div>
       </div>
@@ -1797,11 +1790,11 @@ export function EnrollmentsTable({
             Marcar como concluído
           </DataTableActionBarAction>
           <DataTableActionBarAction
-            tooltip="Exportar inscrições selecionadas para CSV"
+            tooltip="Exportar inscrições selecionadas para XLSX"
             onClick={handleDownloadSpreadsheet}
           >
             <FileDown className="mr-2 h-4 w-4" />
-            Exportar CSV
+            Exportar XLSX
           </DataTableActionBarAction>
         </DataTableActionBar>
       </DataTable>
