@@ -61,7 +61,14 @@ function convertFrontendStatusToApi(
 // Helper function to convert API enrollment to frontend enrollment
 function convertApiEnrollmentToFrontend(
   apiEnrollment: ModelsInscricao,
-  courseCustomFields?: Array<{ id: string; title?: string; name?: string; required?: boolean }>
+  courseCustomFields?: Array<{ 
+    id: string
+    title?: string
+    name?: string
+    required?: boolean
+    field_type?: string
+    options?: Array<{ id: string; value: string }>
+  }>
 ): Enrollment {
   // Calculate age from enrolled_at date (rough estimate - ideally should use birth date)
   // console.log('📋 API Enrollment Data:', JSON.stringify(apiEnrollment, null, 2))
@@ -121,17 +128,64 @@ function convertApiEnrollmentToFrontend(
       if (typeof fields === 'object') {
         // fields is an object where keys are UUIDs and values are the responses
         return Object.entries(fields as Record<string, unknown>).map(
-          ([fieldId, value]) => {
+          ([fieldId, fieldData]) => {
             // Try to find the field definition in course custom fields
             const fieldDefinition = courseCustomFields?.find(cf => cf.id === fieldId)
 
+            // Handle the case where fieldData is an object with {id, title, value, required}
+            let title = fieldId
+            let value = ''
+            let required = false
+
+            if (fieldData && typeof fieldData === 'object' && !Array.isArray(fieldData)) {
+              const fieldObj = fieldData as {
+                id?: string
+                title?: string
+                value?: unknown
+                required?: boolean
+              }
+
+              // Extract title, preferring the one from fieldData, then from definition, then fallback to fieldId
+              title =
+                fieldObj.title ||
+                fieldDefinition?.title ||
+                fieldDefinition?.name ||
+                fieldId
+
+              // Extract value - handle different types
+              if (fieldObj.value !== undefined && fieldObj.value !== null) {
+                if (Array.isArray(fieldObj.value)) {
+                  value = fieldObj.value.join(', ')
+                } else if (typeof fieldObj.value === 'object') {
+                  // If value is an object, try to stringify it or get a meaningful representation
+                  value = JSON.stringify(fieldObj.value)
+                } else {
+                  value = String(fieldObj.value)
+                }
+              }
+
+              // Extract required flag
+              required = Boolean(fieldObj.required ?? fieldDefinition?.required ?? false)
+            } else {
+              // Fallback: if fieldData is not an object, treat it as a direct value
+              title =
+                fieldDefinition?.title || fieldDefinition?.name || fieldId
+              value =
+                fieldData !== undefined && fieldData !== null
+                  ? Array.isArray(fieldData)
+                    ? fieldData.join(', ')
+                    : String(fieldData)
+                  : ''
+              required = Boolean(fieldDefinition?.required ?? false)
+            }
+
             return {
               id: fieldId,
-              title: fieldDefinition?.title || fieldDefinition?.name || fieldId,
-              value: Array.isArray(value)
-                ? value.join(', ')
-                : (value !== undefined && value !== null ? String(value) : ''),
-              required: fieldDefinition?.required || false,
+              title,
+              value,
+              required,
+              field_type: fieldDefinition?.field_type,
+              options: fieldDefinition?.options,
             }
           }
         )

@@ -54,9 +54,89 @@ function convertApiEnrollmentToFrontend(
     ),
     notes: apiEnrollment.admin_notes as string | undefined,
     reason: apiEnrollment.reason as string | undefined,
-    customFields: Array.isArray(apiEnrollment.custom_fields)
-      ? apiEnrollment.custom_fields
-      : [],
+    customFields: (() => {
+      const fields = apiEnrollment.custom_fields as unknown
+      if (!fields) {
+        return []
+      }
+
+      if (Array.isArray(fields)) {
+        return fields.map((field, index) => {
+          const item = field as {
+            id?: string
+            title?: string
+            value?: unknown
+            required?: boolean
+          }
+
+          const generatedId =
+            item.title?.toLowerCase().replace(/\s+/g, '_') ??
+            `custom_field_${index}`
+
+          return {
+            id: item.id ?? generatedId,
+            title: item.title ?? item.id ?? 'Campo personalizado',
+            value:
+              item.value !== undefined && item.value !== null
+                ? String(item.value)
+                : '',
+            required: Boolean(item.required),
+          }
+        })
+      }
+
+      if (typeof fields === 'object') {
+        // fields is an object where keys are UUIDs and values are objects with {id, title, value, required}
+        return Object.entries(fields as Record<string, unknown>).map(
+          ([fieldId, fieldData]) => {
+            let title = fieldId
+            let value = ''
+            let required = false
+
+            if (fieldData && typeof fieldData === 'object' && !Array.isArray(fieldData)) {
+              const fieldObj = fieldData as {
+                id?: string
+                title?: string
+                value?: unknown
+                required?: boolean
+              }
+
+              title = fieldObj.title || fieldId
+
+              if (fieldObj.value !== undefined && fieldObj.value !== null) {
+                if (Array.isArray(fieldObj.value)) {
+                  value = fieldObj.value.join(', ')
+                } else if (typeof fieldObj.value === 'object') {
+                  value = JSON.stringify(fieldObj.value)
+                } else {
+                  value = String(fieldObj.value)
+                }
+              }
+
+              required = Boolean(fieldObj.required ?? false)
+            } else {
+              title = fieldId
+              value =
+                fieldData !== undefined && fieldData !== null
+                  ? Array.isArray(fieldData)
+                    ? fieldData.join(', ')
+                    : String(fieldData)
+                  : ''
+              required = false
+            }
+
+            return {
+              id: fieldId,
+              title,
+              value,
+              required,
+            }
+          }
+        )
+      }
+
+      return []
+    })(),
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
