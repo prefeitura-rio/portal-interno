@@ -1,11 +1,20 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
   Check,
   CheckCircle,
+  Copy,
   FileSpreadsheet,
   Trash,
   Upload,
@@ -16,7 +25,10 @@ import { type DragEvent, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import type { SpreadsheetFormProps } from './types'
-import { getScheduleOptions, hasMultipleSchedules } from './utils/schedule-helpers'
+import {
+  getScheduleOptions,
+  hasMultipleSchedules,
+} from './utils/schedule-helpers'
 import { normalizeString } from './utils/string-utils'
 
 interface ExpectedField {
@@ -41,6 +53,7 @@ export function SpreadsheetForm({
   >({})
   const [missingFields, setMissingFields] = useState<string[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [copiedScheduleId, setCopiedScheduleId] = useState<string | null>(null)
   const dragCounter = useRef(0)
 
   const expectedFields: ExpectedField[] = [
@@ -164,9 +177,7 @@ export function SpreadsheetForm({
     for (const field of expectedFields) {
       // Normalize expected field name as well
       const fieldNameNormalized = normalizeString(field.name)
-      const found = headerRow.some(
-        col => col === fieldNameNormalized
-      )
+      const found = headerRow.some(col => col === fieldNameNormalized)
 
       if (found) {
         status[field.name] = 'ok'
@@ -180,6 +191,22 @@ export function SpreadsheetForm({
 
     setValidation(status)
     setMissingFields(missing)
+  }
+
+  const handleCopyScheduleId = async (scheduleId: string) => {
+    try {
+      await navigator.clipboard.writeText(scheduleId)
+      setCopiedScheduleId(scheduleId)
+      toast.success('Copiado!')
+
+      // Reset the check icon after 2 seconds
+      setTimeout(() => {
+        setCopiedScheduleId(null)
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+      toast.error('Erro ao copiar')
+    }
   }
 
   return (
@@ -280,83 +307,114 @@ export function SpreadsheetForm({
         )}
       </label>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         <h3 className="text-sm font-medium">
           Campos esperados para inscrição deste curso:
         </h3>
-        <div className={cn("grid gap-4", requiresScheduleSelection ? "grid-cols-2" : "grid-cols-1")}>
-          {/* Primeira coluna - Campos principais */}
-          <div>
-            <ul className="space-y-1">
-              {expectedFields
-                .filter(field => field.name !== 'Turma')
-                .map(field => {
-                  const status = validation[field.name]
-                  const isOk = status === 'ok'
-                  const isMissing = status === 'missing'
 
-                  return (
-                    <li key={field.name} className="flex items-center text-sm gap-2">
-                      {isOk ? (
-                        <Check className="text-green-500 h-4 w-4" />
-                      ) : isMissing ? (
-                        <X className="text-red-500 h-4 w-4" />
-                      ) : (
-                        <div className="h-2 w-2 rounded-full border border-zinc-400" />
-                      )}
-                      <span
-                        className={cn({
-                          'text-red-600': isMissing,
-                          'text-green-600': isOk,
-                          'text-muted-foreground': !isOk && !isMissing,
-                        })}
-                      >
-                        {field.name}
-                        {field.required ? '*' : ' (opcional)'}
-                      </span>
-                    </li>
-                  )
-                })}
-            </ul>
-          </div>
+        {/* Grid de campos esperados - 2 colunas */}
+        <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+          {expectedFields
+            .filter(field => field.name !== 'Turma')
+            .map(field => {
+              const status = validation[field.name]
+              const isOk = status === 'ok'
+              const isMissing = status === 'missing'
 
-          {/* Segunda coluna - Turmas (se aplicável) */}
-          {requiresScheduleSelection && (
-            <div className="space-y-2">
-              <div className="flex items-center text-sm gap-2">
-                {validation.Turma === 'ok' ? (
-                  <Check className="text-green-500 h-4 w-4" />
-                ) : validation.Turma === 'missing' ? (
-                  <X className="text-red-500 h-4 w-4" />
-                ) : (
-                  <div className="h-2 w-2 rounded-full border border-zinc-400" />
-                )}
-                <span
-                  className={cn({
-                    'text-red-600': validation.Turma === 'missing',
-                    'text-green-600': validation.Turma === 'ok',
-                    'text-muted-foreground': validation.Turma !== 'ok' && validation.Turma !== 'missing',
-                  })}
+              return (
+                <div
+                  key={field.name}
+                  className="flex items-center text-sm gap-2"
                 >
-                  Turma*
-                </span>
-              </div>
-
-              <div className="mt-3 p-3 bg-muted/50 rounded-md border border-border">
-                <p className="text-xs font-medium text-muted-foreground mb-2">
-                  Turmas disponíveis:
-                </p>
-                <ul className="space-y-1">
-                  {scheduleOptions.map(option => (
-                    <li key={option.id} className="text-xs text-foreground/80">
-                      • {option.label}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
+                  {isOk ? (
+                    <Check className="text-green-500 h-4 w-4 flex-shrink-0" />
+                  ) : isMissing ? (
+                    <X className="text-red-500 h-4 w-4 flex-shrink-0" />
+                  ) : (
+                    <div className="h-2 w-2 rounded-full border border-zinc-400 flex-shrink-0" />
+                  )}
+                  <span
+                    className={cn({
+                      'text-red-600': isMissing,
+                      'text-green-600': isOk,
+                      'text-muted-foreground': !isOk && !isMissing,
+                    })}
+                  >
+                    {field.name}
+                    {field.required ? '*' : ' (opcional)'}
+                  </span>
+                </div>
+              )
+            })}
         </div>
+
+        {/* Tabela de turmas disponíveis */}
+        {requiresScheduleSelection && (
+          <div className="space-y-2 mt-6">
+            <div className="flex items-center text-sm gap-2">
+              {validation.Turma === 'ok' ? (
+                <Check className="text-green-500 h-4 w-4" />
+              ) : validation.Turma === 'missing' ? (
+                <X className="text-red-500 h-4 w-4" />
+              ) : (
+                <div className="h-2 w-2 rounded-full border border-zinc-400" />
+              )}
+              <span
+                className={cn({
+                  'text-red-600': validation.Turma === 'missing',
+                  'text-green-600': validation.Turma === 'ok',
+                  'text-muted-foreground':
+                    validation.Turma !== 'ok' && validation.Turma !== 'missing',
+                })}
+              >
+                Turma*
+              </span>
+            </div>
+
+            <div className="rounded-md border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-semibold">Turma</TableHead>
+                    <TableHead className="font-semibold w-[280px]">
+                      UUID/ID
+                    </TableHead>
+                    <TableHead className="w-[80px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {scheduleOptions.map(option => (
+                    <TableRow key={option.id}>
+                      <TableCell className="text-sm">{option.label}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {option.id}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyScheduleId(option.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {copiedScheduleId === option.id ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <p className="text-xs text-muted-foreground italic mt-2">
+              Utilize o UUID/ID da turma no campo de Turma na planilha.
+            </p>
+          </div>
+        )}
 
         {/* Resumo de validação */}
         {file && (

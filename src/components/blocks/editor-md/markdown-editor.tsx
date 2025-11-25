@@ -38,6 +38,12 @@ export function MarkdownEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6],
+          HTMLAttributes: {
+            class: 'heading-node',
+          },
+        },
         bulletList: {
           keepMarks: true,
           keepAttributes: false,
@@ -75,6 +81,7 @@ export function MarkdownEditor({
       attributes: {
         class: cn(
           'prose prose-sm max-w-none focus:outline-none min-h-[120px] p-3 bg-transparent',
+          'markdown-editor-content',
           disabled && 'cursor-not-allowed opacity-50',
           className
         ),
