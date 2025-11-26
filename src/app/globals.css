@@ -127,16 +127,12 @@
 }
 
 .ProseMirror > * + * {
-  margin-top: 0.75em;
-}
-
-/* Empty paragraphs for spacing */
-.ProseMirror p:empty {
-  min-height: 0.75em;
+  /* No margin between elements - spacing controlled by individual elements */
 }
 
 
-/* Headings - Only apply bold, no font size changes */
+
+/* Headings - Only apply bold, no font size changes, no spacing above */
 .ProseMirror h1,
 .ProseMirror h2,
 .ProseMirror h3,
@@ -153,8 +149,23 @@
   font-weight: 700 !important;
   line-height: inherit !important;
   margin: 0 !important;
+  padding: 0 !important;
   margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  margin-bottom: 4px !important;
+  font-size: 0.9rem !important;
+}
+
+/* Remove any spacing from paragraphs */
+.ProseMirror p {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Empty paragraphs should have a minimal height to represent line spacing */
+.ProseMirror p:empty {
+  height: 1.5em !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .ProseMirror ul,

@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import type { Editor } from '@tiptap/react'
 import {
   Bold,
+  Heading2,
   Italic,
   Link as LinkIcon,
   List,
@@ -66,6 +67,18 @@ export function MarkdownToolbar({ editor }: MarkdownToolbarProps) {
       label: 'Riscado',
       action: () => editor.chain().focus().toggleStrike().run(),
       isActive: editor.isActive('strike'),
+    },
+    {
+      icon: Heading2,
+      label: 'Título (##)',
+      action: () => {
+        if (editor.isActive('heading', { level: 2 })) {
+          editor.chain().focus().setParagraph().run()
+        } else {
+          editor.chain().focus().toggleHeading({ level: 2 }).run()
+        }
+      },
+      isActive: editor.isActive('heading', { level: 2 }),
     },
     {
       icon: List,
