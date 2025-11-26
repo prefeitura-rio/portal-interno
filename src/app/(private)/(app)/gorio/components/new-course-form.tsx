@@ -7,6 +7,7 @@ import {
   useImperativeHandle,
   useMemo,
   useState,
+  type FormEvent,
 } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -33,6 +34,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
 import { MarkdownEditor } from '@/components/blocks/editor-md'
+import { Combobox } from '@/components/ui/combobox'
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import { MultiSelect } from '@/components/ui/multi-select'
 
@@ -51,6 +53,7 @@ import {
 import { ImageUpload } from '@/components/ui/image-upload'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
+import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { Copy, Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
@@ -108,6 +111,7 @@ const locationClassSchema = z.object({
     .string()
     .min(1, { message: 'Bairro é obrigatório.' })
     .min(3, { message: 'Bairro deve ter pelo menos 3 caracteres.' }),
+  zona: z.string().optional(),
   schedules: z
     .array(scheduleSchema)
     .min(1, { message: 'Pelo menos uma turma deve ser informada.' }),
@@ -606,6 +610,7 @@ type BackendCourseData = {
   locations?: Array<{
     address: string
     neighborhood: string
+    neighborhood_zone?: string
     schedules: Array<{
       vacancies: number
       class_start_date: string | undefined
@@ -680,6 +685,19 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         nome: category.nome,
       }))
     }, [categories])
+
+    // Memoize neighborhood options for the combobox
+    const neighborhoodOptions = useMemo(() => {
+      const uniqueNeighborhoods = Array.from(
+        new Set(neighborhoodZone.map(n => n.bairro))
+      )
+      return uniqueNeighborhoods
+        .sort()
+        .map(bairro => ({
+          value: bairro,
+          label: bairro,
+        }))
+    }, [])
 
     const instituicaoId = Number(
       process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
@@ -777,6 +795,18 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             // Handle locations and remote_class based on modalidade
             // Normalize locations to ensure they have schedules array
             locations: (initialData.locations || []).map((location: any) => {
+              // Map neighborhood_zone from API to zona in form
+              // Support both old format (zona) and new format (neighborhood_zone)
+              let zona = location.zona || location.neighborhood_zone || ''
+              if (location.neighborhood && !zona) {
+                const neighborhoodData = neighborhoodZone.find(
+                  n => n.bairro === location.neighborhood
+                )
+                if (neighborhoodData) {
+                  zona = neighborhoodData.zona
+                }
+              }
+
               // If location already has schedules, normalize them
               if (
                 location.schedules &&
@@ -785,6 +815,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               ) {
                 return {
                   ...location,
+                  zona,
                   schedules: location.schedules.map((schedule: any) => ({
                     id: schedule.id, // Include schedule UUID
                     vacancies: schedule.vacancies,
@@ -802,6 +833,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               // Otherwise, convert old format to new format with a single schedule
               return {
                 ...location,
+                zona,
                 schedules: [
                   {
                     vacancies: location.vacancies || 1,
@@ -878,6 +910,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               {
                 address: '',
                 neighborhood: '',
+                zona: '',
                 schedules: [
                   {
                     vacancies: 1,
@@ -1027,6 +1060,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       const transformedLocations = data.locations?.map(location => ({
         address: location.address,
         neighborhood: location.neighborhood,
+        neighborhood_zone: location.zona,
         schedules: location.schedules.map(schedule => ({
           vacancies: schedule.vacancies,
           class_start_date: schedule.classStartDate
@@ -1158,6 +1192,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   {
                     address: '',
                     neighborhood: '',
+                    zona: '',
                     schedules: [
                       {
                         vacancies: 1,
@@ -1189,12 +1224,157 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       return transformFormDataToSnakeCase(draftData)
     }
 
+    // Helper function to format validation errors for toast messages
+    const formatValidationErrors = (error: z.ZodError): string => {
+      const requiredFields = error.errors
+        .filter(
+          err =>
+            err.code === 'too_small' ||
+            err.code === 'invalid_type' ||
+            err.code === 'invalid_string' ||
+            err.code === 'invalid_date'
+        )
+        .map(err => {
+          const path = err.path.join('.')
+          // Map technical field names to user-friendly labels
+          const fieldLabels: Record<string, string> = {
+            title: 'Título',
+            description: 'Descrição',
+            category: 'Categorias',
+            enrollment_start_date: 'Data de início das inscrições',
+            enrollment_end_date: 'Data de fim das inscrições',
+            orgao_id: 'Órgão',
+            modalidade: 'Modalidade',
+            workload: 'Carga horária',
+            target_audience: 'Público-alvo',
+            institutional_logo: 'Logo institucional',
+            cover_image: 'Imagem de capa',
+            is_visible: 'Visibilidade do curso',
+            locations: 'Unidades',
+            'locations.0.address': 'Endereço da unidade',
+            'locations.0.neighborhood': 'Bairro',
+            'locations.0.schedules': 'Turmas',
+            remote_class: 'Turmas online',
+            'remote_class.0.vacancies': 'Número de vagas',
+            'remote_class.0.classStartDate': 'Data de início das aulas',
+            'remote_class.0.classEndDate': 'Data de fim das aulas',
+            'remote_class.0.classTime': 'Horário das aulas',
+            'remote_class.0.classDays': 'Dias de aula',
+          }
+
+          // Try to get user-friendly label, otherwise use path
+          return fieldLabels[path] || path
+        })
+
+      if (requiredFields.length > 0) {
+        const uniqueFields = Array.from(new Set(requiredFields))
+        if (uniqueFields.length === 1) {
+          return `Por favor, preencha o campo obrigatório: ${uniqueFields[0]}.`
+        }
+        if (uniqueFields.length <= 3) {
+          return `Por favor, preencha os campos obrigatórios: ${uniqueFields.join(', ')}.`
+        }
+        return `Por favor, preencha os ${uniqueFields.length} campos obrigatórios destacados no formulário.`
+      }
+
+      return 'Por favor, verifique os campos obrigatórios destacados no formulário.'
+    }
+
     // Expose methods to parent component via ref
     useImperativeHandle(ref, () => ({
-      triggerSubmit: () => {
-        form.handleSubmit(handleSubmit)()
+      triggerSubmit: async () => {
+        // Always validate first, even when called via ref
+        const isValid = await form.trigger()
+        
+        if (!isValid) {
+          // Try full schema validation for more detailed errors
+          try {
+            const currentValues = form.getValues()
+            fullFormSchema.parse(currentValues)
+          } catch (error) {
+            if (error instanceof z.ZodError) {
+              const errorMessage = formatValidationErrors(error)
+              toast.error('Campos obrigatórios não preenchidos', {
+                description: errorMessage,
+                duration: 5000,
+              })
+              return
+            }
+          }
+          
+          // Fallback to generic message if schema validation doesn't catch it
+          toast.error('Campos obrigatórios não preenchidos', {
+            description:
+              'Por favor, preencha todos os campos obrigatórios destacados antes de salvar.',
+            duration: 5000,
+          })
+          return
+        }
+        
+        // Validate with full schema as well
+        try {
+          const currentValues = form.getValues()
+          fullFormSchema.parse(currentValues)
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            const errorMessage = formatValidationErrors(error)
+            toast.error('Campos obrigatórios não preenchidos', {
+              description: errorMessage,
+              duration: 5000,
+            })
+            return
+          }
+        }
+        
+        // If validation passes, proceed with submit
+        const currentValues = form.getValues()
+        handleSubmit(currentValues)
       },
-      triggerPublish: () => {
+      triggerPublish: async () => {
+        // Always validate first, even when called via ref
+        const isValid = await form.trigger()
+        
+        if (!isValid) {
+          // Try full schema validation for more detailed errors
+          try {
+            const currentValues = form.getValues()
+            fullFormSchema.parse(currentValues)
+          } catch (error) {
+            if (error instanceof z.ZodError) {
+              const errorMessage = formatValidationErrors(error)
+              toast.error('Campos obrigatórios não preenchidos', {
+                description: errorMessage,
+                duration: 5000,
+              })
+              return
+            }
+          }
+          
+          // Fallback to generic message if schema validation doesn't catch it
+          toast.error('Campos obrigatórios não preenchidos', {
+            description:
+              'Por favor, preencha todos os campos obrigatórios destacados antes de publicar.',
+            duration: 5000,
+          })
+          return
+        }
+        
+        // Validate with full schema as well
+        try {
+          const currentValues = form.getValues()
+          fullFormSchema.parse(currentValues)
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            const errorMessage = formatValidationErrors(error)
+            toast.error('Campos obrigatórios não preenchidos', {
+              description: errorMessage,
+              duration: 5000,
+            })
+            return
+          }
+        }
+        
+        // If validation passes, proceed with publish
         handlePublish()
       },
       triggerSaveDraft: () => {
@@ -1226,6 +1406,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             {
               address: '',
               neighborhood: '',
+              zona: '',
               schedules: [
                 {
                   vacancies: 1,
@@ -1245,6 +1426,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       append({
         address: '',
         neighborhood: '',
+        zona: '',
         schedules: [
           {
             vacancies: 1,
@@ -1261,7 +1443,61 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       remove(index)
     }
 
-    const handleSubmit = (data: PartialFormData) => {
+    // Custom submit handler that validates before React Hook Form processes it
+    const handleFormSubmit = async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      // Always validate first
+      const isValid = await form.trigger()
+
+      if (!isValid) {
+        // Try full schema validation for more detailed errors
+        try {
+          const currentValues = form.getValues()
+          fullFormSchema.parse(currentValues)
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            const errorMessage = formatValidationErrors(error)
+            toast.error('Campos obrigatórios não preenchidos', {
+              description: errorMessage,
+              duration: 5000,
+            })
+            return
+          }
+        }
+
+        // Fallback to generic message
+        toast.error('Campos obrigatórios não preenchidos', {
+          description:
+            'Por favor, preencha todos os campos obrigatórios destacados antes de salvar.',
+          duration: 5000,
+        })
+        return
+      }
+
+      // Validate with full schema as well
+      try {
+        const currentValues = form.getValues()
+        fullFormSchema.parse(currentValues)
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          const errorMessage = formatValidationErrors(error)
+          toast.error('Campos obrigatórios não preenchidos', {
+            description: errorMessage,
+            duration: 5000,
+          })
+          return
+        }
+      }
+
+      // If validation passes, proceed with the actual submit handler
+      const currentValues = form.getValues()
+      handleSubmit(currentValues)
+    }
+
+    const handleSubmit = async (data: PartialFormData) => {
+      // This is only called after validation has passed
       if (initialData) {
         // Editing an existing course - show "Salvar Alterações" dialog
         setConfirmDialog({
@@ -1328,9 +1564,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       } catch (error) {
         if (error instanceof z.ZodError) {
           console.error('Validation errors:', error.errors)
-          toast.error('Erro de validação', {
-            description: 'Por favor, verifique os campos destacados.',
+          const errorMessage = formatValidationErrors(error)
+          toast.error('Campos obrigatórios não preenchidos', {
+            description: errorMessage,
+            duration: 5000,
           })
+          // Close dialog on validation error
+          setConfirmDialog({ open: false, type: null })
         } else {
           console.error('Unexpected error:', error)
           toast.error('Erro inesperado', {
@@ -1381,8 +1621,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           console.error('Validation errors:', error.errors)
           toast.error('Erro ao salvar rascunho', {
             description:
-              'Ocorreu um erro de formato nos dados. Tente novamente.',
+              'Ocorreu um erro de formato nos dados. Verifique os campos preenchidos e tente novamente.',
+            duration: 5000,
           })
+          // Close dialog on validation error
+          setConfirmDialog({ open: false, type: null })
         } else {
           console.error('Error saving draft:', error)
           toast.error('Erro ao salvar rascunho', {
@@ -1405,10 +1648,19 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         const isValid = await form.trigger()
 
         if (!isValid) {
-          toast.error('Erro de validação', {
+          // Get validation errors to show specific missing fields
+          const errors = form.formState.errors
+          const missingFields = Object.keys(errors).filter(
+            key => errors[key as keyof typeof errors]
+          )
+          
+          toast.error('Campos obrigatórios não preenchidos', {
             description:
-              'Por favor, verifique os campos destacados antes de publicar.',
+              'Por favor, preencha todos os campos obrigatórios destacados antes de publicar.',
+            duration: 5000,
           })
+          // Close dialog on validation error
+          setConfirmDialog({ open: false, type: null })
           return
         }
 
@@ -1436,10 +1688,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       } catch (error) {
         if (error instanceof z.ZodError) {
           console.error('Validation errors:', error.errors)
-          toast.error('Erro de validação', {
-            description:
-              'Por favor, verifique os campos destacados antes de publicar.',
+          const errorMessage = formatValidationErrors(error)
+          toast.error('Campos obrigatórios não preenchidos', {
+            description: errorMessage,
+            duration: 5000,
           })
+          // Close dialog on validation error
+          setConfirmDialog({ open: false, type: null })
         } else {
           console.error('Error publishing course:', error)
           toast.error('Erro ao publicar curso', {
@@ -1451,7 +1706,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
     return (
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="">
+        <form onSubmit={handleFormSubmit} className="">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16">
             <div className="space-y-6">
               <FormField
@@ -2036,7 +2291,52 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             <FormItem>
                               <FormLabel>Bairro*</FormLabel>
                               <FormControl>
-                                <Input {...field} />
+                                <Combobox
+                                  options={neighborhoodOptions}
+                                  value={field.value}
+                                  onValueChange={value => {
+                                    field.onChange(value)
+                                    // Auto-fill zona when bairro is selected
+                                    const selectedNeighborhood = neighborhoodZone.find(
+                                      n => n.bairro === value
+                                    )
+                                    if (selectedNeighborhood) {
+                                      form.setValue(
+                                        `locations.${index}.zona`,
+                                        selectedNeighborhood.zona
+                                      )
+                                    } else {
+                                      form.setValue(`locations.${index}.zona`, '')
+                                    }
+                                  }}
+                                  placeholder="Selecione o bairro"
+                                  searchPlaceholder="Buscar bairro..."
+                                  emptyMessage="Nenhum bairro encontrado."
+                                  disabled={isReadOnly}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name={`locations.${index}.zona`}
+                          render={({ field }) => (
+                            <FormItem className="cursor-not-allowed">
+                              <FormLabel className="text-muted-foreground cursor-not-allowed">
+                                Zona
+                              </FormLabel>
+                              <FormControl>
+                                <div className="cursor-not-allowed">
+                                  <Input
+                                    {...field}
+                                    disabled={true}
+                                    className="bg-muted cursor-not-allowed"
+                                    style={{ cursor: 'not-allowed' }}
+                                  />
+                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>

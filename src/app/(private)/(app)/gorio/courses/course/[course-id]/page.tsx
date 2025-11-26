@@ -325,6 +325,7 @@ export default function CourseDetailPage({
       id: location.id,
       address: location.address,
       neighborhood: location.neighborhood,
+      neighborhood_zone: location.zona || location.neighborhood_zone,
       schedules: (location.schedules || []).map((schedule: any) => ({
         vacancies: schedule.vacancies,
         class_start_date: schedule.classStartDate
