@@ -1243,15 +1243,20 @@ export function NewServiceForm({
                         <SelectItem value="Transporte">Transporte</SelectItem>
                         <SelectItem value="Licenças">Licenças</SelectItem>
                         <SelectItem value="Animais">Animais</SelectItem>
-                        <SelectItem value="Ambiente">Ambiente</SelectItem>
+                        <SelectItem value="Meio Ambiente">Meio Ambiente</SelectItem>
                         <SelectItem value="Saúde">Saúde</SelectItem>
                         <SelectItem value="Cidadania">Cidadania</SelectItem>
-                        <SelectItem value="Família">Família</SelectItem>
-                        <SelectItem value="Taxas">Taxas</SelectItem>
                         <SelectItem value="Servidor">Servidor</SelectItem>
                         <SelectItem value="Cultura">Cultura</SelectItem>
                         <SelectItem value="Segurança">Segurança</SelectItem>
                         <SelectItem value="Ouvidoria">Ouvidoria</SelectItem>
+                        <SelectItem value="Trânsito">Trânsito</SelectItem>
+                        <SelectItem value="Ordem Pública">Ordem Pública</SelectItem>
+                        <SelectItem value="Obras">Obras</SelectItem>
+                        <SelectItem value="Central Anticorrupção">Central Anticorrupção</SelectItem>
+                        <SelectItem value="Lei de Acesso à Informação (LAI)">Lei de Acesso à Informação (LAI)</SelectItem>
+                        <SelectItem value="Lei Geral de Proteção de Dados (LGPD)">Lei Geral de Proteção de Dados (LGPD)</SelectItem>
+                        <SelectItem value="Peticionamentos">Peticionamentos</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
