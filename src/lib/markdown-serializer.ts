@@ -1,13 +1,24 @@
 import type { Editor } from '@tiptap/react'
 
 /**
+ * Normalize multiple consecutive newlines to maximum of 2 (single blank line)
+ * This prevents accumulation of extra newlines when saving
+ */
+function normalizeNewlines(markdown: string): string {
+  // Replace 3 or more consecutive newlines with exactly 2 newlines
+  return markdown.replace(/\n{4,}/g, '\n\n\n')
+}
+
+/**
  * Convert Tiptap JSON to Markdown
  */
 export function getMarkdownFromEditor(editor: Editor): string {
   const json = editor.getJSON()
   const markdown = jsonToMarkdown(json)
+  // Normalize multiple consecutive newlines to prevent accumulation
+  const normalized = normalizeNewlines(markdown)
   // Trim the result to handle empty content properly
-  return markdown.trim()
+  return normalized.trim()
 }
 
 /**
