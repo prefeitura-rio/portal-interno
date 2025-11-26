@@ -1,6 +1,20 @@
-export type ModalStep = 'options' | 'manual' | 'spreadsheet' | 'finish'
+export type ModalStep = 'options' | 'manual' | 'spreadsheet' | 'processing' | 'results' | 'finish'
 
 export type FinishStatus = 'loading' | 'success' | 'error'
+
+export interface JobError {
+  line: number
+  data: string
+  message: string
+}
+
+export interface JobResult {
+  success_count: number
+  error_count: number
+  duplicate_count: number
+  total_records?: number
+  errors?: JobError[]
+}
 
 export interface CustomField {
   id: string
@@ -83,6 +97,8 @@ export interface ManualFormProps extends StepComponentProps {
 export interface SpreadsheetFormProps extends StepComponentProps {
   courseId: string
   courseData?: CourseData | null
+  onStartProcessing: () => void
+  onProcessingComplete: (result: JobResult) => void
 }
 
 export interface OptionsStepProps {
@@ -99,13 +115,23 @@ export interface ModalHeaderProps {
   onClose: () => void
 }
 
+export type ProcessingStepProps = Record<string, never>
+
+export interface ResultsStepProps {
+  result: JobResult
+  onClose: () => void
+}
+
 export interface UseAddParticipantsModalReturn {
   step: ModalStep
   finishStatus: FinishStatus
+  jobResult: JobResult | null
   handleFinish: (success: boolean) => Promise<void>
   handleBack: () => void
   handleSelectMode: (mode: Extract<ModalStep, 'manual' | 'spreadsheet'>) => void
   handleRetry: () => void
   resetModal: () => void
+  setStep: (step: ModalStep) => void
+  setJobResult: (result: JobResult) => void
 }
 

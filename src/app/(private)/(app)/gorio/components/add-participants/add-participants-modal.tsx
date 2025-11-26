@@ -9,6 +9,8 @@ import { FinishStep } from './finish-step'
 import { ManualForm } from './manual-form'
 import { ModalHeader } from './modal-header'
 import { OptionsStep } from './option-step'
+import { ProcessingStep } from './processing-step'
+import { ResultsStep } from './results-step'
 import { SpreadsheetForm } from './spreadsheet-form'
 import type { AddParticipantsModalProps } from './types'
 
@@ -26,11 +28,14 @@ export function AddParticipantsModal({
   const {
     step,
     finishStatus,
+    jobResult,
     handleFinish,
     handleBack,
     handleSelectMode,
     handleRetry,
     resetModal,
+    setStep,
+    setJobResult,
   } = useAddParticipantsModal({ onClose, onSuccess })
 
   useEffect(() => {
@@ -77,6 +82,31 @@ export function AddParticipantsModal({
                     onBack={handleBack}
                     onFinish={handleFinish}
                     courseData={courseData}
+                    onStartProcessing={() => setStep('processing')}
+                    onProcessingComplete={(result) => {
+                      setJobResult(result)
+                      setStep('results')
+                    }}
+                  />
+                </AnimatedStep>
+              )}
+
+              {step === 'processing' && (
+                <AnimatedStep stepKey="processing">
+                  <ProcessingStep />
+                </AnimatedStep>
+              )}
+
+              {step === 'results' && jobResult && (
+                <AnimatedStep stepKey="results">
+                  <ResultsStep
+                    result={jobResult}
+                    onClose={() => {
+                      if (onSuccess) {
+                        onSuccess()
+                      }
+                      onClose()
+                    }}
                   />
                 </AnimatedStep>
               )}

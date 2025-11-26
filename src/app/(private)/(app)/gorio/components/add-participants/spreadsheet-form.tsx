@@ -1,14 +1,6 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -44,6 +36,8 @@ export function SpreadsheetForm({
   onFinish,
   courseId,
   courseData,
+  onStartProcessing,
+  onProcessingComplete,
 }: SpreadsheetFormProps) {
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -122,7 +116,7 @@ export function SpreadsheetForm({
     if (uploaded) validateFile(uploaded)
   }
 
-  const handleDrop = (e: DragEvent<HTMLLabelElement>) => {
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
     dragCounter.current = 0
@@ -131,19 +125,19 @@ export function SpreadsheetForm({
     if (uploaded) validateFile(uploaded)
   }
 
-  const handleDragOver = (e: DragEvent<HTMLLabelElement>) => {
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
   }
 
-  const handleDragEnter = (e: DragEvent<HTMLLabelElement>) => {
+  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
     dragCounter.current += 1
     setIsDragging(true)
   }
 
-  const handleDragLeave = (e: DragEvent<HTMLLabelElement>) => {
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
     dragCounter.current -= 1
@@ -219,31 +213,36 @@ export function SpreadsheetForm({
       </div>
 
       {/* Área de upload */}
-      <label
-        htmlFor="spreadsheet-upload"
+      <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         className={cn(
-          'relative flex flex-col items-center justify-center w-full h-44 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 select-none',
+          'relative flex flex-col items-center justify-center w-full h-44 border-2 border-dashed rounded-xl transition-all duration-200 select-none',
           {
             'border-primary bg-primary/10': isDragging,
             'border-red-400 hover:border-red-500 bg-red-50/20': error,
-            'border-green-400 hover:border-green-500 bg-green-50/20':
-              file && !error,
+            'border-green-400 bg-green-50/20': file && !error,
             'border-zinc-300 hover:border-primary/40 bg-zinc-50/50 dark:bg-zinc-900/40':
               !file && !error && !isDragging,
           }
         )}
       >
-        <input
-          id="spreadsheet-upload"
-          type="file"
-          accept=".csv,.xlsx"
-          onChange={handleFile}
-          className="absolute inset-0 opacity-0 cursor-pointer"
-        />
+        {!file && (
+          <label
+            htmlFor="spreadsheet-upload"
+            className="absolute inset-0 cursor-pointer"
+          >
+            <input
+              id="spreadsheet-upload"
+              type="file"
+              accept=".csv,.xlsx"
+              onChange={handleFile}
+              className="hidden"
+            />
+          </label>
+        )}
 
         {!file && !error && (
           <div className="pointer-events-none flex flex-col items-center text-center text-muted-foreground">
@@ -269,7 +268,7 @@ export function SpreadsheetForm({
         )}
 
         {file && !error && (
-          <div className="flex flex-col items-center gap-2 text-green-600">
+          <div className="pointer-events-none flex flex-col items-center gap-2 text-green-600">
             <CheckCircle className="h-6 w-6" />
             <div className="flex items-center justify-between w-full max-w-sm px-3 py-2 rounded-md bg-green-100/40 dark:bg-green-900/20 border border-green-400/30">
               <div className="flex items-center gap-2 min-w-0">
@@ -284,10 +283,11 @@ export function SpreadsheetForm({
               <button
                 type="button"
                 onClick={e => {
+                  e.preventDefault()
                   e.stopPropagation()
                   removeFile()
                 }}
-                className="p-1 rounded-md text-red-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 transition-colors"
+                className="pointer-events-auto p-1 rounded-md text-red-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 transition-colors"
                 title="Remover arquivo"
               >
                 <Trash className="h-4 w-4" />
@@ -305,7 +305,7 @@ export function SpreadsheetForm({
             <p className="text-sm font-medium">{error}</p>
           </div>
         )}
-      </label>
+      </div>
 
       <div className="space-y-4">
         <h3 className="text-sm font-medium">
@@ -371,43 +371,42 @@ export function SpreadsheetForm({
               </span>
             </div>
 
-            <div className="rounded-md border border-border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-semibold">Turma</TableHead>
-                    <TableHead className="font-semibold w-[280px]">
-                      UUID/ID
-                    </TableHead>
-                    <TableHead className="w-[80px]" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scheduleOptions.map(option => (
-                    <TableRow key={option.id}>
-                      <TableCell className="text-sm">{option.label}</TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        {option.id}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyScheduleId(option.id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {copiedScheduleId === option.id ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-3">
+              {scheduleOptions.map(option => (
+                <div
+                  key={option.id}
+                  className="flex items-stretch gap-3 rounded-lg border border-border bg-muted/30 p-3"
+                >
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <p className="text-sm font-medium leading-relaxed break-words">
+                      {option.label}
+                    </p>
+
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {option.id.slice(0, 8)}...
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyScheduleId(option.id)}
+                    className="self-stretch min-w-[110px] flex items-center justify-center gap-2"
+                  >
+                    {copiedScheduleId === option.id ? (
+                      <>
+                        <Check className="h-4 w-4 text-green-500" />
+                        <span className="text-green-500">Copiado</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        <span>Copiar ID</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ))}
             </div>
 
             <p className="text-xs text-muted-foreground italic mt-2">
@@ -416,7 +415,6 @@ export function SpreadsheetForm({
           </div>
         )}
 
-        {/* Resumo de validação */}
         {file && (
           <div className="text-sm mt-3">
             {missingFields.length === 0 ? (
@@ -452,7 +450,8 @@ export function SpreadsheetForm({
               const formData = new FormData()
               formData.append('file', file)
 
-              const response = await fetch(
+              // Step 1: Upload the file
+              const uploadResponse = await fetch(
                 `/api/enrollments/${courseId}/import`,
                 {
                   method: 'POST',
@@ -460,11 +459,84 @@ export function SpreadsheetForm({
                 }
               )
 
-              if (response.ok) {
-                onFinish(true)
-              } else {
-                const errorData = await response.json()
+              if (!uploadResponse.ok) {
+                const errorData = await uploadResponse.json()
                 throw new Error(errorData.error || 'Erro ao enviar planilha')
+              }
+
+              const uploadData = await uploadResponse.json()
+              console.log('Upload response:', uploadData)
+
+              // Step 2: Extract job_id from the response
+              const jobId = uploadData?.data?.job_id
+
+              if (!jobId) {
+                throw new Error('Job ID não retornado pela API')
+              }
+
+              console.log('Job ID:', jobId)
+
+              // Step 3: Transition to processing step
+              onStartProcessing()
+
+              // Step 4: Poll job status until completion
+              let jobCompleted = false
+              let finalStatusData = null
+              const maxAttempts = 10
+              let attempts = 0
+
+              while (!jobCompleted && attempts < maxAttempts) {
+                attempts++
+
+                await new Promise(resolve => setTimeout(resolve, 1000))
+
+                const statusResponse = await fetch(`/api/jobs/${jobId}/status`)
+
+                if (!statusResponse.ok) {
+                  console.error('Erro ao verificar status do job')
+                  continue
+                }
+
+                const statusData = await statusResponse.json()
+                console.log(`Job status (attempt ${attempts}):`, statusData)
+
+                const jobData = statusData?.data || statusData
+                const status = jobData?.status
+
+                if (status === 'completed') {
+                  jobCompleted = true
+                  finalStatusData = jobData
+                  console.log('Job completed!', JSON.stringify(jobData))
+                  break // Exit loop
+                }
+
+                if (status === 'failed') {
+                  jobCompleted = true
+                  finalStatusData = jobData
+                  console.log('Job failed!', JSON.stringify(jobData))
+                  break // Exit loop
+                }
+
+                if (status === 'processing' || status === 'pending') {
+                  console.log(
+                    `Job still ${status}... Progress: ${jobData?.progress || 0}%`
+                  )
+                }
+              }
+
+              if (!jobCompleted) {
+                throw new Error('Timeout ao processar planilha')
+              }
+
+              // Step 5: Show results
+              if (finalStatusData) {
+                onProcessingComplete({
+                  success_count: finalStatusData.success_count || 0,
+                  error_count: finalStatusData.error_count || 0,
+                  duplicate_count: finalStatusData.result?.duplicate_count || 0,
+                  total_records: finalStatusData.total_records || 0,
+                  errors: finalStatusData.errors || [],
+                })
               }
             } catch (error) {
               console.error('Erro ao enviar planilha:', error)

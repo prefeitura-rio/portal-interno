@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type {
   FinishStatus,
+  JobResult,
   ModalStep,
   UseAddParticipantsModalReturn,
 } from '../app/(private)/(app)/gorio/components/add-participants/types'
@@ -19,6 +20,7 @@ export function useAddParticipantsModal({
 }: UseAddParticipantsModalProps): UseAddParticipantsModalReturn {
   const [step, setStep] = useState<ModalStep>('options')
   const [finishStatus, setFinishStatus] = useState<FinishStatus>('loading')
+  const [jobResult, setJobResult] = useState<JobResult | null>(null)
 
   const handleFinish = useCallback(
     async (success: boolean) => {
@@ -51,6 +53,7 @@ export function useAddParticipantsModal({
   const resetModal = useCallback(() => {
     setStep('options')
     setFinishStatus('loading')
+    setJobResult(null)
   }, [])
 
   useEffect(() => {
@@ -70,11 +73,14 @@ export function useAddParticipantsModal({
   return {
     step,
     finishStatus,
+    jobResult,
     handleFinish,
     handleBack,
     handleSelectMode,
     handleRetry,
     resetModal,
+    setStep,
+    setJobResult,
   }
 }
 
