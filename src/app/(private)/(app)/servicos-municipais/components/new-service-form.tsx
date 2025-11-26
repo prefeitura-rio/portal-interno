@@ -1248,7 +1248,11 @@ export function NewServiceForm({
                         <SelectItem value="Cidadania">Cidadania</SelectItem>
                         <SelectItem value="Servidor">Servidor</SelectItem>
                         <SelectItem value="Cultura">Cultura</SelectItem>
+                        <SelectItem value="Defesa Civil">Defesa Civil</SelectItem>
                         <SelectItem value="Segurança">Segurança</SelectItem>
+                        <SelectItem value="Cursos">Cursos</SelectItem>
+                        <SelectItem value="Tributos">Tributos</SelectItem>
+                        <SelectItem value="Trabalho">Trabalho</SelectItem>
                         <SelectItem value="Ouvidoria">Ouvidoria</SelectItem>
                         <SelectItem value="Trânsito">Trânsito</SelectItem>
                         <SelectItem value="Ordem Pública">Ordem Pública</SelectItem>
