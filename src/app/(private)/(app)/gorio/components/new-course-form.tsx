@@ -51,14 +51,14 @@ import {
 import { ImageUpload } from '@/components/ui/image-upload'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
-import { Plus, Trash2 } from 'lucide-react'
+import { Copy, Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type CustomField, FieldsCreator } from './fields-creator'
 
 export type Accessibility = 'ACESSIVEL' | 'EXCLUSIVO'
 const ACCESSIBILITY_OPTIONS: Accessibility[] = [
   'ACESSIVEL',
-  'EXCLUSIVO'
+  'EXCLUSIVO',
 ] as const
 const accessibilityLabel: Record<Accessibility, string> = {
   ACESSIVEL: 'Acessível para pessoas com deficiência',
@@ -83,6 +83,7 @@ export interface Category {
 
 // Define the schema for schedule (turma) information
 const scheduleSchema = z.object({
+  id: z.string().optional(),
   vacancies: z.coerce
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
@@ -114,6 +115,7 @@ const locationClassSchema = z.object({
 
 // Define the schema for remote schedule (turma remote) information
 const remoteScheduleSchema = z.object({
+  id: z.string().optional(), // Schedule UUID from backend
   vacancies: z.coerce
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
@@ -775,13 +777,27 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             // Handle locations and remote_class based on modalidade
             // Normalize locations to ensure they have schedules array
             locations: (initialData.locations || []).map((location: any) => {
-              // If location already has schedules, use it
+              // If location already has schedules, normalize them
               if (
                 location.schedules &&
                 Array.isArray(location.schedules) &&
                 location.schedules.length > 0
               ) {
-                return location
+                return {
+                  ...location,
+                  schedules: location.schedules.map((schedule: any) => ({
+                    id: schedule.id, // Include schedule UUID
+                    vacancies: schedule.vacancies,
+                    classStartDate: schedule.class_start_date
+                      ? new Date(schedule.class_start_date)
+                      : schedule.classStartDate || new Date(),
+                    classEndDate: schedule.class_end_date
+                      ? new Date(schedule.class_end_date)
+                      : schedule.classEndDate || new Date(),
+                    classTime: schedule.class_time || schedule.classTime || '',
+                    classDays: schedule.class_days || schedule.classDays || '',
+                  })),
+                }
               }
               // Otherwise, convert old format to new format with a single schedule
               return {
@@ -822,6 +838,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 )
                 const transformed = remoteClassData.schedules.map(
                   (schedule: any) => ({
+                    id: schedule.id,
                     vacancies: schedule.vacancies,
                     classStartDate: schedule.class_start_date
                       ? new Date(schedule.class_start_date)
@@ -1026,16 +1043,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       return {
         title: data.title,
         description: data.description,
-        categorias: data.category
-          ? data.category.map(id => ({ id }))
-          : [],
+        categorias: data.category ? data.category.map(id => ({ id })) : [],
         enrollment_start_date: data.enrollment_start_date
           ? formatDateTimeToUTC(data.enrollment_start_date)
           : undefined,
         enrollment_end_date: data.enrollment_end_date
           ? formatDateTimeToUTC(data.enrollment_end_date)
           : undefined,
-          theme: data.theme || undefined,
+        theme: data.theme || undefined,
         orgao_id: data.orgao_id || null,
         modalidade: data.modalidade,
         workload: data.workload,
@@ -1188,9 +1203,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     }))
 
     // Handle modalidade change to properly initialize fields
-    const handleModalidadeChange = (
-      value: 'PRESENCIAL' | 'ONLINE'
-    ) => {
+    const handleModalidadeChange = (value: 'PRESENCIAL' | 'ONLINE') => {
       if (value === 'ONLINE') {
         // Clear locations array and initialize remote class fields with array
         form.setValue('locations', [])
@@ -1730,7 +1743,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 </Card>
               )}
 
-<FormField
+              <FormField
                 control={form.control}
                 name="theme"
                 render={({ field }) => (
@@ -1747,7 +1760,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {FORMACAO_TYPES.map((tipo) => (
+                        {FORMACAO_TYPES.map(tipo => (
                           <SelectItem key={tipo} value={tipo}>
                             {tipo}
                           </SelectItem>
@@ -1767,9 +1780,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     <FormLabel>Modalidade*</FormLabel>
                     <Select
                       onValueChange={value => {
-                        const modalidadeValue = value as
-                          | 'PRESENCIAL'
-                          | 'ONLINE'
+                        const modalidadeValue = value as 'PRESENCIAL' | 'ONLINE'
                         field.onChange(modalidadeValue)
                         handleModalidadeChange(modalidadeValue)
                       }}
@@ -1814,7 +1825,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     }
 
                     return remoteSchedules.map(
-                      (schedule: any, index: number) => (
+                      (remoteSchedule: any, index: number) => (
                         <Card key={index}>
                           <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>
@@ -1835,6 +1846,40 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             )}
                           </CardHeader>
                           <CardContent className="space-y-4">
+                            {/* UUID da Turma - Only show in read-only mode when ID exists */}
+                            {isReadOnly && remoteSchedule.id && (
+                              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3 pointer-events-auto">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                                    UUID da Turma
+                                  </p>
+                                  <p className="font-mono text-sm text-foreground truncate">
+                                    {remoteSchedule.id}
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      await navigator.clipboard.writeText(
+                                        remoteSchedule.id
+                                      )
+                                      toast.success('UUID copiado!')
+                                    } catch (err) {
+                                      console.error('Failed to copy:', err)
+                                      toast.error('Erro ao copiar')
+                                    }
+                                  }}
+                                  className="flex-shrink-0"
+                                >
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Copiar ID
+                                </Button>
+                              </div>
+                            )}
+
                             <FormField
                               control={form.control}
                               name={`remote_class.${index}.vacancies`}
@@ -2031,7 +2076,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               return null // Will re-render with the schedule
                             }
                             return schedules.map(
-                              (schedule: any, scheduleIndex: number) => (
+                              (
+                                locationSchedule: any,
+                                scheduleIndex: number
+                              ) => (
                                 <Card
                                   key={scheduleIndex}
                                   className="bg-muted/30"
@@ -2055,6 +2103,43 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                     )}
                                   </CardHeader>
                                   <CardContent className="space-y-4">
+                                    {/* UUID da Turma - Only show in read-only mode when ID exists */}
+                                    {isReadOnly && locationSchedule.id && (
+                                      <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3 pointer-events-auto">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-medium text-muted-foreground mb-1">
+                                            UUID da Turma
+                                          </p>
+                                          <p className="font-mono text-sm text-foreground truncate">
+                                            {locationSchedule.id}
+                                          </p>
+                                        </div>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={async () => {
+                                            try {
+                                              await navigator.clipboard.writeText(
+                                                locationSchedule.id
+                                              )
+                                              toast.success('UUID copiado!')
+                                            } catch (err) {
+                                              console.error(
+                                                'Failed to copy:',
+                                                err
+                                              )
+                                              toast.error('Erro ao copiar')
+                                            }
+                                          }}
+                                          className="flex-shrink-0"
+                                        >
+                                          <Copy className="h-4 w-4 mr-2" />
+                                          Copiar ID
+                                        </Button>
+                                      </div>
+                                    )}
+
                                     <FormField
                                       control={form.control}
                                       name={`locations.${index}.schedules.${scheduleIndex}.vacancies`}
@@ -2271,7 +2356,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>
-                                Pré-requisitos para o certificado"                                </FormLabel>
+                                  Pré-requisitos para o certificado"{' '}
+                                </FormLabel>
                                 <FormControl>
                                   <MarkdownEditor
                                     value={field.value || ''}
