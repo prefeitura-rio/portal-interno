@@ -884,10 +884,11 @@ export function EnrollmentsTable({
               vacancies: enrolledSchedule.vacancies?.toString() || '',
             }
           } else {
-            // Fallback: get schedule data from course locations
+            // Fallback: get schedule data from course data (locations or remote_class)
             scheduleDetails.id = enrollment.schedule_id
 
-            // Find schedule in course data
+            // Try to find schedule in presencial locations first
+            let scheduleFound = false
             for (const location of course.locations || []) {
               const schedule = location.schedules?.find(s => s.id === enrollment.schedule_id)
               if (schedule) {
@@ -900,7 +901,26 @@ export function EnrollmentsTable({
                   ? new Date(schedule.classEndDate).toLocaleDateString('pt-BR')
                   : ''
                 scheduleDetails.vacancies = schedule.vacancies?.toString() || ''
+                scheduleFound = true
                 break
+              }
+            }
+
+            // If not found in locations, try remote_class (for online courses)
+            if (!scheduleFound && course.remote_class?.schedules) {
+              const remoteSchedule = course.remote_class.schedules.find(
+                s => s.id === enrollment.schedule_id
+              )
+              if (remoteSchedule) {
+                scheduleDetails.class_days = remoteSchedule.class_days || ''
+                scheduleDetails.class_time = remoteSchedule.class_time || ''
+                scheduleDetails.class_start_date = remoteSchedule.class_start_date
+                  ? new Date(remoteSchedule.class_start_date).toLocaleDateString('pt-BR')
+                  : ''
+                scheduleDetails.class_end_date = remoteSchedule.class_end_date
+                  ? new Date(remoteSchedule.class_end_date).toLocaleDateString('pt-BR')
+                  : ''
+                scheduleDetails.vacancies = remoteSchedule.vacancies?.toString() || ''
               }
             }
           }
