@@ -83,7 +83,7 @@ function convertApiEnrollmentToFrontend(
     courseId: (apiEnrollment.course_id as number)?.toString() || '',
     candidateName: (apiEnrollment.name as string) || '',
     cpf: (apiEnrollment.cpf as string) || '',
-    email: (apiEnrollment.email as string) || '',
+    email: (apiEnrollment.email as string) || undefined,
     phone: (apiEnrollment.phone as string) || '',
     address: (apiEnrollment.address as string) || undefined,
     neighborhood: (apiEnrollment.neighborhood as string) || undefined,
@@ -500,12 +500,11 @@ export async function POST(
       !cpf ||
       !age ||
       !phone ||
-      !email ||
       !address ||
       !neighborhood
     ) {
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { error: 'Required fields: name, cpf, age, phone, address, neighborhood' },
         { status: 400 }
       )
     }
@@ -516,7 +515,7 @@ export async function POST(
       cpf,
       age,
       phone,
-      email,
+      ...(email && { email }), // Only include email if provided
       address,
       neighborhood,
       ...(schedule_id && { schedule_id }), // Only include schedule_id if provided
