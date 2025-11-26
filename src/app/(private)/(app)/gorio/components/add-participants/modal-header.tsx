@@ -7,6 +7,8 @@ const STEP_TITLES: Record<string, string> = {
   options: 'Adicionar Participantes',
   manual: 'Incluir participante manualmente',
   spreadsheet: 'Incluir via planilha',
+  processing: 'Processando',
+  results: 'Resultado da Importação',
   finish: '',
 }
 
