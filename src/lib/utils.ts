@@ -247,6 +247,7 @@ export function transformApiCourseToCourse(apiCourse: any): any {
           id: location.id || '',
           address: location.address || '',
           neighborhood: location.neighborhood || '',
+          zona: location.neighborhood_zone || location.zona || '',
           schedules: location.schedules.map((schedule: any) => ({
             id: schedule.id || '',
             vacancies: schedule.vacancies || 0,
@@ -263,6 +264,7 @@ export function transformApiCourseToCourse(apiCourse: any): any {
         id: location.id || '',
         address: location.address || '',
         neighborhood: location.neighborhood || '',
+        zona: location.neighborhood_zone || location.zona || '',
         schedules: [
           {
             vacancies: location.vacancies || 0,

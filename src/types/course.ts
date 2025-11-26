@@ -311,7 +311,7 @@ export interface Enrollment {
   courseId: string
   candidateName: string
   cpf: string
-  email: string
+  email?: string
   phone: string
   address?: string
   neighborhood?: string
@@ -385,7 +385,7 @@ export interface EnrollmentCreateRequest {
   courseId: string
   candidateName: string
   cpf: string
-  email: string
+  email?: string
   age: number
   phone: string
   notes?: string

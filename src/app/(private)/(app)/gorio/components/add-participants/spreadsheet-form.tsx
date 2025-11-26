@@ -55,7 +55,7 @@ export function SpreadsheetForm({
     { name: 'cpf', required: true },
     { name: 'idade', required: false },
     { name: 'telefone', required: false },
-    { name: 'email', required: true },
+    { name: 'email', required: false },
     { name: 'endereco', required: false },
     { name: 'bairro', required: false },
   ]

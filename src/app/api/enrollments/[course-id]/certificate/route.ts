@@ -45,7 +45,7 @@ function convertApiEnrollmentToFrontend(
     courseId: (apiEnrollment.course_id as number)?.toString() || '',
     candidateName: (apiEnrollment.name as string) || '',
     cpf: (apiEnrollment.cpf as string) || '',
-    email: (apiEnrollment.email as string) || '',
+    email: (apiEnrollment.email as string) || undefined,
     phone: (apiEnrollment.phone as string) || '',
     enrollmentDate:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),

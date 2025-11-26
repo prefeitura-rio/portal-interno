@@ -32,7 +32,12 @@ const baseManualSchema = z.object({
     .string()
     .min(10, 'Telefone inválido')
     .max(11, 'Telefone deve ter 10 ou 11 dígitos'),
-  email: z.string().email('E-mail inválido').max(100, 'E-mail muito longo'),
+  email: z
+    .string()
+    .email('E-mail inválido')
+    .max(100, 'E-mail muito longo')
+    .optional()
+    .or(z.literal('')),
   address: z
     .string()
     .min(3, 'Endereço obrigatório')
@@ -134,6 +139,11 @@ export function ManualForm({
 
   const onSubmit = async (data: any) => {
     try {
+      // If course has only 1 schedule and schedule_id wasn't selected, auto-assign it
+      if (!data.schedule_id && scheduleOptions.length === 1) {
+        data.schedule_id = scheduleOptions[0].id
+      }
+
       const response = await fetch(`/api/enrollments/${courseId}`, {
         method: 'POST',
         headers: {
@@ -251,7 +261,7 @@ export function ManualForm({
           },
           {
             name: 'email',
-            label: 'E-mail',
+            label: 'E-mail (opcional)',
             type: 'email',
             placeholder: 'exemplo@email.com',
             maxLength: 100,
