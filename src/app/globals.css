@@ -130,6 +130,12 @@
   margin-top: 0.75em;
 }
 
+/* Empty paragraphs for spacing */
+.ProseMirror p:empty {
+  min-height: 0.75em;
+}
+
+
 /* Headings - Only apply bold, no font size changes */
 .ProseMirror h1,
 .ProseMirror h2,
