@@ -759,9 +759,9 @@ export function ServicesDataTable() {
             return true
           }
 
-          // Editors can only edit services that are not published
+          // Editors can only edit services with status "in_edition"
           if (canEditServices) {
-            return service.status !== 'published'
+            return service.status === 'in_edition'
           }
 
           return false
@@ -811,8 +811,8 @@ export function ServicesDataTable() {
                       Enviar para aprovação
                     </DropdownMenuItem>
                   )}
-                {/* Send to edition - for both admins and editors on awaiting_approval status */}
-                {canEditServices && service.status === 'awaiting_approval' && (
+                {/* Send to edition - only for admins on awaiting_approval status */}
+                {isBuscaServicesAdmin && service.status === 'awaiting_approval' && (
                   <DropdownMenuItem
                     onClick={e => {
                       e.stopPropagation()

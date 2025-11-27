@@ -427,16 +427,8 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
         case 'in_edition':
           return { showEdit: true, showAdditionalButtons: [] }
         case 'awaiting_approval':
-          return {
-            showEdit: true,
-            showAdditionalButtons: [
-              {
-                label: 'Enviar para edição',
-                action: () => setShowSendToEditDialog(true),
-                variant: 'outline' as const,
-              },
-            ],
-          }
+          // CRITICAL: Editors cannot edit or send to edition services awaiting approval
+          return { showEdit: false, showAdditionalButtons: [] }
         default:
           return { showEdit: false, showAdditionalButtons: [] }
       }

@@ -1177,6 +1177,14 @@ export function NewServiceForm({
           showSendToApproval: false,
         }
       }
+      if (serviceStatus === 'awaiting_approval') {
+        // CRITICAL: Editors cannot edit or send to edition services awaiting approval
+        return {
+          showSendToEdit: false,
+          showPublish: false,
+          showSendToApproval: false,
+        }
+      }
       return {
         showSendToEdit: true,
         showPublish: false, // Editors can't publish directly
