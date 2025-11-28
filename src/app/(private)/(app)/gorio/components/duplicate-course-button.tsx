@@ -149,7 +149,7 @@ export function DuplicateCourseButton({
         locations: transformedLocations,
         remote_class: transformedRemoteClass,
         turno: 'LIVRE',
-        formato_aula: course.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
+        formato_aula: course.modalidade === 'ONLINE' || course.modalidade === 'LIVRE_FORMACAO_ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
         status: 'draft',
       }
 

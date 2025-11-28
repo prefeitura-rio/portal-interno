@@ -16,6 +16,7 @@ export interface ApiCourse {
   modalidade:
     | 'ONLINE'
     | 'PRESENCIAL'
+    | 'LIVRE_FORMACAO_ONLINE'
     | 'Remoto'
     | 'Presencial'
   status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled'
@@ -175,7 +176,7 @@ export interface Course {
   updated_at: Date
 }
 
-export type CourseModality = 'Presencial' | 'Remoto' | 'Semipresencial'
+export type CourseModality = 'Presencial' | 'Remoto' | 'Semipresencial' | 'Livre formação (online)'
 
 export interface CourseLocation {
   id: string
@@ -332,6 +333,7 @@ export interface EnrollmentSummary {
   confirmedCount: number
   pendingCount: number
   cancelledCount: number
+  rejectedCount: number
   concludedCount: number
   remainingVacancies: number
 }
