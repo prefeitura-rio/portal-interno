@@ -546,6 +546,7 @@ type PartialFormData = Omit<
   modalidade?: 'PRESENCIAL' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
+  remote_class_id?: string  // UUID of the remote_class container
   category?: number[]
   workload?: string
   target_audience?: string
@@ -850,6 +851,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 ],
               }
             }),
+            remote_class_id: (() => {
+              // Extract and preserve the remote_class container ID
+              const remoteClassData = (initialData as any).remote_class
+              if (remoteClassData?.id) {
+                return remoteClassData.id
+              }
+              return undefined
+            })(),
             remote_class: (() => {
               console.log(
                 '🔍 Processing remote_class from initialData:',
@@ -1027,11 +1036,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     // Transform form data to snake_case for backend API
     const transformFormDataToSnakeCase = (data: PartialFormData) => {
       // Transform remote_class fields to snake_case if it exists
-      // Backend expects: { remote_class: { schedules: [...] } }
+      // Backend expects: { remote_class: { id: uuid, schedules: [...] } }
       const transformedRemoteClass = data.remote_class
         ? Array.isArray(data.remote_class)
           ? {
-              id: (data as any).remote_class_id || '00000000-0000-0000-0000-000000000000',
+              id: data.remote_class_id || '00000000-0000-0000-0000-000000000000',
               schedules: data.remote_class.map(schedule => ({
                 id: (schedule as any).id || '00000000-0000-0000-0000-000000000000',
                 vacancies: schedule.vacancies,
@@ -1047,7 +1056,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             }
           : {
               // Legacy single object format - wrap in schedules array
-              id: (data as any).remote_class_id || '00000000-0000-0000-0000-000000000000',
+              id: data.remote_class_id || '00000000-0000-0000-0000-000000000000',
               schedules: [
                 {
                   id: (data.remote_class as any).id || '00000000-0000-0000-0000-000000000000',
