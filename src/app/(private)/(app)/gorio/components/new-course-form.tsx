@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/accordion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   DateTimePicker,
   formatDateTimeToUTC,
@@ -67,6 +68,35 @@ const accessibilityLabel: Record<Accessibility, string> = {
   ACESSIVEL: 'Acessível para pessoas com deficiência',
   EXCLUSIVO: 'Exclusivo para pessoas com deficiência',
 }
+
+export type CourseManagementType =
+  | 'OWN_ORG'
+  | 'EXTERNAL_MANAGED_BY_ORG'
+  | 'EXTERNAL_MANAGED_BY_PARTNER'
+
+const COURSE_MANAGEMENT_OPTIONS: {
+  value: CourseManagementType
+  label: string
+  description: string
+}[] = [
+  {
+    value: 'OWN_ORG',
+    label: 'Curso gerido pelo próprio órgão',
+    description: 'Curso oferecido e gerido pelo próprio órgão.',
+  },
+  {
+    value: 'EXTERNAL_MANAGED_BY_ORG',
+    label: 'Curso de parceiro externo - Gerido pelo órgão',
+    description:
+      'Curso oferecido por parceiro externo, mas gerido pelo órgão.',
+  },
+  {
+    value: 'EXTERNAL_MANAGED_BY_PARTNER',
+    label: 'Curso de parceiro externo - Gerido pelo parceiro',
+    description:
+      'Curso oferecido por parceiro externo e gerido pelo próprio parceiro.',
+  },
+] as const
 
 export type FormacaoType = 'Curso' | 'Palestra' | 'Oficina' | 'Workshop'
 const FORMACAO_TYPES: readonly FormacaoType[] = [
@@ -208,8 +238,11 @@ const fullFormSchema = z
       pre_requisitos: z.string().optional(),
       has_certificate: z.boolean().optional(),
 
+      // Course management type
+      course_management_type: z
+        .enum(['OWN_ORG', 'EXTERNAL_MANAGED_BY_ORG', 'EXTERNAL_MANAGED_BY_PARTNER'])
+        .optional(),
       // External partner fields
-      is_external_partner: z.boolean().optional(),
       external_partner_name: z.string().optional(),
       external_partner_url: z.string().url().optional().or(z.literal('')),
       external_partner_logo_url: z
@@ -323,8 +356,11 @@ const fullFormSchema = z
       pre_requisitos: z.string().optional(),
       has_certificate: z.boolean().optional(),
 
+      // Course management type
+      course_management_type: z
+        .enum(['OWN_ORG', 'EXTERNAL_MANAGED_BY_ORG', 'EXTERNAL_MANAGED_BY_PARTNER'])
+        .default('OWN_ORG'),
       // External partner fields
-      is_external_partner: z.boolean().optional(),
       external_partner_name: z.string().optional(),
       external_partner_url: z.string().url().optional().or(z.literal('')),
       external_partner_logo_url: z
@@ -406,7 +442,7 @@ const fullFormSchema = z
   )
   .refine(
     data => {
-      if (!data.is_external_partner) return true
+      if (data.course_management_type === 'OWN_ORG') return true
       return data.external_partner_name?.trim()
     },
     {
@@ -416,7 +452,8 @@ const fullFormSchema = z
   )
   .refine(
     data => {
-      if (!data.is_external_partner) return true
+      if (data.course_management_type !== 'EXTERNAL_MANAGED_BY_PARTNER')
+        return true
       return data.external_partner_url?.trim()
     },
     {
@@ -454,8 +491,11 @@ const draftFormSchema = z.object({
   pre_requisitos: z.string().optional(),
   has_certificate: z.boolean().optional(),
 
+  // Course management type
+  course_management_type: z
+    .enum(['OWN_ORG', 'EXTERNAL_MANAGED_BY_ORG', 'EXTERNAL_MANAGED_BY_PARTNER'])
+    .optional(),
   // External partner fields
-  is_external_partner: z.boolean().optional(),
   external_partner_name: z.string().optional(),
   external_partner_url: z.string().optional(),
   external_partner_logo_url: z
@@ -548,8 +588,9 @@ type PartialFormData = Omit<
   pre_requisitos?: string
   has_certificate?: boolean
 
+  // Course management type
+  course_management_type?: CourseManagementType
   // External partner fields
-  is_external_partner?: boolean
   external_partner_name?: string
   external_partner_url?: string
   external_partner_logo_url?: string
@@ -590,8 +631,9 @@ type BackendCourseData = {
   pre_requisitos?: string
   has_certificate?: boolean
 
+  // Course management type
+  course_management_type?: CourseManagementType
   // External partner fields
-  is_external_partner?: boolean
   external_partner_name?: string
   external_partner_url?: string
   external_partner_logo_url?: string
@@ -771,8 +813,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             pre_requisitos: initialData.pre_requisitos || '',
             has_certificate: initialData.has_certificate || false,
 
+            // Course management type - migrate from is_external_partner if needed
+            course_management_type:
+              initialData.course_management_type ||
+              ((initialData as any).is_external_partner
+                ? initialData.external_partner_url
+                  ? 'EXTERNAL_MANAGED_BY_PARTNER'
+                  : 'EXTERNAL_MANAGED_BY_ORG'
+                : 'OWN_ORG'),
             // External partner fields
-            is_external_partner: initialData.is_external_partner || false,
             external_partner_name: initialData.external_partner_name || '',
             external_partner_url: initialData.external_partner_url || '',
             external_partner_logo_url:
@@ -928,8 +977,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             pre_requisitos: '',
             has_certificate: false,
 
+            // Course management type
+            course_management_type: 'OWN_ORG',
             // External partner fields
-            is_external_partner: false,
             external_partner_name: '',
             external_partner_url: '',
             external_partner_logo_url: '',
@@ -1095,20 +1145,26 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         pre_requisitos: data.pre_requisitos,
         has_certificate: data.has_certificate || false,
 
-        // External partner fields - clear when not external partner
-        is_external_partner: data.is_external_partner,
-        external_partner_name: data.is_external_partner
-          ? data.external_partner_name
-          : '',
-        external_partner_url: data.is_external_partner
-          ? data.external_partner_url
-          : '',
-        external_partner_logo_url: data.is_external_partner
-          ? data.external_partner_logo_url
-          : '',
-        external_partner_contact: data.is_external_partner
-          ? data.external_partner_contact
-          : '',
+        // Course management type
+        course_management_type:
+          data.course_management_type || 'OWN_ORG',
+        // External partner fields - clear when OWN_ORG
+        external_partner_name:
+          data.course_management_type !== 'OWN_ORG'
+            ? data.external_partner_name
+            : '',
+        external_partner_url:
+          data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
+            ? data.external_partner_url
+            : '',
+        external_partner_logo_url:
+          data.course_management_type !== 'OWN_ORG'
+            ? data.external_partner_logo_url
+            : '',
+        external_partner_contact:
+          data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
+            ? data.external_partner_contact
+            : '',
         accessibility: data.accessibility,
         facilitator: data.facilitator,
         objectives: data.objectives,
@@ -1159,20 +1215,26 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         pre_requisitos: data.pre_requisitos,
         has_certificate: data.has_certificate || false,
 
-        // External partner fields - clear when not external partner
-        is_external_partner: data.is_external_partner,
-        external_partner_name: data.is_external_partner
-          ? data.external_partner_name
-          : '',
-        external_partner_url: data.is_external_partner
-          ? data.external_partner_url
-          : '',
-        external_partner_logo_url: data.is_external_partner
-          ? data.external_partner_logo_url
-          : '',
-        external_partner_contact: data.is_external_partner
-          ? data.external_partner_contact
-          : '',
+        // Course management type
+        course_management_type:
+          data.course_management_type || 'OWN_ORG',
+        // External partner fields - clear when OWN_ORG
+        external_partner_name:
+          data.course_management_type !== 'OWN_ORG'
+            ? data.external_partner_name
+            : '',
+        external_partner_url:
+          data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
+            ? data.external_partner_url
+            : '',
+        external_partner_logo_url:
+          data.course_management_type !== 'OWN_ORG'
+            ? data.external_partner_logo_url
+            : '',
+        external_partner_contact:
+          data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
+            ? data.external_partner_contact
+            : '',
         accessibility: data.accessibility,
         facilitator: data.facilitator,
         objectives: data.objectives,
@@ -1835,40 +1897,61 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 )}
               />
 
-              {/* External Partner Checkbox */}
-              <FormField
-                control={form.control}
-                name="is_external_partner"
-                render={({ field }) => (
-                  <Card className="p-4 bg-card">
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          className="border-1 border-foreground!"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={isReadOnly}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Curso de parceiro externo</FormLabel>
-                        <p className="text-[0.8rem] text-muted-foreground">
-                          Marque esta opção se o curso é oferecido por uma
-                          organização parceira externa.
-                        </p>
-                      </div>
-                    </FormItem>
-                  </Card>
-                )}
-              />
+              {/* Course Management Type */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gestão do curso (Quem gere o curso)*</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="course_management_type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value || 'OWN_ORG'}
+                            className="space-y-3"
+                            disabled={isReadOnly}
+                          >
+                            {COURSE_MANAGEMENT_OPTIONS.map(option => (
+                              <div
+                                key={option.value}
+                                className="flex items-start space-x-3 space-y-0"
+                              >
+                                <RadioGroupItem
+                                  value={option.value}
+                                  id={option.value}
+                                  className="mt-0.5"
+                                />
+                                <label
+                                  htmlFor={option.value}
+                                  className="flex-1 cursor-pointer space-y-1 leading-none"
+                                >
+                                  <div className="font-medium">
+                                    {option.label}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    {option.description}
+                                  </p>
+                                </label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* External Partner Fields - Show only when checkbox is checked */}
-              {form.watch('is_external_partner') && (
-                <Card className="mt-4">
-                  <CardHeader>
-                    <CardTitle>Informações do Parceiro Externo</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                  {/* External Partner Fields - Show conditionally based on course_management_type */}
+                  {form.watch('course_management_type') !== 'OWN_ORG' && (
+                    <div className="border-t pt-6">
+                      <h3 className="text-lg font-semibold mb-4">
+                        Informações do Parceiro Externo
+                      </h3>
+                      <div className="space-y-4">
                     <FormField
                       control={form.control}
                       name="external_partner_name"
@@ -1880,7 +1963,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               placeholder="Ex. PUC RJ"
                               {...field}
                               disabled={isReadOnly}
-                              required={form.watch('is_external_partner')}
                             />
                           </FormControl>
                           <FormMessage />
@@ -1888,27 +1970,30 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="external_partner_url"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            URL para a página do parceiro externo*
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="https://"
-                              type="url"
-                              {...field}
-                              disabled={isReadOnly}
-                              required={form.watch('is_external_partner')}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* Show URL field only for EXTERNAL_MANAGED_BY_PARTNER */}
+                    {form.watch('course_management_type') ===
+                      'EXTERNAL_MANAGED_BY_PARTNER' && (
+                      <FormField
+                        control={form.control}
+                        name="external_partner_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              URL para a página do parceiro externo*
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="https://"
+                                type="url"
+                                {...field}
+                                disabled={isReadOnly}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     <FormField
                       control={form.control}
@@ -1974,29 +2059,35 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="external_partner_contact"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Canal de informações do parceiro externo
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Ex. Número de whatsapp, email, link de FAQ, etc."
-                              className="min-h-[80px]"
-                              {...field}
-                              disabled={isReadOnly}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-              )}
+                    {/* Show contact field only for EXTERNAL_MANAGED_BY_PARTNER */}
+                    {form.watch('course_management_type') ===
+                      'EXTERNAL_MANAGED_BY_PARTNER' && (
+                      <FormField
+                        control={form.control}
+                        name="external_partner_contact"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              Canal de informações do parceiro externo
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex. Número de whatsapp, email, link de FAQ, etc."
+                                className="min-h-[80px]"
+                                {...field}
+                                disabled={isReadOnly}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               <FormField
                 control={form.control}
