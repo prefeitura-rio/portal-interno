@@ -308,9 +308,8 @@ export async function GET(
         totalVacancies: apiSummary?.total || 100, // Use total from API
         confirmedCount: apiSummary?.approved || 0,
         pendingCount: apiSummary?.pending || 0,
-        // cancelledCount:
-        //   (apiSummary?.cancelled || 0) + (apiSummary?.rejected || 0),
-        cancelledCount: apiSummary?.rejected || 0,
+        cancelledCount: apiSummary?.cancelled || 0,
+        rejectedCount: apiSummary?.rejected || 0,
         concludedCount: apiSummary?.concluded || 0,
         remainingVacancies: Math.max(
           0,

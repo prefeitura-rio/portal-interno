@@ -177,6 +177,7 @@ export function getModalityDisplayLabel(modality: string): string {
   const modalityMap: Record<string, string> = {
     ONLINE: 'Online',
     PRESENCIAL: 'Presencial',
+    LIVRE_FORMACAO_ONLINE: 'Livre formação (online)',
     SEMIPRESENCIAL: 'Semipresencial',
   }
 

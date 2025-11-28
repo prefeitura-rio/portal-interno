@@ -344,6 +344,32 @@ export function EnrollmentsTable({
   )
 
   /**
+   * Marca uma inscrição como reprovada
+   * Atualiza o status para cancelled
+   * @param enrollment - Inscrição a ser marcada como reprovada
+   */
+  const handleRejectEnrollment = React.useCallback(
+    async (enrollment: Enrollment) => {
+      try {
+        const updated = await updateEnrollmentStatus(enrollment.id, 'cancelled')
+        if (updated) {
+          setSelectedEnrollment(prev =>
+            prev ? { ...prev, status: 'cancelled' } : prev
+          )
+          toast.success('Inscrição marcada como reprovada!')
+        }
+      } catch (error) {
+        console.error('Erro ao marcar inscrição como reprovada:', error)
+        toast.error('Erro ao marcar inscrição como reprovada', {
+          description:
+            error instanceof Error ? error.message : 'Erro inesperado',
+        })
+      }
+    },
+    [updateEnrollmentStatus]
+  )
+
+  /**
    * Mostra modal de confirmação para remover status de concluído
    * @param enrollment - Inscrição a ter o status de concluído removido
    */
@@ -627,7 +653,7 @@ export function EnrollmentsTable({
               icon: Clock,
             },
             cancelled: {
-              label: 'Cancelado',
+              label: 'Reprovado',
               variant: 'secondary' as const,
               className: 'text-red-600 border-red-200 bg-red-50',
               icon: XCircle,
@@ -670,7 +696,7 @@ export function EnrollmentsTable({
           options: [
             { label: 'Confirmado', value: 'approved' },
             { label: 'Pendente', value: 'pending' },
-            { label: 'Cancelado', value: 'cancelled' },
+            { label: 'Reprovado', value: 'cancelled' },
             { label: 'Recusado', value: 'rejected' },
             { label: 'Concluído', value: 'concluded' },
           ],
@@ -1052,6 +1078,39 @@ export function EnrollmentsTable({
     }
   }, [table, updateMultipleEnrollmentStatuses])
 
+  const handleBulkRejectEnrollments = React.useCallback(async () => {
+    try {
+      const selectedRows = table.getFilteredSelectedRowModel().rows
+      const enrollmentsToReject = selectedRows
+        .map(row => row.original)
+        .filter(enrollment => enrollment.status !== 'cancelled')
+
+      if (enrollmentsToReject.length === 0) {
+        return
+      }
+
+      // Use bulk update API
+      const enrollmentIds = enrollmentsToReject.map(e => e.id)
+      const success = await updateMultipleEnrollmentStatuses(
+        enrollmentIds,
+        'cancelled'
+      )
+
+      if (success) {
+        // Clear selection after successful update
+        table.resetRowSelection()
+        toast.success(
+          `${enrollmentsToReject.length} inscrição(ões) marcada(s) como reprovada(s)!`
+        )
+      }
+    } catch (error) {
+      console.error('Erro ao marcar inscrições como reprovadas em lote:', error)
+      toast.error('Erro ao marcar inscrições como reprovadas', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
+    }
+  }, [table, updateMultipleEnrollmentStatuses])
+
   // Show loading state
   if (loading && enrollments.length === 0) {
     return (
@@ -1118,7 +1177,7 @@ export function EnrollmentsTable({
 
       {/* Summary */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {/* <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg">
               <Users className="w-5 h-5 text-blue-600" />
@@ -1161,9 +1220,21 @@ export function EnrollmentsTable({
             </div>
             <div>
               <p className="text-2xl font-bold text-red-700">
-                {summary.cancelledCount}
+                {summary.rejectedCount || 0}
               </p>
               <p className="text-sm text-red-600">Recusados</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+              <XCircle className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-orange-700">
+                {summary.cancelledCount || 0}
+              </p>
+              <p className="text-sm text-orange-600">Reprovados</p>
             </div>
           </div>
 
@@ -1351,7 +1422,7 @@ export function EnrollmentsTable({
                                   className: 'bg-yellow-100 text-yellow-800',
                                 },
                                 cancelled: {
-                                  label: 'Cancelado',
+                                  label: 'Reprovado',
                                   className:
                                     'text-red-600 border-red-200 bg-red-50',
                                 },
@@ -1741,31 +1812,41 @@ export function EnrollmentsTable({
                     Recusar inscrição
                   </Button>
                 </div>
-                <Button
-                  onClick={() =>
-                    selectedEnrollment.status === 'concluded'
-                      ? handleRemoveConcludedStatus(selectedEnrollment)
-                      : handleConcludedCourse(selectedEnrollment)
-                  }
-                  className={`w-full ${
-                    selectedEnrollment.status === 'concluded'
-                      ? 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100'
-                      : 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100'
-                  }`}
-                  disabled={!isCourseFinished}
-                >
-                  {selectedEnrollment.status === 'concluded' ? (
-                    <>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Remover status de concluído
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Marcar como concluído
-                    </>
-                  )}
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                  <Button
+                    onClick={() =>
+                      selectedEnrollment.status === 'concluded'
+                        ? handleRemoveConcludedStatus(selectedEnrollment)
+                        : handleConcludedCourse(selectedEnrollment)
+                    }
+                    className={`w-full ${
+                      selectedEnrollment.status === 'concluded'
+                        ? 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100'
+                        : 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100'
+                    }`}
+                    disabled={!isCourseFinished}
+                  >
+                    {selectedEnrollment.status === 'concluded' ? (
+                      <>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Remover status de concluído
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Marcar como concluído
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => handleRejectEnrollment(selectedEnrollment)}
+                    className="w-full bg-red-50 border border-red-200 text-red-700 hover:bg-red-100"
+                    disabled={!isCourseFinished || selectedEnrollment.status === 'cancelled'}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Marcar como reprovado
+                  </Button>
+                </div>
               </SheetFooter>
             </>
           )}
@@ -1808,6 +1889,14 @@ export function EnrollmentsTable({
           >
             <CheckCircle className="mr-2 h-4 w-4" />
             Marcar como concluído
+          </DataTableActionBarAction>
+          <DataTableActionBarAction
+            tooltip="Marcar todas as inscrições selecionadas como reprovadas"
+            onClick={handleBulkRejectEnrollments}
+            disabled={!isCourseFinished}
+          >
+            <XCircle className="mr-2 h-4 w-4" />
+            Marcar como reprovado
           </DataTableActionBarAction>
           <DataTableActionBarAction
             tooltip="Exportar inscrições selecionadas para XLSX"

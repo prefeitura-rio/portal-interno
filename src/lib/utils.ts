@@ -185,9 +185,13 @@ export function transformApiCourseToCourse(apiCourse: any): any {
       if (modalidade === 'Presencial' || modalidade === 'PRESENCIAL')
         return 'PRESENCIAL'
       if (modalidade === 'Remoto' || modalidade === 'ONLINE') return 'ONLINE'
+      if (modalidade === 'Livre formação (online)' || modalidade === 'LIVRE_FORMACAO_ONLINE')
+        return 'LIVRE_FORMACAO_ONLINE'
       return modalidade
     })(),
     orgao_id: courseData.orgao_id || null,
+    // Course management type (new field)
+    course_management_type: courseData.course_management_type || undefined,
     // External partner fields
     is_external_partner: courseData.is_external_partner || false,
     external_partner_name: courseData.external_partner_name || '',
