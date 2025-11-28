@@ -103,6 +103,7 @@ const scheduleSchema = z.object({
 
 // Define the schema for location/class information
 const locationClassSchema = z.object({
+  id: z.string().optional(),
   address: z
     .string()
     .min(1, { message: 'Endereço é obrigatório.' })
@@ -429,7 +430,7 @@ const fullFormSchema = z
 const draftFormSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
-  category: z.number().optional(),
+  category: z.array(z.number()).optional(),
   enrollment_start_date: z.date().optional(),
   enrollment_end_date: z.date().optional(),
   orgao_id: z.string().optional(),
@@ -499,11 +500,14 @@ const draftFormSchema = z.object({
   locations: z
     .array(
       z.object({
+        id: z.string().optional(),
         address: z.string().optional(),
         neighborhood: z.string().optional(),
+        zona: z.string().optional(),
         schedules: z
           .array(
             z.object({
+              id: z.string().optional(),
               vacancies: z.number().optional(),
               classStartDate: z.date().optional(),
               classEndDate: z.date().optional(),
@@ -518,6 +522,7 @@ const draftFormSchema = z.object({
   remote_class: z
     .array(
       z.object({
+        id: z.string().optional(),
         vacancies: z.number().optional(),
         classStartDate: z.date().optional(),
         classEndDate: z.date().optional(),
@@ -541,6 +546,7 @@ type PartialFormData = Omit<
   modalidade?: 'PRESENCIAL' | 'ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
+  remote_class_id?: string  // UUID of the remote_class container
   category?: number[]
   workload?: string
   target_audience?: string
@@ -845,6 +851,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 ],
               }
             }),
+            remote_class_id: (() => {
+              // Extract and preserve the remote_class container ID
+              const remoteClassData = (initialData as any).remote_class
+              if (remoteClassData?.id) {
+                return remoteClassData.id
+              }
+              return undefined
+            })(),
             remote_class: (() => {
               console.log(
                 '🔍 Processing remote_class from initialData:',
@@ -908,11 +922,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             theme: 'Curso',
             locations: [
               {
+                id: '00000000-0000-0000-0000-000000000000',
                 address: '',
                 neighborhood: '',
                 zona: '',
                 schedules: [
                   {
+                    id: '00000000-0000-0000-0000-000000000000',
                     vacancies: 1,
                     classStartDate: new Date(),
                     classEndDate: new Date(),
@@ -983,6 +999,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       form.setValue(`locations.${locationIndex}.schedules`, [
         ...currentSchedules,
         {
+          id: '00000000-0000-0000-0000-000000000000',
           vacancies: 1,
           classStartDate: new Date(),
           classEndDate: new Date(),
@@ -1007,6 +1024,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     // Helper function to add a remote schedule (for ONLINE courses)
     const addRemoteSchedule = () => {
       appendRemoteSchedule({
+        id: '00000000-0000-0000-0000-000000000000',
         vacancies: 1,
         classStartDate: new Date(),
         classEndDate: new Date(),
@@ -1018,11 +1036,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     // Transform form data to snake_case for backend API
     const transformFormDataToSnakeCase = (data: PartialFormData) => {
       // Transform remote_class fields to snake_case if it exists
-      // Backend expects: { remote_class: { schedules: [...] } }
+      // Backend expects: { remote_class: { id: uuid, schedules: [...] } }
       const transformedRemoteClass = data.remote_class
         ? Array.isArray(data.remote_class)
           ? {
+              id: data.remote_class_id || '00000000-0000-0000-0000-000000000000',
               schedules: data.remote_class.map(schedule => ({
+                id: (schedule as any).id || '00000000-0000-0000-0000-000000000000',
                 vacancies: schedule.vacancies,
                 class_start_date: schedule.classStartDate
                   ? formatDateTimeToUTC(schedule.classStartDate)
@@ -1036,8 +1056,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             }
           : {
               // Legacy single object format - wrap in schedules array
+              id: data.remote_class_id || '00000000-0000-0000-0000-000000000000',
               schedules: [
                 {
+                  id: (data.remote_class as any).id || '00000000-0000-0000-0000-000000000000',
                   vacancies: (data.remote_class as any).vacancies,
                   class_start_date: (data.remote_class as any).classStartDate
                     ? formatDateTimeToUTC(
@@ -1058,10 +1080,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
       // Transform locations fields to snake_case if they exist
       const transformedLocations = data.locations?.map(location => ({
+        id: (location as any).id || '00000000-0000-0000-0000-000000000000',
         address: location.address,
         neighborhood: location.neighborhood,
         neighborhood_zone: location.zona,
         schedules: location.schedules.map(schedule => ({
+          id: (schedule as any).id || '00000000-0000-0000-0000-000000000000',
           vacancies: schedule.vacancies,
           class_start_date: schedule.classStartDate
             ? formatDateTimeToUTC(schedule.classStartDate)
@@ -1190,11 +1214,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               ? data.locations
               : [
                   {
+                    id: '00000000-0000-0000-0000-000000000000',
                     address: '',
                     neighborhood: '',
                     zona: '',
                     schedules: [
                       {
+                        id: '00000000-0000-0000-0000-000000000000',
                         vacancies: 1,
                         classStartDate: currentDate,
                         classEndDate: nextMonth,
@@ -1211,6 +1237,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               ? data.remote_class
               : [
                   {
+                    id: '00000000-0000-0000-0000-000000000000',
                     vacancies: 1,
                     classStartDate: currentDate,
                     classEndDate: nextMonth,
@@ -2366,6 +2393,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               // Initialize with one schedule if none exists
                               form.setValue(`locations.${index}.schedules`, [
                                 {
+                                  id: '00000000-0000-0000-0000-000000000000',
                                   vacancies: 1,
                                   classStartDate: new Date(),
                                   classEndDate: new Date(),
