@@ -430,7 +430,7 @@ const fullFormSchema = z
 const draftFormSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
-  category: z.number().optional(),
+  category: z.array(z.number()).optional(),
   enrollment_start_date: z.date().optional(),
   enrollment_end_date: z.date().optional(),
   orgao_id: z.string().optional(),
