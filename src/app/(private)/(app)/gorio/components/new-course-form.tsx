@@ -224,11 +224,7 @@ const fullFormSchema = z
         }),
       external_partner_contact: z.string().optional(),
 
-      accessibility: z
-        .enum(['ACESSIVEL', 'EXCLUSIVO'])
-        .nullable()
-        .optional()
-        .or(z.literal('')),
+      accessibility: z.enum(['ACESSIVEL', 'EXCLUSIVO']).optional(),
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
       expected_results: z.string().optional(),
@@ -339,6 +335,7 @@ const fullFormSchema = z
         }),
       external_partner_contact: z.string().optional(),
 
+      accessibility: z.enum(['ACESSIVEL', 'EXCLUSIVO']).optional(),
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
       expected_results: z.string().optional(),
@@ -561,7 +558,7 @@ type PartialFormData = Omit<
   external_partner_logo_url?: string
   external_partner_contact?: string
 
-  accessibility?: Accessibility | undefined | '' | null
+  accessibility?: Accessibility | undefined
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -603,7 +600,7 @@ type BackendCourseData = {
   external_partner_logo_url?: string
   external_partner_contact?: string
 
-  accessibility?: Accessibility | undefined | '' | null
+  accessibility?: Accessibility | undefined
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -785,7 +782,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               initialData.external_partner_logo_url || '',
             external_partner_contact:
               initialData.external_partner_contact || '',
-            accessibility: initialData.accessibility || '' || null,
+            accessibility: initialData.accessibility || undefined,
             facilitator: initialData.facilitator || '',
             objectives: initialData.objectives || '',
             expected_results: initialData.expected_results || '',
@@ -951,7 +948,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             external_partner_logo_url: '',
             external_partner_contact: '',
 
-            accessibility: '',
+            accessibility: undefined,
             facilitator: '',
             objectives: '',
             expected_results: '',
@@ -1133,7 +1130,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         external_partner_contact: data.is_external_partner
           ? data.external_partner_contact
           : '',
-        accessibility: data.accessibility,
+        ...(data.accessibility && { accessibility: data.accessibility }),
         facilitator: data.facilitator,
         objectives: data.objectives,
         expected_results: data.expected_results,
@@ -1197,7 +1194,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         external_partner_contact: data.is_external_partner
           ? data.external_partner_contact
           : '',
-        accessibility: data.accessibility,
+        ...(data.accessibility && { accessibility: data.accessibility }),
         facilitator: data.facilitator,
         objectives: data.objectives,
         expected_results: data.expected_results,
