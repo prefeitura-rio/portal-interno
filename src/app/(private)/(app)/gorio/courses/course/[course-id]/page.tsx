@@ -319,27 +319,6 @@ export default function CourseDetailPage({
     })
   }
 
-  // Helper function to transform locations to API format
-  const transformLocationsToApiFormat = (locations: any[]) => {
-    return locations.map(location => ({
-      id: location.id,
-      address: location.address,
-      neighborhood: location.neighborhood,
-      neighborhood_zone: location.zona || location.neighborhood_zone,
-      schedules: (location.schedules || []).map((schedule: any) => ({
-        vacancies: schedule.vacancies,
-        class_start_date: schedule.classStartDate
-          ? new Date(schedule.classStartDate).toISOString()
-          : schedule.class_start_date,
-        class_end_date: schedule.classEndDate
-          ? new Date(schedule.classEndDate).toISOString()
-          : schedule.class_end_date,
-        class_time: schedule.classTime || schedule.class_time,
-        class_days: schedule.classDays || schedule.class_days,
-      })),
-    }))
-  }
-
   // Helper function to build complete course data for API calls
   const buildCompleteUpdateData = (statusOverride?: string) => {
     if (!course) return {}
@@ -353,11 +332,6 @@ export default function CourseDetailPage({
     //   status: course.status,
     //   statusOverride,
     // })
-
-    // Transform locations to API format
-    const transformedLocations = course.locations
-      ? transformLocationsToApiFormat(course.locations)
-      : []
 
     return {
       title: course.title,
@@ -398,7 +372,7 @@ export default function CourseDetailPage({
       material_used: course.material_used || course.materialUsed,
       teaching_material: course.teaching_material || course.teachingMaterial,
       custom_fields: course.custom_fields || course.customFields || [],
-      locations: transformedLocations || (course as any).locations || [],
+      locations: course.locations || [],
       remote_class: course.remote_class,
       turno: 'LIVRE',
       formato_aula: course.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
