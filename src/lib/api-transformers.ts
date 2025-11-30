@@ -59,11 +59,25 @@ function getDynamicCourseStatus(apiCourse: ApiCourse): CourseStatus {
     const locations = (apiCourse as any).locations
     if (Array.isArray(locations)) {
       for (const location of locations) {
-        if (location.class_start_date) {
-          classStartDates.push(new Date(location.class_start_date))
+        // New format: dates are in location.schedules[]
+        if (location.schedules && Array.isArray(location.schedules)) {
+          for (const schedule of location.schedules) {
+            if (schedule.class_start_date) {
+              classStartDates.push(new Date(schedule.class_start_date))
+            }
+            if (schedule.class_end_date) {
+              classEndDates.push(new Date(schedule.class_end_date))
+            }
+          }
         }
-        if (location.class_end_date) {
-          classEndDates.push(new Date(location.class_end_date))
+        // Backward compatibility: old format with dates directly on location
+        else {
+          if (location.class_start_date) {
+            classStartDates.push(new Date(location.class_start_date))
+          }
+          if (location.class_end_date) {
+            classEndDates.push(new Date(location.class_end_date))
+          }
         }
       }
     }

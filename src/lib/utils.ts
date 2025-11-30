@@ -114,10 +114,22 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
     const locations = courseData.locations
     if (Array.isArray(locations)) {
       for (const location of locations) {
-        const startDate = safeParseDate(location.class_start_date)
-        const endDate = safeParseDate(location.class_end_date)
-        if (startDate) classStartDates.push(startDate)
-        if (endDate) classEndDates.push(endDate)
+        // New format: dates are in location.schedules[]
+        if (location.schedules && Array.isArray(location.schedules)) {
+          for (const schedule of location.schedules) {
+            const startDate = safeParseDate(schedule.class_start_date)
+            const endDate = safeParseDate(schedule.class_end_date)
+            if (startDate) classStartDates.push(startDate)
+            if (endDate) classEndDates.push(endDate)
+          }
+        }
+        // Backward compatibility: old format with dates directly on location
+        else {
+          const startDate = safeParseDate(location.class_start_date)
+          const endDate = safeParseDate(location.class_end_date)
+          if (startDate) classStartDates.push(startDate)
+          if (endDate) classEndDates.push(endDate)
+        }
       }
     }
   }
