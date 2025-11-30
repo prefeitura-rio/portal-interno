@@ -323,6 +323,7 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     coverImage: courseData.cover_image || '',
     custom_fields: courseData.custom_fields || [],
     customFields: courseData.custom_fields || [],
+    formacao_link: courseData.formacao_link || '',
     remote_class: courseData.remote_class,
     status: getDynamicCourseStatus(courseData),
     originalStatus: courseData.status,

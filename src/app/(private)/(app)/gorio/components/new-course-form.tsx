@@ -1152,8 +1152,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
     // Sync formacao_link with external_partner_url when modalidade is LIVRE_FORMACAO_ONLINE
     useEffect(() => {
-      if (modalidade === 'LIVRE_FORMACAO_ONLINE' && externalPartnerUrl) {
-        form.setValue('formacao_link', externalPartnerUrl)
+      if (modalidade === 'LIVRE_FORMACAO_ONLINE') {
+        // Always sync formacao_link with external_partner_url when it's available
+        if (externalPartnerUrl && externalPartnerUrl.trim() !== '') {
+          const currentFormacaoLink = form.getValues('formacao_link')
+          // Only update if different to avoid unnecessary re-renders
+          if (currentFormacaoLink !== externalPartnerUrl) {
+            form.setValue('formacao_link', externalPartnerUrl, { shouldValidate: true, shouldDirty: false })
+          }
+        }
       }
     }, [modalidade, externalPartnerUrl, form])
 
@@ -1510,6 +1517,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     // Expose methods to parent component via ref
     useImperativeHandle(ref, () => ({
       triggerSubmit: async () => {
+        // Sync formacao_link with external_partner_url before validation if modalidade is LIVRE_FORMACAO_ONLINE
+        const modalidade = form.getValues('modalidade')
+        const externalPartnerUrl = form.getValues('external_partner_url')
+        if (modalidade === 'LIVRE_FORMACAO_ONLINE' && externalPartnerUrl && externalPartnerUrl.trim() !== '') {
+          form.setValue('formacao_link', externalPartnerUrl, { shouldValidate: false })
+        }
+        
         // Always validate first, even when called via ref
         const isValid = await form.trigger()
         
@@ -1517,6 +1531,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           // Try full schema validation for more detailed errors
           try {
             const currentValues = form.getValues()
+            // Ensure formacao_link is synced before validation
+            if (currentValues.modalidade === 'LIVRE_FORMACAO_ONLINE' && currentValues.external_partner_url && !currentValues.formacao_link) {
+              currentValues.formacao_link = currentValues.external_partner_url
+            }
             fullFormSchema.parse(currentValues)
           } catch (error) {
             if (error instanceof z.ZodError) {
@@ -1541,6 +1559,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Validate with full schema as well
         try {
           const currentValues = form.getValues()
+          // Ensure formacao_link is synced before validation
+          if (currentValues.modalidade === 'LIVRE_FORMACAO_ONLINE' && currentValues.external_partner_url && !currentValues.formacao_link) {
+            currentValues.formacao_link = currentValues.external_partner_url
+            form.setValue('formacao_link', currentValues.external_partner_url, { shouldValidate: true })
+          }
           fullFormSchema.parse(currentValues)
         } catch (error) {
           if (error instanceof z.ZodError) {
@@ -1558,6 +1581,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         handleSubmit(currentValues)
       },
       triggerPublish: async () => {
+        // Sync formacao_link with external_partner_url before validation if modalidade is LIVRE_FORMACAO_ONLINE
+        const modalidade = form.getValues('modalidade')
+        const externalPartnerUrl = form.getValues('external_partner_url')
+        if (modalidade === 'LIVRE_FORMACAO_ONLINE' && externalPartnerUrl && externalPartnerUrl.trim() !== '') {
+          form.setValue('formacao_link', externalPartnerUrl, { shouldValidate: false })
+        }
+        
         // Always validate first, even when called via ref
         const isValid = await form.trigger()
         
@@ -1565,6 +1595,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           // Try full schema validation for more detailed errors
           try {
             const currentValues = form.getValues()
+            // Ensure formacao_link is synced before validation
+            if (currentValues.modalidade === 'LIVRE_FORMACAO_ONLINE' && currentValues.external_partner_url && !currentValues.formacao_link) {
+              currentValues.formacao_link = currentValues.external_partner_url
+            }
             fullFormSchema.parse(currentValues)
           } catch (error) {
             if (error instanceof z.ZodError) {
@@ -1589,6 +1623,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Validate with full schema as well
         try {
           const currentValues = form.getValues()
+          // Ensure formacao_link is synced before validation
+          if (currentValues.modalidade === 'LIVRE_FORMACAO_ONLINE' && currentValues.external_partner_url && !currentValues.formacao_link) {
+            currentValues.formacao_link = currentValues.external_partner_url
+            form.setValue('formacao_link', currentValues.external_partner_url, { shouldValidate: true })
+          }
           fullFormSchema.parse(currentValues)
         } catch (error) {
           if (error instanceof z.ZodError) {
@@ -1652,7 +1691,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Clear locations and remote_class, initialize formacao_link
         form.setValue('locations', [])
         form.setValue('remote_class', undefined)
-        form.setValue('formacao_link', '')
+        // Auto-fill formacao_link with external_partner_url if available
+        const externalPartnerUrl = form.getValues('external_partner_url')
+        form.setValue('formacao_link', externalPartnerUrl || '', { shouldValidate: false })
       }
     }, [form])
 
@@ -2373,24 +2414,32 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       <FormField
                         control={form.control}
                         name="formacao_link"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Link para formação</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="url"
-                                placeholder={externalPartnerUrl || "URL será preenchida automaticamente com a URL do parceiro externo"}
-                                value={externalPartnerUrl || field.value || ''}
-                                disabled={true}
-                                className="bg-muted cursor-not-allowed"
-                              />
-                            </FormControl>
-                            <p className="text-sm text-muted-foreground">
-                              Este campo é preenchido automaticamente com a URL do parceiro externo quando disponível.
-                            </p>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        render={({ field }) => {
+                          // Always use external_partner_url value when available, fallback to field value
+                          const displayValue = externalPartnerUrl || field.value || ''
+                          
+                          return (
+                            <FormItem>
+                              <FormLabel>Link para formação</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="url"
+                                  placeholder="URL será preenchida automaticamente com a URL do parceiro externo"
+                                  value={displayValue}
+                                  disabled={true}
+                                  className="bg-muted cursor-not-allowed"
+                                  readOnly
+                                  {...field}
+                                  onChange={() => {}} // Prevent manual changes
+                                />
+                              </FormControl>
+                              <p className="text-sm text-muted-foreground">
+                                Este campo é preenchido automaticamente com a URL do parceiro externo.
+                              </p>
+                              <FormMessage />
+                            </FormItem>
+                          )
+                        }}
                       />
                     </CardContent>
                   </Card>
