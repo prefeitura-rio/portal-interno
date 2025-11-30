@@ -88,21 +88,44 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
     return 'accepting_enrollments' as CourseStatus
   }
 
+  // Handle LIVRE_FORMACAO_ONLINE: use enrollment end date to determine status
+  if (courseData.modalidade === 'LIVRE_FORMACAO_ONLINE') {
+    if (enrollmentEnd) {
+      // After enrollment end date, show as in progress (course continues to be available)
+      if (now > enrollmentEnd) {
+        return 'in_progress' as CourseStatus
+      }
+    }
+    // If no enrollment end date or still in enrollment period, continue with normal flow
+  }
+
   // 3. & 4. Check class dates for "Em andamento" or "Encerrado"
   const classStartDates: Date[] = []
   const classEndDates: Date[] = []
 
-  // Handle ONLINE/Remoto courses (remote_class)
+  // Handle ONLINE/Remoto courses (remote_class) - can have multiple schedules
   if (
     (courseData.modalidade === 'ONLINE' ||
       courseData.modalidade === 'Remoto') &&
     courseData.remote_class
   ) {
     const remoteClass = courseData.remote_class
-    const startDate = safeParseDate(remoteClass.class_start_date)
-    const endDate = safeParseDate(remoteClass.class_end_date)
-    if (startDate) classStartDates.push(startDate)
-    if (endDate) classEndDates.push(endDate)
+    // New format: multiple schedules in remote_class.schedules[]
+    if (remoteClass.schedules && Array.isArray(remoteClass.schedules)) {
+      for (const schedule of remoteClass.schedules) {
+        const startDate = safeParseDate(schedule.class_start_date)
+        const endDate = safeParseDate(schedule.class_end_date)
+        if (startDate) classStartDates.push(startDate)
+        if (endDate) classEndDates.push(endDate)
+      }
+    }
+    // Backward compatibility: old format with dates directly on remote_class
+    else {
+      const startDate = safeParseDate(remoteClass.class_start_date)
+      const endDate = safeParseDate(remoteClass.class_end_date)
+      if (startDate) classStartDates.push(startDate)
+      if (endDate) classEndDates.push(endDate)
+    }
   }
 
   // Handle PRESENCIAL/Presencial courses (locations)
@@ -136,7 +159,7 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
 
   // If we have class dates, determine status based on them
   if (classStartDates.length > 0 && classEndDates.length > 0) {
-    // Get the earliest start date and latest end date
+    // Get the earliest start date and latest end date (considering all schedules/turmas)
     const earliestStart = new Date(
       Math.min(...classStartDates.map(d => d.getTime()))
     )
@@ -147,7 +170,7 @@ function getDynamicCourseStatus(courseData: any): CourseStatus {
       return 'in_progress' as CourseStatus
     }
 
-    // 4. "Encerrado" - classes have ended
+    // 4. "Encerrado" - classes have ended (using the latest end date from all schedules)
     if (now > latestEnd) {
       return 'finished' as CourseStatus
     }
