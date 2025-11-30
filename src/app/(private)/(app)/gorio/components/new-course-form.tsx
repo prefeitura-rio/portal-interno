@@ -2425,12 +2425,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                 <Input
                                   type="url"
                                   placeholder="URL será preenchida automaticamente com a URL do parceiro externo"
-                                  value={displayValue}
                                   disabled={true}
                                   className="bg-muted cursor-not-allowed"
                                   readOnly
-                                  {...field}
+                                  value={displayValue}
                                   onChange={() => {}} // Prevent manual changes
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
                                 />
                               </FormControl>
                               <p className="text-sm text-muted-foreground">
