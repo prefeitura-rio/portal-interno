@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -1146,6 +1147,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     })
 
     const modalidade = form.watch('modalidade')
+    const courseManagementType = form.watch('course_management_type')
+    const externalPartnerUrl = form.watch('external_partner_url')
+
+    // Sync formacao_link with external_partner_url when modalidade is LIVRE_FORMACAO_ONLINE
+    useEffect(() => {
+      if (modalidade === 'LIVRE_FORMACAO_ONLINE' && externalPartnerUrl) {
+        form.setValue('formacao_link', externalPartnerUrl)
+      }
+    }, [modalidade, externalPartnerUrl, form])
 
     // UseFieldArray for locations (PRESENCIAL/HIBRIDO)
     const { fields, append, remove } = useFieldArray({
@@ -1600,7 +1610,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     }))
 
     // Handle modalidade change to properly initialize fields
-    const handleModalidadeChange = (value: 'PRESENCIAL' | 'ONLINE' | 'LIVRE_FORMACAO_ONLINE') => {
+    const handleModalidadeChange = useCallback((value: 'PRESENCIAL' | 'ONLINE' | 'LIVRE_FORMACAO_ONLINE') => {
       if (value === 'ONLINE') {
         // Clear locations array and initialize remote class fields with array
         form.setValue('locations', [])
@@ -1644,7 +1654,23 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         form.setValue('remote_class', undefined)
         form.setValue('formacao_link', '')
       }
-    }
+    }, [form])
+
+    // Reset modalidade if LIVRE_FORMACAO_ONLINE is selected but course_management_type doesn't allow it
+    // This handles both cases:
+    // 1. When modalidade is changed to LIVRE_FORMACAO_ONLINE but course_management_type doesn't allow it
+    // 2. When course_management_type changes from EXTERNAL_MANAGED_BY_PARTNER to another option while modalidade is LIVRE_FORMACAO_ONLINE
+    useEffect(() => {
+      // If modalidade is LIVRE_FORMACAO_ONLINE and course_management_type doesn't allow it, reset to PRESENCIAL
+      if (
+        modalidade === 'LIVRE_FORMACAO_ONLINE' &&
+        courseManagementType &&
+        (courseManagementType === 'OWN_ORG' || courseManagementType === 'EXTERNAL_MANAGED_BY_ORG')
+      ) {
+        // Reset to PRESENCIAL as default
+        handleModalidadeChange('PRESENCIAL')
+      }
+    }, [courseManagementType, modalidade, handleModalidadeChange])
 
     const addLocation = () => {
       append({
@@ -2072,7 +2098,20 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         <FormItem>
                         <FormControl>
                           <RadioGroup
-                            onValueChange={field.onChange}
+                            onValueChange={(value) => {
+                              field.onChange(value)
+                              // If changing from EXTERNAL_MANAGED_BY_PARTNER to another option
+                              // and modalidade is LIVRE_FORMACAO_ONLINE, reset modalidade to PRESENCIAL
+                              const currentModalidade = form.getValues('modalidade')
+                              if (
+                                currentModalidade === 'LIVRE_FORMACAO_ONLINE' &&
+                                (value === 'OWN_ORG' || value === 'EXTERNAL_MANAGED_BY_ORG')
+                              ) {
+                                // Update modalidade field directly and call handler
+                                form.setValue('modalidade', 'PRESENCIAL')
+                                handleModalidadeChange('PRESENCIAL')
+                              }
+                            }}
                             value={field.value}
                             className="space-y-3"
                             disabled={isReadOnly}
@@ -2283,31 +2322,44 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               <FormField
                 control={form.control}
                 name="modalidade"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Modalidade*</FormLabel>
-                    <Select
-                      onValueChange={value => {
-                        const modalidadeValue = value as 'PRESENCIAL' | 'ONLINE' | 'LIVRE_FORMACAO_ONLINE'
-                        field.onChange(modalidadeValue)
-                        handleModalidadeChange(modalidadeValue)
-                      }}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a modalidade" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="PRESENCIAL">Presencial</SelectItem>
-                        <SelectItem value="ONLINE">Online</SelectItem>
-                        <SelectItem value="LIVRE_FORMACAO_ONLINE">Livre formação (online)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Disable LIVRE_FORMACAO_ONLINE if course is managed by org (OWN_ORG or EXTERNAL_MANAGED_BY_ORG)
+                  const isLivreFormacaoDisabled = 
+                    courseManagementType === 'OWN_ORG' || 
+                    courseManagementType === 'EXTERNAL_MANAGED_BY_ORG'
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Modalidade*</FormLabel>
+                      <Select
+                        onValueChange={value => {
+                          const modalidadeValue = value as 'PRESENCIAL' | 'ONLINE' | 'LIVRE_FORMACAO_ONLINE'
+                          field.onChange(modalidadeValue)
+                          handleModalidadeChange(modalidadeValue)
+                        }}
+                        value={field.value}
+                        disabled={isReadOnly}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a modalidade" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="PRESENCIAL">Presencial</SelectItem>
+                          <SelectItem value="ONLINE">Online</SelectItem>
+                          <SelectItem 
+                            value="LIVRE_FORMACAO_ONLINE"
+                            disabled={isLivreFormacaoDisabled}
+                          >
+                            Livre formação (online)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               {/* Conditional rendering based on modalidade */}
@@ -2323,15 +2375,19 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         name="formacao_link"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Link para formação*</FormLabel>
+                            <FormLabel>Link para formação</FormLabel>
                             <FormControl>
                               <Input
                                 type="url"
-                                placeholder="https://..."
-                                {...field}
-                                disabled={isReadOnly}
+                                placeholder={externalPartnerUrl || "URL será preenchida automaticamente com a URL do parceiro externo"}
+                                value={externalPartnerUrl || field.value || ''}
+                                disabled={true}
+                                className="bg-muted cursor-not-allowed"
                               />
                             </FormControl>
+                            <p className="text-sm text-muted-foreground">
+                              Este campo é preenchido automaticamente com a URL do parceiro externo quando disponível.
+                            </p>
                             <FormMessage />
                           </FormItem>
                         )}
