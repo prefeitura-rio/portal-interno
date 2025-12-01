@@ -156,14 +156,10 @@ const remoteScheduleSchema = z.object({
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
     .max(1000, { message: 'Número de vagas não pode exceder 1000.' }),
-  classStartDate: z.date({
-    required_error: 'Data de início das aulas é obrigatória.',
-  }),
-  classEndDate: z.date({
-    required_error: 'Data de fim das aulas é obrigatória.',
-  }),
-  classTime: z.string().min(1, { message: 'Horário das aulas é obrigatório.' }),
-  classDays: z.string().min(1, { message: 'Dias de aula é obrigatório.' }),
+  classStartDate: z.date().optional().nullable(),
+  classEndDate: z.date().optional().nullable(),
+  classTime: z.string().optional().nullable(),
+  classDays: z.string().optional().nullable(),
 })
 
 // Define the schema for remote class information (array of schedules)
@@ -546,7 +542,26 @@ const fullFormSchema = z
     data => {
       if (data.modalidade === 'ONLINE') {
         return data.remote_class.every(
-          schedule => schedule.classEndDate >= schedule.classStartDate
+          schedule => {
+            const hasStartDate = !!schedule.classStartDate
+            const hasEndDate = !!schedule.classEndDate
+
+            // Both dates must be either filled or empty (not mixed)
+            if (hasStartDate !== hasEndDate) {
+              return false
+            }
+
+            // If both are empty, it's valid
+            if (!hasStartDate && !hasEndDate) {
+              return true
+            }
+
+            // If both are filled, validate the date range
+            if (hasStartDate && hasEndDate && schedule.classStartDate && schedule.classEndDate) {
+              return schedule.classEndDate >= schedule.classStartDate
+            }
+            return true
+          }
         )
       }
       if (data.modalidade === 'LIVRE_FORMACAO_ONLINE') {
@@ -554,7 +569,26 @@ const fullFormSchema = z
       }
       return data.locations.every(location =>
         location.schedules.every(
-          schedule => schedule.classEndDate >= schedule.classStartDate
+          schedule => {
+            const hasStartDate = !!schedule.classStartDate
+            const hasEndDate = !!schedule.classEndDate
+
+            // Both dates must be either filled or empty (not mixed)
+            if (hasStartDate !== hasEndDate) {
+              return false
+            }
+
+            // If both are empty, it's valid
+            if (!hasStartDate && !hasEndDate) {
+              return true
+            }
+
+            // If both are filled, validate the date range
+            if (hasStartDate && hasEndDate && schedule.classStartDate && schedule.classEndDate) {
+              return schedule.classEndDate >= schedule.classStartDate
+            }
+            return true
+          }
         )
       )
     },
@@ -688,10 +722,10 @@ const draftFormSchema = z.object({
       z.object({
         id: z.string().optional(),
         vacancies: z.number().optional(),
-        classStartDate: z.date().optional(),
-        classEndDate: z.date().optional(),
-        classTime: z.string().optional(),
-        classDays: z.string().optional(),
+        classStartDate: z.date().optional().nullable(),
+        classEndDate: z.date().optional().nullable(),
+        classTime: z.string().optional().nullable(),
+        classDays: z.string().optional().nullable(),
       })
     )
     .optional(),
@@ -1064,12 +1098,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     vacancies: schedule.vacancies,
                     classStartDate: schedule.class_start_date
                       ? new Date(schedule.class_start_date)
-                      : new Date(),
+                      : null,
                     classEndDate: schedule.class_end_date
                       ? new Date(schedule.class_end_date)
-                      : new Date(),
-                    classTime: schedule.class_time || '',
-                    classDays: schedule.class_days || '',
+                      : null,
+                    classTime: schedule.class_time || null,
+                    classDays: schedule.class_days || null,
                   })
                 )
                 console.log('✅ Transformed schedules:', transformed)
@@ -1220,23 +1254,21 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       appendRemoteSchedule({
         id: '00000000-0000-0000-0000-000000000000',
         vacancies: 1,
-        classStartDate: new Date(),
-        classEndDate: new Date(),
-        classTime: '',
-        classDays: '',
+        classStartDate: null,
+        classEndDate: null,
+        classTime: null,
+        classDays: null,
       })
     }
 
     // Transform form data to snake_case for backend API
     const transformFormDataToSnakeCase = (data: PartialFormData) => {
       // Transform remote_class fields to snake_case if it exists
-      // Backend expects: { remote_class: { id: uuid, schedules: [...] } }
+      // Backend expects: { remote_class: { schedules: [...] } }
       const transformedRemoteClass = data.remote_class
         ? Array.isArray(data.remote_class)
           ? {
-              id: data.remote_class_id || '00000000-0000-0000-0000-000000000000',
               schedules: data.remote_class.map(schedule => ({
-                id: (schedule as any).id || '00000000-0000-0000-0000-000000000000',
                 vacancies: schedule.vacancies,
                 class_start_date: schedule.classStartDate
                   ? formatDateTimeToUTC(schedule.classStartDate)
@@ -1244,16 +1276,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 class_end_date: schedule.classEndDate
                   ? formatDateTimeToUTC(schedule.classEndDate)
                   : undefined,
-                class_time: schedule.classTime,
-                class_days: schedule.classDays,
+                class_time: schedule.classTime || '',
+                class_days: schedule.classDays || '',
               })),
             }
           : {
               // Legacy single object format - wrap in schedules array
-              id: data.remote_class_id || '00000000-0000-0000-0000-000000000000',
               schedules: [
                 {
-                  id: (data.remote_class as any).id || '00000000-0000-0000-0000-000000000000',
                   vacancies: (data.remote_class as any).vacancies,
                   class_start_date: (data.remote_class as any).classStartDate
                     ? formatDateTimeToUTC(
@@ -1265,8 +1295,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         (data.remote_class as any).classEndDate
                       )
                     : undefined,
-                  class_time: (data.remote_class as any).classTime,
-                  class_days: (data.remote_class as any).classDays,
+                  class_time: (data.remote_class as any).classTime || '',
+                  class_days: (data.remote_class as any).classDays || '',
                 },
               ],
             }
@@ -1446,10 +1476,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   {
                     id: '00000000-0000-0000-0000-000000000000',
                     vacancies: 1,
-                    classStartDate: currentDate,
-                    classEndDate: nextMonth,
-                    classTime: 'Horário em definição',
-                    classDays: 'Dias em definição',
+                    classStartDate: null,
+                    classEndDate: null,
+                    classTime: null,
+                    classDays: null,
                   },
                 ]
             : undefined,
@@ -1656,10 +1686,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         form.setValue('remote_class', [
           {
             vacancies: 1,
-            classStartDate: new Date(),
-            classEndDate: new Date(),
-            classTime: '',
-            classDays: '',
+            classStartDate: null,
+            classEndDate: null,
+            classTime: null,
+            classDays: null,
           },
         ] as any)
         form.setValue('formacao_link', undefined)
@@ -2461,10 +2491,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       form.setValue('remote_class', [
                         {
                           vacancies: 1,
-                          classStartDate: new Date(),
-                          classEndDate: new Date(),
-                          classTime: '',
-                          classDays: '',
+                          classStartDate: null,
+                          classEndDate: null,
+                          classTime: null,
+                          classDays: null,
                         },
                       ])
                       return null // Will re-render with the schedule
@@ -2554,10 +2584,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                 name={`remote_class.${index}.classStartDate`}
                                 render={({ field }) => (
                                   <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                                    <FormLabel>Início das aulas*</FormLabel>
+                                    <FormLabel>Início das aulas</FormLabel>
                                     <FormControl>
                                       <DateTimePicker
-                                        value={field.value}
+                                        value={field.value || undefined}
                                         onChange={field.onChange}
                                         placeholder="Selecionar data e hora de início"
                                         disabled={isReadOnly}
@@ -2572,10 +2602,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                 name={`remote_class.${index}.classEndDate`}
                                 render={({ field }) => (
                                   <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                                    <FormLabel>Fim das aulas*</FormLabel>
+                                    <FormLabel>Fim das aulas</FormLabel>
                                     <FormControl>
                                       <DateTimePicker
-                                        value={field.value}
+                                        value={field.value || undefined}
                                         onChange={field.onChange}
                                         placeholder="Selecionar data e hora de fim"
                                         disabled={isReadOnly}
@@ -2592,11 +2622,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               name={`remote_class.${index}.classTime`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Horário das aulas*</FormLabel>
+                                  <FormLabel>Horário das aulas</FormLabel>
                                   <FormControl>
                                     <Input
                                       placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
-                                      {...field}
+                                      value={field.value || ''}
+                                      onChange={field.onChange}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -2609,11 +2640,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               name={`remote_class.${index}.classDays`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Dias de aula*</FormLabel>
+                                  <FormLabel>Dias de aula</FormLabel>
                                   <FormControl>
                                     <Input
                                       placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
-                                      {...field}
+                                      value={field.value || ''}
+                                      onChange={field.onChange}
                                     />
                                   </FormControl>
                                   <FormMessage />
