@@ -1644,6 +1644,88 @@ export function EnrollmentsTable({
                     </div>
                   )}
 
+                  {/* Online Course Schedule Information */}
+                  {course?.modalidade === 'ONLINE' &&
+                    selectedEnrollment.schedule_id &&
+                    course.remote_class?.schedules && (
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                          Informações da Turma Online
+                        </h4>
+                        <div className="grid gap-4">
+                          {(() => {
+                            // Find the schedule in remote_class.schedules that matches the enrollment's schedule_id
+                            const onlineSchedule = course.remote_class.schedules.find(
+                              s => s.id === selectedEnrollment.schedule_id
+                            )
+
+                            if (!onlineSchedule) return null
+
+                            return (
+                              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Código da Turma (UUID)
+                                  </Label>
+                                  <p className="text-sm font-mono font-medium">
+                                    {onlineSchedule.id}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Dias da Semana
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {onlineSchedule.class_days || 'Não informado'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Horário
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {onlineSchedule.class_time || 'Não informado'}
+                                  </p>
+                                </div>
+                                {onlineSchedule.class_start_date && (
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Data de Início
+                                    </Label>
+                                    <p className="text-sm font-medium">
+                                      {new Date(
+                                        onlineSchedule.class_start_date
+                                      ).toLocaleDateString('pt-BR')}
+                                    </p>
+                                  </div>
+                                )}
+                                {onlineSchedule.class_end_date && (
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Data de Término
+                                    </Label>
+                                    <p className="text-sm font-medium">
+                                      {new Date(
+                                        onlineSchedule.class_end_date
+                                      ).toLocaleDateString('pt-BR')}
+                                    </p>
+                                  </div>
+                                )}
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Vagas
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {onlineSchedule.vacancies || 'Não informado'}
+                                  </p>
+                                </div>
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
                   {/* Campo de certificado - só aparece se o curso tem certificado */}
                   {hasCertificate && (
                     <div className="flex items-start flex-col gap-3">
