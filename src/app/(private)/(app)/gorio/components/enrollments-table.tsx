@@ -215,7 +215,15 @@ export function EnrollmentsTable({
     const isCourseFinishedByStatus = course?.status
       ? COURSE_FINISHED_STATUSES.includes(course.status as any)
       : false
-    const isCourseFinished = isCourseFinishedByDate || isCourseFinishedByStatus
+
+    // Verifica se é um curso online sem datas de início e fim informadas
+    const isOnlineCourseWithoutDates =
+      (course?.modalidade === 'ONLINE' || course?.modalidade === 'Remoto') &&
+      !course?.remote_class?.class_start_date &&
+      !course?.remote_class?.class_end_date
+
+    // Para cursos online sem datas, considera como "finalizado" para permitir ações
+    const isCourseFinished = isCourseFinishedByDate || isCourseFinishedByStatus || isOnlineCourseWithoutDates
     const hasCertificate = course?.has_certificate || false
 
     return {
@@ -224,8 +232,9 @@ export function EnrollmentsTable({
       isCourseFinishedByStatus,
       isCourseFinished,
       hasCertificate,
+      isOnlineCourseWithoutDates,
     }
-  }, [getCourseEndDate, course?.status, course?.has_certificate])
+  }, [getCourseEndDate, course?.status, course?.has_certificate, course?.modalidade, course?.remote_class])
 
   const {
     courseEndDate,
@@ -233,6 +242,7 @@ export function EnrollmentsTable({
     isCourseFinishedByStatus,
     isCourseFinished,
     hasCertificate,
+    isOnlineCourseWithoutDates,
   } = courseStates
 
   // Convert column filters to enrollment filters
@@ -1831,8 +1841,9 @@ export function EnrollmentsTable({
                               id="certificate-help"
                               className="text-sm text-muted-foreground mt-1"
                             >
-                              O campo será habilitado quando a inscrição for
-                              marcada como concluída
+                              {isOnlineCourseWithoutDates
+                                ? 'Curso online sem datas definidas. O campo será habilitado quando a inscrição for marcada como concluída'
+                                : 'O campo será habilitado quando a inscrição for marcada como concluída'}
                             </p>
                           )}
                         {isCourseFinished &&
@@ -1872,7 +1883,7 @@ export function EnrollmentsTable({
                     className="w-full bg-green-50 border border-green-200 text-green-700"
                     disabled={
                       selectedEnrollment.status === 'approved' ||
-                      isCourseFinished
+                      (isCourseFinished && !isOnlineCourseWithoutDates)
                     }
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />
@@ -1885,7 +1896,7 @@ export function EnrollmentsTable({
                     className="w-full bg-yellow-50 border border-yellow-200 text-yellow-700"
                     disabled={
                       selectedEnrollment.status === 'pending' ||
-                      isCourseFinished
+                      (isCourseFinished && !isOnlineCourseWithoutDates)
                     }
                   >
                     <Clock className="mr-2 h-4 w-4" />
@@ -1897,7 +1908,7 @@ export function EnrollmentsTable({
                     className="w-full bg-red-50! border border-red-200 text-red-700"
                     disabled={
                       selectedEnrollment.status === 'rejected' ||
-                      isCourseFinished
+                      (isCourseFinished && !isOnlineCourseWithoutDates)
                     }
                   >
                     <XCircle className="mr-2 h-4 w-4" />
