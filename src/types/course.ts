@@ -26,6 +26,7 @@ export interface ApiCourse {
   enrollment_end_date?: string | null
   // External partner fields
   is_external_partner?: boolean
+  course_management_type?: 'OWN_ORG' | 'EXTERNAL_MANAGED_BY_ORG' | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
   external_partner_url?: string
   external_partner_logo_url?: string
@@ -71,6 +72,7 @@ export interface CourseListItem {
   orgao_id?: string | null
   // External partner fields (optional for CourseListItem)
   is_external_partner?: boolean
+  course_management_type?: 'OWN_ORG' | 'EXTERNAL_MANAGED_BY_ORG' | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
 }
 

@@ -177,6 +177,7 @@ export function transformApiCourseToCourseListItem(
     orgao_id: apiCourse.orgao_id,
     // Include external partner info if available (for potential future use)
     is_external_partner: apiCourse.is_external_partner,
+    course_management_type: apiCourse.course_management_type,
     external_partner_name: apiCourse.external_partner_name,
   }
 }

@@ -21,8 +21,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { DepartmentName } from '@/components/ui/department-name'
+import { useDepartment } from '@/hooks/use-department'
 import type {
   CourseListItem,
   CourseStatus,
@@ -128,6 +134,50 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
     variant: 'outline',
     className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
+}
+
+// Component to display department sigla + partner name with tooltip showing full name + partner
+function DepartmentSiglaWithPartnerTooltip({
+  cd_ua,
+  externalPartnerName,
+}: {
+  cd_ua: string | null | undefined
+  externalPartnerName?: string | null
+}) {
+  const { department, loading } = useDepartment(cd_ua)
+
+  if (loading) {
+    return <span className="text-muted-foreground">Carregando...</span>
+  }
+
+  if (!department) {
+    return <span className="text-muted-foreground">Órgão não encontrado</span>
+  }
+
+  const sigla = department.sigla_ua || department.cd_ua
+  const nomeCompleto = department.nome_ua || department.cd_ua
+  const tooltipText = externalPartnerName
+    ? `${nomeCompleto} + ${externalPartnerName}`
+    : nomeCompleto
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="truncate cursor-help">
+          {sigla}
+          {externalPartnerName && (
+            <>
+              {' + '}
+              {externalPartnerName}
+            </>
+          )}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{tooltipText}</p>
+      </TooltipContent>
+    </Tooltip>
+  )
 }
 
 export default function Courses() {
@@ -367,28 +417,45 @@ export default function Courses() {
           <DataTableColumnHeader column={column} title="Quem oferece" />
         ),
         cell: ({ row }) => {
+          const courseManagementType = row.original.course_management_type
           const isExternalPartner = row.original.is_external_partner
           const externalPartnerName = row.original.external_partner_name
           const orgao_id = row.original.orgao_id
 
+          // Determine if we should show handshake icon
+          // Show handshake for external partnerships
+          const showHandshake = 
+            courseManagementType === 'EXTERNAL_MANAGED_BY_ORG' ||
+            courseManagementType === 'EXTERNAL_MANAGED_BY_PARTNER' ||
+            (courseManagementType === undefined && isExternalPartner)
+
           return (
             <div className="flex items-center gap-2">
-              {isExternalPartner ? (
-                <Handshake className="h-4 w-4 text-blue-200" />
+              {showHandshake ? (
+                <Handshake className="h-4 w-4 text-blue-400" />
               ) : (
                 <Building2 className="h-4 w-4 text-muted-foreground" />
               )}
-              <div className="flex items-center gap-2 max-w-[300px] truncate">
-                {isExternalPartner && (
+              <div className="flex items-center gap-2 max-w-[300px]">
+                {courseManagementType === 'EXTERNAL_MANAGED_BY_PARTNER' && (
                   <Badge
                     variant="secondary"
-                    className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 border-blue-200"
+                    className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 border-blue-200 shrink-0"
                   >
-                    Parceria
+                    Parceria externa
                   </Badge>
                 )}
-                <span className="max-w-[300px] truncate">
-                  {isExternalPartner && externalPartnerName ? (
+                <span className="truncate">
+                  {courseManagementType === 'EXTERNAL_MANAGED_BY_ORG' ? (
+                    // EXTERNAL_MANAGED_BY_ORG: Show handshake icon + org sigla + " + " + partner name with tooltip
+                    <DepartmentSiglaWithPartnerTooltip
+                      cd_ua={orgao_id}
+                      externalPartnerName={externalPartnerName}
+                    />
+                  ) : courseManagementType === 'EXTERNAL_MANAGED_BY_PARTNER' ? (
+                    // EXTERNAL_MANAGED_BY_PARTNER: Show handshake icon + only partner name
+                    externalPartnerName || 'Parceria'
+                  ) : isExternalPartner && externalPartnerName ? (
                     externalPartnerName
                   ) : (
                     <DepartmentName cd_ua={orgao_id} />

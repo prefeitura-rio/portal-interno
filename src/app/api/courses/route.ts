@@ -79,6 +79,9 @@ export async function GET(request: Request) {
                   : null,
                 modalidade: course.modalidade || 'PRESENCIAL',
                 orgao_id: course.orgao_id || null,
+                is_external_partner: course.is_external_partner,
+                course_management_type: course.course_management_type,
+                external_partner_name: course.external_partner_name,
               } as CourseListItem
             }
           })
