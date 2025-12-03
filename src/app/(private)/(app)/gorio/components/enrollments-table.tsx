@@ -1509,30 +1509,40 @@ export function EnrollmentsTable({
                                               selectedOptionIds.includes(
                                                 option.id
                                               )
+                                            ) || []
+                                          
+                                          // If we have matching options, display them
+                                          if (selectedOptions.length > 0) {
+                                            return (
+                                              <div className="space-y-1">
+                                                {selectedOptions.map(option => (
+                                                  <span
+                                                    key={option.id}
+                                                    className="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs mr-1"
+                                                  >
+                                                    {option.value}
+                                                  </span>
+                                                ))}
+                                              </div>
                                             )
+                                          }
+                                          
+                                          // If no matching options found, display the raw value
                                           return (
-                                            <div className="space-y-1">
-                                              {selectedOptions?.map(option => (
-                                                <span
-                                                  key={option.id}
-                                                  className="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs mr-1"
-                                                >
-                                                  {option.value}
-                                                </span>
-                                              )) || (
-                                                <span className="text-muted-foreground">
-                                                  {field.value}
-                                                </span>
-                                              )}
-                                            </div>
+                                            <span className="font-medium">
+                                              {field.value ? field.value : <span className="text-muted-foreground italic">(sem valor)</span>}
+                                            </span>
                                           )
                                         }
 
                                         default:
                                           // For text fields, display the value as is
+                                          // If value is empty or undefined, show a placeholder
                                           return (
                                             <span className="font-medium">
-                                              {field.value}
+                                              {field.value && field.value.trim() !== '' 
+                                                ? field.value 
+                                                : <span className="text-muted-foreground italic">(sem valor)</span>}
                                             </span>
                                           )
                                       }

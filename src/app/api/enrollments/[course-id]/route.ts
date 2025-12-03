@@ -127,7 +127,7 @@ function convertApiEnrollmentToFrontend(
 
       if (typeof fields === 'object') {
         // fields is an object where keys are UUIDs and values are the responses
-        return Object.entries(fields as Record<string, unknown>).map(
+        const convertedFields = Object.entries(fields as Record<string, unknown>).map(
           ([fieldId, fieldData]) => {
             // Try to find the field definition in course custom fields
             const fieldDefinition = courseCustomFields?.find(cf => cf.id === fieldId)
@@ -189,6 +189,8 @@ function convertApiEnrollmentToFrontend(
             }
           }
         )
+        
+        return convertedFields
       }
 
       return []
