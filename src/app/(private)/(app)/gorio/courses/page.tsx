@@ -164,6 +164,12 @@ function DepartmentSiglaWithPartnerTooltip({
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="truncate cursor-help">
+        <Badge
+                    variant="secondary"
+                    className="text-xs mr-2 px-2 py-0.5 bg-blue-100 text-blue-500 border-blue-200 shrink-0"
+                  >
+                    Parceria
+                  </Badge>
           {sigla}
           {externalPartnerName && (
             <>
@@ -440,9 +446,9 @@ export default function Courses() {
                 {courseManagementType === 'EXTERNAL_MANAGED_BY_PARTNER' && (
                   <Badge
                     variant="secondary"
-                    className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 border-blue-200 shrink-0"
+                    className="text-xs px-2 py-0.5 bg-blue-100 text-blue-500 border-blue-200 shrink-0"
                   >
-                    Parceria externa
+                    Parceria
                   </Badge>
                 )}
                 <span className="truncate">
