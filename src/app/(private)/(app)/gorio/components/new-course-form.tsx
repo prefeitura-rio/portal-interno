@@ -674,7 +674,7 @@ const draftFormSchema = z.object({
   material_used: z.string().optional(),
   teaching_material: z.string().optional(),
   is_visible: z.boolean().optional(),
-  formacao_link: z.string().url().optional(),
+  formacao_link: z.string().url().optional().or(z.literal('')),
   custom_fields: z
     .array(
       z.object({
@@ -856,6 +856,7 @@ export interface NewCourseFormRef {
   triggerSubmit: () => void
   triggerPublish: () => void
   triggerSaveDraft: () => void
+  resetForm: () => void
 }
 
 export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
@@ -911,6 +912,195 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
     )
 
+    // Helper function to prepare default values from initialData
+    const prepareDefaultValues = useCallback((data: PartialFormData | undefined): PartialFormData => {
+      if (!data) {
+        return {
+          title: '',
+          description: '',
+          category: [],
+          enrollment_start_date: new Date(),
+          enrollment_end_date: new Date(),
+          orgao_id: '',
+          modalidade: 'PRESENCIAL',
+          theme: 'Curso',
+          locations: [
+            {
+              id: '00000000-0000-0000-0000-000000000000',
+              address: '',
+              neighborhood: '',
+              zona: '',
+              schedules: [
+                {
+                  id: '00000000-0000-0000-0000-000000000000',
+                  vacancies: 1,
+                  classStartDate: new Date(),
+                  classEndDate: new Date(),
+                  classTime: '',
+                  classDays: '',
+                },
+              ],
+            },
+          ],
+          remote_class: undefined,
+          workload: '',
+          target_audience: '',
+          pre_requisitos: '',
+          has_certificate: false,
+          course_management_type: 'OWN_ORG',
+          external_partner_name: '',
+          external_partner_url: '',
+          external_partner_logo_url: '',
+          external_partner_contact: '',
+          accessibility: undefined,
+          facilitator: '',
+          objectives: '',
+          expected_results: '',
+          program_content: '',
+          methodology: '',
+          resources_used: '',
+          material_used: '',
+          teaching_material: '',
+          institutional_logo: '',
+          cover_image: '',
+          is_visible: true,
+          formacao_link: '',
+          custom_fields: [],
+        }
+      }
+
+      return {
+        title: data.title || '',
+        description: data.description || '',
+        category:
+          data.category ||
+          ((data as any).categorias?.map((c: any) => c.id) as
+            | number[]
+            | undefined) ||
+          [],
+        enrollment_start_date:
+          data.enrollment_start_date || new Date(),
+        enrollment_end_date: data.enrollment_end_date || new Date(),
+        orgao_id: data.orgao_id || '',
+        modalidade: data.modalidade,
+        theme: data.theme || 'Curso',
+        workload: data.workload || '',
+        target_audience: data.target_audience || '',
+        pre_requisitos: data.pre_requisitos || '',
+        has_certificate: data.has_certificate || false,
+        course_management_type:
+          data.course_management_type ||
+          ((data as any).is_external_partner
+            ? data.external_partner_url
+              ? 'EXTERNAL_MANAGED_BY_PARTNER'
+              : 'EXTERNAL_MANAGED_BY_ORG'
+            : 'OWN_ORG'),
+        external_partner_name: data.external_partner_name || '',
+        external_partner_url: data.external_partner_url || '',
+        external_partner_logo_url: data.external_partner_logo_url || '',
+        external_partner_contact: data.external_partner_contact || '',
+        accessibility: data.accessibility || undefined,
+        facilitator: data.facilitator || '',
+        objectives: data.objectives || '',
+        expected_results: data.expected_results || '',
+        program_content: data.program_content || '',
+        methodology: data.methodology || '',
+        resources_used: data.resources_used || '',
+        material_used: data.material_used || '',
+        teaching_material: data.teaching_material || '',
+        institutional_logo: data.institutional_logo || '',
+        cover_image: data.cover_image || '',
+        is_visible: data?.is_visible ?? true,
+        formacao_link: data.formacao_link || '',
+        custom_fields: data.custom_fields || [],
+        locations: (data.locations || []).map((location: any) => {
+          let zona = location.zona || location.neighborhood_zone || ''
+          if (location.neighborhood && !zona) {
+            const neighborhoodData = neighborhoodZone.find(
+              n => n.bairro === location.neighborhood
+            )
+            if (neighborhoodData) {
+              zona = neighborhoodData.zona
+            }
+          }
+
+          if (
+            location.schedules &&
+            Array.isArray(location.schedules) &&
+            location.schedules.length > 0
+          ) {
+            return {
+              ...location,
+              zona,
+              schedules: location.schedules.map((schedule: any) => ({
+                id: schedule.id,
+                vacancies: schedule.vacancies,
+                classStartDate: schedule.class_start_date
+                  ? new Date(schedule.class_start_date)
+                  : schedule.classStartDate || new Date(),
+                classEndDate: schedule.class_end_date
+                  ? new Date(schedule.class_end_date)
+                  : schedule.classEndDate || new Date(),
+                classTime: schedule.class_time || schedule.classTime || '',
+                classDays: schedule.class_days || schedule.classDays || '',
+              })),
+            }
+          }
+          return {
+            ...location,
+            zona,
+            schedules: [
+              {
+                vacancies: location.vacancies || 1,
+                classStartDate: location.classStartDate || new Date(),
+                classEndDate: location.classEndDate || new Date(),
+                classTime: location.classTime || '',
+                classDays: location.classDays || '',
+              },
+            ],
+          }
+        }),
+        remote_class_id: (() => {
+          const remoteClassData = (data as any).remote_class
+          if (remoteClassData?.id) {
+            return remoteClassData.id
+          }
+          return undefined
+        })(),
+        remote_class: (() => {
+          if (!data.remote_class) {
+            return undefined
+          }
+
+          const remoteClassData = data.remote_class as any
+
+          if (
+            remoteClassData.schedules &&
+            Array.isArray(remoteClassData.schedules)
+          ) {
+            return remoteClassData.schedules.map((schedule: any) => ({
+              id: schedule.id,
+              vacancies: schedule.vacancies,
+              classStartDate: schedule.class_start_date
+                ? new Date(schedule.class_start_date)
+                : null,
+              classEndDate: schedule.class_end_date
+                ? new Date(schedule.class_end_date)
+                : null,
+              classTime: schedule.class_time || null,
+              classDays: schedule.class_days || null,
+            }))
+          }
+
+          if (Array.isArray(remoteClassData)) {
+            return remoteClassData
+          }
+
+          return [remoteClassData]
+        })(),
+      }
+    }, [])
+
     // Fetch categories from API with cache
     useEffect(() => {
       const fetchCategories = async () => {
@@ -958,225 +1148,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
     const form = useForm<PartialFormData>({
       resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
-      defaultValues: initialData
-        ? {
-            title: initialData.title || '',
-            description: initialData.description || '',
-            category:
-              initialData.category ||
-              ((initialData as any).categorias?.map((c: any) => c.id) as
-                | number[]
-                | undefined) ||
-              [],
-            enrollment_start_date:
-              initialData.enrollment_start_date || new Date(),
-            enrollment_end_date: initialData.enrollment_end_date || new Date(),
-            orgao_id: initialData.orgao_id || '',
-            modalidade: initialData.modalidade,
-            theme: initialData.theme || 'Curso',
-            workload: initialData.workload || '',
-            target_audience: initialData.target_audience || '',
-            pre_requisitos: initialData.pre_requisitos || '',
-            has_certificate: initialData.has_certificate || false,
-
-            // Course management type - migrate from is_external_partner if needed
-            course_management_type:
-              initialData.course_management_type ||
-              ((initialData as any).is_external_partner
-                ? initialData.external_partner_url
-                  ? 'EXTERNAL_MANAGED_BY_PARTNER'
-                  : 'EXTERNAL_MANAGED_BY_ORG'
-                : 'OWN_ORG'),
-            // External partner fields
-            external_partner_name: initialData.external_partner_name || '',
-            external_partner_url: initialData.external_partner_url || '',
-            external_partner_logo_url:
-              initialData.external_partner_logo_url || '',
-            external_partner_contact:
-              initialData.external_partner_contact || '',
-            accessibility: initialData.accessibility || undefined,
-            facilitator: initialData.facilitator || '',
-            objectives: initialData.objectives || '',
-            expected_results: initialData.expected_results || '',
-            program_content: initialData.program_content || '',
-            methodology: initialData.methodology || '',
-            resources_used: initialData.resources_used || '',
-            material_used: initialData.material_used || '',
-            teaching_material: initialData.teaching_material || '',
-            institutional_logo: initialData.institutional_logo || '',
-            cover_image: initialData.cover_image || '',
-            is_visible: initialData?.is_visible ?? true,
-            formacao_link: initialData.formacao_link || '',
-            custom_fields: initialData.custom_fields || [],
-            // Handle locations and remote_class based on modalidade
-            // Normalize locations to ensure they have schedules array
-            locations: (initialData.locations || []).map((location: any) => {
-              // Map neighborhood_zone from API to zona in form
-              // Support both old format (zona) and new format (neighborhood_zone)
-              let zona = location.zona || location.neighborhood_zone || ''
-              if (location.neighborhood && !zona) {
-                const neighborhoodData = neighborhoodZone.find(
-                  n => n.bairro === location.neighborhood
-                )
-                if (neighborhoodData) {
-                  zona = neighborhoodData.zona
-                }
-              }
-
-              // If location already has schedules, normalize them
-              if (
-                location.schedules &&
-                Array.isArray(location.schedules) &&
-                location.schedules.length > 0
-              ) {
-                return {
-                  ...location,
-                  zona,
-                  schedules: location.schedules.map((schedule: any) => ({
-                    id: schedule.id, // Include schedule UUID
-                    vacancies: schedule.vacancies,
-                    classStartDate: schedule.class_start_date
-                      ? new Date(schedule.class_start_date)
-                      : schedule.classStartDate || new Date(),
-                    classEndDate: schedule.class_end_date
-                      ? new Date(schedule.class_end_date)
-                      : schedule.classEndDate || new Date(),
-                    classTime: schedule.class_time || schedule.classTime || '',
-                    classDays: schedule.class_days || schedule.classDays || '',
-                  })),
-                }
-              }
-              // Otherwise, convert old format to new format with a single schedule
-              return {
-                ...location,
-                zona,
-                schedules: [
-                  {
-                    vacancies: location.vacancies || 1,
-                    classStartDate: location.classStartDate || new Date(),
-                    classEndDate: location.classEndDate || new Date(),
-                    classTime: location.classTime || '',
-                    classDays: location.classDays || '',
-                  },
-                ],
-              }
-            }),
-            remote_class_id: (() => {
-              // Extract and preserve the remote_class container ID
-              const remoteClassData = (initialData as any).remote_class
-              if (remoteClassData?.id) {
-                return remoteClassData.id
-              }
-              return undefined
-            })(),
-            remote_class: (() => {
-              console.log(
-                '🔍 Processing remote_class from initialData:',
-                initialData.remote_class
-              )
-
-              if (!initialData.remote_class) {
-                console.log('❌ No remote_class found')
-                return undefined
-              }
-
-              const remoteClassData = initialData.remote_class as any
-
-              // Backend returns: { schedules: [...] }
-              if (
-                remoteClassData.schedules &&
-                Array.isArray(remoteClassData.schedules)
-              ) {
-                console.log(
-                  '✅ Found schedules array:',
-                  remoteClassData.schedules.length,
-                  'schedules'
-                )
-                const transformed = remoteClassData.schedules.map(
-                  (schedule: any) => ({
-                    id: schedule.id,
-                    vacancies: schedule.vacancies,
-                    classStartDate: schedule.class_start_date
-                      ? new Date(schedule.class_start_date)
-                      : null,
-                    classEndDate: schedule.class_end_date
-                      ? new Date(schedule.class_end_date)
-                      : null,
-                    classTime: schedule.class_time || null,
-                    classDays: schedule.class_days || null,
-                  })
-                )
-                console.log('✅ Transformed schedules:', transformed)
-                return transformed
-              }
-
-              // Legacy: array format
-              if (Array.isArray(remoteClassData)) {
-                console.log('📦 Legacy array format')
-                return remoteClassData
-              }
-
-              // Legacy: single object format
-              console.log('📦 Legacy single object format')
-              return [remoteClassData]
-            })(),
-          }
-        : {
-            title: '',
-            description: '',
-            category: [],
-            enrollment_start_date: new Date(),
-            enrollment_end_date: new Date(),
-            orgao_id: '',
-            modalidade: 'PRESENCIAL',
-            theme: 'Curso',
-            locations: [
-              {
-                id: '00000000-0000-0000-0000-000000000000',
-                address: '',
-                neighborhood: '',
-                zona: '',
-                schedules: [
-                  {
-                    id: '00000000-0000-0000-0000-000000000000',
-                    vacancies: 1,
-                    classStartDate: new Date(),
-                    classEndDate: new Date(),
-                    classTime: '',
-                    classDays: '',
-                  },
-                ],
-              },
-            ],
-            remote_class: undefined,
-            workload: '',
-            target_audience: '',
-            pre_requisitos: '',
-            has_certificate: false,
-
-            // Course management type
-            course_management_type: 'OWN_ORG',
-            // External partner fields
-            external_partner_name: '',
-            external_partner_url: '',
-            external_partner_logo_url: '',
-            external_partner_contact: '',
-
-            accessibility: undefined,
-            facilitator: '',
-            objectives: '',
-            expected_results: '',
-            program_content: '',
-            methodology: '',
-            resources_used: '',
-            material_used: '',
-            teaching_material: '',
-            institutional_logo: '',
-            cover_image: '',
-            is_visible: true,
-            formacao_link: '',
-            custom_fields: [],
-          },
+      defaultValues: prepareDefaultValues(initialData),
       mode: 'onChange', // Enable real-time validation
     })
 
@@ -1675,6 +1647,17 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       },
       triggerSaveDraft: () => {
         handleSaveDraft()
+      },
+      resetForm: () => {
+        const defaultValues = prepareDefaultValues(initialData)
+        form.reset(defaultValues, {
+          keepErrors: false,
+          keepDirty: false,
+          keepIsSubmitted: false,
+          keepTouched: false,
+          keepIsValid: false,
+          keepSubmitCount: false,
+        })
       },
     }))
 

@@ -682,6 +682,12 @@ export default function CourseDetailPage({
   }
 
   const handleCancel = () => {
+    // Reset form to initial values before disabling edit mode
+    if (isDraft) {
+      draftFormRef.current?.resetForm()
+    } else {
+      courseFormRef.current?.resetForm()
+    }
     setIsEditing(false)
   }
 
