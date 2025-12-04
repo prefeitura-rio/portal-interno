@@ -1320,6 +1320,29 @@ export function EnrollmentsTable({
                           </p>
                         </div>
                       </div>
+                      {(() => {
+                        // Buscar idade nos customFields (pode vir como objeto ou array)
+                        const customFieldsObj = selectedEnrollment.customFields as any
+                        let idadeField = null
+                        
+                        if (Array.isArray(customFieldsObj)) {
+                          idadeField = customFieldsObj.find((f: any) => f.id === 'idade')
+                        } else if (customFieldsObj && typeof customFieldsObj === 'object') {
+                          idadeField = customFieldsObj.idade
+                        }
+                        
+                        return idadeField?.value ? (
+                          <div className="flex items-center gap-3">
+                            <Hash className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Idade
+                              </Label>
+                              <p className="text-sm">{idadeField.value}</p>
+                            </div>
+                          </div>
+                        ) : null
+                      })()}
                       <div className="flex items-center gap-3">
                         <Mail className="w-4 h-4 text-muted-foreground" />
                         <div>
@@ -1470,17 +1493,102 @@ export function EnrollmentsTable({
                           </div>
                         </div>
                       )} */}
-                      {selectedEnrollment.customFields &&
-                        selectedEnrollment.customFields.length > 0 && (
-                          <div className="space-y-3">
-                            <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                              Informações Complementares
-                            </Label>
-                            {selectedEnrollment.customFields.map(field => (
-                              <div
-                                key={field.id}
-                                className="flex items-start gap-3"
-                              >
+                      {(() => {
+                        // Helper para converter customFields de objeto para array
+                        const customFieldsObj = selectedEnrollment.customFields as any
+                        let allFields: any[] = []
+                        
+                        if (Array.isArray(customFieldsObj)) {
+                          allFields = customFieldsObj
+                        } else if (customFieldsObj && typeof customFieldsObj === 'object') {
+                          allFields = Object.values(customFieldsObj)
+                        }
+                        
+                        // IDs dos campos socioeconômicos e campos que devem ser excluídos de Informações Complementares
+                        const socioeconomicFieldIds = [
+                          'endereco',
+                          'bairro',
+                          'pessoa_com_deficiencia',
+                          'raca',
+                          'genero',
+                          'renda_familiar',
+                          'escolaridade',
+                        ]
+                        
+                        // Campos que devem ser excluídos de Informações Complementares (inclui idade que já aparece no topo)
+                        const excludedFromComplementary = [
+                          ...socioeconomicFieldIds,
+                          'idade',
+                        ]
+                        
+                        // Separar campos socioeconômicos dos demais
+                        const socioeconomicFields = allFields.filter((field: any) =>
+                          socioeconomicFieldIds.includes(field.id)
+                        )
+                        const otherFields = allFields.filter(
+                          (field: any) => !excludedFromComplementary.includes(field.id)
+                        )
+                        
+                        // Ordem específica para os campos socioeconômicos
+                        const socioeconomicOrder = [
+                          'endereco',
+                          'bairro',
+                          'pessoa_com_deficiencia',
+                          'raca',
+                          'genero',
+                          'renda_familiar',
+                          'escolaridade',
+                        ]
+                        const orderedSocioeconomicFields = socioeconomicOrder
+                          .map(id => socioeconomicFields.find((f: any) => f.id === id))
+                          .filter(Boolean)
+                        
+                        return (
+                          <>
+                            {/* Informações Socioeconômicas */}
+                            {orderedSocioeconomicFields.length > 0 && (
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                                  Informações Socioeconômicas
+                                </h4>
+                                <div className="space-y-3">
+                                  {orderedSocioeconomicFields.map((field: any) => (
+                                    <div
+                                      key={field.id}
+                                      className="flex items-start gap-3"
+                                    >
+                                      <div className="flex-1">
+                                        <Label className="text-sm text-muted-foreground">
+                                          {field.title}
+                                          {field.required && (
+                                            <span className="text-red-500">*</span>
+                                          )}
+                                        </Label>
+                                        <div className="text-sm mt-1">
+                                          <span className="font-medium">
+                                            {field.value && field.value.trim() !== ''
+                                              ? field.value
+                                              : <span className="text-muted-foreground italic">(sem valor)</span>}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Informações Complementares */}
+                            {otherFields.length > 0 && (
+                              <div className="space-y-3">
+                                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                                  Informações Complementares
+                                </Label>
+                                {otherFields.map((field: any) => (
+                                  <div
+                                    key={field.id}
+                                    className="flex items-start gap-3"
+                                  >
                                 <div className="flex-1">
                                   <Label className="text-sm text-muted-foreground">
                                     {field.title}
@@ -1497,7 +1605,7 @@ export function EnrollmentsTable({
                                           // For single selection, find the option that matches the value
                                           const selectedOption =
                                             field.options?.find(
-                                              option =>
+                                              (option: any) =>
                                                 option.id === field.value
                                             )
                                           return (
@@ -1515,7 +1623,7 @@ export function EnrollmentsTable({
                                               ?.split(',')
                                               .filter(Boolean) || []
                                           const selectedOptions =
-                                            field.options?.filter(option =>
+                                            field.options?.filter((option: any) =>
                                               selectedOptionIds.includes(
                                                 option.id
                                               )
@@ -1525,7 +1633,7 @@ export function EnrollmentsTable({
                                           if (selectedOptions.length > 0) {
                                             return (
                                               <div className="space-y-1">
-                                                {selectedOptions.map(option => (
+                                                {selectedOptions.map((option: any) => (
                                                   <span
                                                     key={option.id}
                                                     className="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs mr-1"
@@ -1559,10 +1667,13 @@ export function EnrollmentsTable({
                                     })()}
                                   </div>
                                 </div>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        )}
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
                   </div>
 
