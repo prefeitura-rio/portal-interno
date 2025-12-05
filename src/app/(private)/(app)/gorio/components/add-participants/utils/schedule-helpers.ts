@@ -164,6 +164,7 @@ export function getModalidadeLabel(modalidade?: string): string {
   const modalidadeMap: Record<string, string> = {
     PRESENCIAL: 'Presencial',
     ONLINE: 'Online',
+    LIVRE_FORMACAO_ONLINE: 'Livre formação (online)',
   }
 
   return modalidadeMap[modalidade.toUpperCase()] || modalidade

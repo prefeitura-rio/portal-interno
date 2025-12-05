@@ -43,6 +43,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { formatDateTimeToUTC } from '@/components/ui/datetime-picker'
 
 // Status configuration for badges - updated to match courses list page
 const statusConfig: Record<string, CourseStatusConfig> = {
@@ -319,6 +320,152 @@ export default function CourseDetailPage({
     })
   }
 
+  // Helper function to normalize date to ISO string
+  const normalizeDateToISO = (date: any): string | undefined => {
+    if (!date) return undefined
+    if (typeof date === 'string') {
+      // Already a string, check if it's a valid ISO string
+      try {
+        new Date(date)
+        return date
+      } catch {
+        return undefined
+      }
+    }
+    if (date instanceof Date) {
+      return formatDateTimeToUTC(date)
+    }
+    return undefined
+  }
+
+  // Helper function to transform locations from frontend format to API format
+  const transformLocationsToApiFormat = (locations: any[]) => {
+    if (!locations || !Array.isArray(locations)) return []
+    
+    return locations.map(location => {
+      // Frontend format (camelCase) - transform to API format
+      if (location.schedules && Array.isArray(location.schedules)) {
+        // Filter and transform schedules, only including those with valid start dates
+        const validSchedules = location.schedules
+          .map((schedule: any) => {
+            const startDate = normalizeDateToISO(schedule.classStartDate) || 
+              normalizeDateToISO(schedule.class_start_date)
+            const endDate = normalizeDateToISO(schedule.classEndDate) || 
+              normalizeDateToISO(schedule.class_end_date)
+            
+            // Only include schedule if it has a valid start date
+            if (!startDate) return null
+            
+            return {
+              id: schedule.id || '00000000-0000-0000-0000-000000000000',
+              vacancies: schedule.vacancies,
+              class_start_date: startDate,
+              class_end_date: endDate,
+              class_time: schedule.classTime || schedule.class_time || '',
+              class_days: schedule.classDays || schedule.class_days || '',
+            }
+          })
+          .filter((schedule: any) => schedule !== null)
+        
+        // Only include location if it has at least one valid schedule
+        if (validSchedules.length === 0) return null
+        
+        return {
+          id: location.id || '00000000-0000-0000-0000-000000000000',
+          address: location.address,
+          neighborhood: location.neighborhood,
+          neighborhood_zone: location.neighborhood_zone || location.zona,
+          schedules: validSchedules,
+        }
+      }
+
+      // Old format without schedules - convert to new format
+      const startDate = normalizeDateToISO(location.classStartDate) || 
+        normalizeDateToISO(location.class_start_date)
+      
+      // Only include location if it has a valid start date
+      if (!startDate) return null
+      
+      return {
+        id: location.id || '00000000-0000-0000-0000-000000000000',
+        address: location.address,
+        neighborhood: location.neighborhood,
+        neighborhood_zone: location.neighborhood_zone || location.zona,
+        schedules: [
+          {
+            id: '00000000-0000-0000-0000-000000000000',
+            vacancies: location.vacancies || 1,
+            class_start_date: startDate,
+            class_end_date: normalizeDateToISO(location.classEndDate) || 
+              normalizeDateToISO(location.class_end_date),
+            class_time: location.classTime || location.class_time || '',
+            class_days: location.classDays || location.class_days || '',
+          },
+        ],
+      }
+    }).filter((location: any) => location !== null) // Remove locations without valid schedules
+  }
+
+  // Helper function to transform remote_class from frontend format to API format
+  const transformRemoteClassToApiFormat = (remoteClass: any) => {
+    if (!remoteClass) return undefined
+
+    // Frontend format - transform to API format
+    if (remoteClass.schedules && Array.isArray(remoteClass.schedules)) {
+      // Filter and transform schedules, only including those with valid start dates
+      const validSchedules = remoteClass.schedules
+        .map((schedule: any) => {
+          const startDate = normalizeDateToISO(schedule.classStartDate) || 
+            normalizeDateToISO(schedule.class_start_date)
+          const endDate = normalizeDateToISO(schedule.classEndDate) || 
+            normalizeDateToISO(schedule.class_end_date)
+          
+          // Only include schedule if it has a valid start date
+          if (!startDate) return null
+          
+          return {
+            id: schedule.id || '00000000-0000-0000-0000-000000000000',
+            vacancies: schedule.vacancies,
+            class_start_date: startDate,
+            class_end_date: endDate,
+            class_time: schedule.classTime || schedule.class_time || '',
+            class_days: schedule.classDays || schedule.class_days || '',
+          }
+        })
+        .filter((schedule: any) => schedule !== null)
+      
+      // Only return remote_class if it has at least one valid schedule
+      if (validSchedules.length === 0) return undefined
+      
+      return {
+        id: remoteClass.id || '00000000-0000-0000-0000-000000000000',
+        schedules: validSchedules,
+      }
+    }
+
+    // Old format - wrap in schedules array
+    const startDate = normalizeDateToISO(remoteClass.classStartDate) || 
+      normalizeDateToISO(remoteClass.class_start_date)
+    
+    // Only return remote_class if it has a valid start date
+    if (!startDate) return undefined
+    
+    return {
+      id: remoteClass.id || '00000000-0000-0000-0000-000000000000',
+      schedules: [
+        {
+          id: remoteClass.id || '00000000-0000-0000-0000-000000000000',
+          vacancies: remoteClass.vacancies || 1,
+          class_start_date: startDate,
+          class_end_date: normalizeDateToISO(remoteClass.classEndDate) || 
+            normalizeDateToISO(remoteClass.class_end_date),
+          class_time: remoteClass.classTime || remoteClass.class_time || '',
+          class_days: remoteClass.classDays || remoteClass.class_days || '',
+        },
+      ],
+    }
+  }
+
   // Helper function to build complete course data for API calls
   const buildCompleteUpdateData = (statusOverride?: string) => {
     if (!course) return {}
@@ -326,12 +473,15 @@ export default function CourseDetailPage({
       process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
     )
 
-    // Debug logging for course data
-    // console.log('Course data for buildCompleteUpdateData:', {
-    //   orgao_id: course.orgao_id,
-    //   status: course.status,
-    //   statusOverride,
-    // })
+    // Transform locations to API format
+    const transformedLocations = transformLocationsToApiFormat(
+      course.locations || []
+    )
+
+    // Transform remote_class to API format
+    const transformedRemoteClass = transformRemoteClassToApiFormat(
+      (course as any).remote_class
+    )
 
     return {
       title: course.title,
@@ -340,12 +490,12 @@ export default function CourseDetailPage({
       enrollment_start_date:
         (course as any).enrollment_start_date ||
         (course.enrollmentStartDate
-          ? new Date(course.enrollmentStartDate).toISOString()
+          ? formatDateTimeToUTC(new Date(course.enrollmentStartDate))
           : undefined),
       enrollment_end_date:
         (course as any).enrollment_end_date ||
         (course.enrollmentEndDate
-          ? new Date(course.enrollmentEndDate).toISOString()
+          ? formatDateTimeToUTC(new Date(course.enrollmentEndDate))
           : undefined),
       orgao_id: course.orgao_id,
       instituicao_id: instituicaoId,
@@ -372,10 +522,21 @@ export default function CourseDetailPage({
       material_used: course.material_used || course.materialUsed,
       teaching_material: course.teaching_material || course.teachingMaterial,
       custom_fields: course.custom_fields || course.customFields || [],
-      locations: course.locations || [],
-      remote_class: course.remote_class,
+      // For LIVRE_FORMACAO_ONLINE, ensure formacao_link is filled with external_partner_url if empty
+      formacao_link: (() => {
+        const formacaoLink = (course as any).formacao_link || ''
+        if (course.modalidade === 'LIVRE_FORMACAO_ONLINE') {
+          // If formacao_link is empty, use external_partner_url as fallback
+          if (!formacaoLink || formacaoLink.trim() === '') {
+            return course.external_partner_url || ''
+          }
+        }
+        return formacaoLink
+      })(),
+      locations: transformedLocations,
+      remote_class: transformedRemoteClass,
       turno: 'LIVRE',
-      formato_aula: course.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
+      formato_aula: course.modalidade === 'ONLINE' || course.modalidade === 'LIVRE_FORMACAO_ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
       status: statusOverride || course.status,
     }
   }
@@ -521,6 +682,12 @@ export default function CourseDetailPage({
   }
 
   const handleCancel = () => {
+    // Reset form to initial values before disabling edit mode
+    if (isDraft) {
+      draftFormRef.current?.resetForm()
+    } else {
+      courseFormRef.current?.resetForm()
+    }
     setIsEditing(false)
   }
 

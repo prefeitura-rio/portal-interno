@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -46,6 +47,7 @@ import {
 } from '@/components/ui/accordion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   DateTimePicker,
   formatDateTimeToUTC,
@@ -67,6 +69,35 @@ const accessibilityLabel: Record<Accessibility, string> = {
   ACESSIVEL: 'Acessível para pessoas com deficiência',
   EXCLUSIVO: 'Exclusivo para pessoas com deficiência',
 }
+
+export type CourseManagementType =
+  | 'OWN_ORG'
+  | 'EXTERNAL_MANAGED_BY_ORG'
+  | 'EXTERNAL_MANAGED_BY_PARTNER'
+
+const COURSE_MANAGEMENT_OPTIONS: {
+  value: CourseManagementType
+  label: string
+  description: string
+}[] = [
+  {
+    value: 'OWN_ORG',
+    label: 'Curso gerido pelo próprio órgão',
+    description: 'Curso oferecido e gerido pelo próprio órgão.',
+  },
+  {
+    value: 'EXTERNAL_MANAGED_BY_ORG',
+    label: 'Curso de parceiro externo - Gerido pelo órgão',
+    description:
+      'Curso oferecido por parceiro externo, mas gerido pelo órgão.',
+  },
+  {
+    value: 'EXTERNAL_MANAGED_BY_PARTNER',
+    label: 'Curso de parceiro externo - Gerido pelo parceiro',
+    description:
+      'Curso oferecido por parceiro externo e gerido pelo próprio parceiro.',
+  },
+] as const
 
 export type FormacaoType = 'Curso' | 'Palestra' | 'Oficina' | 'Workshop'
 const FORMACAO_TYPES: readonly FormacaoType[] = [
@@ -125,14 +156,10 @@ const remoteScheduleSchema = z.object({
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
     .max(1000, { message: 'Número de vagas não pode exceder 1000.' }),
-  classStartDate: z.date({
-    required_error: 'Data de início das aulas é obrigatória.',
-  }),
-  classEndDate: z.date({
-    required_error: 'Data de fim das aulas é obrigatória.',
-  }),
-  classTime: z.string().min(1, { message: 'Horário das aulas é obrigatório.' }),
-  classDays: z.string().min(1, { message: 'Dias de aula é obrigatório.' }),
+  classStartDate: z.date().optional().nullable(),
+  classEndDate: z.date().optional().nullable(),
+  classTime: z.string().optional().nullable(),
+  classDays: z.string().optional().nullable(),
 })
 
 // Define the schema for remote class information (array of schedules)
@@ -209,8 +236,11 @@ const fullFormSchema = z
       pre_requisitos: z.string().optional(),
       has_certificate: z.boolean().optional(),
 
+      // Course management type
+      course_management_type: z
+        .enum(['OWN_ORG', 'EXTERNAL_MANAGED_BY_ORG', 'EXTERNAL_MANAGED_BY_PARTNER'])
+        .optional(),
       // External partner fields
-      is_external_partner: z.boolean().optional(),
       external_partner_name: z.string().optional(),
       external_partner_url: z.string().url().optional().or(z.literal('')),
       external_partner_logo_url: z
@@ -320,8 +350,11 @@ const fullFormSchema = z
       pre_requisitos: z.string().optional(),
       has_certificate: z.boolean().optional(),
 
+      // Course management type
+      course_management_type: z
+        .enum(['OWN_ORG', 'EXTERNAL_MANAGED_BY_ORG', 'EXTERNAL_MANAGED_BY_PARTNER'])
+        .default('OWN_ORG'),
       // External partner fields
-      is_external_partner: z.boolean().optional(),
       external_partner_name: z.string().optional(),
       external_partner_url: z.string().url().optional().or(z.literal('')),
       external_partner_logo_url: z
@@ -378,6 +411,128 @@ const fullFormSchema = z
         message: 'Pelo menos uma unidade deve ser informada.',
       }),
     }),
+    z.object({
+      title: z
+        .string()
+        .min(1, { message: 'Título é obrigatório.' })
+        .min(5, { message: 'Título deve ter pelo menos 5 caracteres.' })
+        .max(100, { message: 'Título não pode exceder 100 caracteres.' }),
+      description: z
+        .string()
+        .min(1, { message: 'Descrição é obrigatória.' })
+        .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres.' })
+        .max(600, { message: 'Descrição não pode exceder 600 caracteres.' }),
+      category: z
+        .array(z.number())
+        .min(1, { message: 'Pelo menos uma categoria é obrigatória.' }),
+      enrollment_start_date: z.date({
+        required_error: 'Data de início é obrigatória.',
+      }),
+      enrollment_end_date: z.date({
+        required_error: 'Data de término é obrigatória.',
+      }),
+      theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
+      orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
+      modalidade: z.literal('LIVRE_FORMACAO_ONLINE'),
+      workload: z
+        .string()
+        .min(1, { message: 'Carga horária é obrigatória.' })
+        .min(3, { message: 'Carga horária deve ter pelo menos 3 caracteres.' })
+        .max(50, { message: 'Carga horária não pode exceder 50 caracteres.' }),
+      target_audience: z
+        .string()
+        .min(1, { message: 'Público-alvo é obrigatório.' })
+        .min(10, { message: 'Público-alvo deve ter pelo menos 10 caracteres.' })
+        .max(600, { message: 'Público-alvo não pode exceder 600 caracteres.' }),
+      // Required image fields
+      institutional_logo: z
+        .string()
+        .url({ message: 'Logo institucional deve ser uma URL válida.' })
+        .refine(validateGoogleCloudStorageURL, {
+          message:
+            'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
+      cover_image: z
+        .string()
+        .url({ message: 'Imagem de capa deve ser uma URL válida.' })
+        .refine(validateGoogleCloudStorageURL, {
+          message:
+            'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
+      is_visible: z.boolean({
+        required_error: 'Visibilidade do curso é obrigatória.',
+      }),
+      // Link para formação - obrigatório para LIVRE_FORMACAO_ONLINE
+      formacao_link: z
+        .string()
+        .min(1, { message: 'Link para formação é obrigatório.' })
+        .url({ message: 'Link para formação deve ser uma URL válida.' }),
+      // Optional fields
+      pre_requisitos: z.string().optional(),
+      has_certificate: z.boolean().optional(),
+
+      // Course management type
+      course_management_type: z
+        .enum(['OWN_ORG', 'EXTERNAL_MANAGED_BY_ORG', 'EXTERNAL_MANAGED_BY_PARTNER'])
+        .optional(),
+      // External partner fields
+      external_partner_name: z.string().optional(),
+      external_partner_url: z.string().url().optional().or(z.literal('')),
+      external_partner_logo_url: z
+        .string()
+        .url()
+        .optional()
+        .or(z.literal(''))
+        .refine(validateGoogleCloudStorageURL, {
+          message:
+            'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+        }),
+      external_partner_contact: z.string().optional(),
+
+      accessibility: z
+        .enum(['ACESSIVEL', 'EXCLUSIVO'])
+        .nullable()
+        .optional()
+        .or(z.literal('')),
+      facilitator: z.string().optional(),
+      objectives: z.string().optional(),
+      expected_results: z.string().optional(),
+      program_content: z.string().optional(),
+      methodology: z.string().optional(),
+      resources_used: z.string().optional(),
+      material_used: z.string().optional(),
+      teaching_material: z.string().optional(),
+      custom_fields: z
+        .array(
+          z.object({
+            id: z.string(),
+            title: z.string(),
+            required: z.boolean(),
+            field_type: z
+              .enum([
+                'text',
+                'number',
+                'email',
+                'date',
+                'select',
+                'textarea',
+                'checkbox',
+                'radio',
+                'multiselect',
+              ])
+              .default('text'),
+            options: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  value: z.string(),
+                })
+              )
+              .optional(),
+          })
+        )
+        .optional(),
+    }),
   ])
   .refine(data => data.enrollment_end_date >= data.enrollment_start_date, {
     message: 'A data final deve ser igual ou posterior à data inicial.',
@@ -387,12 +542,53 @@ const fullFormSchema = z
     data => {
       if (data.modalidade === 'ONLINE') {
         return data.remote_class.every(
-          schedule => schedule.classEndDate >= schedule.classStartDate
+          schedule => {
+            const hasStartDate = !!schedule.classStartDate
+            const hasEndDate = !!schedule.classEndDate
+
+            // Both dates must be either filled or empty (not mixed)
+            if (hasStartDate !== hasEndDate) {
+              return false
+            }
+
+            // If both are empty, it's valid
+            if (!hasStartDate && !hasEndDate) {
+              return true
+            }
+
+            // If both are filled, validate the date range
+            if (hasStartDate && hasEndDate && schedule.classStartDate && schedule.classEndDate) {
+              return schedule.classEndDate >= schedule.classStartDate
+            }
+            return true
+          }
         )
+      }
+      if (data.modalidade === 'LIVRE_FORMACAO_ONLINE') {
+        return true // Não precisa validar datas para livre formação
       }
       return data.locations.every(location =>
         location.schedules.every(
-          schedule => schedule.classEndDate >= schedule.classStartDate
+          schedule => {
+            const hasStartDate = !!schedule.classStartDate
+            const hasEndDate = !!schedule.classEndDate
+
+            // Both dates must be either filled or empty (not mixed)
+            if (hasStartDate !== hasEndDate) {
+              return false
+            }
+
+            // If both are empty, it's valid
+            if (!hasStartDate && !hasEndDate) {
+              return true
+            }
+
+            // If both are filled, validate the date range
+            if (hasStartDate && hasEndDate && schedule.classStartDate && schedule.classEndDate) {
+              return schedule.classEndDate >= schedule.classStartDate
+            }
+            return true
+          }
         )
       )
     },
@@ -404,7 +600,7 @@ const fullFormSchema = z
   )
   .refine(
     data => {
-      if (!data.is_external_partner) return true
+      if (data.course_management_type === 'OWN_ORG') return true
       return data.external_partner_name?.trim()
     },
     {
@@ -414,7 +610,8 @@ const fullFormSchema = z
   )
   .refine(
     data => {
-      if (!data.is_external_partner) return true
+      if (data.course_management_type !== 'EXTERNAL_MANAGED_BY_PARTNER')
+        return true
       return data.external_partner_url?.trim()
     },
     {
@@ -431,7 +628,7 @@ const draftFormSchema = z.object({
   enrollment_start_date: z.date().optional(),
   enrollment_end_date: z.date().optional(),
   orgao_id: z.string().optional(),
-  modalidade: z.enum(['PRESENCIAL', 'ONLINE']).optional(),
+  modalidade: z.enum(['PRESENCIAL', 'ONLINE', 'LIVRE_FORMACAO_ONLINE']).optional(),
   workload: z.string().optional(),
   target_audience: z.string().optional(),
   theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
@@ -452,8 +649,11 @@ const draftFormSchema = z.object({
   pre_requisitos: z.string().optional(),
   has_certificate: z.boolean().optional(),
 
+  // Course management type
+  course_management_type: z
+    .enum(['OWN_ORG', 'EXTERNAL_MANAGED_BY_ORG', 'EXTERNAL_MANAGED_BY_PARTNER'])
+    .optional(),
   // External partner fields
-  is_external_partner: z.boolean().optional(),
   external_partner_name: z.string().optional(),
   external_partner_url: z.string().optional(),
   external_partner_logo_url: z
@@ -474,6 +674,7 @@ const draftFormSchema = z.object({
   material_used: z.string().optional(),
   teaching_material: z.string().optional(),
   is_visible: z.boolean().optional(),
+  formacao_link: z.string().url().optional().or(z.literal('')),
   custom_fields: z
     .array(
       z.object({
@@ -521,10 +722,10 @@ const draftFormSchema = z.object({
       z.object({
         id: z.string().optional(),
         vacancies: z.number().optional(),
-        classStartDate: z.date().optional(),
-        classEndDate: z.date().optional(),
-        classTime: z.string().optional(),
-        classDays: z.string().optional(),
+        classStartDate: z.date().optional().nullable(),
+        classEndDate: z.date().optional().nullable(),
+        classTime: z.string().optional().nullable(),
+        classDays: z.string().optional().nullable(),
       })
     )
     .optional(),
@@ -540,10 +741,11 @@ type PartialFormData = Omit<
   FormData,
   'modalidade' | 'locations' | 'remote_class'
 > & {
-  modalidade?: 'PRESENCIAL' | 'ONLINE'
+  modalidade?: 'PRESENCIAL' | 'ONLINE' | 'LIVRE_FORMACAO_ONLINE'
   locations?: z.infer<typeof locationClassSchema>[]
   remote_class?: z.infer<typeof remoteClassSchema>
   remote_class_id?: string  // UUID of the remote_class container
+  formacao_link?: string
   category?: number[]
   workload?: string
   target_audience?: string
@@ -551,14 +753,15 @@ type PartialFormData = Omit<
   pre_requisitos?: string
   has_certificate?: boolean
 
+  // Course management type
+  course_management_type?: CourseManagementType
   // External partner fields
-  is_external_partner?: boolean
   external_partner_name?: string
   external_partner_url?: string
   external_partner_logo_url?: string
   external_partner_contact?: string
 
-  accessibility?: Accessibility | undefined
+  accessibility?: Accessibility | null | undefined | ''
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -583,7 +786,7 @@ type BackendCourseData = {
   enrollment_start_date: string | undefined
   enrollment_end_date: string | undefined
   orgao_id: string | null
-  modalidade?: 'PRESENCIAL' | 'ONLINE'
+  modalidade?: 'PRESENCIAL' | 'ONLINE' | 'LIVRE_FORMACAO_ONLINE'
   workload: string
   target_audience: string
   theme?: string
@@ -593,14 +796,15 @@ type BackendCourseData = {
   pre_requisitos?: string
   has_certificate?: boolean
 
+  // Course management type
+  course_management_type?: CourseManagementType
   // External partner fields
-  is_external_partner?: boolean
   external_partner_name?: string
   external_partner_url?: string
   external_partner_logo_url?: string
   external_partner_contact?: string
 
-  accessibility?: Accessibility | undefined
+  accessibility?: Accessibility | null | undefined | ''
   facilitator?: string
   objectives?: string
   expected_results?: string
@@ -635,6 +839,7 @@ type BackendCourseData = {
   formato_aula: string
   instituicao_id: number
   status?: 'canceled' | 'draft' | 'opened' | 'closed'
+  formacao_link?: string
 }
 
 interface NewCourseFormProps {
@@ -651,6 +856,7 @@ export interface NewCourseFormRef {
   triggerSubmit: () => void
   triggerPublish: () => void
   triggerSaveDraft: () => void
+  resetForm: () => void
 }
 
 export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
@@ -706,6 +912,195 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       process.env.NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT ?? ''
     )
 
+    // Helper function to prepare default values from initialData
+    const prepareDefaultValues = useCallback((data: PartialFormData | undefined): PartialFormData => {
+      if (!data) {
+        return {
+          title: '',
+          description: '',
+          category: [],
+          enrollment_start_date: new Date(),
+          enrollment_end_date: new Date(),
+          orgao_id: '',
+          modalidade: 'PRESENCIAL',
+          theme: 'Curso',
+          locations: [
+            {
+              id: '00000000-0000-0000-0000-000000000000',
+              address: '',
+              neighborhood: '',
+              zona: '',
+              schedules: [
+                {
+                  id: '00000000-0000-0000-0000-000000000000',
+                  vacancies: 1,
+                  classStartDate: new Date(),
+                  classEndDate: new Date(),
+                  classTime: '',
+                  classDays: '',
+                },
+              ],
+            },
+          ],
+          remote_class: undefined,
+          workload: '',
+          target_audience: '',
+          pre_requisitos: '',
+          has_certificate: false,
+          course_management_type: 'OWN_ORG',
+          external_partner_name: '',
+          external_partner_url: '',
+          external_partner_logo_url: '',
+          external_partner_contact: '',
+          accessibility: undefined,
+          facilitator: '',
+          objectives: '',
+          expected_results: '',
+          program_content: '',
+          methodology: '',
+          resources_used: '',
+          material_used: '',
+          teaching_material: '',
+          institutional_logo: '',
+          cover_image: '',
+          is_visible: true,
+          formacao_link: '',
+          custom_fields: [],
+        }
+      }
+
+      return {
+        title: data.title || '',
+        description: data.description || '',
+        category:
+          data.category ||
+          ((data as any).categorias?.map((c: any) => c.id) as
+            | number[]
+            | undefined) ||
+          [],
+        enrollment_start_date:
+          data.enrollment_start_date || new Date(),
+        enrollment_end_date: data.enrollment_end_date || new Date(),
+        orgao_id: data.orgao_id || '',
+        modalidade: data.modalidade,
+        theme: data.theme || 'Curso',
+        workload: data.workload || '',
+        target_audience: data.target_audience || '',
+        pre_requisitos: data.pre_requisitos || '',
+        has_certificate: data.has_certificate || false,
+        course_management_type:
+          data.course_management_type ||
+          ((data as any).is_external_partner
+            ? data.external_partner_url
+              ? 'EXTERNAL_MANAGED_BY_PARTNER'
+              : 'EXTERNAL_MANAGED_BY_ORG'
+            : 'OWN_ORG'),
+        external_partner_name: data.external_partner_name || '',
+        external_partner_url: data.external_partner_url || '',
+        external_partner_logo_url: data.external_partner_logo_url || '',
+        external_partner_contact: data.external_partner_contact || '',
+        accessibility: data.accessibility || undefined,
+        facilitator: data.facilitator || '',
+        objectives: data.objectives || '',
+        expected_results: data.expected_results || '',
+        program_content: data.program_content || '',
+        methodology: data.methodology || '',
+        resources_used: data.resources_used || '',
+        material_used: data.material_used || '',
+        teaching_material: data.teaching_material || '',
+        institutional_logo: data.institutional_logo || '',
+        cover_image: data.cover_image || '',
+        is_visible: data?.is_visible ?? true,
+        formacao_link: data.formacao_link || '',
+        custom_fields: data.custom_fields || [],
+        locations: (data.locations || []).map((location: any) => {
+          let zona = location.zona || location.neighborhood_zone || ''
+          if (location.neighborhood && !zona) {
+            const neighborhoodData = neighborhoodZone.find(
+              n => n.bairro === location.neighborhood
+            )
+            if (neighborhoodData) {
+              zona = neighborhoodData.zona
+            }
+          }
+
+          if (
+            location.schedules &&
+            Array.isArray(location.schedules) &&
+            location.schedules.length > 0
+          ) {
+            return {
+              ...location,
+              zona,
+              schedules: location.schedules.map((schedule: any) => ({
+                id: schedule.id,
+                vacancies: schedule.vacancies,
+                classStartDate: schedule.class_start_date
+                  ? new Date(schedule.class_start_date)
+                  : schedule.classStartDate || new Date(),
+                classEndDate: schedule.class_end_date
+                  ? new Date(schedule.class_end_date)
+                  : schedule.classEndDate || new Date(),
+                classTime: schedule.class_time || schedule.classTime || '',
+                classDays: schedule.class_days || schedule.classDays || '',
+              })),
+            }
+          }
+          return {
+            ...location,
+            zona,
+            schedules: [
+              {
+                vacancies: location.vacancies || 1,
+                classStartDate: location.classStartDate || new Date(),
+                classEndDate: location.classEndDate || new Date(),
+                classTime: location.classTime || '',
+                classDays: location.classDays || '',
+              },
+            ],
+          }
+        }),
+        remote_class_id: (() => {
+          const remoteClassData = (data as any).remote_class
+          if (remoteClassData?.id) {
+            return remoteClassData.id
+          }
+          return undefined
+        })(),
+        remote_class: (() => {
+          if (!data.remote_class) {
+            return undefined
+          }
+
+          const remoteClassData = data.remote_class as any
+
+          if (
+            remoteClassData.schedules &&
+            Array.isArray(remoteClassData.schedules)
+          ) {
+            return remoteClassData.schedules.map((schedule: any) => ({
+              id: schedule.id,
+              vacancies: schedule.vacancies,
+              classStartDate: schedule.class_start_date
+                ? new Date(schedule.class_start_date)
+                : null,
+              classEndDate: schedule.class_end_date
+                ? new Date(schedule.class_end_date)
+                : null,
+              classTime: schedule.class_time || null,
+              classDays: schedule.class_days || null,
+            }))
+          }
+
+          if (Array.isArray(remoteClassData)) {
+            return remoteClassData
+          }
+
+          return [remoteClassData]
+        })(),
+      }
+    }, [])
+
     // Fetch categories from API with cache
     useEffect(() => {
       const fetchCategories = async () => {
@@ -753,219 +1148,27 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
     const form = useForm<PartialFormData>({
       resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
-      defaultValues: initialData
-        ? {
-            title: initialData.title || '',
-            description: initialData.description || '',
-            category:
-              initialData.category ||
-              ((initialData as any).categorias?.map((c: any) => c.id) as
-                | number[]
-                | undefined) ||
-              [],
-            enrollment_start_date:
-              initialData.enrollment_start_date || new Date(),
-            enrollment_end_date: initialData.enrollment_end_date || new Date(),
-            orgao_id: initialData.orgao_id || '',
-            modalidade: initialData.modalidade,
-            theme: initialData.theme || 'Curso',
-            workload: initialData.workload || '',
-            target_audience: initialData.target_audience || '',
-            pre_requisitos: initialData.pre_requisitos || '',
-            has_certificate: initialData.has_certificate || false,
-
-            // External partner fields
-            is_external_partner: initialData.is_external_partner || false,
-            external_partner_name: initialData.external_partner_name || '',
-            external_partner_url: initialData.external_partner_url || '',
-            external_partner_logo_url:
-              initialData.external_partner_logo_url || '',
-            external_partner_contact:
-              initialData.external_partner_contact || '',
-            accessibility: initialData.accessibility || undefined,
-            facilitator: initialData.facilitator || '',
-            objectives: initialData.objectives || '',
-            expected_results: initialData.expected_results || '',
-            program_content: initialData.program_content || '',
-            methodology: initialData.methodology || '',
-            resources_used: initialData.resources_used || '',
-            material_used: initialData.material_used || '',
-            teaching_material: initialData.teaching_material || '',
-            institutional_logo: initialData.institutional_logo || '',
-            cover_image: initialData.cover_image || '',
-            is_visible: initialData?.is_visible ?? true,
-            custom_fields: initialData.custom_fields || [],
-            // Handle locations and remote_class based on modalidade
-            // Normalize locations to ensure they have schedules array
-            locations: (initialData.locations || []).map((location: any) => {
-              // Map neighborhood_zone from API to zona in form
-              // Support both old format (zona) and new format (neighborhood_zone)
-              let zona = location.zona || location.neighborhood_zone || ''
-              if (location.neighborhood && !zona) {
-                const neighborhoodData = neighborhoodZone.find(
-                  n => n.bairro === location.neighborhood
-                )
-                if (neighborhoodData) {
-                  zona = neighborhoodData.zona
-                }
-              }
-
-              // If location already has schedules, normalize them
-              if (
-                location.schedules &&
-                Array.isArray(location.schedules) &&
-                location.schedules.length > 0
-              ) {
-                return {
-                  ...location,
-                  zona,
-                  schedules: location.schedules.map((schedule: any) => ({
-                    id: schedule.id, // Include schedule UUID
-                    vacancies: schedule.vacancies,
-                    classStartDate: schedule.class_start_date
-                      ? new Date(schedule.class_start_date)
-                      : schedule.classStartDate || new Date(),
-                    classEndDate: schedule.class_end_date
-                      ? new Date(schedule.class_end_date)
-                      : schedule.classEndDate || new Date(),
-                    classTime: schedule.class_time || schedule.classTime || '',
-                    classDays: schedule.class_days || schedule.classDays || '',
-                  })),
-                }
-              }
-              // Otherwise, convert old format to new format with a single schedule
-              return {
-                ...location,
-                zona,
-                schedules: [
-                  {
-                    vacancies: location.vacancies || 1,
-                    classStartDate: location.classStartDate || new Date(),
-                    classEndDate: location.classEndDate || new Date(),
-                    classTime: location.classTime || '',
-                    classDays: location.classDays || '',
-                  },
-                ],
-              }
-            }),
-            remote_class_id: (() => {
-              // Extract and preserve the remote_class container ID
-              const remoteClassData = (initialData as any).remote_class
-              if (remoteClassData?.id) {
-                return remoteClassData.id
-              }
-              return undefined
-            })(),
-            remote_class: (() => {
-              console.log(
-                '🔍 Processing remote_class from initialData:',
-                initialData.remote_class
-              )
-
-              if (!initialData.remote_class) {
-                console.log('❌ No remote_class found')
-                return undefined
-              }
-
-              const remoteClassData = initialData.remote_class as any
-
-              // Backend returns: { schedules: [...] }
-              if (
-                remoteClassData.schedules &&
-                Array.isArray(remoteClassData.schedules)
-              ) {
-                console.log(
-                  '✅ Found schedules array:',
-                  remoteClassData.schedules.length,
-                  'schedules'
-                )
-                const transformed = remoteClassData.schedules.map(
-                  (schedule: any) => ({
-                    id: schedule.id,
-                    vacancies: schedule.vacancies,
-                    classStartDate: schedule.class_start_date
-                      ? new Date(schedule.class_start_date)
-                      : new Date(),
-                    classEndDate: schedule.class_end_date
-                      ? new Date(schedule.class_end_date)
-                      : new Date(),
-                    classTime: schedule.class_time || '',
-                    classDays: schedule.class_days || '',
-                  })
-                )
-                console.log('✅ Transformed schedules:', transformed)
-                return transformed
-              }
-
-              // Legacy: array format
-              if (Array.isArray(remoteClassData)) {
-                console.log('📦 Legacy array format')
-                return remoteClassData
-              }
-
-              // Legacy: single object format
-              console.log('📦 Legacy single object format')
-              return [remoteClassData]
-            })(),
-          }
-        : {
-            title: '',
-            description: '',
-            category: [],
-            enrollment_start_date: new Date(),
-            enrollment_end_date: new Date(),
-            orgao_id: '',
-            modalidade: 'PRESENCIAL',
-            theme: 'Curso',
-            locations: [
-              {
-                id: '00000000-0000-0000-0000-000000000000',
-                address: '',
-                neighborhood: '',
-                zona: '',
-                schedules: [
-                  {
-                    id: '00000000-0000-0000-0000-000000000000',
-                    vacancies: 1,
-                    classStartDate: new Date(),
-                    classEndDate: new Date(),
-                    classTime: '',
-                    classDays: '',
-                  },
-                ],
-              },
-            ],
-            remote_class: undefined,
-            workload: '',
-            target_audience: '',
-            pre_requisitos: '',
-            has_certificate: false,
-
-            // External partner fields
-            is_external_partner: false,
-            external_partner_name: '',
-            external_partner_url: '',
-            external_partner_logo_url: '',
-            external_partner_contact: '',
-
-            accessibility: undefined,
-            facilitator: '',
-            objectives: '',
-            expected_results: '',
-            program_content: '',
-            methodology: '',
-            resources_used: '',
-            material_used: '',
-            teaching_material: '',
-            institutional_logo: '',
-            cover_image: '',
-            is_visible: true,
-            custom_fields: [],
-          },
+      defaultValues: prepareDefaultValues(initialData),
       mode: 'onChange', // Enable real-time validation
     })
 
     const modalidade = form.watch('modalidade')
+    const courseManagementType = form.watch('course_management_type')
+    const externalPartnerUrl = form.watch('external_partner_url')
+
+    // Sync formacao_link with external_partner_url when modalidade is LIVRE_FORMACAO_ONLINE
+    useEffect(() => {
+      if (modalidade === 'LIVRE_FORMACAO_ONLINE') {
+        // Always sync formacao_link with external_partner_url when it's available
+        if (externalPartnerUrl && externalPartnerUrl.trim() !== '') {
+          const currentFormacaoLink = form.getValues('formacao_link')
+          // Only update if different to avoid unnecessary re-renders
+          if (currentFormacaoLink !== externalPartnerUrl) {
+            form.setValue('formacao_link', externalPartnerUrl, { shouldValidate: true, shouldDirty: false })
+          }
+        }
+      }
+    }, [modalidade, externalPartnerUrl, form])
 
     // UseFieldArray for locations (PRESENCIAL/HIBRIDO)
     const { fields, append, remove } = useFieldArray({
@@ -1023,23 +1226,21 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       appendRemoteSchedule({
         id: '00000000-0000-0000-0000-000000000000',
         vacancies: 1,
-        classStartDate: new Date(),
-        classEndDate: new Date(),
-        classTime: '',
-        classDays: '',
+        classStartDate: null,
+        classEndDate: null,
+        classTime: null,
+        classDays: null,
       })
     }
 
     // Transform form data to snake_case for backend API
     const transformFormDataToSnakeCase = (data: PartialFormData) => {
       // Transform remote_class fields to snake_case if it exists
-      // Backend expects: { remote_class: { id: uuid, schedules: [...] } }
+      // Backend expects: { remote_class: { schedules: [...] } }
       const transformedRemoteClass = data.remote_class
         ? Array.isArray(data.remote_class)
           ? {
-              id: data.remote_class_id || '00000000-0000-0000-0000-000000000000',
               schedules: data.remote_class.map(schedule => ({
-                id: (schedule as any).id || '00000000-0000-0000-0000-000000000000',
                 vacancies: schedule.vacancies,
                 class_start_date: schedule.classStartDate
                   ? formatDateTimeToUTC(schedule.classStartDate)
@@ -1047,16 +1248,14 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 class_end_date: schedule.classEndDate
                   ? formatDateTimeToUTC(schedule.classEndDate)
                   : undefined,
-                class_time: schedule.classTime,
-                class_days: schedule.classDays,
+                class_time: schedule.classTime || '',
+                class_days: schedule.classDays || '',
               })),
             }
           : {
               // Legacy single object format - wrap in schedules array
-              id: data.remote_class_id || '00000000-0000-0000-0000-000000000000',
               schedules: [
                 {
-                  id: (data.remote_class as any).id || '00000000-0000-0000-0000-000000000000',
                   vacancies: (data.remote_class as any).vacancies,
                   class_start_date: (data.remote_class as any).classStartDate
                     ? formatDateTimeToUTC(
@@ -1068,8 +1267,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         (data.remote_class as any).classEndDate
                       )
                     : undefined,
-                  class_time: (data.remote_class as any).classTime,
-                  class_days: (data.remote_class as any).classDays,
+                  class_time: (data.remote_class as any).classTime || '',
+                  class_days: (data.remote_class as any).classDays || '',
                 },
               ],
             }
@@ -1116,21 +1315,27 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         pre_requisitos: data.pre_requisitos,
         has_certificate: data.has_certificate || false,
 
-        // External partner fields - clear when not external partner
-        is_external_partner: data.is_external_partner,
-        external_partner_name: data.is_external_partner
-          ? data.external_partner_name
-          : '',
-        external_partner_url: data.is_external_partner
-          ? data.external_partner_url
-          : '',
-        external_partner_logo_url: data.is_external_partner
-          ? data.external_partner_logo_url
-          : '',
-        external_partner_contact: data.is_external_partner
-          ? data.external_partner_contact
-          : '',
-        ...(data.accessibility && { accessibility: data.accessibility }),
+        // Course management type
+        course_management_type:
+          data.course_management_type || 'OWN_ORG',
+        // External partner fields - clear when OWN_ORG
+        external_partner_name:
+          data.course_management_type !== 'OWN_ORG'
+            ? data.external_partner_name
+            : '',
+        external_partner_url:
+          data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
+            ? data.external_partner_url
+            : '',
+        external_partner_logo_url:
+          data.course_management_type !== 'OWN_ORG'
+            ? data.external_partner_logo_url
+            : '',
+        external_partner_contact:
+          data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
+            ? data.external_partner_contact
+            : '',
+        accessibility: data.accessibility,
         facilitator: data.facilitator,
         objectives: data.objectives,
         expected_results: data.expected_results,
@@ -1140,11 +1345,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         material_used: data.material_used,
         teaching_material: data.teaching_material,
         custom_fields: data.custom_fields,
+        formacao_link: data.formacao_link,
         locations: transformedLocations,
         remote_class: transformedRemoteClass,
         // Add the new fields that should always be sent
         turno: 'LIVRE',
-        formato_aula: data.modalidade === 'ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
+        formato_aula: data.modalidade === 'ONLINE' || data.modalidade === 'LIVRE_FORMACAO_ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
         instituicao_id: instituicaoId,
         // Ensure status is always included if it exists
         ...(data.status && { status: data.status }),
@@ -1171,7 +1377,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         enrollment_end_date: data.enrollment_end_date || nextMonth,
         theme: data.theme || undefined,
         orgao_id: data.orgao_id || '',
-        modalidade: modalidade as 'PRESENCIAL' | 'ONLINE',
+        modalidade: modalidade as 'PRESENCIAL' | 'ONLINE' | 'LIVRE_FORMACAO_ONLINE',
         workload: data.workload,
         target_audience: data.target_audience,
         institutional_logo: data.institutional_logo || '',
@@ -1180,21 +1386,27 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         pre_requisitos: data.pre_requisitos,
         has_certificate: data.has_certificate || false,
 
-        // External partner fields - clear when not external partner
-        is_external_partner: data.is_external_partner,
-        external_partner_name: data.is_external_partner
-          ? data.external_partner_name
-          : '',
-        external_partner_url: data.is_external_partner
-          ? data.external_partner_url
-          : '',
-        external_partner_logo_url: data.is_external_partner
-          ? data.external_partner_logo_url
-          : '',
-        external_partner_contact: data.is_external_partner
-          ? data.external_partner_contact
-          : '',
-        ...(data.accessibility && { accessibility: data.accessibility }),
+        // Course management type
+        course_management_type:
+          data.course_management_type || 'OWN_ORG',
+        // External partner fields - clear when OWN_ORG
+        external_partner_name:
+          data.course_management_type !== 'OWN_ORG'
+            ? data.external_partner_name
+            : '',
+        external_partner_url:
+          data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
+            ? data.external_partner_url
+            : '',
+        external_partner_logo_url:
+          data.course_management_type !== 'OWN_ORG'
+            ? data.external_partner_logo_url
+            : '',
+        external_partner_contact:
+          data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
+            ? data.external_partner_contact
+            : '',
+        accessibility: data.accessibility,
         facilitator: data.facilitator,
         objectives: data.objectives,
         expected_results: data.expected_results,
@@ -1236,10 +1448,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   {
                     id: '00000000-0000-0000-0000-000000000000',
                     vacancies: 1,
-                    classStartDate: currentDate,
-                    classEndDate: nextMonth,
-                    classTime: 'Horário em definição',
-                    classDays: 'Dias em definição',
+                    classStartDate: null,
+                    classEndDate: null,
+                    classTime: null,
+                    classDays: null,
                   },
                 ]
             : undefined,
@@ -1307,6 +1519,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     // Expose methods to parent component via ref
     useImperativeHandle(ref, () => ({
       triggerSubmit: async () => {
+        // Sync formacao_link with external_partner_url before validation if modalidade is LIVRE_FORMACAO_ONLINE
+        const modalidade = form.getValues('modalidade')
+        const externalPartnerUrl = form.getValues('external_partner_url')
+        if (modalidade === 'LIVRE_FORMACAO_ONLINE' && externalPartnerUrl && externalPartnerUrl.trim() !== '') {
+          form.setValue('formacao_link', externalPartnerUrl, { shouldValidate: false })
+        }
+        
         // Always validate first, even when called via ref
         const isValid = await form.trigger()
         
@@ -1314,6 +1533,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           // Try full schema validation for more detailed errors
           try {
             const currentValues = form.getValues()
+            // Ensure formacao_link is synced before validation
+            if (currentValues.modalidade === 'LIVRE_FORMACAO_ONLINE' && currentValues.external_partner_url && !currentValues.formacao_link) {
+              currentValues.formacao_link = currentValues.external_partner_url
+            }
             fullFormSchema.parse(currentValues)
           } catch (error) {
             if (error instanceof z.ZodError) {
@@ -1338,6 +1561,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Validate with full schema as well
         try {
           const currentValues = form.getValues()
+          // Ensure formacao_link is synced before validation
+          if (currentValues.modalidade === 'LIVRE_FORMACAO_ONLINE' && currentValues.external_partner_url && !currentValues.formacao_link) {
+            currentValues.formacao_link = currentValues.external_partner_url
+            form.setValue('formacao_link', currentValues.external_partner_url, { shouldValidate: true })
+          }
           fullFormSchema.parse(currentValues)
         } catch (error) {
           if (error instanceof z.ZodError) {
@@ -1355,6 +1583,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         handleSubmit(currentValues)
       },
       triggerPublish: async () => {
+        // Sync formacao_link with external_partner_url before validation if modalidade is LIVRE_FORMACAO_ONLINE
+        const modalidade = form.getValues('modalidade')
+        const externalPartnerUrl = form.getValues('external_partner_url')
+        if (modalidade === 'LIVRE_FORMACAO_ONLINE' && externalPartnerUrl && externalPartnerUrl.trim() !== '') {
+          form.setValue('formacao_link', externalPartnerUrl, { shouldValidate: false })
+        }
+        
         // Always validate first, even when called via ref
         const isValid = await form.trigger()
         
@@ -1362,6 +1597,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           // Try full schema validation for more detailed errors
           try {
             const currentValues = form.getValues()
+            // Ensure formacao_link is synced before validation
+            if (currentValues.modalidade === 'LIVRE_FORMACAO_ONLINE' && currentValues.external_partner_url && !currentValues.formacao_link) {
+              currentValues.formacao_link = currentValues.external_partner_url
+            }
             fullFormSchema.parse(currentValues)
           } catch (error) {
             if (error instanceof z.ZodError) {
@@ -1386,6 +1625,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         // Validate with full schema as well
         try {
           const currentValues = form.getValues()
+          // Ensure formacao_link is synced before validation
+          if (currentValues.modalidade === 'LIVRE_FORMACAO_ONLINE' && currentValues.external_partner_url && !currentValues.formacao_link) {
+            currentValues.formacao_link = currentValues.external_partner_url
+            form.setValue('formacao_link', currentValues.external_partner_url, { shouldValidate: true })
+          }
           fullFormSchema.parse(currentValues)
         } catch (error) {
           if (error instanceof z.ZodError) {
@@ -1404,25 +1648,38 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       triggerSaveDraft: () => {
         handleSaveDraft()
       },
+      resetForm: () => {
+        const defaultValues = prepareDefaultValues(initialData)
+        form.reset(defaultValues, {
+          keepErrors: false,
+          keepDirty: false,
+          keepIsSubmitted: false,
+          keepTouched: false,
+          keepIsValid: false,
+          keepSubmitCount: false,
+        })
+      },
     }))
 
     // Handle modalidade change to properly initialize fields
-    const handleModalidadeChange = (value: 'PRESENCIAL' | 'ONLINE') => {
+    const handleModalidadeChange = useCallback((value: 'PRESENCIAL' | 'ONLINE' | 'LIVRE_FORMACAO_ONLINE') => {
       if (value === 'ONLINE') {
         // Clear locations array and initialize remote class fields with array
         form.setValue('locations', [])
         form.setValue('remote_class', [
           {
             vacancies: 1,
-            classStartDate: new Date(),
-            classEndDate: new Date(),
-            classTime: '',
-            classDays: '',
+            classStartDate: null,
+            classEndDate: null,
+            classTime: null,
+            classDays: null,
           },
         ] as any)
+        form.setValue('formacao_link', undefined)
       } else if (value === 'PRESENCIAL') {
         // Clear remote class and initialize locations if not already set
         form.setValue('remote_class', undefined)
+        form.setValue('formacao_link', undefined)
 
         const currentLocations = form.getValues('locations')
         if (!currentLocations || currentLocations.length === 0) {
@@ -1443,8 +1700,31 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             },
           ])
         }
+      } else if (value === 'LIVRE_FORMACAO_ONLINE') {
+        // Clear locations and remote_class, initialize formacao_link
+        form.setValue('locations', [])
+        form.setValue('remote_class', undefined)
+        // Auto-fill formacao_link with external_partner_url if available
+        const externalPartnerUrl = form.getValues('external_partner_url')
+        form.setValue('formacao_link', externalPartnerUrl || '', { shouldValidate: false })
       }
-    }
+    }, [form])
+
+    // Reset modalidade if LIVRE_FORMACAO_ONLINE is selected but course_management_type doesn't allow it
+    // This handles both cases:
+    // 1. When modalidade is changed to LIVRE_FORMACAO_ONLINE but course_management_type doesn't allow it
+    // 2. When course_management_type changes from EXTERNAL_MANAGED_BY_PARTNER to another option while modalidade is LIVRE_FORMACAO_ONLINE
+    useEffect(() => {
+      // If modalidade is LIVRE_FORMACAO_ONLINE and course_management_type doesn't allow it, reset to PRESENCIAL
+      if (
+        modalidade === 'LIVRE_FORMACAO_ONLINE' &&
+        courseManagementType &&
+        (courseManagementType === 'OWN_ORG' || courseManagementType === 'EXTERNAL_MANAGED_BY_ORG')
+      ) {
+        // Reset to PRESENCIAL as default
+        handleModalidadeChange('PRESENCIAL')
+      }
+    }, [courseManagementType, modalidade, handleModalidadeChange])
 
     const addLocation = () => {
       append({
@@ -1859,40 +2139,74 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 )}
               />
 
-              {/* External Partner Checkbox */}
-              <FormField
-                control={form.control}
-                name="is_external_partner"
-                render={({ field }) => (
-                  <Card className="p-4 bg-card">
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          className="border-1 border-foreground!"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={isReadOnly}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Curso de parceiro externo</FormLabel>
-                        <p className="text-[0.8rem] text-muted-foreground">
-                          Marque esta opção se o curso é oferecido por uma
-                          organização parceira externa.
-                        </p>
-                      </div>
-                    </FormItem>
-                  </Card>
-                )}
-              />
+              {/* Course Management Type */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gestão do curso (Quem gere o curso)*</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="course_management_type"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={(value) => {
+                              field.onChange(value)
+                              // If changing from EXTERNAL_MANAGED_BY_PARTNER to another option
+                              // and modalidade is LIVRE_FORMACAO_ONLINE, reset modalidade to PRESENCIAL
+                              const currentModalidade = form.getValues('modalidade')
+                              if (
+                                currentModalidade === 'LIVRE_FORMACAO_ONLINE' &&
+                                (value === 'OWN_ORG' || value === 'EXTERNAL_MANAGED_BY_ORG')
+                              ) {
+                                // Update modalidade field directly and call handler
+                                form.setValue('modalidade', 'PRESENCIAL')
+                                handleModalidadeChange('PRESENCIAL')
+                              }
+                            }}
+                            value={field.value}
+                            className="space-y-3"
+                            disabled={isReadOnly}
+                          >
+                            {COURSE_MANAGEMENT_OPTIONS.map(option => (
+                              <div
+                                key={option.value}
+                                className="flex items-start space-x-3 space-y-0"
+                              >
+                                <RadioGroupItem
+                                  value={option.value}
+                                  id={option.value}
+                                  className="mt-0.5"
+                                />
+                                <label
+                                  htmlFor={option.value}
+                                  className="flex-1 cursor-pointer space-y-1 leading-none"
+                                >
+                                  <div className="font-medium">
+                                    {option.label}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    {option.description}
+                                  </p>
+                                </label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* External Partner Fields - Show only when checkbox is checked */}
-              {form.watch('is_external_partner') && (
-                <Card className="mt-4">
-                  <CardHeader>
-                    <CardTitle>Informações do Parceiro Externo</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                  {/* External Partner Fields - Show conditionally based on course_management_type */}
+                  {form.watch('course_management_type') !== 'OWN_ORG' && (
+                    <div className="border-t pt-6">
+                      <h3 className="text-lg font-semibold mb-4">
+                        Informações do Parceiro Externo
+                      </h3>
+                      <div className="space-y-4">
                     <FormField
                       control={form.control}
                       name="external_partner_name"
@@ -1904,7 +2218,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               placeholder="Ex. PUC RJ"
                               {...field}
                               disabled={isReadOnly}
-                              required={form.watch('is_external_partner')}
                             />
                           </FormControl>
                           <FormMessage />
@@ -1912,27 +2225,30 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="external_partner_url"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            URL para a página do parceiro externo*
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="https://"
-                              type="url"
-                              {...field}
-                              disabled={isReadOnly}
-                              required={form.watch('is_external_partner')}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* Show URL field only for EXTERNAL_MANAGED_BY_PARTNER */}
+                    {form.watch('course_management_type') ===
+                      'EXTERNAL_MANAGED_BY_PARTNER' && (
+                      <FormField
+                        control={form.control}
+                        name="external_partner_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              URL para a página do parceiro externo*
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="https://"
+                                type="url"
+                                {...field}
+                                disabled={isReadOnly}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     <FormField
                       control={form.control}
@@ -1998,29 +2314,35 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="external_partner_contact"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Canal de informações do parceiro externo
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Ex. Número de whatsapp, email, link de FAQ, etc."
-                              className="min-h-[80px]"
-                              {...field}
-                              disabled={isReadOnly}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-              )}
+                    {/* Show contact field only for EXTERNAL_MANAGED_BY_PARTNER */}
+                    {form.watch('course_management_type') ===
+                      'EXTERNAL_MANAGED_BY_PARTNER' && (
+                      <FormField
+                        control={form.control}
+                        name="external_partner_contact"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              Canal de informações do parceiro externo
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex. Número de whatsapp, email, link de FAQ, etc."
+                                className="min-h-[80px]"
+                                {...field}
+                                disabled={isReadOnly}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               <FormField
                 control={form.control}
@@ -2054,33 +2376,91 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               <FormField
                 control={form.control}
                 name="modalidade"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Modalidade*</FormLabel>
-                    <Select
-                      onValueChange={value => {
-                        const modalidadeValue = value as 'PRESENCIAL' | 'ONLINE'
-                        field.onChange(modalidadeValue)
-                        handleModalidadeChange(modalidadeValue)
-                      }}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a modalidade" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="PRESENCIAL">Presencial</SelectItem>
-                        <SelectItem value="ONLINE">Online</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Disable LIVRE_FORMACAO_ONLINE if course is managed by org (OWN_ORG or EXTERNAL_MANAGED_BY_ORG)
+                  const isLivreFormacaoDisabled = 
+                    courseManagementType === 'OWN_ORG' || 
+                    courseManagementType === 'EXTERNAL_MANAGED_BY_ORG'
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Modalidade*</FormLabel>
+                      <Select
+                        onValueChange={value => {
+                          const modalidadeValue = value as 'PRESENCIAL' | 'ONLINE' | 'LIVRE_FORMACAO_ONLINE'
+                          field.onChange(modalidadeValue)
+                          handleModalidadeChange(modalidadeValue)
+                        }}
+                        value={field.value}
+                        disabled={isReadOnly}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a modalidade" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="PRESENCIAL">Presencial</SelectItem>
+                          <SelectItem value="ONLINE">Online</SelectItem>
+                          <SelectItem 
+                            value="LIVRE_FORMACAO_ONLINE"
+                            disabled={isLivreFormacaoDisabled}
+                          >
+                            Livre formação (online)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               {/* Conditional rendering based on modalidade */}
+              {modalidade === 'LIVRE_FORMACAO_ONLINE' && (
+                <div className="space-y-4 -mt-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Link para Formação (Livre formação - Online)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="formacao_link"
+                        render={({ field }) => {
+                          // Always use external_partner_url value when available, fallback to field value
+                          const displayValue = externalPartnerUrl || field.value || ''
+                          
+                          return (
+                            <FormItem>
+                              <FormLabel>Link para formação</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="url"
+                                  placeholder="URL será preenchida automaticamente com a URL do parceiro externo"
+                                  disabled={true}
+                                  className="bg-muted cursor-not-allowed"
+                                  readOnly
+                                  value={displayValue}
+                                  onChange={() => {}} // Prevent manual changes
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                />
+                              </FormControl>
+                              <p className="text-sm text-muted-foreground">
+                                Este campo é preenchido automaticamente com a URL do parceiro externo.
+                              </p>
+                              <FormMessage />
+                            </FormItem>
+                          )
+                        }}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {modalidade === 'ONLINE' && (
                 <div className="space-y-4 -mt-2">
                   {(() => {
@@ -2094,10 +2474,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       form.setValue('remote_class', [
                         {
                           vacancies: 1,
-                          classStartDate: new Date(),
-                          classEndDate: new Date(),
-                          classTime: '',
-                          classDays: '',
+                          classStartDate: null,
+                          classEndDate: null,
+                          classTime: null,
+                          classDays: null,
                         },
                       ])
                       return null // Will re-render with the schedule
@@ -2187,10 +2567,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                 name={`remote_class.${index}.classStartDate`}
                                 render={({ field }) => (
                                   <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                                    <FormLabel>Início das aulas*</FormLabel>
+                                    <FormLabel>Início das aulas</FormLabel>
                                     <FormControl>
                                       <DateTimePicker
-                                        value={field.value}
+                                        value={field.value || undefined}
                                         onChange={field.onChange}
                                         placeholder="Selecionar data e hora de início"
                                         disabled={isReadOnly}
@@ -2205,10 +2585,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                 name={`remote_class.${index}.classEndDate`}
                                 render={({ field }) => (
                                   <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                                    <FormLabel>Fim das aulas*</FormLabel>
+                                    <FormLabel>Fim das aulas</FormLabel>
                                     <FormControl>
                                       <DateTimePicker
-                                        value={field.value}
+                                        value={field.value || undefined}
                                         onChange={field.onChange}
                                         placeholder="Selecionar data e hora de fim"
                                         disabled={isReadOnly}
@@ -2225,11 +2605,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               name={`remote_class.${index}.classTime`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Horário das aulas*</FormLabel>
+                                  <FormLabel>Horário das aulas</FormLabel>
                                   <FormControl>
                                     <Input
                                       placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
-                                      {...field}
+                                      value={field.value || ''}
+                                      onChange={field.onChange}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -2242,11 +2623,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                               name={`remote_class.${index}.classDays`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Dias de aula*</FormLabel>
+                                  <FormLabel>Dias de aula</FormLabel>
                                   <FormControl>
                                     <Input
                                       placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
-                                      {...field}
+                                      value={field.value || ''}
+                                      onChange={field.onChange}
                                     />
                                   </FormControl>
                                   <FormMessage />

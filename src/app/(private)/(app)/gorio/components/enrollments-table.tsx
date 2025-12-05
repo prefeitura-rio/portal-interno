@@ -215,7 +215,15 @@ export function EnrollmentsTable({
     const isCourseFinishedByStatus = course?.status
       ? COURSE_FINISHED_STATUSES.includes(course.status as any)
       : false
-    const isCourseFinished = isCourseFinishedByDate || isCourseFinishedByStatus
+
+    // Verifica se é um curso online sem datas de início e fim informadas
+    const isOnlineCourseWithoutDates =
+      (course?.modalidade === 'ONLINE' || course?.modalidade === 'Remoto') &&
+      !course?.remote_class?.class_start_date &&
+      !course?.remote_class?.class_end_date
+
+    // Para cursos online sem datas, considera como "finalizado" para permitir ações
+    const isCourseFinished = isCourseFinishedByDate || isCourseFinishedByStatus || isOnlineCourseWithoutDates
     const hasCertificate = course?.has_certificate || false
 
     return {
@@ -224,8 +232,9 @@ export function EnrollmentsTable({
       isCourseFinishedByStatus,
       isCourseFinished,
       hasCertificate,
+      isOnlineCourseWithoutDates,
     }
-  }, [getCourseEndDate, course?.status, course?.has_certificate])
+  }, [getCourseEndDate, course?.status, course?.has_certificate, course?.modalidade, course?.remote_class])
 
   const {
     courseEndDate,
@@ -233,6 +242,7 @@ export function EnrollmentsTable({
     isCourseFinishedByStatus,
     isCourseFinished,
     hasCertificate,
+    isOnlineCourseWithoutDates,
   } = courseStates
 
   // Convert column filters to enrollment filters
@@ -335,6 +345,32 @@ export function EnrollmentsTable({
       } catch (error) {
         console.error('Erro ao marcar inscrição como concluída:', error)
         toast.error('Erro ao marcar inscrição como concluída', {
+          description:
+            error instanceof Error ? error.message : 'Erro inesperado',
+        })
+      }
+    },
+    [updateEnrollmentStatus]
+  )
+
+  /**
+   * Marca uma inscrição como reprovada
+   * Atualiza o status para cancelled
+   * @param enrollment - Inscrição a ser marcada como reprovada
+   */
+  const handleRejectEnrollment = React.useCallback(
+    async (enrollment: Enrollment) => {
+      try {
+        const updated = await updateEnrollmentStatus(enrollment.id, 'cancelled')
+        if (updated) {
+          setSelectedEnrollment(prev =>
+            prev ? { ...prev, status: 'cancelled' } : prev
+          )
+          toast.success('Inscrição marcada como reprovada!')
+        }
+      } catch (error) {
+        console.error('Erro ao marcar inscrição como reprovada:', error)
+        toast.error('Erro ao marcar inscrição como reprovada', {
           description:
             error instanceof Error ? error.message : 'Erro inesperado',
         })
@@ -627,7 +663,7 @@ export function EnrollmentsTable({
               icon: Clock,
             },
             cancelled: {
-              label: 'Cancelado',
+              label: 'Reprovado',
               variant: 'secondary' as const,
               className: 'text-red-600 border-red-200 bg-red-50',
               icon: XCircle,
@@ -670,7 +706,7 @@ export function EnrollmentsTable({
           options: [
             { label: 'Confirmado', value: 'approved' },
             { label: 'Pendente', value: 'pending' },
-            { label: 'Cancelado', value: 'cancelled' },
+            { label: 'Reprovado', value: 'cancelled' },
             { label: 'Recusado', value: 'rejected' },
             { label: 'Concluído', value: 'concluded' },
           ],
@@ -1052,6 +1088,39 @@ export function EnrollmentsTable({
     }
   }, [table, updateMultipleEnrollmentStatuses])
 
+  const handleBulkRejectEnrollments = React.useCallback(async () => {
+    try {
+      const selectedRows = table.getFilteredSelectedRowModel().rows
+      const enrollmentsToReject = selectedRows
+        .map(row => row.original)
+        .filter(enrollment => enrollment.status !== 'cancelled')
+
+      if (enrollmentsToReject.length === 0) {
+        return
+      }
+
+      // Use bulk update API
+      const enrollmentIds = enrollmentsToReject.map(e => e.id)
+      const success = await updateMultipleEnrollmentStatuses(
+        enrollmentIds,
+        'cancelled'
+      )
+
+      if (success) {
+        // Clear selection after successful update
+        table.resetRowSelection()
+        toast.success(
+          `${enrollmentsToReject.length} inscrição(ões) marcada(s) como reprovada(s)!`
+        )
+      }
+    } catch (error) {
+      console.error('Erro ao marcar inscrições como reprovadas em lote:', error)
+      toast.error('Erro ao marcar inscrições como reprovadas', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
+    }
+  }, [table, updateMultipleEnrollmentStatuses])
+
   // Show loading state
   if (loading && enrollments.length === 0) {
     return (
@@ -1118,7 +1187,7 @@ export function EnrollmentsTable({
 
       {/* Summary */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {/* <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg">
               <Users className="w-5 h-5 text-blue-600" />
@@ -1161,9 +1230,21 @@ export function EnrollmentsTable({
             </div>
             <div>
               <p className="text-2xl font-bold text-red-700">
-                {summary.cancelledCount}
+                {summary.rejectedCount || 0}
               </p>
               <p className="text-sm text-red-600">Recusados</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+              <XCircle className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-orange-700">
+                {summary.cancelledCount || 0}
+              </p>
+              <p className="text-sm text-orange-600">Reprovados</p>
             </div>
           </div>
 
@@ -1239,6 +1320,29 @@ export function EnrollmentsTable({
                           </p>
                         </div>
                       </div>
+                      {(() => {
+                        // Buscar idade nos customFields (pode vir como objeto ou array)
+                        const customFieldsObj = selectedEnrollment.customFields as any
+                        let idadeField = null
+                        
+                        if (Array.isArray(customFieldsObj)) {
+                          idadeField = customFieldsObj.find((f: any) => f.id === 'idade')
+                        } else if (customFieldsObj && typeof customFieldsObj === 'object') {
+                          idadeField = customFieldsObj.idade
+                        }
+                        
+                        return idadeField?.value ? (
+                          <div className="flex items-center gap-3">
+                            <Hash className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Idade
+                              </Label>
+                              <p className="text-sm">{idadeField.value}</p>
+                            </div>
+                          </div>
+                        ) : null
+                      })()}
                       <div className="flex items-center gap-3">
                         <Mail className="w-4 h-4 text-muted-foreground" />
                         <div>
@@ -1351,7 +1455,7 @@ export function EnrollmentsTable({
                                   className: 'bg-yellow-100 text-yellow-800',
                                 },
                                 cancelled: {
-                                  label: 'Cancelado',
+                                  label: 'Reprovado',
                                   className:
                                     'text-red-600 border-red-200 bg-red-50',
                                 },
@@ -1389,17 +1493,102 @@ export function EnrollmentsTable({
                           </div>
                         </div>
                       )} */}
-                      {selectedEnrollment.customFields &&
-                        selectedEnrollment.customFields.length > 0 && (
-                          <div className="space-y-3">
-                            <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                              Informações Complementares
-                            </Label>
-                            {selectedEnrollment.customFields.map(field => (
-                              <div
-                                key={field.id}
-                                className="flex items-start gap-3"
-                              >
+                      {(() => {
+                        // Helper para converter customFields de objeto para array
+                        const customFieldsObj = selectedEnrollment.customFields as any
+                        let allFields: any[] = []
+                        
+                        if (Array.isArray(customFieldsObj)) {
+                          allFields = customFieldsObj
+                        } else if (customFieldsObj && typeof customFieldsObj === 'object') {
+                          allFields = Object.values(customFieldsObj)
+                        }
+                        
+                        // IDs dos campos socioeconômicos e campos que devem ser excluídos de Informações Complementares
+                        const socioeconomicFieldIds = [
+                          'endereco',
+                          'bairro',
+                          'pessoa_com_deficiencia',
+                          'raca',
+                          'genero',
+                          'renda_familiar',
+                          'escolaridade',
+                        ]
+                        
+                        // Campos que devem ser excluídos de Informações Complementares (inclui idade que já aparece no topo)
+                        const excludedFromComplementary = [
+                          ...socioeconomicFieldIds,
+                          'idade',
+                        ]
+                        
+                        // Separar campos socioeconômicos dos demais
+                        const socioeconomicFields = allFields.filter((field: any) =>
+                          socioeconomicFieldIds.includes(field.id)
+                        )
+                        const otherFields = allFields.filter(
+                          (field: any) => !excludedFromComplementary.includes(field.id)
+                        )
+                        
+                        // Ordem específica para os campos socioeconômicos
+                        const socioeconomicOrder = [
+                          'endereco',
+                          'bairro',
+                          'pessoa_com_deficiencia',
+                          'raca',
+                          'genero',
+                          'renda_familiar',
+                          'escolaridade',
+                        ]
+                        const orderedSocioeconomicFields = socioeconomicOrder
+                          .map(id => socioeconomicFields.find((f: any) => f.id === id))
+                          .filter(Boolean)
+                        
+                        return (
+                          <>
+                            {/* Informações Socioeconômicas */}
+                            {orderedSocioeconomicFields.length > 0 && (
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                                  Informações Socioeconômicas
+                                </h4>
+                                <div className="space-y-3">
+                                  {orderedSocioeconomicFields.map((field: any) => (
+                                    <div
+                                      key={field.id}
+                                      className="flex items-start gap-3"
+                                    >
+                                      <div className="flex-1">
+                                        <Label className="text-sm text-muted-foreground">
+                                          {field.title}
+                                          {field.required && (
+                                            <span className="text-red-500">*</span>
+                                          )}
+                                        </Label>
+                                        <div className="text-sm mt-1">
+                                          <span className="font-medium">
+                                            {field.value && field.value.trim() !== ''
+                                              ? field.value
+                                              : <span className="text-muted-foreground italic">(sem valor)</span>}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Informações Complementares */}
+                            {otherFields.length > 0 && (
+                              <div className="space-y-3">
+                                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                                  Informações Complementares
+                                </Label>
+                                {otherFields.map((field: any) => (
+                                  <div
+                                    key={field.id}
+                                    className="flex items-start gap-3"
+                                  >
                                 <div className="flex-1">
                                   <Label className="text-sm text-muted-foreground">
                                     {field.title}
@@ -1416,7 +1605,7 @@ export function EnrollmentsTable({
                                           // For single selection, find the option that matches the value
                                           const selectedOption =
                                             field.options?.find(
-                                              option =>
+                                              (option: any) =>
                                                 option.id === field.value
                                             )
                                           return (
@@ -1434,44 +1623,57 @@ export function EnrollmentsTable({
                                               ?.split(',')
                                               .filter(Boolean) || []
                                           const selectedOptions =
-                                            field.options?.filter(option =>
+                                            field.options?.filter((option: any) =>
                                               selectedOptionIds.includes(
                                                 option.id
                                               )
+                                            ) || []
+                                          
+                                          // If we have matching options, display them
+                                          if (selectedOptions.length > 0) {
+                                            return (
+                                              <div className="space-y-1">
+                                                {selectedOptions.map((option: any) => (
+                                                  <span
+                                                    key={option.id}
+                                                    className="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs mr-1"
+                                                  >
+                                                    {option.value}
+                                                  </span>
+                                                ))}
+                                              </div>
                                             )
+                                          }
+                                          
+                                          // If no matching options found, display the raw value
                                           return (
-                                            <div className="space-y-1">
-                                              {selectedOptions?.map(option => (
-                                                <span
-                                                  key={option.id}
-                                                  className="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs mr-1"
-                                                >
-                                                  {option.value}
-                                                </span>
-                                              )) || (
-                                                <span className="text-muted-foreground">
-                                                  {field.value}
-                                                </span>
-                                              )}
-                                            </div>
+                                            <span className="font-medium">
+                                              {field.value ? field.value : <span className="text-muted-foreground italic">(sem valor)</span>}
+                                            </span>
                                           )
                                         }
 
                                         default:
                                           // For text fields, display the value as is
+                                          // If value is empty or undefined, show a placeholder
                                           return (
                                             <span className="font-medium">
-                                              {field.value}
+                                              {field.value && field.value.trim() !== '' 
+                                                ? field.value 
+                                                : <span className="text-muted-foreground italic">(sem valor)</span>}
                                             </span>
                                           )
                                       }
                                     })()}
                                   </div>
                                 </div>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        )}
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
                   </div>
 
@@ -1573,6 +1775,88 @@ export function EnrollmentsTable({
                     </div>
                   )}
 
+                  {/* Online Course Schedule Information */}
+                  {course?.modalidade === 'ONLINE' &&
+                    selectedEnrollment.schedule_id &&
+                    course.remote_class?.schedules && (
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                          Informações da Turma Online
+                        </h4>
+                        <div className="grid gap-4">
+                          {(() => {
+                            // Find the schedule in remote_class.schedules that matches the enrollment's schedule_id
+                            const onlineSchedule = course.remote_class.schedules.find(
+                              s => s.id === selectedEnrollment.schedule_id
+                            )
+
+                            if (!onlineSchedule) return null
+
+                            return (
+                              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Código da Turma (UUID)
+                                  </Label>
+                                  <p className="text-sm font-mono font-medium">
+                                    {onlineSchedule.id}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Dias da Semana
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {onlineSchedule.class_days || 'Não informado'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Horário
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {onlineSchedule.class_time || 'Não informado'}
+                                  </p>
+                                </div>
+                                {onlineSchedule.class_start_date && (
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Data de Início
+                                    </Label>
+                                    <p className="text-sm font-medium">
+                                      {new Date(
+                                        onlineSchedule.class_start_date
+                                      ).toLocaleDateString('pt-BR')}
+                                    </p>
+                                  </div>
+                                )}
+                                {onlineSchedule.class_end_date && (
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Data de Término
+                                    </Label>
+                                    <p className="text-sm font-medium">
+                                      {new Date(
+                                        onlineSchedule.class_end_date
+                                      ).toLocaleDateString('pt-BR')}
+                                    </p>
+                                  </div>
+                                )}
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Vagas
+                                  </Label>
+                                  <p className="text-sm font-medium">
+                                    {onlineSchedule.vacancies || 'Não informado'}
+                                  </p>
+                                </div>
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
                   {/* Campo de certificado - só aparece se o curso tem certificado */}
                   {hasCertificate && (
                     <div className="flex items-start flex-col gap-3">
@@ -1668,8 +1952,9 @@ export function EnrollmentsTable({
                               id="certificate-help"
                               className="text-sm text-muted-foreground mt-1"
                             >
-                              O campo será habilitado quando a inscrição for
-                              marcada como concluída
+                              {isOnlineCourseWithoutDates
+                                ? 'Curso online sem datas definidas. O campo será habilitado quando a inscrição for marcada como concluída'
+                                : 'O campo será habilitado quando a inscrição for marcada como concluída'}
                             </p>
                           )}
                         {isCourseFinished &&
@@ -1709,7 +1994,7 @@ export function EnrollmentsTable({
                     className="w-full bg-green-50 border border-green-200 text-green-700"
                     disabled={
                       selectedEnrollment.status === 'approved' ||
-                      isCourseFinished
+                      (isCourseFinished && !isOnlineCourseWithoutDates)
                     }
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />
@@ -1722,7 +2007,7 @@ export function EnrollmentsTable({
                     className="w-full bg-yellow-50 border border-yellow-200 text-yellow-700"
                     disabled={
                       selectedEnrollment.status === 'pending' ||
-                      isCourseFinished
+                      (isCourseFinished && !isOnlineCourseWithoutDates)
                     }
                   >
                     <Clock className="mr-2 h-4 w-4" />
@@ -1734,38 +2019,48 @@ export function EnrollmentsTable({
                     className="w-full bg-red-50! border border-red-200 text-red-700"
                     disabled={
                       selectedEnrollment.status === 'rejected' ||
-                      isCourseFinished
+                      (isCourseFinished && !isOnlineCourseWithoutDates)
                     }
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Recusar inscrição
                   </Button>
                 </div>
-                <Button
-                  onClick={() =>
-                    selectedEnrollment.status === 'concluded'
-                      ? handleRemoveConcludedStatus(selectedEnrollment)
-                      : handleConcludedCourse(selectedEnrollment)
-                  }
-                  className={`w-full ${
-                    selectedEnrollment.status === 'concluded'
-                      ? 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100'
-                      : 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100'
-                  }`}
-                  disabled={!isCourseFinished}
-                >
-                  {selectedEnrollment.status === 'concluded' ? (
-                    <>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Remover status de concluído
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Marcar como concluído
-                    </>
-                  )}
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                  <Button
+                    onClick={() =>
+                      selectedEnrollment.status === 'concluded'
+                        ? handleRemoveConcludedStatus(selectedEnrollment)
+                        : handleConcludedCourse(selectedEnrollment)
+                    }
+                    className={`w-full ${
+                      selectedEnrollment.status === 'concluded'
+                        ? 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100'
+                        : 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100'
+                    }`}
+                    disabled={!isCourseFinished}
+                  >
+                    {selectedEnrollment.status === 'concluded' ? (
+                      <>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Remover status de concluído
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Marcar como concluído
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => handleRejectEnrollment(selectedEnrollment)}
+                    className="w-full bg-red-50 border border-red-200 text-red-700 hover:bg-red-100"
+                    disabled={!isCourseFinished || selectedEnrollment.status === 'cancelled'}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Marcar como reprovado
+                  </Button>
+                </div>
               </SheetFooter>
             </>
           )}
@@ -1808,6 +2103,14 @@ export function EnrollmentsTable({
           >
             <CheckCircle className="mr-2 h-4 w-4" />
             Marcar como concluído
+          </DataTableActionBarAction>
+          <DataTableActionBarAction
+            tooltip="Marcar todas as inscrições selecionadas como reprovadas"
+            onClick={handleBulkRejectEnrollments}
+            disabled={!isCourseFinished}
+          >
+            <XCircle className="mr-2 h-4 w-4" />
+            Marcar como reprovado
           </DataTableActionBarAction>
           <DataTableActionBarAction
             tooltip="Exportar inscrições selecionadas para XLSX"

@@ -16,6 +16,7 @@ export interface ApiCourse {
   modalidade:
     | 'ONLINE'
     | 'PRESENCIAL'
+    | 'LIVRE_FORMACAO_ONLINE'
     | 'Remoto'
     | 'Presencial'
   status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled'
@@ -25,6 +26,7 @@ export interface ApiCourse {
   enrollment_end_date?: string | null
   // External partner fields
   is_external_partner?: boolean
+  course_management_type?: 'OWN_ORG' | 'EXTERNAL_MANAGED_BY_ORG' | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
   external_partner_url?: string
   external_partner_logo_url?: string
@@ -70,6 +72,7 @@ export interface CourseListItem {
   orgao_id?: string | null
   // External partner fields (optional for CourseListItem)
   is_external_partner?: boolean
+  course_management_type?: 'OWN_ORG' | 'EXTERNAL_MANAGED_BY_ORG' | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
 }
 
@@ -175,7 +178,7 @@ export interface Course {
   updated_at: Date
 }
 
-export type CourseModality = 'Presencial' | 'Remoto' | 'Semipresencial'
+export type CourseModality = 'Presencial' | 'Remoto' | 'Semipresencial' | 'Livre formação (online)'
 
 export interface CourseLocation {
   id: string
@@ -332,6 +335,7 @@ export interface EnrollmentSummary {
   confirmedCount: number
   pendingCount: number
   cancelledCount: number
+  rejectedCount: number
   concludedCount: number
   remainingVacancies: number
 }

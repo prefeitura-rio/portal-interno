@@ -39,7 +39,7 @@ export function DateTimePicker({
     if (value) {
       return format(value, 'HH:mm:ss')
     }
-    return '10:30:00'
+    return '00:00:00'
   })
 
   // Calculate year range: 5 years back and 5 years forward from current year
@@ -54,25 +54,32 @@ export function DateTimePicker({
       setTimeValue(format(value, 'HH:mm:ss'))
     } else {
       setSelectedDate(undefined)
-      setTimeValue('10:30:00')
+      setTimeValue('00:00:00')
     }
   }, [value])
 
   const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      // Parse the time and combine with the selected date
-      const [hours, minutes, seconds] = timeValue.split(':').map(Number)
-      const newDateTime = set(date, {
-        hours: hours || 0,
-        minutes: minutes || 0,
-        seconds: seconds || 0,
-        milliseconds: 0,
-      })
-
-      setSelectedDate(newDateTime)
-      onChange?.(newDateTime)
+    if (!date) {
+      // If date is undefined (user clicked on already selected date to unselect)
+      setSelectedDate(undefined)
+      setTimeValue('00:00:00')
+      onChange?.(undefined)
       setOpen(false)
+      return
     }
+
+    // Parse the time and combine with the selected date
+    const [hours, minutes, seconds] = timeValue.split(':').map(Number)
+    const newDateTime = set(date, {
+      hours: hours || 0,
+      minutes: minutes || 0,
+      seconds: seconds || 0,
+      milliseconds: 0,
+    })
+
+    setSelectedDate(newDateTime)
+    onChange?.(newDateTime)
+    setOpen(false)
   }
 
   const handleTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
