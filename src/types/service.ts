@@ -101,7 +101,9 @@ export interface ApiService {
 }
 
 // Utility functions to convert between API and Frontend models
-export const convertApiToFrontend = (apiService: ModelsPrefRioService): Service => {
+export const convertApiToFrontend = (
+  apiService: ModelsPrefRioService
+): Service => {
   // Determine status based on API fields
   let status: ServiceStatus = 'in_edition' // default
 
