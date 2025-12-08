@@ -24,7 +24,10 @@ import {
 import { useService } from '@/hooks/use-service'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import { type Tombamento, useTombamentos } from '@/hooks/use-tombamentos'
-import { transformToApiRequest } from '@/lib/service-data-transformer'
+import {
+  transformToApiRequest,
+  transformToFormData,
+} from '@/lib/service-data-transformer'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -129,6 +132,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     return {
       managingOrgan: service.managingOrgan,
       serviceCategory: service.serviceCategory,
+      serviceSubcategory: service.serviceSubcategory,
       targetAudience: service.targetAudience,
       title: service.title,
       shortDescription: service.shortDescription,
@@ -221,7 +225,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     try {
       setIsSaving(true)
       // Set status to 0 (draft/in_edition) and awaiting_approval to false
-      const apiData = transformToApiRequest(service)
+      const apiData = transformToApiRequest(transformToFormData(service))
       apiData.status = 0 // Set to draft/in_edition status
       apiData.awaiting_approval = false // Remove from awaiting approval
 
@@ -261,7 +265,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     try {
       setIsSaving(true)
       // Set awaiting_approval flag - this might need special handling in the API
-      const apiData = transformToApiRequest(service)
+      const apiData = transformToApiRequest(transformToFormData(service))
       apiData.awaiting_approval = true
       await updateService(servicoId, apiData)
 

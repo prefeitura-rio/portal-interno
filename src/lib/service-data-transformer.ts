@@ -8,6 +8,7 @@ import type { Service, ServiceButton, ServiceListItem } from '@/types/service'
 export interface ServiceFormData {
   managingOrgan: string
   serviceCategory: string
+  serviceSubcategory: string
   targetAudience: string
   title: string
   shortDescription: string
@@ -47,6 +48,7 @@ export function transformToApiRequest(
     descricao_completa: formData.fullDescription || '',
     orgao_gestor: [formData.managingOrgan],
     tema_geral: formData.serviceCategory,
+    sub_categoria: formData.serviceSubcategory,
     publico_especifico: [formData.targetAudience],
     custo_servico: formData.serviceCost || '',
     tempo_atendimento: formData.serviceTime || '',
@@ -88,6 +90,7 @@ export function transformFromApiResponse(apiService: ModelsPrefRioService): Serv
     fullDescription: apiService.descricao_completa,
     managingOrgan: apiService.orgao_gestor?.[0] || '',
     serviceCategory: apiService.tema_geral,
+    serviceSubcategory: apiService.sub_categoria,
     targetAudience: apiService.publico_especifico?.[0] || '',
     buttons: (apiService as any).buttons || undefined,
     serviceCost: apiService.custo_servico,
@@ -137,6 +140,7 @@ export function transformToFormData(service: Service): ServiceFormData {
   return {
     managingOrgan: service.managingOrgan,
     serviceCategory: service.serviceCategory,
+    serviceSubcategory: service.serviceSubcategory || '',
     targetAudience: service.targetAudience,
     title: service.title,
     shortDescription: service.shortDescription,
