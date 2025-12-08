@@ -1,6 +1,6 @@
 import type {
-  GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService,
-  GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest,
+  ModelsPrefRioService,
+  ModelsPrefRioServiceRequest,
 } from '@/http-busca-search/models'
 import type { Service, ServiceButton, ServiceListItem } from '@/types/service'
 
@@ -37,7 +37,7 @@ export function getCurrentTimestamp(): number {
  */
 export function transformToApiRequest(
   formData: ServiceFormData
-): GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest & {
+): ModelsPrefRioServiceRequest & {
   is_free?: boolean
   buttons?: ServiceButton[]
 } {
@@ -80,9 +80,7 @@ export function transformToApiRequest(
 /**
  * Transform API response to frontend service format
  */
-export function transformFromApiResponse(
-  apiService: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
-): Service {
+export function transformFromApiResponse(apiService: ModelsPrefRioService): Service {
   return {
     id: apiService.id || '',
     title: apiService.nome_servico,
@@ -118,7 +116,7 @@ export function transformFromApiResponse(
  * Transform API response to frontend service list item format
  */
 export function transformToServiceListItem(
-  apiService: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
+  apiService: ModelsPrefRioService
 ): ServiceListItem {
   return {
     id: apiService.id || '',

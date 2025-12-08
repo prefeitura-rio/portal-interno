@@ -14,9 +14,11 @@ import { Input } from '@/components/ui/input'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useIsBuscaServicesAdmin } from '@/hooks/use-heimdall-user'
 import { useServiceVersions } from '@/hooks/use-service-versions'
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsFieldChange } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsFieldChange'
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsServiceVersion } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsServiceVersion'
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff'
+import type {
+  ModelsFieldChange,
+  ModelsServiceVersion,
+  ModelsVersionDiff,
+} from '@/http-busca-search/models'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { RotateCcw } from 'lucide-react'
@@ -148,12 +150,12 @@ function formatTimestamp(timestamp?: number): string {
 }
 
 interface VersionDiffDisplayProps {
-  version: GithubComPrefeituraRioAppBuscaSearchInternalModelsServiceVersion
+  version: ModelsServiceVersion
   previousVersion?: number
   getVersionDiff: (
     fromVersion: number,
     toVersion: number
-  ) => Promise<GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff | null>
+  ) => Promise<ModelsVersionDiff | null>
 }
 
 function VersionDiffDisplay({
@@ -161,10 +163,7 @@ function VersionDiffDisplay({
   previousVersion,
   getVersionDiff,
 }: VersionDiffDisplayProps) {
-  const [diff, setDiff] =
-    useState<GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff | null>(
-      null
-    )
+  const [diff, setDiff] = useState<ModelsVersionDiff | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -214,11 +213,7 @@ function VersionDiffDisplay({
 
   return (
     <div className="space-y-4">
-      {filteredChanges.map(
-        (
-          change: GithubComPrefeituraRioAppBuscaSearchInternalModelsFieldChange,
-          index: number
-        ) => {
+      {filteredChanges.map((change: ModelsFieldChange, index: number) => {
           const fieldLabel =
             fieldLabels[change.field_name || ''] ||
             change.field_name ||

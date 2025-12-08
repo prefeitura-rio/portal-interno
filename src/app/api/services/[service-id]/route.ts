@@ -3,7 +3,7 @@ import {
   getApiV1AdminServices,
   putApiV1AdminServicesId,
 } from '@/http-busca-search/admin/admin'
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest } from '@/http-busca-search/models'
+import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import { convertApiToFrontend } from '@/types/service'
 import { revalidateTag } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -93,8 +93,7 @@ export async function PUT(
       )
     }
 
-    const serviceRequest: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest =
-      body
+    const serviceRequest: ModelsPrefRioServiceRequest = body
 
     // Call the external API to update the service
     const response = await putApiV1AdminServicesId(serviceId, serviceRequest)

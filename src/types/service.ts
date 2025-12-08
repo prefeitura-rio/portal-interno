@@ -1,4 +1,4 @@
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService'
+import type { ModelsPrefRioService } from '@/http-busca-search/models'
 
 export interface ServiceListItem {
   id: string
@@ -60,7 +60,7 @@ export interface Service {
   author?: string // Maps to autor: string
 }
 
-// API Response model (exact match with GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService)
+// API Response model (exact match with ModelsPrefRioService)
 export interface ApiService {
   id?: string
   autor: string
@@ -98,9 +98,7 @@ export interface ApiService {
 }
 
 // Utility functions to convert between API and Frontend models
-export const convertApiToFrontend = (
-  apiService: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
-): Service => {
+export const convertApiToFrontend = (apiService: ModelsPrefRioService): Service => {
   // Determine status based on API fields
   let status: ServiceStatus = 'in_edition' // default
 
@@ -144,7 +142,7 @@ export const convertApiToFrontend = (
 
 export const convertFrontendToApi = (
   frontendService: Service
-): Partial<GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService> => {
+): Partial<ModelsPrefRioService> => {
   // Determine API status and awaiting_approval from frontend status
   let apiStatus = 0
   let awaitingApproval = false
@@ -193,5 +191,5 @@ export const convertFrontendToApi = (
     status: apiStatus,
     tema_geral: frontendService.serviceCategory,
     tempo_atendimento: frontendService.serviceTime || '',
-  } as Partial<GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService>
+  } as Partial<ModelsPrefRioService>
 }

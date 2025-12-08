@@ -19,11 +19,11 @@ import type {
   GetApiV1AdminServicesIdVersionsVersion401,
   GetApiV1AdminServicesIdVersionsVersion404,
   GetApiV1AdminServicesIdVersionsVersion500,
-  GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService,
-  GithubComPrefeituraRioAppBuscaSearchInternalModelsRollbackRequest,
-  GithubComPrefeituraRioAppBuscaSearchInternalModelsServiceVersion,
-  GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff,
-  GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory,
+  ModelsPrefRioService,
+  ModelsRollbackRequest,
+  ModelsServiceVersion,
+  ModelsVersionDiff,
+  ModelsVersionHistory,
   PostApiV1AdminServicesIdRollback400,
   PostApiV1AdminServicesIdRollback401,
   PostApiV1AdminServicesIdRollback404,
@@ -37,7 +37,7 @@ import { customFetchBuscaSearch } from '../../../custom-fetch-busca-search'
  * @summary Realiza rollback de um serviço para uma versão anterior
  */
 export type postApiV1AdminServicesIdRollbackResponse200 = {
-  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
+  data: ModelsPrefRioService
   status: 200
 }
 
@@ -79,7 +79,7 @@ export const getPostApiV1AdminServicesIdRollbackUrl = (id: string) => {
 
 export const postApiV1AdminServicesIdRollback = async (
   id: string,
-  githubComPrefeituraRioAppBuscaSearchInternalModelsRollbackRequest: GithubComPrefeituraRioAppBuscaSearchInternalModelsRollbackRequest,
+  modelsRollbackRequest: ModelsRollbackRequest,
   options?: RequestInit
 ): Promise<postApiV1AdminServicesIdRollbackResponse> => {
   return customFetchBuscaSearch<postApiV1AdminServicesIdRollbackResponse>(
@@ -88,9 +88,7 @@ export const postApiV1AdminServicesIdRollback = async (
       ...options,
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(
-        githubComPrefeituraRioAppBuscaSearchInternalModelsRollbackRequest
-      ),
+      body: JSON.stringify(modelsRollbackRequest),
     }
   )
 }
@@ -100,7 +98,7 @@ export const postApiV1AdminServicesIdRollback = async (
  * @summary Lista todas as versões de um serviço
  */
 export type getApiV1AdminServicesIdVersionsResponse200 = {
-  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory
+  data: ModelsVersionHistory
   status: 200
 }
 
@@ -164,73 +162,11 @@ export const getApiV1AdminServicesIdVersions = async (
 }
 
 /**
- * Retorna os detalhes de uma versão específica
- * @summary Busca uma versão específica de um serviço
- */
-export type getApiV1AdminServicesIdVersionsVersionResponse200 = {
-  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsServiceVersion
-  status: 200
-}
-
-export type getApiV1AdminServicesIdVersionsVersionResponse400 = {
-  data: GetApiV1AdminServicesIdVersionsVersion400
-  status: 400
-}
-
-export type getApiV1AdminServicesIdVersionsVersionResponse401 = {
-  data: GetApiV1AdminServicesIdVersionsVersion401
-  status: 401
-}
-
-export type getApiV1AdminServicesIdVersionsVersionResponse404 = {
-  data: GetApiV1AdminServicesIdVersionsVersion404
-  status: 404
-}
-
-export type getApiV1AdminServicesIdVersionsVersionResponse500 = {
-  data: GetApiV1AdminServicesIdVersionsVersion500
-  status: 500
-}
-
-export type getApiV1AdminServicesIdVersionsVersionResponseComposite =
-  | getApiV1AdminServicesIdVersionsVersionResponse200
-  | getApiV1AdminServicesIdVersionsVersionResponse400
-  | getApiV1AdminServicesIdVersionsVersionResponse401
-  | getApiV1AdminServicesIdVersionsVersionResponse404
-  | getApiV1AdminServicesIdVersionsVersionResponse500
-
-export type getApiV1AdminServicesIdVersionsVersionResponse =
-  getApiV1AdminServicesIdVersionsVersionResponseComposite & {
-    headers: Headers
-  }
-
-export const getGetApiV1AdminServicesIdVersionsVersionUrl = (
-  id: string,
-  version: number
-) => {
-  return `/api/v1/admin/services/${id}/versions/${version}`
-}
-
-export const getApiV1AdminServicesIdVersionsVersion = async (
-  id: string,
-  version: number,
-  options?: RequestInit
-): Promise<getApiV1AdminServicesIdVersionsVersionResponse> => {
-  return customFetchBuscaSearch<getApiV1AdminServicesIdVersionsVersionResponse>(
-    getGetApiV1AdminServicesIdVersionsVersionUrl(id, version),
-    {
-      ...options,
-      method: 'GET',
-    }
-  )
-}
-
-/**
  * Retorna as diferenças entre duas versões
  * @summary Compara duas versões de um serviço
  */
 export type getApiV1AdminServicesIdVersionsCompareResponse200 = {
-  data: GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff
+  data: ModelsVersionDiff
   status: 200
 }
 
@@ -292,6 +228,68 @@ export const getApiV1AdminServicesIdVersionsCompare = async (
 ): Promise<getApiV1AdminServicesIdVersionsCompareResponse> => {
   return customFetchBuscaSearch<getApiV1AdminServicesIdVersionsCompareResponse>(
     getGetApiV1AdminServicesIdVersionsCompareUrl(id, params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
+}
+
+/**
+ * Retorna os detalhes de uma versão específica
+ * @summary Busca uma versão específica de um serviço
+ */
+export type getApiV1AdminServicesIdVersionsVersionResponse200 = {
+  data: ModelsServiceVersion
+  status: 200
+}
+
+export type getApiV1AdminServicesIdVersionsVersionResponse400 = {
+  data: GetApiV1AdminServicesIdVersionsVersion400
+  status: 400
+}
+
+export type getApiV1AdminServicesIdVersionsVersionResponse401 = {
+  data: GetApiV1AdminServicesIdVersionsVersion401
+  status: 401
+}
+
+export type getApiV1AdminServicesIdVersionsVersionResponse404 = {
+  data: GetApiV1AdminServicesIdVersionsVersion404
+  status: 404
+}
+
+export type getApiV1AdminServicesIdVersionsVersionResponse500 = {
+  data: GetApiV1AdminServicesIdVersionsVersion500
+  status: 500
+}
+
+export type getApiV1AdminServicesIdVersionsVersionResponseComposite =
+  | getApiV1AdminServicesIdVersionsVersionResponse200
+  | getApiV1AdminServicesIdVersionsVersionResponse400
+  | getApiV1AdminServicesIdVersionsVersionResponse401
+  | getApiV1AdminServicesIdVersionsVersionResponse404
+  | getApiV1AdminServicesIdVersionsVersionResponse500
+
+export type getApiV1AdminServicesIdVersionsVersionResponse =
+  getApiV1AdminServicesIdVersionsVersionResponseComposite & {
+    headers: Headers
+  }
+
+export const getGetApiV1AdminServicesIdVersionsVersionUrl = (
+  id: string,
+  version: number
+) => {
+  return `/api/v1/admin/services/${id}/versions/${version}`
+}
+
+export const getApiV1AdminServicesIdVersionsVersion = async (
+  id: string,
+  version: number,
+  options?: RequestInit
+): Promise<getApiV1AdminServicesIdVersionsVersionResponse> => {
+  return customFetchBuscaSearch<getApiV1AdminServicesIdVersionsVersionResponse>(
+    getGetApiV1AdminServicesIdVersionsVersionUrl(id, version),
     {
       ...options,
       method: 'GET',

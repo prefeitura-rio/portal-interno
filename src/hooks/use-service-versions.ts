@@ -1,16 +1,18 @@
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff'
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory'
+import type {
+  ModelsVersionDiff,
+  ModelsVersionHistory,
+} from '@/http-busca-search/models'
 import { useCallback, useEffect, useState } from 'react'
 
 interface UseServiceVersionsReturn {
-  versions: GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory | null
+  versions: ModelsVersionHistory | null
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
   getVersionDiff: (
     fromVersion: number,
     toVersion: number
-  ) => Promise<GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff | null>
+  ) => Promise<ModelsVersionDiff | null>
   rollbackToVersion: (
     toVersion: number,
     changeReason?: string
@@ -22,10 +24,7 @@ export function useServiceVersions(
   page = 1,
   perPage = 50
 ): UseServiceVersionsReturn {
-  const [versions, setVersions] =
-    useState<GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionHistory | null>(
-      null
-    )
+  const [versions, setVersions] = useState<ModelsVersionHistory | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -89,7 +88,7 @@ export function useServiceVersions(
     async (
       fromVersion: number,
       toVersion: number
-    ): Promise<GithubComPrefeituraRioAppBuscaSearchInternalModelsVersionDiff | null> => {
+    ): Promise<ModelsVersionDiff | null> => {
       if (!serviceId) return null
 
       try {
