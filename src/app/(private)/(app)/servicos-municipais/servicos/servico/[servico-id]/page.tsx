@@ -18,13 +18,21 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
 } from '@/hooks/use-heimdall-user'
 import { useService } from '@/hooks/use-service'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import { type Tombamento, useTombamentos } from '@/hooks/use-tombamentos'
-import { transformToApiRequest } from '@/lib/service-data-transformer'
+import {
+  transformToApiRequest,
+  transformToFormData,
+} from '@/lib/service-data-transformer'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -36,6 +44,7 @@ import {
   CheckCircle,
   Clock,
   Edit,
+  Link as LinkIcon,
   Save,
   X,
 } from 'lucide-react'
@@ -129,6 +138,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     return {
       managingOrgan: service.managingOrgan,
       serviceCategory: service.serviceCategory,
+      serviceSubcategory: service.serviceSubcategory,
       targetAudience: service.targetAudience,
       title: service.title,
       shortDescription: service.shortDescription,
@@ -221,7 +231,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     try {
       setIsSaving(true)
       // Set status to 0 (draft/in_edition) and awaiting_approval to false
-      const apiData = transformToApiRequest(service)
+      const apiData = transformToApiRequest(transformToFormData(service))
       apiData.status = 0 // Set to draft/in_edition status
       apiData.awaiting_approval = false // Remove from awaiting approval
 
@@ -261,7 +271,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     try {
       setIsSaving(true)
       // Set awaiting_approval flag - this might need special handling in the API
-      const apiData = transformToApiRequest(service)
+      const apiData = transformToApiRequest(transformToFormData(service))
       apiData.awaiting_approval = true
       await updateService(servicoId, apiData)
 
@@ -513,9 +523,42 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           {/* Header */}
           <div className="flex items-start justify-between md:flex-row flex-col gap-4 md:gap-6">
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
-                {service.title}
-              </h1>
+              {service.status === 'published' &&
+              service.serviceCategory &&
+              service.slug ? (
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={`${process.env.NEXT_PUBLIC_BASE_URL_APP || ''}/servicos/categoria/${service.serviceCategory}/${service.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline group"
+                      >
+                        <span>
+                          {service.title}{' '}
+                          <LinkIcon
+                            strokeWidth={1.5}
+                            className="inline h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors align-middle ml-1"
+                          />
+                        </span>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p className="font-medium">
+                        Acesse o serviço no pref.rio
+                      </p>
+                      <p className="text-xs text-muted/70">
+                        Alterações levam 10 minutos para serem refletidas.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </h1>
+              ) : (
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
+                  {service.title}
+                </h1>
+              )}
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge

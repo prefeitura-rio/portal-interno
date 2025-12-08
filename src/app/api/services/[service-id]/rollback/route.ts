@@ -1,5 +1,4 @@
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService'
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsRollbackRequest } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsRollbackRequest'
+import type { ModelsPrefRioService, ModelsRollbackRequest } from '@/http-busca-search/models'
 import { postApiV1AdminServicesIdRollback } from '@/http-busca-search/versions/versions'
 import { convertApiToFrontend } from '@/types/service'
 import { revalidateTag } from 'next/cache'
@@ -34,11 +33,10 @@ export async function POST(
       body.to_version
     )
 
-    const rollbackRequest: GithubComPrefeituraRioAppBuscaSearchInternalModelsRollbackRequest =
-      {
-        to_version: body.to_version,
-        change_reason: body.change_reason || undefined,
-      }
+    const rollbackRequest: ModelsRollbackRequest = {
+      to_version: body.to_version,
+      change_reason: body.change_reason || undefined,
+    }
 
     // Call the external API to rollback the service
     const response = await postApiV1AdminServicesIdRollback(
@@ -55,16 +53,13 @@ export async function POST(
       revalidateTag(`service-${serviceId}`)
 
       // Convert API response to frontend format
-      const serviceData =
-        (
-          responseBody as {
-            data?: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
-          }
-        ).data ?? responseBody
+      const serviceData = (
+        responseBody as {
+          data?: ModelsPrefRioService
+        }
+      ).data ?? responseBody
 
-      const service = convertApiToFrontend(
-        serviceData as GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
-      )
+      const service = convertApiToFrontend(serviceData as ModelsPrefRioService)
 
       return NextResponse.json({
         service,
