@@ -59,6 +59,7 @@ export interface Service {
   last_update: Date // Convert from last_update: number
   created_at: Date // Convert from created_at: number
   author?: string // Maps to autor: string
+  slug?: string // Maps to slug: string
 }
 
 // API Response model (exact match with ModelsPrefRioService)
@@ -140,6 +141,7 @@ export const convertApiToFrontend = (apiService: ModelsPrefRioService): Service 
       : null,
     last_update: new Date((apiService.last_update || Date.now()) * 1000),
     created_at: new Date((apiService.created_at || Date.now()) * 1000),
+    slug: apiService.slug,
   }
 }
 
