@@ -1,16 +1,16 @@
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest } from '@/http-busca-search/models'
+import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
 interface UseServiceOperationsReturn {
   createService: (
-    data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest & {
+    data: ModelsPrefRioServiceRequest & {
       is_free?: boolean
     }
   ) => Promise<any>
   updateService: (
     id: string,
-    data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest & {
+    data: ModelsPrefRioServiceRequest & {
       is_free?: boolean
     }
   ) => Promise<any>
@@ -30,7 +30,7 @@ export function useServiceOperations(): UseServiceOperationsReturn {
 
   const createService = useCallback(
     async (
-      data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest & {
+      data: ModelsPrefRioServiceRequest & {
         is_free?: boolean
       }
     ) => {
@@ -76,7 +76,7 @@ export function useServiceOperations(): UseServiceOperationsReturn {
   const updateService = useCallback(
     async (
       id: string,
-      data: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest & {
+      data: ModelsPrefRioServiceRequest & {
         is_free?: boolean
       }
     ) => {

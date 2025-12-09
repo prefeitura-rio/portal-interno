@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
+import { SubcategoryCombobox } from '@/components/ui/subcategory-combobox'
 import {
   Form,
   FormControl,
@@ -229,6 +230,9 @@ const serviceFormSchema = z.object({
   serviceCategory: z
     .string()
     .min(1, { message: 'Categoria do serviço é obrigatória.' }),
+  serviceSubcategory: z
+    .string()
+    .min(1, { message: 'Subcategoria do serviço é obrigatória.' }),
   targetAudience: z
     .string()
     .min(1, { message: 'Público específico é obrigatório.' }),
@@ -321,6 +325,7 @@ type ServiceFormData = z.infer<typeof serviceFormSchema>
 const defaultValues: ServiceFormData = {
   managingOrgan: '',
   serviceCategory: '',
+  serviceSubcategory: '',
   targetAudience: '',
   title: '',
   shortDescription: '',
@@ -604,6 +609,7 @@ export function NewServiceForm({
     const fieldsToCheck: (keyof ServiceFormData)[] = [
       'managingOrgan',
       'serviceCategory',
+      'serviceSubcategory',
       'targetAudience',
       'title',
       'shortDescription',
@@ -1236,7 +1242,11 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Categoria do serviço*</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value)
+                        // Clear subcategory when category changes
+                        form.setValue('serviceSubcategory', '')
+                      }}
                       defaultValue={field.value}
                       disabled={isLoading || readOnly}
                     >
@@ -1271,6 +1281,26 @@ export function NewServiceForm({
                         <SelectItem value="Peticionamentos">Peticionamentos</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="serviceSubcategory"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subcategoria do serviço*</FormLabel>
+                    <FormControl>
+                      <SubcategoryCombobox
+                        category={form.watch('serviceCategory')}
+                        value={field.value || ''}
+                        onValueChange={field.onChange}
+                        disabled={isLoading || readOnly}
+                        placeholder="Selecione a subcategoria"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

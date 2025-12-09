@@ -1,10 +1,9 @@
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService'
+import type { ModelsPrefRioService } from '@/http-busca-search/models'
 import type { Service, ServiceListItem } from '@/types/service'
 import { convertApiToFrontend } from '@/types/service'
 
 // Mock API data that matches the real API structure
-export const mockApiServices: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService[] =
-  [
+export const mockApiServices: ModelsPrefRioService[] = [
     {
       id: '1',
       autor: 'João Silva',

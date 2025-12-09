@@ -5,7 +5,7 @@
  * It provides a centralized place to manage the conversion between API models and frontend models.
  */
 
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService'
+import type { ModelsPrefRioService } from '@/http-busca-search/models'
 import type { Service, ServiceListItem } from '@/types/service'
 import { convertApiToFrontend, convertFrontendToApi } from '@/types/service'
 
@@ -61,9 +61,7 @@ export async function fetchServiceById(serviceId: string): Promise<Service> {
   }
 
   // Convert API model to frontend model
-  return convertApiToFrontend(
-    data.service as GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
-  )
+  return convertApiToFrontend(data.service as ModelsPrefRioService)
 }
 
 /**
@@ -144,10 +142,7 @@ export async function fetchServices(params?: {
   }
 
   // Convert API models to frontend models
-  const services = data.services.map(
-    (
-      apiService: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
-    ) => {
+  const services = data.services.map((apiService: ModelsPrefRioService) => {
       const converted = convertApiToFrontend(apiService)
       return {
         id: converted.id,
@@ -211,9 +206,7 @@ export async function createService(
     throw new Error(data.error || 'Failed to create service')
   }
 
-  return convertApiToFrontend(
-    data.service as GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
-  )
+  return convertApiToFrontend(data.service as ModelsPrefRioService)
 }
 
 /**
@@ -257,9 +250,7 @@ export async function updateService(
     throw new Error(data.error || 'Failed to update service')
   }
 
-  return convertApiToFrontend(
-    data.service as GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
-  )
+  return convertApiToFrontend(data.service as ModelsPrefRioService)
 }
 
 /**

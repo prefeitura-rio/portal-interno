@@ -3,7 +3,7 @@ import {
   getGetApiV1AdminServicesUrl,
   postApiV1AdminServices,
 } from '@/http-busca-search/admin/admin'
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest } from '@/http-busca-search/models'
+import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import type { GetApiV1AdminServicesParams } from '@/http-busca-search/models/getApiV1AdminServicesParams'
 import type { ServiceListItem, ServiceStatus } from '@/types/service'
 import { convertApiToFrontend } from '@/types/service'
@@ -161,11 +161,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const serviceRequest: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest =
-      {
-        ...body,
-        status: body.status ?? 0, // Default to draft
-      }
+    const serviceRequest: ModelsPrefRioServiceRequest = {
+      ...body,
+      status: body.status ?? 0, // Default to draft
+    }
 
     // Call the external API to create the service
     const response = await postApiV1AdminServices(serviceRequest)

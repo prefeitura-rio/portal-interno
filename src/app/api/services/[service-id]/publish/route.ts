@@ -2,7 +2,7 @@ import {
   getApiV1AdminServices,
   putApiV1AdminServicesId,
 } from '@/http-busca-search/admin/admin'
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest } from '@/http-busca-search/models'
+import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import { getCurrentTimestamp } from '@/lib/service-data-transformer'
 import { convertApiToFrontend } from '@/types/service'
 import { revalidateTag } from 'next/cache'
@@ -73,7 +73,7 @@ export async function PATCH(
       fixar_destaque: currentService.fixar_destaque,
       status: 1, // Set to published
       published_at: currentTimestamp, // Set published timestamp
-    } as GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest & {
+    } as ModelsPrefRioServiceRequest & {
       published_at: number
     }
 

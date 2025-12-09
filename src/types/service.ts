@@ -1,4 +1,4 @@
-import type { GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService } from '@/http-busca-search/models/githubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService'
+import type { ModelsPrefRioService } from '@/http-busca-search/models'
 
 export interface ServiceListItem {
   id: string
@@ -38,6 +38,7 @@ export interface Service {
   id: string
   managingOrgan: string // Will convert from orgao_gestor: string[]
   serviceCategory: string // Maps to tema_geral: string
+  serviceSubcategory?: string // Maps to sub_categoria: string
   targetAudience: string // Will convert from publico_especifico: string[]
   title: string // Maps to nome_servico: string
   shortDescription: string // Maps to resumo: string
@@ -58,9 +59,10 @@ export interface Service {
   last_update: Date // Convert from last_update: number
   created_at: Date // Convert from created_at: number
   author?: string // Maps to autor: string
+  slug?: string // Maps to slug: string
 }
 
-// API Response model (exact match with GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService)
+// API Response model (exact match with ModelsPrefRioService)
 export interface ApiService {
   id?: string
   autor: string
@@ -86,6 +88,7 @@ export interface ApiService {
   search_content?: string
   servico_nao_cobre?: string
   status?: number // 0=Draft, 1=Published
+  sub_categoria?: string
   tema_geral: string
   tempo_atendimento: string
   buttons?: Array<{
@@ -99,7 +102,7 @@ export interface ApiService {
 
 // Utility functions to convert between API and Frontend models
 export const convertApiToFrontend = (
-  apiService: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
+  apiService: ModelsPrefRioService
 ): Service => {
   // Determine status based on API fields
   let status: ServiceStatus = 'in_edition' // default
@@ -118,6 +121,7 @@ export const convertApiToFrontend = (
     id: apiService.id || '',
     managingOrgan: apiService.orgao_gestor?.[0] || '', // Take first organ
     serviceCategory: apiService.tema_geral,
+    serviceSubcategory: apiService.sub_categoria,
     targetAudience: apiService.publico_especifico?.[0] || '', // Take first audience
     title: apiService.nome_servico,
     shortDescription: apiService.resumo,
@@ -139,12 +143,13 @@ export const convertApiToFrontend = (
       : null,
     last_update: new Date((apiService.last_update || Date.now()) * 1000),
     created_at: new Date((apiService.created_at || Date.now()) * 1000),
+    slug: apiService.slug,
   }
 }
 
 export const convertFrontendToApi = (
   frontendService: Service
-): Partial<GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService> => {
+): Partial<ModelsPrefRioService> => {
   // Determine API status and awaiting_approval from frontend status
   let apiStatus = 0
   let awaitingApproval = false
@@ -191,7 +196,8 @@ export const convertFrontendToApi = (
     resumo: frontendService.shortDescription,
     servico_nao_cobre: frontendService.whatServiceDoesNotCover,
     status: apiStatus,
+    sub_categoria: frontendService.serviceSubcategory,
     tema_geral: frontendService.serviceCategory,
     tempo_atendimento: frontendService.serviceTime || '',
-  } as Partial<GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService>
+  } as Partial<ModelsPrefRioService>
 }

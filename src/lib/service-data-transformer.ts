@@ -1,6 +1,6 @@
 import type {
-  GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService,
-  GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest,
+  ModelsPrefRioService,
+  ModelsPrefRioServiceRequest,
 } from '@/http-busca-search/models'
 import type { Service, ServiceButton, ServiceListItem } from '@/types/service'
 
@@ -8,6 +8,7 @@ import type { Service, ServiceButton, ServiceListItem } from '@/types/service'
 export interface ServiceFormData {
   managingOrgan: string
   serviceCategory: string
+  serviceSubcategory: string
   targetAudience: string
   title: string
   shortDescription: string
@@ -37,7 +38,7 @@ export function getCurrentTimestamp(): number {
  */
 export function transformToApiRequest(
   formData: ServiceFormData
-): GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioServiceRequest & {
+): ModelsPrefRioServiceRequest & {
   is_free?: boolean
   buttons?: ServiceButton[]
 } {
@@ -47,6 +48,7 @@ export function transformToApiRequest(
     descricao_completa: formData.fullDescription || '',
     orgao_gestor: [formData.managingOrgan],
     tema_geral: formData.serviceCategory,
+    sub_categoria: formData.serviceSubcategory,
     publico_especifico: [formData.targetAudience],
     custo_servico: formData.serviceCost || '',
     tempo_atendimento: formData.serviceTime || '',
@@ -80,9 +82,7 @@ export function transformToApiRequest(
 /**
  * Transform API response to frontend service format
  */
-export function transformFromApiResponse(
-  apiService: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
-): Service {
+export function transformFromApiResponse(apiService: ModelsPrefRioService): Service {
   return {
     id: apiService.id || '',
     title: apiService.nome_servico,
@@ -90,6 +90,7 @@ export function transformFromApiResponse(
     fullDescription: apiService.descricao_completa,
     managingOrgan: apiService.orgao_gestor?.[0] || '',
     serviceCategory: apiService.tema_geral,
+    serviceSubcategory: apiService.sub_categoria,
     targetAudience: apiService.publico_especifico?.[0] || '',
     buttons: (apiService as any).buttons || undefined,
     serviceCost: apiService.custo_servico,
@@ -118,7 +119,7 @@ export function transformFromApiResponse(
  * Transform API response to frontend service list item format
  */
 export function transformToServiceListItem(
-  apiService: GithubComPrefeituraRioAppBuscaSearchInternalModelsPrefRioService
+  apiService: ModelsPrefRioService
 ): ServiceListItem {
   return {
     id: apiService.id || '',
@@ -139,6 +140,7 @@ export function transformToFormData(service: Service): ServiceFormData {
   return {
     managingOrgan: service.managingOrgan,
     serviceCategory: service.serviceCategory,
+    serviceSubcategory: service.serviceSubcategory || '',
     targetAudience: service.targetAudience,
     title: service.title,
     shortDescription: service.shortDescription,
