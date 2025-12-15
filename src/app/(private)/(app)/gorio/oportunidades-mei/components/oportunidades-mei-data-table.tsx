@@ -101,10 +101,21 @@ function transformAPIToDataTable(
   opportunity: ModelsOportunidadeMEI
 ): OportunidadeMEI {
   const opp = opportunity as any
+  // Format subclasses for display - show first 2 or count if more
+  const subclasses = opp.subclasses || []
+  const activityDisplay =
+    subclasses.length === 0
+      ? 'Sem subclasses'
+      : subclasses.length === 1
+        ? subclasses[0]
+        : subclasses.length <= 2
+          ? subclasses.join(', ')
+          : `${subclasses.slice(0, 2).join(', ')} (+${subclasses.length - 2})`
+  
   return {
     id: String(opp.id || ''),
     title: String(opp.titulo || ''),
-    activity: String(opp.cnae?.servico || ''),
+    activity: activityDisplay,
     offeredBy: String(opp.orgao?.nome || ''),
     publishedAt:
       opp.status === 'draft' ? null : opp.created_at?.split('T')?.[0] || null,

@@ -7,6 +7,7 @@ import {
   type NewCourseFormRef,
 } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { Badge } from '@/components/ui/badge'
 import { useDepartment } from '@/hooks/use-department'
 import {
@@ -128,6 +129,9 @@ export default function CourseDetailPage({
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('about')
   const [isLoading, setIsLoading] = useState(false)
+  const [hasFormChanges, setHasFormChanges] = useState(false)
+  const [showTabChangeDialog, setShowTabChangeDialog] = useState(false)
+  const [pendingTab, setPendingTab] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
   const [courseId, setCourseId] = useState<number | null>(null)
@@ -193,11 +197,30 @@ export default function CourseDetailPage({
     }
   }, [searchParams, course, updateTabInUrl])
 
-  // Handler for tab change
-  const handleTabChange = (newTab: string) => {
-    setActiveTab(newTab)
-    updateTabInUrl(newTab)
-  }
+  // Handler for tab change - intercept if editing with unsaved changes
+  const handleTabChange = useCallback((newTab: string) => {
+    if (isEditing && hasFormChanges && newTab !== activeTab) {
+      setPendingTab(newTab)
+      setShowTabChangeDialog(true)
+    } else {
+      setActiveTab(newTab)
+      updateTabInUrl(newTab)
+    }
+  }, [isEditing, hasFormChanges, activeTab, updateTabInUrl])
+
+  const handleConfirmTabChange = useCallback(() => {
+    if (pendingTab) {
+      setActiveTab(pendingTab)
+      updateTabInUrl(pendingTab)
+      setPendingTab(null)
+    }
+    setShowTabChangeDialog(false)
+  }, [pendingTab, updateTabInUrl])
+
+  const handleCancelTabChange = useCallback(() => {
+    setPendingTab(null)
+    setShowTabChangeDialog(false)
+  }, [])
 
   const handleEdit = () => {
     setIsEditing(true)
@@ -800,6 +823,10 @@ export default function CourseDetailPage({
 
   return (
     <ContentLayout title="Detalhes do Curso">
+      <UnsavedChangesGuard
+        hasUnsavedChanges={isEditing && hasFormChanges}
+        message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
+      />
       <div className="space-y-6">
         {/* Breadcrumb */}
         <div className="flex flex-col gap-2">
@@ -965,6 +992,7 @@ export default function CourseDetailPage({
                 onPublish={handlePublish}
                 isDraft={isDraft}
                 courseStatus={course.status as string}
+                onFormChangesDetected={setHasFormChanges}
               />
             </div>
           </div>
@@ -976,8 +1004,10 @@ export default function CourseDetailPage({
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="about">Sobre o curso</TabsTrigger>
-              <TabsTrigger value="enrollments" disabled={isEditing}>
+              <TabsTrigger value="about" disabled={isEditing && hasFormChanges}>
+                Sobre o curso
+              </TabsTrigger>
+              <TabsTrigger value="enrollments" disabled={isEditing || (isEditing && hasFormChanges)}>
                 <Users className="w-4 h-4 mr-2" />
                 Inscrições
               </TabsTrigger>
@@ -996,6 +1026,7 @@ export default function CourseDetailPage({
                   onPublish={handlePublish}
                   isDraft={isDraft}
                   courseStatus={course.status as string}
+                  onFormChangesDetected={setHasFormChanges}
                 />
               </div>
             </TabsContent>
@@ -1104,6 +1135,19 @@ export default function CourseDetailPage({
             confirmReopenCourse()
           }
         }}
+      />
+
+      {/* Modal de confirmação para mudança de tab */}
+      <ConfirmDialog
+        open={showTabChangeDialog}
+        onOpenChange={setShowTabChangeDialog}
+        title="Alterações não salvas"
+        description="Você tem alterações não salvas. Tem certeza que deseja mudar de aba? As alterações serão perdidas."
+        confirmText="Mudar de aba"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={handleConfirmTabChange}
+        onCancel={handleCancelTabChange}
       />
     </ContentLayout>
   )

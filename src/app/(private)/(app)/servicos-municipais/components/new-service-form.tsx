@@ -427,7 +427,8 @@ export function NewServiceForm({
     useState<ServiceFormData | null>(null)
   const [digitalChannels, setDigitalChannels] = useState<string[]>(() => {
     try {
-      return sanitizedInitialData && sanitizedInitialData.digitalChannels?.length > 0
+      return sanitizedInitialData &&
+        sanitizedInitialData.digitalChannels?.length > 0
         ? sanitizedInitialData.digitalChannels
         : ['']
     } catch {
@@ -436,7 +437,8 @@ export function NewServiceForm({
   })
   const [channelErrors, setChannelErrors] = useState<string[]>(() => {
     try {
-      return sanitizedInitialData && sanitizedInitialData.digitalChannels?.length > 0
+      return sanitizedInitialData &&
+        sanitizedInitialData.digitalChannels?.length > 0
         ? sanitizedInitialData.digitalChannels.map(() => '')
         : ['']
     } catch {
@@ -445,32 +447,38 @@ export function NewServiceForm({
   })
   const [physicalChannels, setPhysicalChannels] = useState<string[]>(() => {
     try {
-      return sanitizedInitialData && sanitizedInitialData.physicalChannels?.length > 0
+      return sanitizedInitialData &&
+        sanitizedInitialData.physicalChannels?.length > 0
         ? sanitizedInitialData.physicalChannels
         : ['']
     } catch {
       return ['']
     }
   })
-  const [physicalChannelErrors, setPhysicalChannelErrors] = useState<string[]>(() => {
-    try {
-      return sanitizedInitialData && sanitizedInitialData.physicalChannels?.length > 0
-        ? sanitizedInitialData.physicalChannels.map(() => '')
-        : ['']
-    } catch {
-      return ['']
+  const [physicalChannelErrors, setPhysicalChannelErrors] = useState<string[]>(
+    () => {
+      try {
+        return sanitizedInitialData &&
+          sanitizedInitialData.physicalChannels?.length > 0
+          ? sanitizedInitialData.physicalChannels.map(() => '')
+          : ['']
+      } catch {
+        return ['']
+      }
     }
-  })
-  const [legislacaoRelacionada, setLegislacaoRelacionada] = useState<string[]>(() => {
-    try {
-      return sanitizedInitialData &&
-        sanitizedInitialData.legislacaoRelacionada?.length > 0
-        ? sanitizedInitialData.legislacaoRelacionada
-        : ['']
-    } catch {
-      return ['']
+  )
+  const [legislacaoRelacionada, setLegislacaoRelacionada] = useState<string[]>(
+    () => {
+      try {
+        return sanitizedInitialData &&
+          sanitizedInitialData.legislacaoRelacionada?.length > 0
+          ? sanitizedInitialData.legislacaoRelacionada
+          : ['']
+      } catch {
+        return ['']
+      }
     }
-  })
+  )
   const [legislacaoErrors, setLegislacaoErrors] = useState<string[]>(() => {
     try {
       return sanitizedInitialData &&
@@ -483,7 +491,8 @@ export function NewServiceForm({
   })
   const [serviceButtons, setServiceButtons] = useState<ServiceButton[]>(() => {
     try {
-      return sanitizedInitialData?.buttons && sanitizedInitialData.buttons.length > 0
+      return sanitizedInitialData?.buttons &&
+        sanitizedInitialData.buttons.length > 0
         ? sanitizedInitialData.buttons
         : []
     } catch {
@@ -492,7 +501,8 @@ export function NewServiceForm({
   })
   const [buttonErrors, setButtonErrors] = useState<ButtonErrorState[]>(() => {
     try {
-      return sanitizedInitialData?.buttons && sanitizedInitialData.buttons.length > 0
+      return sanitizedInitialData?.buttons &&
+        sanitizedInitialData.buttons.length > 0
         ? sanitizedInitialData.buttons.map(() => ({}))
         : []
     } catch {
@@ -581,11 +591,35 @@ export function NewServiceForm({
 
   // Check for form changes - optimized with useMemo to prevent excessive recalculations
   const hasChanges = React.useMemo(() => {
-    if (readOnly || !sanitizedInitialData) {
+    if (readOnly) {
       return false
     }
 
     const formData = watchedValues as Partial<ServiceFormData>
+
+    // If no initial data (creating new service), check if any field has been filled
+    if (!sanitizedInitialData) {
+      const hasAnyValue =
+        formData.managingOrgan ||
+        formData.serviceCategory ||
+        formData.serviceSubcategory ||
+        formData.targetAudience ||
+        formData.title ||
+        formData.shortDescription ||
+        formData.whatServiceDoesNotCover ||
+        formData.serviceTime ||
+        formData.serviceCost ||
+        formData.requestResult ||
+        formData.fullDescription ||
+        formData.requiredDocuments ||
+        formData.instructionsForRequester ||
+        digitalChannels?.some(ch => ch.trim() !== '') ||
+        physicalChannels?.some(ch => ch.trim() !== '') ||
+        legislacaoRelacionada?.some(leg => leg.trim() !== '') ||
+        (serviceButtons?.length ?? 0) > 0
+
+      return !!hasAnyValue
+    }
 
     // Helper function to normalize arrays for comparison
     const normalizeArray = (arr: any[] | undefined) => {
@@ -1014,9 +1048,9 @@ export function NewServiceForm({
       if (serviceStatus === 'published' && serviceId) {
         apiData.status = 1 // Keep as published
         // Don't set published_at - preserve the original publication date
-        
+
         await updateService(serviceId, apiData)
-        
+
         setPendingFormData(null)
         setShowPublishDialog(false)
 
@@ -1258,7 +1292,7 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Categoria do serviço*</FormLabel>
                     <Select
-                      onValueChange={(value) => {
+                      onValueChange={value => {
                         field.onChange(value)
                         // Clear subcategory when category changes
                         form.setValue('serviceSubcategory', '')
@@ -1277,24 +1311,38 @@ export function NewServiceForm({
                         <SelectItem value="Transporte">Transporte</SelectItem>
                         <SelectItem value="Licenças">Licenças</SelectItem>
                         <SelectItem value="Animais">Animais</SelectItem>
-                        <SelectItem value="Meio Ambiente">Meio Ambiente</SelectItem>
+                        <SelectItem value="Meio Ambiente">
+                          Meio Ambiente
+                        </SelectItem>
                         <SelectItem value="Saúde">Saúde</SelectItem>
                         <SelectItem value="Cidadania">Cidadania</SelectItem>
                         <SelectItem value="Servidor">Servidor</SelectItem>
                         <SelectItem value="Cultura">Cultura</SelectItem>
-                        <SelectItem value="Defesa Civil">Defesa Civil</SelectItem>
+                        <SelectItem value="Defesa Civil">
+                          Defesa Civil
+                        </SelectItem>
                         <SelectItem value="Segurança">Segurança</SelectItem>
                         <SelectItem value="Cursos">Cursos</SelectItem>
                         <SelectItem value="Tributos">Tributos</SelectItem>
                         <SelectItem value="Trabalho">Trabalho</SelectItem>
                         <SelectItem value="Ouvidoria">Ouvidoria</SelectItem>
                         <SelectItem value="Trânsito">Trânsito</SelectItem>
-                        <SelectItem value="Ordem Pública">Ordem Pública</SelectItem>
+                        <SelectItem value="Ordem Pública">
+                          Ordem Pública
+                        </SelectItem>
                         <SelectItem value="Obras">Obras</SelectItem>
-                        <SelectItem value="Central Anticorrupção">Central Anticorrupção</SelectItem>
-                        <SelectItem value="Lei de Acesso à Informação (LAI)">Lei de Acesso à Informação (LAI)</SelectItem>
-                        <SelectItem value="Lei Geral de Proteção de Dados (LGPD)">Lei Geral de Proteção de Dados (LGPD)</SelectItem>
-                        <SelectItem value="Peticionamentos">Peticionamentos</SelectItem>
+                        <SelectItem value="Central Anticorrupção">
+                          Central Anticorrupção
+                        </SelectItem>
+                        <SelectItem value="Lei de Acesso à Informação (LAI)">
+                          Lei de Acesso à Informação (LAI)
+                        </SelectItem>
+                        <SelectItem value="Lei Geral de Proteção de Dados (LGPD)">
+                          Lei Geral de Proteção de Dados (LGPD)
+                        </SelectItem>
+                        <SelectItem value="Peticionamentos">
+                          Peticionamentos
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -2032,7 +2080,8 @@ export function NewServiceForm({
                           ? serviceStatus === 'published' && serviceId
                             ? 'Salvando...'
                             : 'Publicando...'
-                          : buttonConfig.publishButtonText || 'Salvar e publicar'}
+                          : buttonConfig.publishButtonText ||
+                            'Salvar e publicar'}
                       </Button>
                     )}
                   </>

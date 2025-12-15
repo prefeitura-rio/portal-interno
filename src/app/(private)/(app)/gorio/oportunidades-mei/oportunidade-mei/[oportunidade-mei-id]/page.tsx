@@ -6,6 +6,7 @@ import {
 } from '@/app/(private)/(app)/gorio/oportunidades-mei/components/new-mei-opportunity-form'
 import { ProposalsTable } from '@/app/(private)/(app)/gorio/oportunidades-mei/components/proposals-table'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { Badge } from '@/components/ui/badge'
 import {
   Breadcrumb,
@@ -65,6 +66,9 @@ export default function MEIOpportunityDetailPage({
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('about')
   const [isLoading, setIsLoading] = useState(false)
+  const [hasFormChanges, setHasFormChanges] = useState(false)
+  const [showTabChangeDialog, setShowTabChangeDialog] = useState(false)
+  const [pendingTab, setPendingTab] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
   const [opportunityId, setOpportunityId] = useState<number | null>(null)
@@ -139,11 +143,33 @@ export default function MEIOpportunityDetailPage({
     }
   }, [searchParams, opportunity, updateTabInUrl])
 
-  // Handler for tab change
-  const handleTabChange = (newTab: string) => {
-    setActiveTab(newTab)
-    updateTabInUrl(newTab)
-  }
+  // Handler for tab change - intercept if editing with unsaved changes
+  const handleTabChange = useCallback(
+    (newTab: string) => {
+      if (isEditing && hasFormChanges && newTab !== activeTab) {
+        setPendingTab(newTab)
+        setShowTabChangeDialog(true)
+      } else {
+        setActiveTab(newTab)
+        updateTabInUrl(newTab)
+      }
+    },
+    [isEditing, hasFormChanges, activeTab, updateTabInUrl]
+  )
+
+  const handleConfirmTabChange = useCallback(() => {
+    if (pendingTab) {
+      setActiveTab(pendingTab)
+      updateTabInUrl(pendingTab)
+      setPendingTab(null)
+    }
+    setShowTabChangeDialog(false)
+  }, [pendingTab, updateTabInUrl])
+
+  const handleCancelTabChange = useCallback(() => {
+    setPendingTab(null)
+    setShowTabChangeDialog(false)
+  }, [])
 
   const handleEdit = () => {
     setIsEditing(true)
@@ -253,6 +279,7 @@ export default function MEIOpportunityDetailPage({
 
   const handleCancel = () => {
     setIsEditing(false)
+    setHasFormChanges(false)
   }
 
   const handleDeleteOpportunity = () => {
@@ -332,6 +359,10 @@ export default function MEIOpportunityDetailPage({
 
   return (
     <ContentLayout title="Detalhes da Oportunidade MEI">
+      <UnsavedChangesGuard
+        hasUnsavedChanges={isEditing && hasFormChanges}
+        message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
+      />
       <div className="space-y-6">
         {/* Breadcrumb */}
         <div className="flex flex-col gap-2">
@@ -477,6 +508,7 @@ export default function MEIOpportunityDetailPage({
                 onSaveDraft={handleSaveDraft}
                 isDraft={isDraft}
                 opportunityStatus={opportunity.status as string}
+                onFormChangesDetected={setHasFormChanges}
               />
             </div>
           </div>
@@ -488,8 +520,13 @@ export default function MEIOpportunityDetailPage({
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="about">Sobre a oportunidade</TabsTrigger>
-              <TabsTrigger value="proposals" disabled={isEditing}>
+              <TabsTrigger value="about" disabled={isEditing && hasFormChanges}>
+                Sobre a oportunidade
+              </TabsTrigger>
+              <TabsTrigger
+                value="proposals"
+                disabled={isEditing || (isEditing && hasFormChanges)}
+              >
                 Propostas
               </TabsTrigger>
             </TabsList>
@@ -508,6 +545,7 @@ export default function MEIOpportunityDetailPage({
                   onSaveDraft={handleSaveDraft}
                   isDraft={isDraft}
                   opportunityStatus={opportunity.status as string}
+                  onFormChangesDetected={setHasFormChanges}
                 />
               </div>
             </TabsContent>
@@ -577,6 +615,19 @@ export default function MEIOpportunityDetailPage({
             }
           }
         }}
+      />
+
+      {/* Modal de confirmação para mudança de tab */}
+      <ConfirmDialog
+        open={showTabChangeDialog}
+        onOpenChange={setShowTabChangeDialog}
+        title="Alterações não salvas"
+        description="Você tem alterações não salvas. Tem certeza que deseja mudar de aba? As alterações serão perdidas."
+        confirmText="Mudar de aba"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={handleConfirmTabChange}
+        onCancel={handleCancelTabChange}
       />
     </ContentLayout>
   )

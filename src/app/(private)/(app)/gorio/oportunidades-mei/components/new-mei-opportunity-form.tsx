@@ -1,7 +1,12 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import React, { forwardRef, useImperativeHandle, useState } from 'react'
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  useEffect,
+} from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -27,13 +32,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Combobox } from '@/components/ui/combobox'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import {
   DateTimePicker,
   formatDateTimeToUTC,
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
-import { useOcupacoes, useServicos } from '@/hooks/use-cnaes'
+import { CnaeSubclasseSelect } from '@/components/ui/cnae-subclasse-select'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -51,23 +56,15 @@ const validateGoogleCloudStorageURL = (url: string | undefined) => {
 
 // Create the full schema for complete validation (used for publishing)
 const fullFormSchema = z.object({
-  orgao: z.object({
-    id: z.number(),
-    nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
-  }),
-  cnae_id: z.number().min(1, { message: 'CNAE é obrigatório.' }),
+  orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
+  subclasses: z
+    .array(z.string())
+    .min(1, { message: 'Pelo menos uma subclasse CNAE é obrigatória.' }),
   title: z
     .string()
     .min(1, { message: 'Título é obrigatório.' })
     .min(5, { message: 'Título deve ter pelo menos 5 caracteres.' })
     .max(100, { message: 'Título não pode exceder 100 caracteres.' }),
-  activity_type: z
-    .string()
-    .min(1, { message: 'Tipo de atividade é obrigatório.' }),
-  activity_specification: z
-    .string()
-    .min(1, { message: 'Especificação da atividade é obrigatória.' })
-    .min(5, { message: 'Especificação deve ter pelo menos 5 caracteres.' }),
   description: z
     .string()
     .min(1, { message: 'Descrição é obrigatória.' })
@@ -121,16 +118,9 @@ const fullFormSchema = z.object({
 
 // Create a minimal schema for draft validation
 const draftFormSchema = z.object({
-  orgao: z
-    .object({
-      id: z.number(),
-      nome: z.string(),
-    })
-    .optional(),
-  cnae_id: z.number().optional(),
+  orgao_id: z.string().optional(),
+  subclasses: z.array(z.string()).optional(),
   title: z.string().optional(),
-  activity_type: z.string().optional(),
-  activity_specification: z.string().optional(),
   description: z.string().optional(),
   outras_informacoes: z.string().optional(),
   address: z.string().optional(),
@@ -161,12 +151,8 @@ type PartialFormData = Partial<
 > & {
   opportunity_expiration_date?: Date | string
   service_execution_deadline?: Date | string | null
-  cnae?: {
-    id: number
-    codigo: string
-    ocupacao: string
-    servico: string
-  }
+  orgao_id?: string
+  subclasses?: string[]
   status?: 'canceled' | 'draft' | 'opened' | 'closed'
   originalStatus?: 'canceled' | 'draft' | 'opened' | 'closed'
 }
@@ -174,13 +160,7 @@ type PartialFormData = Partial<
 // Type for backend API data
 type BackendMEIOpportunityData = {
   orgao_id: number | null
-  cnae_id: number | null
-  cnae?: {
-    id: number
-    codigo: string
-    ocupacao: string
-    servico: string
-  }
+  subclasses?: string[]
   titulo?: string
   descricao_servico?: string
   outras_informacoes?: string
@@ -206,6 +186,7 @@ interface NewMEIOpportunityFormProps {
   onPublish?: (data: BackendMEIOpportunityData) => void
   isDraft?: boolean
   opportunityStatus?: string
+  onFormChangesDetected?: (hasChanges: boolean) => void
 }
 
 export interface NewMEIOpportunityFormRef {
@@ -227,40 +208,12 @@ export const NewMEIOpportunityForm = forwardRef<
       onPublish,
       isDraft = false,
       opportunityStatus,
+      onFormChangesDetected,
     },
     ref
   ) => {
     const router = useRouter()
     const isMobile = useIsMobile()
-
-    // Function to truncate text for mobile
-    const truncateText = (text: string, maxLength = 36) => {
-      if (isMobile && text.length > maxLength) {
-        return `${text.substring(0, maxLength)}...`
-      }
-      return text
-    }
-
-    // State for organizations
-    const [orgaos, setOrgaos] = useState<Array<{ id: number; nome: string }>>(
-      []
-    )
-    const [loadingOrgaos, setLoadingOrgaos] = useState(false)
-
-    // State for selected occupation to fetch services
-    const [selectedOcupacao, setSelectedOcupacao] = useState<string>('')
-    // State for selected CNAE object
-    const [selectedCnae, setSelectedCnae] = useState<{
-      id: number
-      codigo: string
-      ocupacao: string
-      servico: string
-    } | null>(null)
-
-    // Fetch occupations and services using hooks
-    const { ocupacoes, isLoading: isLoadingOcupacoes } = useOcupacoes()
-    const { cnaes, isLoading: isLoadingServicos } =
-      useServicos(selectedOcupacao)
 
     // Dialog states
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -280,11 +233,11 @@ export const NewMEIOpportunityForm = forwardRef<
       resolver: zodResolver(formSchema),
       defaultValues: initialData
         ? {
-            orgao: initialData.orgao,
-            cnae_id: initialData.cnae_id,
+            orgao_id: initialData.orgao_id
+              ? initialData.orgao_id.toString()
+              : '',
+            subclasses: initialData.subclasses || [],
             title: initialData.title || '',
-            activity_type: initialData.activity_type || '',
-            activity_specification: initialData.activity_specification || '',
             description: initialData.description || '',
             outras_informacoes: initialData.outras_informacoes || '',
             address: initialData.address || '',
@@ -310,11 +263,9 @@ export const NewMEIOpportunityForm = forwardRef<
             cover_image: initialData.cover_image || '',
           }
         : {
-            orgao: undefined,
-            cnae_id: undefined,
+            orgao_id: '',
+            subclasses: [],
             title: '',
-            activity_type: '',
-            activity_specification: '',
             description: '',
             outras_informacoes: '',
             address: '',
@@ -335,40 +286,34 @@ export const NewMEIOpportunityForm = forwardRef<
       name: 'gallery_images',
     })
 
-    // Fetch organizations on component mount
-    React.useEffect(() => {
-      const fetchOrgaos = async () => {
-        try {
-          setLoadingOrgaos(true)
-          const response = await fetch('/api/orgaos')
+    // Track form changes for unsaved changes guard
+    const isDirty = form.formState.isDirty
+    const watchedValues = form.watch()
 
-          if (response.ok) {
-            const data = await response.json()
-            setOrgaos(data.data || [])
-          } else {
-            console.error('Failed to fetch organizations')
-            toast.error('Erro ao carregar organizações')
-          }
-        } catch (error) {
-          console.error('Error fetching organizations:', error)
-          toast.error('Erro ao carregar organizações')
-        } finally {
-          setLoadingOrgaos(false)
-        }
-      }
+    // Notify parent component when form changes are detected
+    useEffect(() => {
+      if (onFormChangesDetected) {
+        // Check if form is dirty or if there are any values (for new opportunities)
+        const hasAnyValue =
+          !initialData &&
+          !!(
+            watchedValues.title ||
+            watchedValues.description ||
+            watchedValues.orgao_id ||
+            (watchedValues.subclasses && watchedValues.subclasses.length > 0) ||
+            watchedValues.address ||
+            watchedValues.number ||
+            watchedValues.neighborhood ||
+            watchedValues.cover_image ||
+            watchedValues.gallery_images?.some(
+              (img: string) => img && img.trim() !== ''
+            )
+          )
 
-      fetchOrgaos()
-    }, [])
-
-    // Set selected occupation and cnae when initial data is provided
-    React.useEffect(() => {
-      if (initialData?.activity_type) {
-        setSelectedOcupacao(initialData.activity_type)
+        const hasChanges = isDirty || hasAnyValue
+        onFormChangesDetected(hasChanges)
       }
-      if (initialData?.cnae) {
-        setSelectedCnae(initialData.cnae)
-      }
-    }, [initialData?.activity_type, initialData?.cnae])
+    }, [isDirty, watchedValues, initialData, onFormChangesDetected])
 
     // Transform form data to snake_case for backend API
     const transformFormDataToSnakeCase = (
@@ -382,9 +327,8 @@ export const NewMEIOpportunityForm = forwardRef<
       }
 
       return {
-        orgao_id: data.orgao?.id || null,
-        cnae_id: data.cnae_id || null,
-        cnae: data.cnae || selectedCnae || undefined,
+        orgao_id: data.orgao_id ? Number(data.orgao_id) || null : null,
+        subclasses: data.subclasses || [],
         titulo: data.title,
         descricao_servico: data.description,
         outras_informacoes: data.outras_informacoes || '',
@@ -427,14 +371,10 @@ export const NewMEIOpportunityForm = forwardRef<
       }
 
       const draftData: PartialFormData = {
-        orgao:
-          data.orgao ||
-          (orgaos.length > 0 ? orgaos[0] : { id: 1, nome: 'Órgão Padrão' }),
-        cnae_id: data.cnae_id || 1,
+        orgao_id: data.orgao_id || '',
+        subclasses: data.subclasses || [],
         title:
           data.title || 'Rascunho de oportunidade. Edite antes de publicar!',
-        activity_type: data.activity_type || '',
-        activity_specification: data.activity_specification || '',
         description:
           data.description ||
           'Descrição em desenvolvimento. Edite antes de publicar!',
@@ -659,51 +599,18 @@ export const NewMEIOpportunityForm = forwardRef<
             <div className="space-y-6">
               <FormField
                 control={form.control}
-                name="orgao"
+                name="orgao_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Órgão demandante*</FormLabel>
-                    <Select
-                      onValueChange={value => {
-                        const selectedOrgao = orgaos.find(
-                          org => org.id.toString() === value
-                        )
-                        if (selectedOrgao) {
-                          field.onChange(selectedOrgao)
-                        }
-                      }}
-                      value={field.value?.id?.toString() || ''}
-                      disabled={isReadOnly || loadingOrgaos}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              loadingOrgaos
-                                ? 'Carregando organizações...'
-                                : orgaos.length === 0
-                                  ? 'Nenhuma organização encontrada'
-                                  : 'Selecione um órgão'
-                            }
-                          >
-                            {field.value?.nome &&
-                              truncateText(field.value.nome)}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      {!loadingOrgaos && orgaos.length > 0 && (
-                        <SelectContent>
-                          {orgaos.map(orgao => (
-                            <SelectItem
-                              key={orgao.id}
-                              value={orgao.id.toString()}
-                            >
-                              {orgao.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      )}
-                    </Select>
+                    <FormControl>
+                      <DepartmentCombobox
+                        value={field.value || ''}
+                        onValueChange={field.onChange}
+                        disabled={isReadOnly}
+                        placeholder="Selecione um órgão"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -725,76 +632,18 @@ export const NewMEIOpportunityForm = forwardRef<
 
               <FormField
                 control={form.control}
-                name="activity_type"
+                name="subclasses"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo de atividade (Ocupação)*</FormLabel>
+                    <FormLabel>Subclasses CNAE*</FormLabel>
                     <FormControl>
-                      <Combobox
-                        options={ocupacoes.map(ocupacao => ({
-                          value: ocupacao,
-                          label: ocupacao,
-                        }))}
-                        value={field.value}
-                        onValueChange={value => {
-                          field.onChange(value)
-                          setSelectedOcupacao(value)
-                          // Clear activity_specification and cnae when occupation changes
-                          form.setValue('activity_specification', '')
-                          form.setValue('cnae_id', undefined as any)
-                          setSelectedCnae(null)
-                        }}
-                        placeholder={
-                          isLoadingOcupacoes
-                            ? 'Carregando ocupações...'
-                            : 'Selecione uma ocupação'
-                        }
-                        searchPlaceholder="Buscar ocupação..."
-                        emptyMessage="Nenhuma ocupação encontrada."
-                        disabled={isReadOnly || isLoadingOcupacoes}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="activity_specification"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Especificação da atividade (Serviço)*</FormLabel>
-                    <FormControl>
-                      <Combobox
-                        options={cnaes.map(cnae => ({
-                          value: cnae.id.toString(),
-                          label: `${cnae.servico}${cnae.codigo ? ` (${cnae.codigo})` : ''}`,
-                        }))}
-                        value={selectedCnae?.id.toString() || ''}
-                        onValueChange={value => {
-                          // Find CNAE by ID
-                          const foundCnae = cnaes.find(
-                            c => c.id.toString() === value
-                          )
-                          if (foundCnae) {
-                            field.onChange(foundCnae.servico)
-                            form.setValue('cnae_id', foundCnae.id)
-                            setSelectedCnae(foundCnae)
-                          }
-                        }}
-                        placeholder={
-                          !selectedOcupacao
-                            ? 'Selecione uma ocupação primeiro'
-                            : isLoadingServicos
-                              ? 'Carregando serviços...'
-                              : 'Selecione um serviço'
-                        }
-                        searchPlaceholder="Buscar serviço..."
-                        emptyMessage="Nenhum serviço encontrado."
-                        disabled={
-                          isReadOnly || !selectedOcupacao || isLoadingServicos
-                        }
+                      <CnaeSubclasseSelect
+                        value={field.value || []}
+                        onValueChange={field.onChange}
+                        placeholder="Buscar e adicionar subclasses CNAE..."
+                        searchPlaceholder="Digite a subclasse (ex: 4724-5/00)"
+                        emptyMessage="Nenhum CNAE encontrado."
+                        disabled={isReadOnly}
                       />
                     </FormControl>
                     <FormMessage />
