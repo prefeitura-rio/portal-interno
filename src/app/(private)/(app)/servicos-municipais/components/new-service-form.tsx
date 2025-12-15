@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Eye, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -10,6 +10,7 @@ import { z } from 'zod'
 import type { ServiceButton } from '@/types/service'
 
 import { MarkdownEditor } from '@/components/blocks/editor-md'
+import { ServicePreviewModal } from '@/components/preview/service-preview-modal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -36,11 +37,13 @@ import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
 } from '@/hooks/use-heimdall-user'
+import { useDepartment } from '@/hooks/use-department'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import {
   getCurrentTimestamp,
   transformToApiRequest,
 } from '@/lib/service-data-transformer'
+import { mapFormDataToPreview } from '@/lib/service-preview-mapper'
 import { toast } from 'sonner'
 
 const sanitizeStringArray = (value: unknown): string[] => {
@@ -497,6 +500,7 @@ export function NewServiceForm({
     }
   })
   const [hasFormChanges, setHasFormChanges] = useState(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
@@ -504,6 +508,10 @@ export function NewServiceForm({
       ? { ...defaultValues, ...sanitizedInitialData }
       : defaultValues,
   })
+
+  // Get department name for preview
+  const managingOrgan = form.watch('managingOrgan')
+  const { department } = useDepartment(managingOrgan)
 
   const watchedValues = form.watch()
 
@@ -678,6 +686,14 @@ export function NewServiceForm({
 
   const handleCancel = () => {
     router.push('/servicos-municipais/servicos')
+  }
+
+  const handlePreview = () => {
+    // Validate before showing preview
+    if (!ensureDynamicListsValid({ showFeedback: true })) {
+      return
+    }
+    setShowPreviewModal(true)
   }
 
   const addDigitalChannel = () => {
@@ -1944,6 +1960,19 @@ export function NewServiceForm({
               >
                 Cancelar
               </Button>
+
+              {/* Preview Button */}
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={handlePreview}
+                disabled={isLoading || operationLoading}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Pré-visualizar
+              </Button>
+
               {(() => {
                 const buttonConfig = getFormButtonConfiguration()
                 // Disable action buttons if editing existing service and no changes were made
@@ -2060,6 +2089,20 @@ export function NewServiceForm({
         cancelText="Cancelar"
         variant="default"
         onConfirm={handleConfirmSendToApproval}
+      />
+
+      {/* Preview Modal */}
+      <ServicePreviewModal
+        open={showPreviewModal}
+        onOpenChange={setShowPreviewModal}
+        serviceData={mapFormDataToPreview({
+          ...watchedValues,
+          digitalChannels,
+          physicalChannels,
+          legislacaoRelacionada,
+          buttons: serviceButtons,
+        } as ServiceFormData)}
+        orgaoGestorName={department?.nome_ua || null}
       />
     </div>
   )
