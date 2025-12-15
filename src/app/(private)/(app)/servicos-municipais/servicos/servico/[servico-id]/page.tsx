@@ -50,8 +50,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { toast } from 'sonner'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { NewServiceForm } from '../../../components/new-service-form'
 
 // Status configuration for badges
@@ -100,6 +101,8 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [showDestombamentoDialog, setShowDestombamentoDialog] = useState(false)
   const [activeTab, setActiveTab] = useState('details')
   const [hasFormChanges, setHasFormChanges] = useState(false)
+  const [showTabChangeDialog, setShowTabChangeDialog] = useState(false)
+  const [pendingTab, setPendingTab] = useState<string | null>(null)
 
   useEffect(() => {
     params.then(({ 'servico-id': id }) => {
@@ -167,6 +170,29 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     // Reset form to original data
     refetch()
   }
+
+  // Interceptar mudanças de tab quando há alterações não salvas
+  const handleTabChange = useCallback((newTab: string) => {
+    if (isEditing && hasFormChanges && newTab !== activeTab) {
+      setPendingTab(newTab)
+      setShowTabChangeDialog(true)
+    } else {
+      setActiveTab(newTab)
+    }
+  }, [isEditing, hasFormChanges, activeTab])
+
+  const handleConfirmTabChange = useCallback(() => {
+    if (pendingTab) {
+      setActiveTab(pendingTab)
+      setPendingTab(null)
+    }
+    setShowTabChangeDialog(false)
+  }, [pendingTab])
+
+  const handleCancelTabChange = useCallback(() => {
+    setPendingTab(null)
+    setShowTabChangeDialog(false)
+  }, [])
 
   const handleSave = async (data: any) => {
     if (!servicoId || !service) return
@@ -501,6 +527,10 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
   return (
     <ContentLayout title="Detalhes do Serviço">
+      <UnsavedChangesGuard
+        hasUnsavedChanges={isEditing && hasFormChanges}
+        message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
+      />
       <div className="space-y-6">
         {/* Breadcrumb */}
         <div className="flex flex-col gap-2">
@@ -706,10 +736,14 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           />
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details">Detalhes do serviço</TabsTrigger>
-            <TabsTrigger value="history">Histórico de modificações</TabsTrigger>
+            <TabsTrigger value="details" disabled={isEditing && hasFormChanges}>
+              Detalhes do serviço
+            </TabsTrigger>
+            <TabsTrigger value="history" disabled={isEditing && hasFormChanges}>
+              Histórico de modificações
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="mt-6">
@@ -799,6 +833,18 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           cancelText="Cancelar"
           variant="destructive"
           onConfirm={handleConfirmDestombamento}
+        />
+
+        <ConfirmDialog
+          open={showTabChangeDialog}
+          onOpenChange={setShowTabChangeDialog}
+          title="Alterações não salvas"
+          description="Você tem alterações não salvas. Tem certeza que deseja mudar de aba? As alterações serão perdidas."
+          confirmText="Mudar de aba"
+          cancelText="Cancelar"
+          variant="destructive"
+          onConfirm={handleConfirmTabChange}
+          onCancel={handleCancelTabChange}
         />
 
         {/* Tombamento Modal */}

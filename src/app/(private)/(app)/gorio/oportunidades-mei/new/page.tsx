@@ -1,6 +1,7 @@
 'use client'
 import { NewMEIOpportunityForm } from '@/app/(private)/(app)/gorio/oportunidades-mei/components/new-mei-opportunity-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,10 +11,12 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { useCreateMEIOpportunity } from '@/hooks/use-create-mei-opportunity'
+import { useState } from 'react'
 
 import Link from 'next/link'
 
 export default function NewMEIOpportunity() {
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const { createOpportunity, createDraft } = useCreateMEIOpportunity()
 
   const handleCreateOpportunity = async (data: any) => {
@@ -26,6 +29,10 @@ export default function NewMEIOpportunity() {
 
   return (
     <ContentLayout title="Gestão de Oportunidades MEI">
+      <UnsavedChangesGuard
+        hasUnsavedChanges={hasUnsavedChanges}
+        message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
+      />
       <div className="space-y-4">
         <div className="flex flex-col gap-2">
           <Breadcrumb>
@@ -55,6 +62,7 @@ export default function NewMEIOpportunity() {
         <NewMEIOpportunityForm
           onSubmit={handleCreateOpportunity}
           onSaveDraft={handleCreateDraft}
+          onFormChangesDetected={setHasUnsavedChanges}
         />
       </div>
     </ContentLayout>

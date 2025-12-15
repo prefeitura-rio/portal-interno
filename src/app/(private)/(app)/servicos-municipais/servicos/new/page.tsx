@@ -1,21 +1,28 @@
 'use client'
 
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import Link from 'next/link'
+import { useState } from 'react'
 import { NewServiceForm } from '../../components/new-service-form'
 
 export default function NewServicePage() {
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   return (
     <ContentLayout title="Gestão de Serviços Municipais">
+      <UnsavedChangesGuard
+        hasUnsavedChanges={hasUnsavedChanges}
+        message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
+      />
       <div className="space-y-4">
         <div className="flex flex-col gap-2">
           <Breadcrumb>
@@ -41,7 +48,7 @@ export default function NewServicePage() {
           </div>
         </div>
 
-        <NewServiceForm />
+        <NewServiceForm onFormChangesDetected={setHasUnsavedChanges} />
       </div>
     </ContentLayout>
   )

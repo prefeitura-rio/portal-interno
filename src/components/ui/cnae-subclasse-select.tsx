@@ -49,7 +49,7 @@ export function CnaeSubclasseSelect({
 }: CnaeSubclasseSelectProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState('')
-  
+
   const { cnaes, isLoading } = useCnaesBySubclasse(
     search,
     open && search.trim().length > 0
@@ -107,11 +107,7 @@ export function CnaeSubclasseSelect({
 
           const result = await response.json()
 
-          if (
-            result.success &&
-            result.cnaes &&
-            result.cnaes.length > 0
-          ) {
+          if (result.success && result.cnaes && result.cnaes.length > 0) {
             const cnae = result.cnaes[0]
             return {
               subclasse,
@@ -143,7 +139,9 @@ export function CnaeSubclasseSelect({
       if (cnae.subclasse && value.includes(cnae.subclasse)) {
         setSelectedDenominacoes(prev => ({
           ...prev,
-          [cnae.subclasse!]: cnae.denominacao || cnae.subclasse,
+          [cnae.subclasse!]: (cnae.denominacao ||
+            cnae.subclasse ||
+            '') as string,
         }))
       }
     })
@@ -222,13 +220,13 @@ export function CnaeSubclasseSelect({
               {isLoading
                 ? 'Buscando...'
                 : search.trim().length === 0
-                  ? 'Digite uma subclasse para buscar'
+                  ? 'Digite uma subclasse CNAE para buscar'
                   : emptyMessage}
             </CommandEmpty>
             <CommandGroup>
               {cnaes.map(cnae => {
                 if (!cnae.subclasse) return null
-                
+
                 const isSelected = value.includes(cnae.subclasse)
                 return (
                   <CommandItem
@@ -239,7 +237,7 @@ export function CnaeSubclasseSelect({
                         handleSelect(cnae.subclasse!, cnae.denominacao)
                         setSelectedDenominacoes(prev => ({
                           ...prev,
-                          [cnae.subclasse!]: cnae.denominacao,
+                          [cnae.subclasse!]: cnae.denominacao as string,
                         }))
                       }
                     }}

@@ -1,6 +1,7 @@
 'use client'
 import { NewCourseForm } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,11 +11,13 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import Link from 'next/link'
 
 export default function NewCourse() {
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const router = useRouter()
 
   const handleCreateCourse = async (data: any) => {
@@ -87,6 +90,10 @@ export default function NewCourse() {
 
   return (
     <ContentLayout title="Gestão de Cursos">
+      <UnsavedChangesGuard
+        hasUnsavedChanges={hasUnsavedChanges}
+        message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
+      />
       <div className="space-y-4">
         <div className="flex flex-col gap-2">
           <Breadcrumb>
@@ -112,6 +119,7 @@ export default function NewCourse() {
         <NewCourseForm
           onSubmit={handleCreateCourse}
           onSaveDraft={handleCreateDraft}
+          onFormChangesDetected={setHasUnsavedChanges}
         />
       </div>
 

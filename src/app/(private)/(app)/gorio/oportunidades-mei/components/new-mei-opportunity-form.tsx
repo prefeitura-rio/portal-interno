@@ -1,7 +1,12 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import React, { forwardRef, useImperativeHandle, useState } from 'react'
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  useEffect,
+} from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -181,6 +186,7 @@ interface NewMEIOpportunityFormProps {
   onPublish?: (data: BackendMEIOpportunityData) => void
   isDraft?: boolean
   opportunityStatus?: string
+  onFormChangesDetected?: (hasChanges: boolean) => void
 }
 
 export interface NewMEIOpportunityFormRef {
@@ -202,6 +208,7 @@ export const NewMEIOpportunityForm = forwardRef<
       onPublish,
       isDraft = false,
       opportunityStatus,
+      onFormChangesDetected,
     },
     ref
   ) => {
@@ -278,6 +285,35 @@ export const NewMEIOpportunityForm = forwardRef<
       control: form.control as any,
       name: 'gallery_images',
     })
+
+    // Track form changes for unsaved changes guard
+    const isDirty = form.formState.isDirty
+    const watchedValues = form.watch()
+
+    // Notify parent component when form changes are detected
+    useEffect(() => {
+      if (onFormChangesDetected) {
+        // Check if form is dirty or if there are any values (for new opportunities)
+        const hasAnyValue =
+          !initialData &&
+          !!(
+            watchedValues.title ||
+            watchedValues.description ||
+            watchedValues.orgao_id ||
+            (watchedValues.subclasses && watchedValues.subclasses.length > 0) ||
+            watchedValues.address ||
+            watchedValues.number ||
+            watchedValues.neighborhood ||
+            watchedValues.cover_image ||
+            watchedValues.gallery_images?.some(
+              (img: string) => img && img.trim() !== ''
+            )
+          )
+
+        const hasChanges = isDirty || hasAnyValue
+        onFormChangesDetected(hasChanges)
+      }
+    }, [isDirty, watchedValues, initialData, onFormChangesDetected])
 
     // Transform form data to snake_case for backend API
     const transformFormDataToSnakeCase = (
