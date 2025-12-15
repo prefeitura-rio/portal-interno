@@ -6,8 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 export interface MEIOpportunity {
   id: number
   title: string
-  activity_type: string
-  activity_specification: string
+  subclasses?: string[]
   description: string
   outras_informacoes?: string
   address: string
@@ -29,13 +28,6 @@ export interface MEIOpportunity {
     id: number
     nome: string
   }
-  cnae_id?: number
-  cnae?: {
-    id: number
-    codigo: string
-    ocupacao: string
-    servico: string
-  }
   execution_location?: string
 }
 
@@ -51,8 +43,7 @@ function transformAPIData(apiData: any): MEIOpportunity {
   return {
     id: apiData.id,
     title: apiData.titulo || '',
-    activity_type: apiData.cnae?.ocupacao || '',
-    activity_specification: apiData.cnae?.servico || '',
+    subclasses: apiData.subclasses || [],
     description: apiData.descricao_servico || '',
     outras_informacoes: apiData.outras_informacoes || '',
     address: apiData.logradouro || '',
@@ -71,8 +62,6 @@ function transformAPIData(apiData: any): MEIOpportunity {
     updated_at: apiData.updated_at || '',
     orgao_id: apiData.orgao_id,
     orgao: apiData.orgao,
-    cnae_id: apiData.cnae_id,
-    cnae: apiData.cnae,
     execution_location: apiData.execution_location || '',
   }
 }

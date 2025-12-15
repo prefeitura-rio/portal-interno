@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 
 interface BackendMEIOpportunityData {
   orgao_id: number | null
-  cnae_id: number | null
+  subclasses?: string[]
   titulo?: string
   descricao_servico?: string
   outras_informacoes?: string
