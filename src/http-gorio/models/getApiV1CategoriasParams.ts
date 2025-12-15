@@ -15,4 +15,16 @@ export type GetApiV1CategoriasParams = {
    * Tamanho da página (default: 10)
    */
   pageSize?: number
+  /**
+   * Filtrar apenas categorias com cursos abertos
+   */
+  onlyWithCourses?: boolean
+  /**
+   * Dias de tolerância após vencimento da inscrição (default: 30)
+   */
+  daysTolerance?: number
+  /**
+   * Filtrar cursos visíveis (default: true)
+   */
+  isVisible?: boolean
 }
