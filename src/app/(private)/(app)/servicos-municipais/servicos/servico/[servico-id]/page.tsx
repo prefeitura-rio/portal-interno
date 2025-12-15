@@ -1,6 +1,7 @@
 'use client'
 
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { ServicePreviewModal } from '@/components/preview/service-preview-modal'
 import { ServiceVersionHistory } from '@/components/service-version-history'
 import { TombadoServiceInfo } from '@/components/tombado-service-info'
 import { TombamentoModal } from '@/components/tombamento-modal'
@@ -26,6 +27,7 @@ import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
 } from '@/hooks/use-heimdall-user'
+import { useDepartment } from '@/hooks/use-department'
 import { useService } from '@/hooks/use-service'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import { type Tombamento, useTombamentos } from '@/hooks/use-tombamentos'
@@ -33,6 +35,7 @@ import {
   transformToApiRequest,
   transformToFormData,
 } from '@/lib/service-data-transformer'
+import { mapFormDataToPreview } from '@/lib/service-preview-mapper'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -44,6 +47,7 @@ import {
   CheckCircle,
   Clock,
   Edit,
+  Eye,
   Link as LinkIcon,
   Save,
   X,
@@ -100,6 +104,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [showDestombamentoDialog, setShowDestombamentoDialog] = useState(false)
   const [activeTab, setActiveTab] = useState('details')
   const [hasFormChanges, setHasFormChanges] = useState(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
 
   useEffect(() => {
     params.then(({ 'servico-id': id }) => {
@@ -129,6 +134,9 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const { fetchTombamentos, deleteTombamento } = useTombamentos()
   const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
   const canEditServices = useCanEditBuscaServices()
+
+  // Get department name for preview
+  const { department } = useDepartment(service?.managingOrgan || null)
 
   const initialFormData = useMemo(() => {
     if (!service) {
@@ -629,6 +637,15 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                 if (!isEditing) {
                   return (
                     <>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setShowPreviewModal(true)}
+                        disabled={loading || operationLoading}
+                        className="w-full sm:w-auto"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Pré-visualizar
+                      </Button>
                       {buttonConfig.showEdit && (
                         <Button
                           onClick={handleEdit}
@@ -809,6 +826,19 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             serviceId={servicoId}
             serviceTitle={service.title}
             onSuccess={handleTombamentoSuccess}
+          />
+        )}
+
+        {/* Preview Modal */}
+        {service && initialFormData && (
+          <ServicePreviewModal
+            open={showPreviewModal}
+            onOpenChange={setShowPreviewModal}
+            serviceData={mapFormDataToPreview({
+              ...initialFormData,
+              serviceSubcategory: initialFormData.serviceSubcategory || '',
+            })}
+            orgaoGestorName={department?.nome_ua || null}
           />
         )}
       </div>

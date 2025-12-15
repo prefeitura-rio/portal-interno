@@ -24,18 +24,18 @@ export function PageClientWrapper({
         .preview-wrapper-${isDark ? 'dark' : 'light'} {
           --preview-background: ${isDark ? '#09090b' : '#f9fafb'};
           --preview-foreground: ${isDark ? '#f8fafc' : '#09090b'};
-          --preview-foreground-light: ${isDark ? '#e2e8f0' : '#71717a'};
+          --preview-foreground-light: ${isDark ? '#e2e8f0' : '#71717b'};
           --preview-card: ${isDark ? '#18181b' : '#f1f1f4'};
-          --preview-card-foreground: ${isDark ? '#ffffff' : '#09090b'};
+          --preview-card-foreground: ${isDark ? '#ffffff' : '#020618'};
           --preview-primary: ${isDark ? '#8ec5ff' : '#13335a'};
           --preview-primary-foreground: ${isDark ? '#f8fafc' : '#f8fafc'};
-          --preview-secondary: ${isDark ? '#27272a' : '#e5e7eb'};
-          --preview-secondary-foreground: ${isDark ? '#0f172b' : '#09090b'};
-          --preview-terciary-foreground: ${isDark ? '#737373' : '#52525b'};
-          --preview-muted: ${isDark ? '#57534d' : '#f1f5f9'};
-          --preview-muted-foreground: ${isDark ? '#737373' : '#64748b'};
-          --preview-border: ${isDark ? '#3f3f46' : '#e2e8f0'};
-          --preview-ring: ${isDark ? '#8ec5ff' : '#13335a'};
+          --preview-secondary: ${isDark ? '#27272a' : '#e4e4e7'};
+          --preview-secondary-foreground: ${isDark ? '#0f172b' : '#0f172b'};
+          --preview-terciary-foreground: ${isDark ? '#737373' : '#52525C'};
+          --preview-muted: ${isDark ? '#57534d' : '#f5f5f5'};
+          --preview-muted-foreground: ${isDark ? '#737373' : '#a1a1a1'};
+          --preview-border: ${isDark ? '#27272a' : '#e2e8f0'};
+          --preview-ring: ${isDark ? '#ffffff' : '#020618'};
         }
 
         .preview-wrapper-${isDark ? 'dark' : 'light'} .text-foreground {
@@ -87,18 +87,26 @@ export function PageClientWrapper({
         }
 
         /* Ensure bg-card uses preview color */
-        .preview-wrapper-${isDark ? 'dark' : 'light'} .bg-card,
-        .preview-wrapper-${isDark ? 'dark' : 'light'} .bg-card\/50 {
+        .preview-wrapper-${isDark ? 'dark' : 'light'} .bg-card {
           background-color: var(--preview-card) !important;
         }
+        .preview-wrapper-${isDark ? 'dark' : 'light'} .bg-card\\/50 {
+          background-color: ${isDark ? 'rgba(24, 24, 27, 0.5)' : 'rgba(241, 241, 244, 0.5)'} !important;
+        }
+        .preview-wrapper-${isDark ? 'dark' : 'light'} .bg-card\\/80 {
+          background-color: ${isDark ? 'rgba(24, 24, 27, 0.8)' : 'rgba(241, 241, 244, 0.8)'} !important;
+        }
 
-        /* Hover states for buttons */
+        /* Hover states for buttons and cards */
         .preview-wrapper-${isDark ? 'dark' : 'light'} .hover\\:bg-secondary:hover {
           background-color: var(--preview-secondary) !important;
         }
+        .preview-wrapper-${isDark ? 'dark' : 'light'} .hover\\:bg-card\\/80:hover {
+          background-color: ${isDark ? 'rgba(24, 24, 27, 0.8)' : 'rgba(241, 241, 244, 0.8)'} !important;
+        }
       `}</style>
       <div
-        className={`preview-wrapper preview-wrapper-${isDark ? 'dark' : 'light'} min-h-lvh max-w-[1000px] mx-auto ${isDark ? 'dark bg-[#09090b]' : 'bg-[#f9fafb]'}`}
+        className={`preview-wrapper preview-wrapper-${isDark ? 'dark' : 'light'} min-h-lvh ${isDark ? 'dark bg-[#09090b]' : 'bg-[#f9fafb]'}`}
       >
         {/* Theme Toggle Button */}
         <button
@@ -114,23 +122,25 @@ export function PageClientWrapper({
           )}
         </button>
 
-        <SecondaryHeader
-          logo={
-            <div className="cursor-pointer">
-              <PrefLogo
-                fill={isDark ? '#8ec5ff' : '#13335a'}
-                className="h-8 w-20"
-              />
-            </div>
-          }
-          className="max-w-[896px]"
-        />
-
-        <div className="pt-20 md:pt-24 pb-20 px-4">
-          <PageClient
-            serviceData={serviceData}
-            orgaoGestorName={orgaoGestorName}
+        <div className="max-w-4xl mx-auto">
+          <SecondaryHeader
+            logo={
+              <div className="cursor-pointer">
+                <PrefLogo
+                  fill={isDark ? '#8ec5ff' : '#13335a'}
+                  className="h-8 w-20"
+                />
+              </div>
+            }
+            className="max-w-4xl"
           />
+
+          <div className="pt-20 md:pt-24 pb-20 px-4">
+            <PageClient
+              serviceData={serviceData}
+              orgaoGestorName={orgaoGestorName}
+            />
+          </div>
         </div>
       </div>
     </>
