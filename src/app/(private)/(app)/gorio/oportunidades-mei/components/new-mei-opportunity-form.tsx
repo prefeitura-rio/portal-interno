@@ -28,6 +28,7 @@ import { toast } from 'sonner'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Combobox } from '@/components/ui/combobox'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import {
   DateTimePicker,
   formatDateTimeToUTC,
@@ -51,10 +52,7 @@ const validateGoogleCloudStorageURL = (url: string | undefined) => {
 
 // Create the full schema for complete validation (used for publishing)
 const fullFormSchema = z.object({
-  orgao: z.object({
-    id: z.number(),
-    nome: z.string().min(1, { message: 'Órgão é obrigatório.' }),
-  }),
+  orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
   cnae_id: z.number().min(1, { message: 'CNAE é obrigatório.' }),
   title: z
     .string()
@@ -121,12 +119,7 @@ const fullFormSchema = z.object({
 
 // Create a minimal schema for draft validation
 const draftFormSchema = z.object({
-  orgao: z
-    .object({
-      id: z.number(),
-      nome: z.string(),
-    })
-    .optional(),
+  orgao_id: z.string().optional(),
   cnae_id: z.number().optional(),
   title: z.string().optional(),
   activity_type: z.string().optional(),
@@ -161,6 +154,7 @@ type PartialFormData = Partial<
 > & {
   opportunity_expiration_date?: Date | string
   service_execution_deadline?: Date | string | null
+  orgao_id?: string
   cnae?: {
     id: number
     codigo: string
@@ -233,20 +227,6 @@ export const NewMEIOpportunityForm = forwardRef<
     const router = useRouter()
     const isMobile = useIsMobile()
 
-    // Function to truncate text for mobile
-    const truncateText = (text: string, maxLength = 36) => {
-      if (isMobile && text.length > maxLength) {
-        return `${text.substring(0, maxLength)}...`
-      }
-      return text
-    }
-
-    // State for organizations
-    const [orgaos, setOrgaos] = useState<Array<{ id: number; nome: string }>>(
-      []
-    )
-    const [loadingOrgaos, setLoadingOrgaos] = useState(false)
-
     // State for selected occupation to fetch services
     const [selectedOcupacao, setSelectedOcupacao] = useState<string>('')
     // State for selected CNAE object
@@ -280,7 +260,9 @@ export const NewMEIOpportunityForm = forwardRef<
       resolver: zodResolver(formSchema),
       defaultValues: initialData
         ? {
-            orgao: initialData.orgao,
+            orgao_id: initialData.orgao_id
+              ? initialData.orgao_id.toString()
+              : '',
             cnae_id: initialData.cnae_id,
             title: initialData.title || '',
             activity_type: initialData.activity_type || '',
@@ -310,7 +292,7 @@ export const NewMEIOpportunityForm = forwardRef<
             cover_image: initialData.cover_image || '',
           }
         : {
-            orgao: undefined,
+            orgao_id: '',
             cnae_id: undefined,
             title: '',
             activity_type: '',
@@ -335,31 +317,6 @@ export const NewMEIOpportunityForm = forwardRef<
       name: 'gallery_images',
     })
 
-    // Fetch organizations on component mount
-    React.useEffect(() => {
-      const fetchOrgaos = async () => {
-        try {
-          setLoadingOrgaos(true)
-          const response = await fetch('/api/orgaos')
-
-          if (response.ok) {
-            const data = await response.json()
-            setOrgaos(data.data || [])
-          } else {
-            console.error('Failed to fetch organizations')
-            toast.error('Erro ao carregar organizações')
-          }
-        } catch (error) {
-          console.error('Error fetching organizations:', error)
-          toast.error('Erro ao carregar organizações')
-        } finally {
-          setLoadingOrgaos(false)
-        }
-      }
-
-      fetchOrgaos()
-    }, [])
-
     // Set selected occupation and cnae when initial data is provided
     React.useEffect(() => {
       if (initialData?.activity_type) {
@@ -382,7 +339,7 @@ export const NewMEIOpportunityForm = forwardRef<
       }
 
       return {
-        orgao_id: data.orgao?.id || null,
+        orgao_id: data.orgao_id ? Number(data.orgao_id) || null : null,
         cnae_id: data.cnae_id || null,
         cnae: data.cnae || selectedCnae || undefined,
         titulo: data.title,
@@ -427,9 +384,7 @@ export const NewMEIOpportunityForm = forwardRef<
       }
 
       const draftData: PartialFormData = {
-        orgao:
-          data.orgao ||
-          (orgaos.length > 0 ? orgaos[0] : { id: 1, nome: 'Órgão Padrão' }),
+        orgao_id: data.orgao_id || '',
         cnae_id: data.cnae_id || 1,
         title:
           data.title || 'Rascunho de oportunidade. Edite antes de publicar!',
@@ -659,51 +614,18 @@ export const NewMEIOpportunityForm = forwardRef<
             <div className="space-y-6">
               <FormField
                 control={form.control}
-                name="orgao"
+                name="orgao_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Órgão demandante*</FormLabel>
-                    <Select
-                      onValueChange={value => {
-                        const selectedOrgao = orgaos.find(
-                          org => org.id.toString() === value
-                        )
-                        if (selectedOrgao) {
-                          field.onChange(selectedOrgao)
-                        }
-                      }}
-                      value={field.value?.id?.toString() || ''}
-                      disabled={isReadOnly || loadingOrgaos}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              loadingOrgaos
-                                ? 'Carregando organizações...'
-                                : orgaos.length === 0
-                                  ? 'Nenhuma organização encontrada'
-                                  : 'Selecione um órgão'
-                            }
-                          >
-                            {field.value?.nome &&
-                              truncateText(field.value.nome)}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      {!loadingOrgaos && orgaos.length > 0 && (
-                        <SelectContent>
-                          {orgaos.map(orgao => (
-                            <SelectItem
-                              key={orgao.id}
-                              value={orgao.id.toString()}
-                            >
-                              {orgao.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      )}
-                    </Select>
+                    <FormControl>
+                      <DepartmentCombobox
+                        value={field.value || ''}
+                        onValueChange={field.onChange}
+                        disabled={isReadOnly}
+                        placeholder="Selecione um órgão"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
