@@ -9,6 +9,7 @@ export interface MEIProposal {
   opportunityId: number
   companyName: string
   cnpj: string
+  mei_empresa_id?: string
   amount: number
   submittedAt: string
   email: string

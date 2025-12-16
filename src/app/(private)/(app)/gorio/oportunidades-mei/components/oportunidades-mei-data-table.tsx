@@ -37,10 +37,17 @@ type OportunidadeMEI = {
   status: OportunidadeMEIStatus
   managingOrgan: string
   lastUpdate: string
+  cnaeIds?: string[]
 }
 
-import { OrgaosCombobox } from '@/components/orgaos-combobox'
+import { DepartmentName } from '@/components/ui/department-name'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import { Label } from '@/components/ui/label'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   type MEIOpportunityStatus,
   useMEIOpportunities,
@@ -65,6 +72,7 @@ import {
   Edit,
   Eye,
   FileText,
+  Info,
   MoreHorizontal,
   Text,
   Trash2,
@@ -96,33 +104,126 @@ const statusConfig: Record<OportunidadeMEIStatus, OportunidadeMEIStatusConfig> =
     },
   }
 
+// Component to display CNAEs with tooltip
+function CNAEActivityDisplay({ cnaeIds }: { cnaeIds: string[] }) {
+  const [cnaesData, setCnaesData] = React.useState<
+    Array<{ subclasse: string; denominacao: string }>
+  >([])
+  const [loading, setLoading] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!cnaeIds || cnaeIds.length === 0) {
+      setCnaesData([])
+      return
+    }
+
+    const fetchCNAEs = async () => {
+      setLoading(true)
+      try {
+        const promises = cnaeIds.map(async subclasse => {
+          const params = new URLSearchParams({
+            subclasse: subclasse.trim(),
+            per_page: '1',
+          })
+
+          const response = await fetch(`/api/cnaes?${params.toString()}`)
+          if (response.ok) {
+            const result = await response.json()
+            if (result.success && result.cnaes && result.cnaes.length > 0) {
+              const cnae = result.cnaes[0]
+              return {
+                subclasse: cnae.subclasse || subclasse,
+                denominacao: cnae.denominacao || subclasse,
+              }
+            }
+          }
+          return {
+            subclasse,
+            denominacao: subclasse,
+          }
+        })
+
+        const results = await Promise.all(promises)
+        setCnaesData(results)
+      } catch (error) {
+        console.error('Error fetching CNAEs:', error)
+        // Fallback to showing just the subclasse codes
+        setCnaesData(
+          cnaeIds.map(subclasse => ({
+            subclasse,
+            denominacao: subclasse,
+          }))
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCNAEs()
+  }, [cnaeIds])
+
+  if (loading) {
+    return <span className="text-muted-foreground">Carregando...</span>
+  }
+
+  if (cnaesData.length === 0) {
+    return <span className="text-muted-foreground">Sem CNAEs</span>
+  }
+
+  // Show tooltip for all cases (1 or more CNAEs)
+  const first = cnaesData[0]
+  const remaining = cnaesData.slice(1)
+  const displayText =
+    cnaesData.length === 1
+      ? first.denominacao
+      : `(+${remaining.length}) ${first.denominacao}`
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="flex items-center gap-1 max-w-[200px]">
+          <span className="truncate">{displayText}</span>
+          {/* {cnaesData.length > 1 && ( */}
+          <Info className="h-3 w-3 text-muted-foreground shrink-0" />
+          {/* )} */}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-md">
+        <div className="space-y-0">
+          <p className="font-semibold text-[13px] pb-2">Todos os CNAEs:</p>
+          {cnaesData.map((cnae, index) => (
+            <div key={index} className="space-y-0">
+              <p className="text-xs font-medium">{cnae.subclasse}</p>
+              <p className="text-xs text-background/60">{cnae.denominacao}</p>
+              {index < cnaesData.length - 1 && <div className="h-2" />}
+            </div>
+          ))}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 // Helper function to transform API data to OportunidadeMEI format
 function transformAPIToDataTable(
   opportunity: ModelsOportunidadeMEI
-): OportunidadeMEI {
+): OportunidadeMEI & { cnaeIds: string[] } {
   const opp = opportunity as any
-  // Format subclasses for display - show first 2 or count if more
-  const subclasses = opp.subclasses || []
-  const activityDisplay =
-    subclasses.length === 0
-      ? 'Sem subclasses'
-      : subclasses.length === 1
-        ? subclasses[0]
-        : subclasses.length <= 2
-          ? subclasses.join(', ')
-          : `${subclasses.slice(0, 2).join(', ')} (+${subclasses.length - 2})`
-  
+  // Get cnae_ids from the API response
+  const cnaeIds = opp.cnae_ids || []
+
   return {
     id: String(opp.id || ''),
     title: String(opp.titulo || ''),
-    activity: activityDisplay,
-    offeredBy: String(opp.orgao?.nome || ''),
+    activity: '', // Will be populated by CNAEActivityDisplay component
+    offeredBy: String(opp.orgao_id || ''), // Store orgao_id as cd_ua for DepartmentName
     publishedAt:
       opp.status === 'draft' ? null : opp.created_at?.split('T')?.[0] || null,
     expiresAt: String(opp.data_expiracao?.split('T')?.[0] || ''),
     status: opp.status as OportunidadeMEIStatus,
-    managingOrgan: String(opp.orgao?.id || ''),
+    managingOrgan: String(opp.orgao_id || ''), // Store orgao_id as cd_ua
     lastUpdate: String(opp.updated_at?.split('T')?.[0] || ''),
+    cnaeIds, // Store cnae_ids for the component
   }
 }
 
@@ -310,14 +411,15 @@ export function OportunidadesMEIDataTable() {
         header: ({ column }: { column: Column<OportunidadeMEI, unknown> }) => (
           <DataTableColumnHeader column={column} title="Atividade" />
         ),
-        cell: ({ cell }) => (
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <span className="max-w-[200px] truncate">
-              {cell.getValue<OportunidadeMEI['activity']>()}
-            </span>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const cnaeIds = row.original.cnaeIds || []
+          return (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <CNAEActivityDisplay cnaeIds={cnaeIds} />
+            </div>
+          )
+        },
         meta: {
           label: 'Atividade',
           placeholder: 'Buscar atividade...',
@@ -332,14 +434,21 @@ export function OportunidadesMEIDataTable() {
         header: ({ column }: { column: Column<OportunidadeMEI, unknown> }) => (
           <DataTableColumnHeader column={column} title="Quem oferece" />
         ),
-        cell: ({ cell }) => (
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <span className="max-w-[200px] truncate">
-              {cell.getValue<OportunidadeMEI['offeredBy']>()}
-            </span>
-          </div>
-        ),
+        cell: ({ cell }) => {
+          const orgaoId = cell.getValue<OportunidadeMEI['offeredBy']>()
+          return (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="max-w-[200px] truncate">
+                {orgaoId ? (
+                  <DepartmentName cd_ua={orgaoId} />
+                ) : (
+                  <span className="text-muted-foreground">Não informado</span>
+                )}
+              </span>
+            </div>
+          )
+        },
         meta: {
           label: 'Quem oferece',
           placeholder: 'Buscar ofertante...',
@@ -512,14 +621,13 @@ export function OportunidadesMEIDataTable() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col pb-4">
-        <Label className="py-4">Selecione uma secretaria</Label>
-        <OrgaosCombobox
+        <Label className="py-4">Filtrar por órgão/secretaria</Label>
+        <DepartmentCombobox
           value={selectedSecretaria}
           onValueChange={handleSecretariaChange}
-          placeholder="Todas as secretarias"
-          searchPlaceholder="Buscar secretaria..."
-          emptyMessage="Nenhuma secretaria encontrada."
+          placeholder="Todos os órgãos"
           className="md:w-auto h-14!"
+          clearButtonSize="h-14! w-14!"
         />
       </div>
       <Tabs

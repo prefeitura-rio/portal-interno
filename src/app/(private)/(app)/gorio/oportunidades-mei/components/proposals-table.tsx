@@ -54,6 +54,7 @@ import {
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { type MEIProposal, useMEIProposals } from '@/hooks/use-mei-proposals'
 import { toast } from 'sonner'
+import * as XLSX from 'xlsx'
 
 interface ProposalsTableProps {
   opportunityId: number
@@ -255,37 +256,53 @@ export function ProposalsTable({
       'Telefone',
       'Endereço',
     ]
-    const csvContent = [
-      headers,
-      ...proposalsToExport.map(p => [
-        p.companyName,
-        p.cnpj,
-        p.amount.toString().replace('.', ','),
-        new Date(p.submittedAt).toLocaleDateString('pt-BR'),
-        p.status,
-        p.email,
-        p.phone || '',
-        p.address || '',
-      ]),
-    ]
-      .map(row => row.map(field => `"${field}"`).join(','))
-      .join('\n')
 
-    const BOM = '\uFEFF'
-    const blob = new Blob([BOM + csvContent], {
-      type: 'text/csv;charset=utf-8;',
+    // Create worksheet data
+    const worksheetData = proposalsToExport.map(p => {
+      const statusMap: Record<string, string> = {
+        approved: 'Confirmado',
+        pending: 'Pendente',
+        rejected: 'Recusado',
+      }
+
+      return {
+        'Nome da empresa': p.companyName,
+        CNPJ: p.mei_empresa_id || '-',
+        'Valor da proposta': p.amount,
+        'Data de envio': new Date(p.submittedAt).toLocaleDateString('pt-BR'),
+        Status: statusMap[p.status] || p.status,
+        'E-mail': p.email,
+        Telefone: p.phone || '',
+        Endereço: p.address || '',
+      }
     })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
+
+    // Create workbook and worksheet
+    const workbook = XLSX.utils.book_new()
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData)
+
+    // Set column widths for better readability
+    const columnWidths = headers.map(header => {
+      const maxContentLength = Math.max(
+        header.length,
+        ...worksheetData.map(
+          row => String(row[header as keyof typeof row] || '').length
+        )
+      )
+      return { wch: Math.min(Math.max(maxContentLength + 2, 10), 50) }
+    })
+    worksheet['!cols'] = columnWidths
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Propostas')
+
+    // Generate file name
     const fileName = opportunityTitle
       ? `propostas_${opportunityTitle.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}`
       : `propostas_oportunidade_${opportunityId}`
-    link.setAttribute('download', `${fileName}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+
+    // Write file and trigger download
+    XLSX.writeFile(workbook, `${fileName}.xlsx`)
   }, [proposals, opportunityId, opportunityTitle])
 
   const columns = React.useMemo<ColumnDef<MEIProposal>[]>(
@@ -337,13 +354,13 @@ export function ProposalsTable({
       },
       {
         id: 'cnpj',
-        accessorKey: 'cnpj',
+        accessorKey: 'mei_empresa_id',
         header: ({ column }: { column: Column<MEIProposal, unknown> }) => (
           <DataTableColumnHeader column={column} title="CNPJ" />
         ),
-        cell: ({ cell }) => (
+        cell: ({ row }) => (
           <span className="font-mono text-sm">
-            {cell.getValue<MEIProposal['cnpj']>()}
+            {row.original.mei_empresa_id || '-'}
           </span>
         ),
         enableColumnFilter: false,
@@ -515,7 +532,7 @@ export function ProposalsTable({
         <h2 className="text-2xl font-semibold tracking-tight">Propostas</h2>
         <Button variant="outline" onClick={handleDownloadSpreadsheet}>
           <FileDown className="mr-2 h-4 w-4" />
-          Exportar CSV
+          Exportar XLSX
         </Button>
       </div>
 
@@ -596,7 +613,7 @@ export function ProposalsTable({
                             CNPJ
                           </Label>
                           <p className="font-mono text-sm">
-                            {selectedProposal.cnpj}
+                            {selectedProposal.mei_empresa_id || '-'}
                           </p>
                         </div>
                       </div>
@@ -727,11 +744,11 @@ export function ProposalsTable({
             Recusar propostas
           </DataTableActionBarAction>
           <DataTableActionBarAction
-            tooltip="Exportar propostas para CSV"
+            tooltip="Exportar propostas para XLSX"
             onClick={handleDownloadSpreadsheet}
           >
             <FileDown className="mr-2 h-4 w-4" />
-            Exportar CSV
+            Exportar XLSX
           </DataTableActionBarAction>
         </DataTableActionBar>
       </DataTable>

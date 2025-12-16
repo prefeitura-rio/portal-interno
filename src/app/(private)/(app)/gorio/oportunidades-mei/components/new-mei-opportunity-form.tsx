@@ -233,9 +233,11 @@ export const NewMEIOpportunityForm = forwardRef<
       resolver: zodResolver(formSchema),
       defaultValues: initialData
         ? {
-            orgao_id: initialData.orgao_id
-              ? initialData.orgao_id.toString()
-              : '',
+            orgao_id:
+              initialData.orgao_id !== null &&
+              initialData.orgao_id !== undefined
+                ? String(initialData.orgao_id)
+                : '',
             subclasses: initialData.subclasses || [],
             title: initialData.title || '',
             description: initialData.description || '',
@@ -327,7 +329,7 @@ export const NewMEIOpportunityForm = forwardRef<
       }
 
       return {
-        orgao_id: data.orgao_id ? Number(data.orgao_id) || null : null,
+        orgao_id: data.orgao_id ? Number(data.orgao_id) : null,
         subclasses: data.subclasses || [],
         titulo: data.title,
         descricao_servico: data.description,

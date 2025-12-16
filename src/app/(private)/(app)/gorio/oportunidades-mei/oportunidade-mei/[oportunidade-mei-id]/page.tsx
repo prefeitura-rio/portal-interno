@@ -30,6 +30,7 @@ import {
   FileText,
   Flag,
   Save,
+  Send,
   Trash2,
   X,
 } from 'lucide-react'
@@ -282,10 +283,38 @@ export default function MEIOpportunityDetailPage({
     setHasFormChanges(false)
   }
 
+  const handlePublishDirect = async () => {
+    try {
+      setIsLoading(true)
+
+      if (!opportunityId) {
+        throw new Error('ID da oportunidade não encontrado')
+      }
+
+      // Publish directly without updating form data
+      await publishOpportunity(opportunityId.toString())
+
+      // Refetch opportunity data to get updated information
+      await refetch()
+    } catch (error) {
+      console.error('Error publishing opportunity:', error)
+      // Error toast is already shown by the hook
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleDeleteOpportunity = () => {
     setConfirmDialog({
       open: true,
       type: 'delete_opportunity',
+    })
+  }
+
+  const handlePublishDirectClick = () => {
+    setConfirmDialog({
+      open: true,
+      type: 'publish_opportunity',
     })
   }
 
@@ -383,7 +412,7 @@ export default function MEIOpportunityDetailPage({
           </Breadcrumb>
 
           {/* Header */}
-          <div className="flex items-center justify-between md:flex-row flex-col gap-6">
+          <div className="flex items-start justify-between md:flex-row flex-col gap-6">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
                 {opportunity.title}
@@ -425,10 +454,10 @@ export default function MEIOpportunityDetailPage({
               {/* Show action buttons based on opportunity status */}
               {!isEditing ? (
                 <>
-                  {/* Edit button - don't show for expired opportunities when not in proposals tab */}
-                  {actualStatus !== 'expired' && (
+                  {/* Publish button - show only for drafts */}
+                  {isDraft && (
                     <Button
-                      onClick={handleEdit}
+                      onClick={handlePublishDirectClick}
                       disabled={
                         activeTab === 'proposals' ||
                         isLoading ||
@@ -436,10 +465,22 @@ export default function MEIOpportunityDetailPage({
                       }
                       className="w-full md:w-auto"
                     >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
+                      <Send className="mr-2 h-4 w-4" />
+                      Publicar oportunidade
                     </Button>
                   )}
+
+                  {/* Edit button - show for all statuses including expired */}
+                  <Button
+                    onClick={handleEdit}
+                    disabled={
+                      activeTab === 'proposals' || isLoading || operationLoading
+                    }
+                    className="w-full md:w-auto"
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar
+                  </Button>
 
                   {/* Delete Opportunity button - show for all statuses */}
                   <Button
@@ -607,11 +648,15 @@ export default function MEIOpportunityDetailPage({
               opportunityFormRef.current?.triggerSubmit()
             }
           } else if (confirmDialog.type === 'publish_opportunity') {
-            // Trigger form publication
-            if (isDraft) {
-              draftFormRef.current?.triggerPublish()
+            // If editing, trigger form publication; otherwise publish directly
+            if (isEditing) {
+              if (isDraft) {
+                draftFormRef.current?.triggerPublish()
+              } else {
+                opportunityFormRef.current?.triggerPublish()
+              }
             } else {
-              opportunityFormRef.current?.triggerPublish()
+              handlePublishDirect()
             }
           }
         }}

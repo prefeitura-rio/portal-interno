@@ -156,14 +156,20 @@ export function CnaeSubclasseSelect({
     const remaining = value.length - maxDisplay
 
     return (
-      <div className="flex items-center gap-1 flex-wrap">
+      <div className="flex items-center gap-1 flex-wrap min-w-0">
         {displayItems.map(subclasse => (
-          <Badge key={subclasse} variant="secondary" className="mr-1">
-            {selectedDenominacoes[subclasse] || subclasse}
+          <Badge
+            key={subclasse}
+            variant="secondary"
+            className="mr-1 max-w-full inline-flex items-center gap-1"
+          >
+            <span className="truncate max-w-[200px]">
+              {selectedDenominacoes[subclasse] || subclasse}
+            </span>
             <span
               role="button"
               tabIndex={0}
-              className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
+              className="rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer shrink-0"
               onMouseDown={e => handleRemove(e, subclasse)}
               onClick={e => handleRemove(e, subclasse)}
               onKeyDown={e => {
@@ -255,7 +261,7 @@ export function CnaeSubclasseSelect({
                       <CheckIcon className="h-4 w-4" />
                     </div>
                     <div className="flex flex-col flex-1 min-w-0">
-                      <span className="font-medium truncate">
+                      <span className="font-medium ">
                         {cnae.denominacao || cnae.subclasse}
                       </span>
                       {cnae.subclasse && (
