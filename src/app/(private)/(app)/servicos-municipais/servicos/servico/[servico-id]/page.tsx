@@ -1,6 +1,7 @@
 'use client'
 
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { ServicePreviewModal } from '@/components/preview/service-preview-modal'
 import { ServiceVersionHistory } from '@/components/service-version-history'
 import { TombadoServiceInfo } from '@/components/tombado-service-info'
 import { TombamentoModal } from '@/components/tombamento-modal'
@@ -26,6 +27,7 @@ import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
 } from '@/hooks/use-heimdall-user'
+import { useDepartment } from '@/hooks/use-department'
 import { useService } from '@/hooks/use-service'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import { type Tombamento, useTombamentos } from '@/hooks/use-tombamentos'
@@ -33,6 +35,7 @@ import {
   transformToApiRequest,
   transformToFormData,
 } from '@/lib/service-data-transformer'
+import { mapFormDataToPreview } from '@/lib/service-preview-mapper'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -44,14 +47,16 @@ import {
   CheckCircle,
   Clock,
   Edit,
+  Eye,
   Link as LinkIcon,
   Save,
   X,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { toast } from 'sonner'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { NewServiceForm } from '../../../components/new-service-form'
 
 // Status configuration for badges
@@ -100,6 +105,9 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [showDestombamentoDialog, setShowDestombamentoDialog] = useState(false)
   const [activeTab, setActiveTab] = useState('details')
   const [hasFormChanges, setHasFormChanges] = useState(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [showTabChangeDialog, setShowTabChangeDialog] = useState(false)
+  const [pendingTab, setPendingTab] = useState<string | null>(null)
 
   useEffect(() => {
     params.then(({ 'servico-id': id }) => {
@@ -129,6 +137,9 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const { fetchTombamentos, deleteTombamento } = useTombamentos()
   const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
   const canEditServices = useCanEditBuscaServices()
+
+  // Get department name for preview
+  const { department } = useDepartment(service?.managingOrgan || null)
 
   const initialFormData = useMemo(() => {
     if (!service) {
@@ -167,6 +178,32 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     // Reset form to original data
     refetch()
   }
+
+  // Interceptar mudanças de tab quando há alterações não salvas
+  const handleTabChange = useCallback(
+    (newTab: string) => {
+      if (isEditing && hasFormChanges && newTab !== activeTab) {
+        setPendingTab(newTab)
+        setShowTabChangeDialog(true)
+      } else {
+        setActiveTab(newTab)
+      }
+    },
+    [isEditing, hasFormChanges, activeTab]
+  )
+
+  const handleConfirmTabChange = useCallback(() => {
+    if (pendingTab) {
+      setActiveTab(pendingTab)
+      setPendingTab(null)
+    }
+    setShowTabChangeDialog(false)
+  }, [pendingTab])
+
+  const handleCancelTabChange = useCallback(() => {
+    setPendingTab(null)
+    setShowTabChangeDialog(false)
+  }, [])
 
   const handleSave = async (data: any) => {
     if (!servicoId || !service) return
@@ -501,6 +538,10 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
   return (
     <ContentLayout title="Detalhes do Serviço">
+      <UnsavedChangesGuard
+        hasUnsavedChanges={isEditing && hasFormChanges}
+        message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
+      />
       <div className="space-y-6">
         {/* Breadcrumb */}
         <div className="flex flex-col gap-2">
@@ -629,6 +670,15 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                 if (!isEditing) {
                   return (
                     <>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setShowPreviewModal(true)}
+                        disabled={loading || operationLoading}
+                        className="w-full sm:w-auto"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Pré-visualizar
+                      </Button>
                       {buttonConfig.showEdit && (
                         <Button
                           onClick={handleEdit}
@@ -706,10 +756,18 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           />
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details">Detalhes do serviço</TabsTrigger>
-            <TabsTrigger value="history">Histórico de modificações</TabsTrigger>
+            <TabsTrigger value="details" disabled={isEditing && hasFormChanges}>
+              Detalhes do serviço
+            </TabsTrigger>
+            <TabsTrigger value="history" disabled={isEditing && hasFormChanges}>
+              Histórico de modificações
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="mt-6">
@@ -801,6 +859,18 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           onConfirm={handleConfirmDestombamento}
         />
 
+        <ConfirmDialog
+          open={showTabChangeDialog}
+          onOpenChange={setShowTabChangeDialog}
+          title="Alterações não salvas"
+          description="Você tem alterações não salvas. Tem certeza que deseja mudar de aba? As alterações serão perdidas."
+          confirmText="Mudar de aba"
+          cancelText="Cancelar"
+          variant="destructive"
+          onConfirm={handleConfirmTabChange}
+          onCancel={handleCancelTabChange}
+        />
+
         {/* Tombamento Modal */}
         {servicoId && service && (
           <TombamentoModal
@@ -809,6 +879,19 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             serviceId={servicoId}
             serviceTitle={service.title}
             onSuccess={handleTombamentoSuccess}
+          />
+        )}
+
+        {/* Preview Modal */}
+        {service && initialFormData && (
+          <ServicePreviewModal
+            open={showPreviewModal}
+            onOpenChange={setShowPreviewModal}
+            serviceData={mapFormDataToPreview({
+              ...initialFormData,
+              serviceSubcategory: initialFormData.serviceSubcategory || '',
+            })}
+            orgaoGestorName={department?.nome_ua || null}
           />
         )}
       </div>

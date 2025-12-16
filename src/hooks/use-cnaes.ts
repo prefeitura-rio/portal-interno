@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ModelsCNAE } from '@/http-rmi/models/modelsCNAE'
 
 interface CNAE {
   id: number
@@ -119,5 +120,63 @@ export function useCNAEData() {
 
   return {
     getCNAEByOcupacaoAndServico,
+  }
+}
+
+// Hook to search CNAEs by subclasse using Next.js API route
+export function useCnaesBySubclasse(subclasse?: string, enabled = true) {
+  const [data, setData] = useState<ModelsCNAE[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    if (!enabled || !subclasse || subclasse.trim() === '') {
+      setData([])
+      return
+    }
+
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        const params = new URLSearchParams({
+          subclasse: subclasse.trim(),
+          per_page: '100',
+        })
+
+        const response = await fetch(`/api/cnaes?${params.toString()}`)
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch CNAEs')
+        }
+
+        const result = await response.json()
+
+        if (result.success && result.cnaes) {
+          setData(result.cnaes)
+        } else {
+          setData([])
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Unknown error'))
+        setData([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    // Debounce the search
+    const timeoutId = setTimeout(() => {
+      fetchData()
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [subclasse, enabled])
+
+  return {
+    cnaes: data,
+    isLoading,
+    error,
   }
 }

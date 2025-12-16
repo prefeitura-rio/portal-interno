@@ -1,4 +1,9 @@
 import type { MEIProposal, ProposalStatus } from '@/hooks/use-mei-proposals'
+import type {
+  GetApiV1OportunidadesMeiIdPropostas200,
+  GetApiV1OportunidadesMeiIdPropostasParams,
+  ModelsPropostaMEI,
+} from '@/http-gorio/models'
 import { getApiV1OportunidadesMeiIdPropostas } from '@/http-gorio/propostas-mei/propostas-mei'
 import { NextResponse } from 'next/server'
 
@@ -42,14 +47,8 @@ export async function GET(
       }
     }
 
-    // Build API params with filters
-    const apiParams: {
-      page?: number
-      pageSize?: number
-      nomeEmpresa?: string
-      cnpj?: string
-      status?: string
-    } = {
+    // Build API params with filters using the orval-generated type
+    const apiParams: GetApiV1OportunidadesMeiIdPropostasParams = {
       page,
       pageSize: perPage,
     }
@@ -90,12 +89,12 @@ export async function GET(
       )
     }
 
-    const backendData = response.data as any
+    const backendData = response.data as GetApiV1OportunidadesMeiIdPropostas200
 
     console.log(
-      `API returned ${backendData.data?.length || 0} proposals from backend`,
+      `API returned ${(backendData as any).data?.length || 0} proposals from backend`,
       `Meta:`,
-      backendData.meta
+      (backendData as any).meta
     )
 
     // Map backend status_cidadao to frontend status
@@ -118,12 +117,12 @@ export async function GET(
       pageSize: 1000, // Get all proposals to calculate accurate summary
     })
 
-    const summaryData = summaryResponse.data as any
-    const allProposals = (summaryData.data || [])
-      .map((proposta: any) => {
+    const summaryData = summaryResponse.data as GetApiV1OportunidadesMeiIdPropostas200
+    const allProposals = ((summaryData as any).data || [])
+      .map((proposta: ModelsPropostaMEI) => {
         if (!proposta || !proposta.id) return null
         return {
-          status: mapStatusToFrontend(proposta.status_cidadao),
+          status: mapStatusToFrontend(proposta.status_cidadao || 'submitted'),
         }
       })
       .filter((p: any) => p !== null)
@@ -139,12 +138,14 @@ export async function GET(
     }
 
     // Transform backend data to frontend format
-    const proposals: MEIProposal[] = (backendData.data || [])
-      .map((proposta: any) => {
+    const proposals: MEIProposal[] = ((backendData as any).data || [])
+      .map((proposta: ModelsPropostaMEI & { mei_empresa?: any }) => {
         if (!proposta || !proposta.id) return null
 
         // Use status_cidadao as the actual proposal status
-        const frontendStatus = mapStatusToFrontend(proposta.status_cidadao)
+        const frontendStatus = mapStatusToFrontend(
+          proposta.status_cidadao || 'submitted'
+        )
 
         const meiEmpresa = proposta.mei_empresa || {}
 
@@ -163,6 +164,7 @@ export async function GET(
           companyName:
             meiEmpresa.nome_fantasia || meiEmpresa.razao_social || '',
           cnpj: meiEmpresa.cnpj || '',
+          mei_empresa_id: proposta.mei_empresa_id || undefined,
           amount: proposta.valor_proposta || 0,
           submittedAt: proposta.created_at || new Date().toISOString(),
           email: meiEmpresa.email || '',
@@ -175,7 +177,7 @@ export async function GET(
 
     // Build pagination info from backend response
     // Backend now handles all filtering (status, search), so meta.total is accurate
-    const meta = backendData.meta || {}
+    const meta = (backendData as any).meta || {}
     const total = meta.total || proposals.length
     const totalPages = meta.total_pages || Math.ceil(total / perPage)
 

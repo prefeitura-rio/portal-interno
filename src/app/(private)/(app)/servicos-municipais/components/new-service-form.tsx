@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Eye, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -10,6 +10,7 @@ import { z } from 'zod'
 import type { ServiceButton } from '@/types/service'
 
 import { MarkdownEditor } from '@/components/blocks/editor-md'
+import { ServicePreviewModal } from '@/components/preview/service-preview-modal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -36,11 +37,13 @@ import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
 } from '@/hooks/use-heimdall-user'
+import { useDepartment } from '@/hooks/use-department'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import {
   getCurrentTimestamp,
   transformToApiRequest,
 } from '@/lib/service-data-transformer'
+import { mapFormDataToPreview } from '@/lib/service-preview-mapper'
 import { toast } from 'sonner'
 
 const sanitizeStringArray = (value: unknown): string[] => {
@@ -424,7 +427,8 @@ export function NewServiceForm({
     useState<ServiceFormData | null>(null)
   const [digitalChannels, setDigitalChannels] = useState<string[]>(() => {
     try {
-      return sanitizedInitialData && sanitizedInitialData.digitalChannels?.length > 0
+      return sanitizedInitialData &&
+        sanitizedInitialData.digitalChannels?.length > 0
         ? sanitizedInitialData.digitalChannels
         : ['']
     } catch {
@@ -433,7 +437,8 @@ export function NewServiceForm({
   })
   const [channelErrors, setChannelErrors] = useState<string[]>(() => {
     try {
-      return sanitizedInitialData && sanitizedInitialData.digitalChannels?.length > 0
+      return sanitizedInitialData &&
+        sanitizedInitialData.digitalChannels?.length > 0
         ? sanitizedInitialData.digitalChannels.map(() => '')
         : ['']
     } catch {
@@ -442,32 +447,38 @@ export function NewServiceForm({
   })
   const [physicalChannels, setPhysicalChannels] = useState<string[]>(() => {
     try {
-      return sanitizedInitialData && sanitizedInitialData.physicalChannels?.length > 0
+      return sanitizedInitialData &&
+        sanitizedInitialData.physicalChannels?.length > 0
         ? sanitizedInitialData.physicalChannels
         : ['']
     } catch {
       return ['']
     }
   })
-  const [physicalChannelErrors, setPhysicalChannelErrors] = useState<string[]>(() => {
-    try {
-      return sanitizedInitialData && sanitizedInitialData.physicalChannels?.length > 0
-        ? sanitizedInitialData.physicalChannels.map(() => '')
-        : ['']
-    } catch {
-      return ['']
+  const [physicalChannelErrors, setPhysicalChannelErrors] = useState<string[]>(
+    () => {
+      try {
+        return sanitizedInitialData &&
+          sanitizedInitialData.physicalChannels?.length > 0
+          ? sanitizedInitialData.physicalChannels.map(() => '')
+          : ['']
+      } catch {
+        return ['']
+      }
     }
-  })
-  const [legislacaoRelacionada, setLegislacaoRelacionada] = useState<string[]>(() => {
-    try {
-      return sanitizedInitialData &&
-        sanitizedInitialData.legislacaoRelacionada?.length > 0
-        ? sanitizedInitialData.legislacaoRelacionada
-        : ['']
-    } catch {
-      return ['']
+  )
+  const [legislacaoRelacionada, setLegislacaoRelacionada] = useState<string[]>(
+    () => {
+      try {
+        return sanitizedInitialData &&
+          sanitizedInitialData.legislacaoRelacionada?.length > 0
+          ? sanitizedInitialData.legislacaoRelacionada
+          : ['']
+      } catch {
+        return ['']
+      }
     }
-  })
+  )
   const [legislacaoErrors, setLegislacaoErrors] = useState<string[]>(() => {
     try {
       return sanitizedInitialData &&
@@ -480,7 +491,8 @@ export function NewServiceForm({
   })
   const [serviceButtons, setServiceButtons] = useState<ServiceButton[]>(() => {
     try {
-      return sanitizedInitialData?.buttons && sanitizedInitialData.buttons.length > 0
+      return sanitizedInitialData?.buttons &&
+        sanitizedInitialData.buttons.length > 0
         ? sanitizedInitialData.buttons
         : []
     } catch {
@@ -489,7 +501,8 @@ export function NewServiceForm({
   })
   const [buttonErrors, setButtonErrors] = useState<ButtonErrorState[]>(() => {
     try {
-      return sanitizedInitialData?.buttons && sanitizedInitialData.buttons.length > 0
+      return sanitizedInitialData?.buttons &&
+        sanitizedInitialData.buttons.length > 0
         ? sanitizedInitialData.buttons.map(() => ({}))
         : []
     } catch {
@@ -497,6 +510,7 @@ export function NewServiceForm({
     }
   })
   const [hasFormChanges, setHasFormChanges] = useState(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
@@ -504,6 +518,10 @@ export function NewServiceForm({
       ? { ...defaultValues, ...sanitizedInitialData }
       : defaultValues,
   })
+
+  // Get department name for preview
+  const managingOrgan = form.watch('managingOrgan')
+  const { department } = useDepartment(managingOrgan)
 
   const watchedValues = form.watch()
 
@@ -573,11 +591,35 @@ export function NewServiceForm({
 
   // Check for form changes - optimized with useMemo to prevent excessive recalculations
   const hasChanges = React.useMemo(() => {
-    if (readOnly || !sanitizedInitialData) {
+    if (readOnly) {
       return false
     }
 
     const formData = watchedValues as Partial<ServiceFormData>
+
+    // If no initial data (creating new service), check if any field has been filled
+    if (!sanitizedInitialData) {
+      const hasAnyValue =
+        formData.managingOrgan ||
+        formData.serviceCategory ||
+        formData.serviceSubcategory ||
+        formData.targetAudience ||
+        formData.title ||
+        formData.shortDescription ||
+        formData.whatServiceDoesNotCover ||
+        formData.serviceTime ||
+        formData.serviceCost ||
+        formData.requestResult ||
+        formData.fullDescription ||
+        formData.requiredDocuments ||
+        formData.instructionsForRequester ||
+        digitalChannels?.some(ch => ch.trim() !== '') ||
+        physicalChannels?.some(ch => ch.trim() !== '') ||
+        legislacaoRelacionada?.some(leg => leg.trim() !== '') ||
+        (serviceButtons?.length ?? 0) > 0
+
+      return !!hasAnyValue
+    }
 
     // Helper function to normalize arrays for comparison
     const normalizeArray = (arr: any[] | undefined) => {
@@ -678,6 +720,14 @@ export function NewServiceForm({
 
   const handleCancel = () => {
     router.push('/servicos-municipais/servicos')
+  }
+
+  const handlePreview = () => {
+    // Validate before showing preview
+    if (!ensureDynamicListsValid({ showFeedback: true })) {
+      return
+    }
+    setShowPreviewModal(true)
   }
 
   const addDigitalChannel = () => {
@@ -998,9 +1048,9 @@ export function NewServiceForm({
       if (serviceStatus === 'published' && serviceId) {
         apiData.status = 1 // Keep as published
         // Don't set published_at - preserve the original publication date
-        
+
         await updateService(serviceId, apiData)
-        
+
         setPendingFormData(null)
         setShowPublishDialog(false)
 
@@ -1242,7 +1292,7 @@ export function NewServiceForm({
                   <FormItem>
                     <FormLabel>Categoria do serviço*</FormLabel>
                     <Select
-                      onValueChange={(value) => {
+                      onValueChange={value => {
                         field.onChange(value)
                         // Clear subcategory when category changes
                         form.setValue('serviceSubcategory', '')
@@ -1261,24 +1311,38 @@ export function NewServiceForm({
                         <SelectItem value="Transporte">Transporte</SelectItem>
                         <SelectItem value="Licenças">Licenças</SelectItem>
                         <SelectItem value="Animais">Animais</SelectItem>
-                        <SelectItem value="Meio Ambiente">Meio Ambiente</SelectItem>
+                        <SelectItem value="Meio Ambiente">
+                          Meio Ambiente
+                        </SelectItem>
                         <SelectItem value="Saúde">Saúde</SelectItem>
                         <SelectItem value="Cidadania">Cidadania</SelectItem>
                         <SelectItem value="Servidor">Servidor</SelectItem>
                         <SelectItem value="Cultura">Cultura</SelectItem>
-                        <SelectItem value="Defesa Civil">Defesa Civil</SelectItem>
+                        <SelectItem value="Defesa Civil">
+                          Defesa Civil
+                        </SelectItem>
                         <SelectItem value="Segurança">Segurança</SelectItem>
                         <SelectItem value="Cursos">Cursos</SelectItem>
                         <SelectItem value="Tributos">Tributos</SelectItem>
                         <SelectItem value="Trabalho">Trabalho</SelectItem>
                         <SelectItem value="Ouvidoria">Ouvidoria</SelectItem>
                         <SelectItem value="Trânsito">Trânsito</SelectItem>
-                        <SelectItem value="Ordem Pública">Ordem Pública</SelectItem>
+                        <SelectItem value="Ordem Pública">
+                          Ordem Pública
+                        </SelectItem>
                         <SelectItem value="Obras">Obras</SelectItem>
-                        <SelectItem value="Central Anticorrupção">Central Anticorrupção</SelectItem>
-                        <SelectItem value="Lei de Acesso à Informação (LAI)">Lei de Acesso à Informação (LAI)</SelectItem>
-                        <SelectItem value="Lei Geral de Proteção de Dados (LGPD)">Lei Geral de Proteção de Dados (LGPD)</SelectItem>
-                        <SelectItem value="Peticionamentos">Peticionamentos</SelectItem>
+                        <SelectItem value="Central Anticorrupção">
+                          Central Anticorrupção
+                        </SelectItem>
+                        <SelectItem value="Lei de Acesso à Informação (LAI)">
+                          Lei de Acesso à Informação (LAI)
+                        </SelectItem>
+                        <SelectItem value="Lei Geral de Proteção de Dados (LGPD)">
+                          Lei Geral de Proteção de Dados (LGPD)
+                        </SelectItem>
+                        <SelectItem value="Peticionamentos">
+                          Peticionamentos
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -1944,6 +2008,19 @@ export function NewServiceForm({
               >
                 Cancelar
               </Button>
+
+              {/* Preview Button */}
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={handlePreview}
+                disabled={isLoading || operationLoading}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Pré-visualizar
+              </Button>
+
               {(() => {
                 const buttonConfig = getFormButtonConfiguration()
                 // Disable action buttons if editing existing service and no changes were made
@@ -2003,7 +2080,8 @@ export function NewServiceForm({
                           ? serviceStatus === 'published' && serviceId
                             ? 'Salvando...'
                             : 'Publicando...'
-                          : buttonConfig.publishButtonText || 'Salvar e publicar'}
+                          : buttonConfig.publishButtonText ||
+                            'Salvar e publicar'}
                       </Button>
                     )}
                   </>
@@ -2060,6 +2138,20 @@ export function NewServiceForm({
         cancelText="Cancelar"
         variant="default"
         onConfirm={handleConfirmSendToApproval}
+      />
+
+      {/* Preview Modal */}
+      <ServicePreviewModal
+        open={showPreviewModal}
+        onOpenChange={setShowPreviewModal}
+        serviceData={mapFormDataToPreview({
+          ...watchedValues,
+          digitalChannels,
+          physicalChannels,
+          legislacaoRelacionada,
+          buttons: serviceButtons,
+        } as ServiceFormData)}
+        orgaoGestorName={department?.nome_ua || null}
       />
     </div>
   )

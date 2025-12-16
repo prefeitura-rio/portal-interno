@@ -17,7 +17,7 @@ import type {
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
- * Retorna lista paginada de categorias
+ * Retorna lista paginada de categorias. Use onlyWithCourses=true para filtrar apenas categorias com cursos abertos, visíveis e com inscrições dentro do período de tolerância.
  * @summary Listar categorias
  */
 export type getApiV1CategoriasResponse200 = {

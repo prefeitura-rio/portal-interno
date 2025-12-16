@@ -2,26 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-
-interface BackendMEIOpportunityData {
-  orgao_id: number | null
-  cnae_id: number | null
-  titulo?: string
-  descricao_servico?: string
-  outras_informacoes?: string
-  logradouro?: string
-  numero?: string
-  bairro?: string
-  cidade?: string
-  estado?: string
-  forma_pagamento?: string
-  prazo_pagamento?: string
-  data_expiracao?: string
-  data_limite_execucao?: string | null
-  gallery_images?: string[]
-  cover_image?: string | null
-  status?: 'active' | 'draft' | 'canceled' | 'closed'
-}
+import type { BackendMEIOpportunityData } from './use-create-mei-opportunity'
 
 interface UseMEIOpportunityOperationsReturn {
   updateOpportunity: (

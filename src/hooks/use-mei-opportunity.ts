@@ -6,8 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 export interface MEIOpportunity {
   id: number
   title: string
-  activity_type: string
-  activity_specification: string
+  subclasses?: string[]
   description: string
   outras_informacoes?: string
   address: string
@@ -24,17 +23,10 @@ export interface MEIOpportunity {
   status: 'active' | 'draft' | 'expired' | 'canceled' | 'closed'
   created_at: string
   updated_at: string
-  orgao_id?: number
+  orgao_id?: string | number // API pode retornar como string ou number
   orgao?: {
     id: number
     nome: string
-  }
-  cnae_id?: number
-  cnae?: {
-    id: number
-    codigo: string
-    ocupacao: string
-    servico: string
   }
   execution_location?: string
 }
@@ -51,8 +43,7 @@ function transformAPIData(apiData: any): MEIOpportunity {
   return {
     id: apiData.id,
     title: apiData.titulo || '',
-    activity_type: apiData.cnae?.ocupacao || '',
-    activity_specification: apiData.cnae?.servico || '',
+    subclasses: apiData.cnae_ids || [], // API retorna cnae_ids, não subclasses
     description: apiData.descricao_servico || '',
     outras_informacoes: apiData.outras_informacoes || '',
     address: apiData.logradouro || '',
@@ -69,10 +60,11 @@ function transformAPIData(apiData: any): MEIOpportunity {
     status: apiData.status || 'draft',
     created_at: apiData.created_at || '',
     updated_at: apiData.updated_at || '',
-    orgao_id: apiData.orgao_id,
+    // Manter orgao_id como string ou number conforme vem da API (formulário converte para string)
+    orgao_id: apiData.orgao_id !== null && apiData.orgao_id !== undefined 
+      ? (typeof apiData.orgao_id === 'string' ? apiData.orgao_id : String(apiData.orgao_id))
+      : undefined,
     orgao: apiData.orgao,
-    cnae_id: apiData.cnae_id,
-    cnae: apiData.cnae,
     execution_location: apiData.execution_location || '',
   }
 }

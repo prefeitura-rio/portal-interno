@@ -1,3 +1,7 @@
+import type {
+  ModelsPropostaMEI,
+  PutApiV1OportunidadesMeiIdPropostasPropostaIdStatusBody,
+} from '@/http-gorio/models'
 import { putApiV1OportunidadesMeiIdPropostasPropostaIdStatus } from '@/http-gorio/propostas-mei/propostas-mei'
 import { NextResponse } from 'next/server'
 
@@ -45,7 +49,7 @@ export async function PUT(
     // - status_cidadao: the actual proposal status (submitted/approved/rejected)
     // - status_admin: soft-delete flag (active/inactive)
     // The /status endpoint updates status_cidadao
-    const requestBody = {
+    const requestBody: PutApiV1OportunidadesMeiIdPropostasPropostaIdStatusBody = {
       status: backendStatus,
     }
 
@@ -63,8 +67,9 @@ export async function PUT(
     })
 
     if (response.status === 200) {
+      const proposalData = response.data as ModelsPropostaMEI
       return NextResponse.json({
-        proposal: response.data,
+        proposal: proposalData,
         success: true,
         message: 'Proposal status updated successfully',
       })

@@ -2,14 +2,8 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 export type BackendMEIOpportunityData = {
-  orgao_id: number | null
-  cnae_id: number | null
-  cnae?: {
-    id: number
-    codigo: string
-    ocupacao: string
-    servico: string
-  }
+  orgao_id?: string | null
+  cnae_ids?: string[]
   titulo?: string
   descricao_servico?: string
   outras_informacoes?: string
@@ -17,6 +11,7 @@ export type BackendMEIOpportunityData = {
   numero?: string
   bairro?: string
   cidade?: string
+  estado?: string
   forma_pagamento?: string
   prazo_pagamento?: string
   data_expiracao?: string

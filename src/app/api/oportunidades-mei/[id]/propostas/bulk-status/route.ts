@@ -1,4 +1,8 @@
-import type { ModelsStatusPropostaCidadao } from '@/http-gorio/models'
+import type {
+  ModelsPropostaStatusUpdateRequest,
+  ModelsPropostaStatusUpdateRequestStatus,
+  ModelsPropostaStatusUpdateResponse,
+} from '@/http-gorio/models'
 import { putApiV1OportunidadesMeiIdPropostasStatus } from '@/http-gorio/propostas-mei/propostas-mei'
 import { NextResponse } from 'next/server'
 
@@ -37,10 +41,10 @@ export async function PUT(
       )
     }
 
-    // Map frontend status to backend status_cidadao
+    // Map frontend status to backend status_cidadao using orval-generated type
     const mapStatusToBackend = (
       status: string
-    ): ModelsStatusPropostaCidadao => {
+    ): ModelsPropostaStatusUpdateRequestStatus => {
       switch (status) {
         case 'approved':
           return 'approved'
@@ -59,11 +63,16 @@ export async function PUT(
       `Bulk updating ${proposalIds.length} proposals to status ${backendStatus} (frontend: ${frontendStatus}) for opportunity ${id}`
     )
 
-    // Use the bulk update endpoint instead of multiple individual calls
-    const response = await putApiV1OportunidadesMeiIdPropostasStatus(id, {
+    // Use the bulk update endpoint with orval-generated type
+    const requestBody: ModelsPropostaStatusUpdateRequest = {
       proposta_ids: proposalIds.map(id => id.toString()),
       status: backendStatus,
-    })
+    }
+
+    const response = await putApiV1OportunidadesMeiIdPropostasStatus(
+      id,
+      requestBody
+    )
 
     console.log('Bulk update API response:', {
       status: response.status,
@@ -71,7 +80,7 @@ export async function PUT(
     })
 
     if (response.status === 200) {
-      const responseData = response.data as any
+      const responseData = response.data as ModelsPropostaStatusUpdateResponse
       const updatedCount = responseData.updated_count || proposalIds.length
 
       return NextResponse.json({
