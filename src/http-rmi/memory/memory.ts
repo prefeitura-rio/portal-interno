@@ -78,6 +78,79 @@ export const getMemoryPhoneNumber = async (
 }
 
 /**
+ * Atualiza uma única memória associada ao telefone do cidadão.
+ * @summary Atualiza memória associada ao número de telefone.
+ */
+export type putMemoryPhoneNumberResponse200 = {
+  data: HandlersSuccessResponse
+  status: 200
+}
+
+export type putMemoryPhoneNumberResponse400 = {
+  data: HandlersErrorResponse
+  status: 400
+}
+
+export type putMemoryPhoneNumberResponse401 = {
+  data: HandlersErrorResponse
+  status: 401
+}
+
+export type putMemoryPhoneNumberResponse403 = {
+  data: HandlersErrorResponse
+  status: 403
+}
+
+export type putMemoryPhoneNumberResponse404 = {
+  data: HandlersErrorResponse
+  status: 404
+}
+
+export type putMemoryPhoneNumberResponse429 = {
+  data: HandlersErrorResponse
+  status: 429
+}
+
+export type putMemoryPhoneNumberResponse500 = {
+  data: HandlersErrorResponse
+  status: 500
+}
+
+export type putMemoryPhoneNumberResponseComposite =
+  | putMemoryPhoneNumberResponse200
+  | putMemoryPhoneNumberResponse400
+  | putMemoryPhoneNumberResponse401
+  | putMemoryPhoneNumberResponse403
+  | putMemoryPhoneNumberResponse404
+  | putMemoryPhoneNumberResponse429
+  | putMemoryPhoneNumberResponse500
+
+export type putMemoryPhoneNumberResponse =
+  putMemoryPhoneNumberResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutMemoryPhoneNumberUrl = (phoneNumber: string) => {
+  return `/memory/${phoneNumber}`
+}
+
+export const putMemoryPhoneNumber = async (
+  phoneNumber: string,
+  handlersMemoryModel: HandlersMemoryModel,
+  options?: RequestInit
+): Promise<putMemoryPhoneNumberResponse> => {
+  return customFetchRmi<putMemoryPhoneNumberResponse>(
+    getPutMemoryPhoneNumberUrl(phoneNumber),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(handlersMemoryModel),
+    }
+  )
+}
+
+/**
  * Cria uma única memória associada ao telefone do cidadão.
  * @summary Cria memória associada ao número de telefone.
  */
@@ -220,83 +293,6 @@ export const getMemoryPhoneNumberMemoryName = async (
     {
       ...options,
       method: 'GET',
-    }
-  )
-}
-
-/**
- * Atualiza uma única memória associada ao telefone do cidadão.
- * @summary Atualiza memória associada ao número de telefone.
- */
-export type putMemoryPhoneNumberMemoryNameResponse200 = {
-  data: HandlersSuccessResponse
-  status: 200
-}
-
-export type putMemoryPhoneNumberMemoryNameResponse400 = {
-  data: HandlersErrorResponse
-  status: 400
-}
-
-export type putMemoryPhoneNumberMemoryNameResponse401 = {
-  data: HandlersErrorResponse
-  status: 401
-}
-
-export type putMemoryPhoneNumberMemoryNameResponse403 = {
-  data: HandlersErrorResponse
-  status: 403
-}
-
-export type putMemoryPhoneNumberMemoryNameResponse404 = {
-  data: HandlersErrorResponse
-  status: 404
-}
-
-export type putMemoryPhoneNumberMemoryNameResponse429 = {
-  data: HandlersErrorResponse
-  status: 429
-}
-
-export type putMemoryPhoneNumberMemoryNameResponse500 = {
-  data: HandlersErrorResponse
-  status: 500
-}
-
-export type putMemoryPhoneNumberMemoryNameResponseComposite =
-  | putMemoryPhoneNumberMemoryNameResponse200
-  | putMemoryPhoneNumberMemoryNameResponse400
-  | putMemoryPhoneNumberMemoryNameResponse401
-  | putMemoryPhoneNumberMemoryNameResponse403
-  | putMemoryPhoneNumberMemoryNameResponse404
-  | putMemoryPhoneNumberMemoryNameResponse429
-  | putMemoryPhoneNumberMemoryNameResponse500
-
-export type putMemoryPhoneNumberMemoryNameResponse =
-  putMemoryPhoneNumberMemoryNameResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutMemoryPhoneNumberMemoryNameUrl = (
-  phoneNumber: string,
-  memoryName: string
-) => {
-  return `/memory/${phoneNumber}/${memoryName}`
-}
-
-export const putMemoryPhoneNumberMemoryName = async (
-  phoneNumber: string,
-  memoryName: string,
-  handlersMemoryModel: HandlersMemoryModel,
-  options?: RequestInit
-): Promise<putMemoryPhoneNumberMemoryNameResponse> => {
-  return customFetchRmi<putMemoryPhoneNumberMemoryNameResponse>(
-    getPutMemoryPhoneNumberMemoryNameUrl(phoneNumber, memoryName),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(handlersMemoryModel),
     }
   )
 }
