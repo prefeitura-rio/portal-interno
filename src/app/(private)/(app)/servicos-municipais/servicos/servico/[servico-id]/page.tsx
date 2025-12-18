@@ -16,6 +16,12 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -46,6 +52,7 @@ import {
   CheckCircle,
   Clock,
   Edit,
+  EllipsisVertical,
   Eye,
   Link as LinkIcon,
   Save,
@@ -708,46 +715,46 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           </Breadcrumb>
 
           {/* Header */}
-          <div className="flex items-start justify-between md:flex-row flex-col gap-4 md:gap-6">
-            <div className="flex-1 min-w-0">
-              {service.status === 'published' &&
-              service.serviceCategory &&
-              service.slug ? (
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href={`${process.env.NEXT_PUBLIC_BASE_URL_APP || ''}/servicos/categoria/${service.serviceCategory}/${service.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline group"
-                      >
-                        <span>
-                          {service.title}{' '}
-                          <LinkIcon
-                            strokeWidth={1.5}
-                            className="inline h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors align-middle ml-1"
-                          />
-                        </span>
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      <p className="font-medium">
-                        Acesse o serviço no pref.rio
-                      </p>
-                      <p className="text-xs text-muted/70">
-                        Alterações levam 10 minutos para serem refletidas.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </h1>
-              ) : (
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
-                  {service.title}
-                </h1>
-              )}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
-                <div className="flex flex-wrap items-center gap-2">
+          <div className="space-y-4">
+            <div className="flex items-start md:items-center justify-between md:flex-row flex-col gap-4 md:gap-6">
+              <div className="flex-1 min-w-0">
+                {service.status === 'published' &&
+                service.serviceCategory &&
+                service.slug ? (
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={`${process.env.NEXT_PUBLIC_BASE_URL_APP || ''}/servicos/categoria/${service.serviceCategory}/${service.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline group"
+                        >
+                          <span>
+                            {service.title}{' '}
+                            <LinkIcon
+                              strokeWidth={1.5}
+                              className="inline h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors align-middle ml-1"
+                            />
+                          </span>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p className="font-medium">
+                          Acesse o serviço no pref.rio
+                        </p>
+                        <p className="text-xs text-muted/70">
+                          Alterações levam 10 minutos para serem refletidas.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </h1>
+                ) : (
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
+                    {service.title}
+                  </h1>
+                )}
+                <div className="flex flex-nowrap items-center gap-2 mt-2">
                   <Badge
                     variant={config.variant}
                     className={`capitalize ${config.className}`}
@@ -784,101 +791,43 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                       </Badge>
                     ))}
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
-                  <span>
-                    Última modificação em{' '}
-                    {format(
-                      service.last_update || new Date(),
-                      'dd/MM/yyyy HH:mm:ss',
-                      {
-                        locale: ptBR,
-                      }
-                    )}
-                  </span>
-                  {service.published_at && (
-                    <>
-                      <span className="hidden sm:inline">•</span>
-                      <span>
-                        Publicado em{' '}
-                        {format(service.published_at, 'dd/MM/yyyy HH:mm:ss', {
-                          locale: ptBR,
-                        })}
-                      </span>
-                    </>
-                  )}
-                </div>
               </div>
-            </div>
-            <div className="flex w-full max-w-none flex-col sm:flex-row sm:flex-wrap gap-2 sm:justify-end mt-4 md:mt-0 sm:max-w-md ml-auto">
-              {(() => {
-                const buttonConfig = getButtonConfiguration()
+              <div className="flex w-full max-w-none flex-col sm:flex-row sm:flex-wrap gap-2 sm:justify-end mt-4 md:mt-0 sm:max-w-md ml-auto">
+                {(() => {
+                  const buttonConfig = getButtonConfiguration()
 
-                if (!isEditing) {
-                  return (
-                    <>
-                      {/* Primary Actions - Most important actions first */}
-                      {buttonConfig.showEdit && (
+                  if (!isEditing) {
+                    return (
+                      <>
+                        {/* Primary Actions - Most important actions first */}
+                        {buttonConfig.showEdit && (
+                          <Button
+                            onClick={handleEdit}
+                            disabled={loading || operationLoading}
+                            className="w-full sm:w-auto"
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </Button>
+                        )}
+
+                        {/* Secondary Actions - Preview and administrative actions */}
                         <Button
-                          onClick={handleEdit}
+                          variant="secondary"
+                          onClick={() => setShowPreviewModal(true)}
                           disabled={loading || operationLoading}
                           className="w-full sm:w-auto"
                         >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
+                          <Eye className="h-4 w-4 mr-2" />
+                          Pré-visualizar
                         </Button>
-                      )}
 
-                      {/* Secondary Actions - Preview and administrative actions */}
-                      <Button
-                        variant="secondary"
-                        onClick={() => setShowPreviewModal(true)}
-                        disabled={loading || operationLoading}
-                        className="w-full sm:w-auto"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Pré-visualizar
-                      </Button>
-
-                      {buttonConfig.primaryButtons.map((button, index) => (
-                        <Button
-                          key={`primary-${index}`}
-                          onClick={button.action}
-                          disabled={loading || operationLoading || isSaving}
-                          variant={button.variant || 'default'}
-                          className="w-full sm:w-auto"
-                        >
-                          {button.icon &&
-                            React.createElement(button.icon, {
-                              className: 'h-4 w-4 mr-2',
-                            })}
-                          {button.label}
-                        </Button>
-                      ))}
-
-                      {buttonConfig.secondaryButtons.map((button, index) => (
-                        <Button
-                          key={`secondary-${index}`}
-                          onClick={button.action}
-                          disabled={loading || operationLoading || isSaving}
-                          variant={button.variant || 'outline'}
-                          className={`w-full sm:w-auto ${button.className ?? ''}`}
-                        >
-                          {button.icon &&
-                            React.createElement(button.icon, {
-                              className: 'h-4 w-4 mr-2',
-                            })}
-                          {button.label}
-                        </Button>
-                      ))}
-
-                      {/* Destructive Actions */}
-                      {buttonConfig.destructiveButtons.length > 0 &&
-                        buttonConfig.destructiveButtons.map((button, index) => (
+                        {buttonConfig.primaryButtons.map((button, index) => (
                           <Button
-                            key={`destructive-${index}`}
+                            key={`primary-${index}`}
                             onClick={button.action}
                             disabled={loading || operationLoading || isSaving}
-                            variant={button.variant || 'destructive'}
+                            variant={button.variant || 'default'}
                             className="w-full sm:w-auto"
                           >
                             {button.icon &&
@@ -888,42 +837,154 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                             {button.label}
                           </Button>
                         ))}
-                    </>
-                  )
-                }
 
-                return (
-                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:justify-end w-full sm:w-auto">
-                    <Button
-                      type="button"
-                      form="service-edit-form"
-                      disabled={isSaving || operationLoading || !hasFormChanges}
-                      className="w-full sm:w-auto"
-                      onClick={() => {
-                        // We'll use form.handleSubmit to trigger validation and get data
-                        const formElement = document.getElementById(
-                          'service-edit-form'
-                        ) as HTMLFormElement
-                        if (formElement) {
-                          formElement.requestSubmit()
+                        {buttonConfig.secondaryButtons.map((button, index) => (
+                          <Button
+                            key={`secondary-${index}`}
+                            onClick={button.action}
+                            disabled={loading || operationLoading || isSaving}
+                            variant={button.variant || 'outline'}
+                            className={`w-full sm:w-auto ${button.className ?? ''}`}
+                          >
+                            {button.icon &&
+                              React.createElement(button.icon, {
+                                className: 'h-4 w-4 mr-2',
+                              })}
+                            {button.label}
+                          </Button>
+                        ))}
+
+                        {/* Destructive Actions - Show directly on mobile, dropdown on desktop */}
+                        {buttonConfig.destructiveButtons.length > 0 && (
+                          <>
+                            {/* Mobile: Show buttons directly */}
+                            <div className="flex flex-col sm:hidden gap-2 w-full">
+                              {buttonConfig.destructiveButtons.map(
+                                (button, index) => (
+                                  <Button
+                                    key={`destructive-mobile-${index}`}
+                                    onClick={button.action}
+                                    disabled={
+                                      loading || operationLoading || isSaving
+                                    }
+                                    variant={button.variant || 'outline'}
+                                    className="w-full"
+                                  >
+                                    {button.icon &&
+                                      React.createElement(button.icon, {
+                                        className: 'h-4 w-4 mr-2',
+                                      })}
+                                    {button.label}
+                                  </Button>
+                                )
+                              )}
+                            </div>
+                            {/* Desktop: Show dropdown */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  disabled={
+                                    loading || operationLoading || isSaving
+                                  }
+                                  className="hidden sm:flex"
+                                >
+                                  <EllipsisVertical className="h-4 w-4" />
+                                  <span className="sr-only">Mais opções</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {buttonConfig.destructiveButtons.map(
+                                  (button, index) => (
+                                    <DropdownMenuItem
+                                      key={`destructive-${index}`}
+                                      onClick={button.action}
+                                      disabled={
+                                        loading || operationLoading || isSaving
+                                      }
+                                      variant={
+                                        button.variant === 'destructive'
+                                          ? 'destructive'
+                                          : 'default'
+                                      }
+                                      className="cursor-pointer"
+                                    >
+                                      {button.icon &&
+                                        React.createElement(button.icon, {
+                                          className: 'h-4 w-4 mr-2',
+                                        })}
+                                      {button.label}
+                                    </DropdownMenuItem>
+                                  )
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </>
+                        )}
+                      </>
+                    )
+                  }
+
+                  return (
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:justify-end w-full sm:w-auto">
+                      <Button
+                        type="button"
+                        form="service-edit-form"
+                        disabled={
+                          isSaving || operationLoading || !hasFormChanges
                         }
-                      }}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      {isSaving ? 'Salvando...' : 'Salvar edição'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleCancel}
-                      disabled={isSaving || operationLoading}
-                      className="w-full sm:w-auto"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Cancelar
-                    </Button>
-                  </div>
-                )
-              })()}
+                        className="w-full sm:w-auto"
+                        onClick={() => {
+                          // We'll use form.handleSubmit to trigger validation and get data
+                          const formElement = document.getElementById(
+                            'service-edit-form'
+                          ) as HTMLFormElement
+                          if (formElement) {
+                            formElement.requestSubmit()
+                          }
+                        }}
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        {isSaving ? 'Salvando...' : 'Salvar edição'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleCancel}
+                        disabled={isSaving || operationLoading}
+                        className="w-full sm:w-auto"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancelar
+                      </Button>
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+            {/* Date information - extends full width */}
+            <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2 text-sm text-muted-foreground">
+              <span>
+                Última modificação em{' '}
+                {format(
+                  service.last_update || new Date(),
+                  'dd/MM/yyyy HH:mm:ss',
+                  {
+                    locale: ptBR,
+                  }
+                )}
+              </span>
+              {service.published_at && (
+                <>
+                  <span className="hidden md:inline-block h-4 w-px bg-border mx-1" />
+                  <span>
+                    Publicado em{' '}
+                    {format(service.published_at, 'dd/MM/yyyy HH:mm:ss', {
+                      locale: ptBR,
+                    })}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
