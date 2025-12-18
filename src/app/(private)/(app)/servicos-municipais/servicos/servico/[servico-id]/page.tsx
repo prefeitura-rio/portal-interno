@@ -41,7 +41,6 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   AlertCircle,
-  AlertTriangle,
   Archive,
   ArrowLeft,
   CheckCircle,
@@ -50,6 +49,8 @@ import {
   Eye,
   Link as LinkIcon,
   Save,
+  Pause,
+  Trash2,
   X,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -85,6 +86,27 @@ interface ServiceDetailPageProps {
   params: Promise<{ 'servico-id': string }>
 }
 
+interface ButtonConfig {
+  label: string
+  action: () => void
+  variant?:
+    | 'default'
+    | 'destructive'
+    | 'outline'
+    | 'secondary'
+    | 'ghost'
+    | 'link'
+  icon?: React.ComponentType<{ className?: string }>
+  className?: string
+}
+
+interface ButtonConfiguration {
+  showEdit: boolean
+  primaryButtons: ButtonConfig[]
+  secondaryButtons: ButtonConfig[]
+  destructiveButtons: ButtonConfig[]
+}
+
 export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const router = useRouter()
   const [servicoId, setServicoId] = useState<string | null>(null)
@@ -108,6 +130,8 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [showTabChangeDialog, setShowTabChangeDialog] = useState(false)
   const [pendingTab, setPendingTab] = useState<string | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showUnpublishDialog, setShowUnpublishDialog] = useState(false)
 
   useEffect(() => {
     params.then(({ 'servico-id': id }) => {
@@ -365,6 +389,41 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     }
   }
 
+  const handleDeleteService = async () => {
+    if (!servicoId || !service) return
+
+    try {
+      setIsSaving(true)
+      await deleteService(servicoId)
+      toast.success('Serviço excluído com sucesso!')
+      setShowDeleteDialog(false)
+      // Redirect to services list
+      router.push('/servicos-municipais/servicos')
+    } catch (error) {
+      console.error('Error deleting service:', error)
+      toast.error('Erro ao excluir serviço. Tente novamente.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleUnpublishService = async () => {
+    if (!servicoId) return
+
+    try {
+      setIsSaving(true)
+      await unpublishService(servicoId)
+      toast.success('Serviço despublicado com sucesso!')
+      setShowUnpublishDialog(false)
+      refetch()
+    } catch (error) {
+      console.error('Error unpublishing service:', error)
+      toast.error('Erro ao despublicar serviço. Tente novamente.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   // Check if service is tombado when service is loaded
   useEffect(() => {
     const checkTombamento = async () => {
@@ -406,8 +465,15 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }, [servicoId, service?.status, fetchTombamentos, shouldShowTombamentoModal])
 
   // Function to determine which buttons should be shown based on user role and service status
-  const getButtonConfiguration = () => {
-    if (!service) return { showEdit: false, showAdditionalButtons: [] }
+  // Returns buttons organized by category: primary actions, secondary actions, and destructive actions
+  const getButtonConfiguration = (): ButtonConfiguration => {
+    if (!service)
+      return {
+        showEdit: false,
+        primaryButtons: [],
+        secondaryButtons: [],
+        destructiveButtons: [],
+      }
 
     const { status } = service
 
@@ -415,53 +481,108 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     if (isBuscaServicesAdmin) {
       switch (status) {
         case 'published': {
-          const publishedButtons = []
+          const primaryButtons: ButtonConfig[] = []
+          const secondaryButtons: ButtonConfig[] = []
+          const destructiveButtons: ButtonConfig[] = []
 
+          // Tombamento actions (secondary/administrative)
           if (!isServiceTombado && !tombamentoLoading) {
-            publishedButtons.push({
+            secondaryButtons.push({
               label: 'Tombar',
               action: handleTombarService,
-              className:
-                'text-orange-600 border-orange-500 border-1 bg-orange-50 hover:bg-orange-100 hover:text-orange-700',
-              icon: AlertTriangle,
+              // variant: 'outline' as const,
+              icon: AlertCircle,
+              className: 'text-orange-600! border-orange-200 bg-orange-50!',
             })
           }
 
           if (isServiceTombado && !tombamentoLoading) {
-            publishedButtons.push({
+            secondaryButtons.push({
               label: 'Destombar',
               action: handleDestombarService,
-              className:
-                'text-red-600 border-red-500 border-1 bg-red-50 hover:bg-red-100 hover:text-red-700',
               icon: AlertCircle,
+              variant: 'secondary' as const,
             })
           }
 
+          // Destructive actions (grouped together)
+          destructiveButtons.push({
+            label: 'Despublicar',
+            action: () => setShowUnpublishDialog(true),
+            variant: 'secondary' as const,
+            icon: Pause,
+          })
+
+          destructiveButtons.push({
+            label: 'Excluir',
+            action: () => setShowDeleteDialog(true),
+            variant: 'destructive' as const,
+            icon: Trash2,
+          })
+
           return {
             showEdit: true,
-            showAdditionalButtons: publishedButtons,
+            primaryButtons,
+            secondaryButtons,
+            destructiveButtons,
           }
         }
-        case 'in_edition':
-          return { showEdit: true, showAdditionalButtons: [] }
+        case 'in_edition': {
+          return {
+            showEdit: true,
+            primaryButtons: [],
+            secondaryButtons: [],
+            destructiveButtons: [
+              {
+                label: 'Excluir',
+                action: () => setShowDeleteDialog(true),
+                variant: 'destructive' as const,
+                icon: Trash2,
+              },
+            ],
+          }
+        }
         case 'awaiting_approval':
           return {
             showEdit: true,
-            showAdditionalButtons: [
-              {
-                label: 'Enviar para edição',
-                action: () => setShowSendToEditDialog(true),
-                variant: 'outline' as const,
-              },
+            primaryButtons: [
               {
                 label: 'Aprovar e publicar',
                 action: () => setShowApproveDialog(true),
                 variant: 'default' as const,
               },
             ],
+            secondaryButtons: [
+              {
+                label: 'Enviar para edição',
+                action: () => setShowSendToEditDialog(true),
+                variant: 'outline' as const,
+              },
+            ],
+            destructiveButtons: [
+              {
+                label: 'Excluir',
+                action: () => setShowDeleteDialog(true),
+                variant: 'destructive' as const,
+                icon: Trash2,
+              },
+            ],
           }
-        default:
-          return { showEdit: true, showAdditionalButtons: [] }
+        default: {
+          return {
+            showEdit: true,
+            primaryButtons: [],
+            secondaryButtons: [],
+            destructiveButtons: [
+              {
+                label: 'Excluir',
+                action: () => setShowDeleteDialog(true),
+                variant: 'destructive' as const,
+                icon: Trash2,
+              },
+            ],
+          }
+        }
       }
     }
 
@@ -470,19 +591,44 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       switch (status) {
         case 'published':
           // CRITICAL: Editors cannot edit published services
-          return { showEdit: false, showAdditionalButtons: [] }
+          return {
+            showEdit: false,
+            primaryButtons: [],
+            secondaryButtons: [],
+            destructiveButtons: [],
+          }
         case 'in_edition':
-          return { showEdit: true, showAdditionalButtons: [] }
+          return {
+            showEdit: true,
+            primaryButtons: [],
+            secondaryButtons: [],
+            destructiveButtons: [],
+          }
         case 'awaiting_approval':
           // CRITICAL: Editors cannot edit or send to edition services awaiting approval
-          return { showEdit: false, showAdditionalButtons: [] }
+          return {
+            showEdit: false,
+            primaryButtons: [],
+            secondaryButtons: [],
+            destructiveButtons: [],
+          }
         default:
-          return { showEdit: false, showAdditionalButtons: [] }
+          return {
+            showEdit: false,
+            primaryButtons: [],
+            secondaryButtons: [],
+            destructiveButtons: [],
+          }
       }
     }
 
     // For any other roles or no permissions
-    return { showEdit: false, showAdditionalButtons: [] }
+    return {
+      showEdit: false,
+      primaryButtons: [],
+      secondaryButtons: [],
+      destructiveButtons: [],
+    }
   }
 
   if (loading || !servicoId) {
@@ -663,22 +809,14 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-4 md:mt-0">
+            <div className="flex w-full max-w-none flex-col sm:flex-row sm:flex-wrap gap-2 sm:justify-end mt-4 md:mt-0 sm:max-w-md ml-auto">
               {(() => {
                 const buttonConfig = getButtonConfiguration()
 
                 if (!isEditing) {
                   return (
                     <>
-                      <Button
-                        variant="secondary"
-                        onClick={() => setShowPreviewModal(true)}
-                        disabled={loading || operationLoading}
-                        className="w-full sm:w-auto"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Pré-visualizar
-                      </Button>
+                      {/* Primary Actions - Most important actions first */}
                       {buttonConfig.showEdit && (
                         <Button
                           onClick={handleEdit}
@@ -689,28 +827,85 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                           Editar
                         </Button>
                       )}
-                      {buttonConfig.showAdditionalButtons.map(
-                        (button, index) => (
-                          <Button
-                            key={index}
-                            onClick={button.action}
-                            disabled={loading || operationLoading || isSaving}
-                            className={`w-full sm:w-auto ${(button as any).className || ''}`}
-                          >
-                            {(button as any).icon &&
-                              React.createElement((button as any).icon, {
-                                className: 'h-4 w-4 mr-2',
-                              })}
-                            {button.label}
-                          </Button>
-                        )
+
+                      {/* Secondary Actions - Preview and administrative actions */}
+                      <Button
+                        variant="secondary"
+                        onClick={() => setShowPreviewModal(true)}
+                        disabled={loading || operationLoading}
+                        className="w-full sm:w-auto"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Pré-visualizar
+                      </Button>
+
+                      {buttonConfig.primaryButtons.map((button, index) => (
+                        <Button
+                          key={`primary-${index}`}
+                          onClick={button.action}
+                          disabled={loading || operationLoading || isSaving}
+                          variant={button.variant || 'default'}
+                          className="w-full sm:w-auto"
+                        >
+                          {button.icon &&
+                            React.createElement(button.icon, {
+                              className: 'h-4 w-4 mr-2',
+                            })}
+                          {button.label}
+                        </Button>
+                      ))}
+
+                      {buttonConfig.secondaryButtons.map((button, index) => (
+                        <Button
+                          key={`secondary-${index}`}
+                          onClick={button.action}
+                          disabled={loading || operationLoading || isSaving}
+                          variant={button.variant || 'outline'}
+                          className={`w-full sm:w-auto ${button.className ?? ''}`}
+                        >
+                          {button.icon &&
+                            React.createElement(button.icon, {
+                              className: 'h-4 w-4 mr-2',
+                            })}
+                          {button.label}
+                        </Button>
+                      ))}
+
+                      {/* Destructive Actions - Separated visually with a divider if there are other buttons */}
+                      {buttonConfig.destructiveButtons.length > 0 && (
+                        <>
+                          {buttonConfig.primaryButtons.length > 0 ||
+                          buttonConfig.secondaryButtons.length > 0 ||
+                          buttonConfig.showEdit ? (
+                            <div className="hidden sm:block w-px h-6 bg-border mx-1" />
+                          ) : null}
+                          {buttonConfig.destructiveButtons.map(
+                            (button, index) => (
+                              <Button
+                                key={`destructive-${index}`}
+                                onClick={button.action}
+                                disabled={
+                                  loading || operationLoading || isSaving
+                                }
+                                variant={button.variant || 'destructive'}
+                                className="w-full sm:w-auto"
+                              >
+                                {button.icon &&
+                                  React.createElement(button.icon, {
+                                    className: 'h-4 w-4 mr-2',
+                                  })}
+                                {button.label}
+                              </Button>
+                            )
+                          )}
+                        </>
                       )}
                     </>
                   )
                 }
 
                 return (
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:justify-end w-full sm:w-auto">
                     <Button
                       type="button"
                       form="service-edit-form"
@@ -869,6 +1064,28 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           variant="destructive"
           onConfirm={handleConfirmTabChange}
           onCancel={handleCancelTabChange}
+        />
+
+        <ConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          title="Excluir Serviço"
+          description={`Tem certeza que deseja excluir o serviço "${service?.title}"? Esta ação não pode ser desfeita.`}
+          confirmText="Excluir"
+          cancelText="Cancelar"
+          variant="destructive"
+          onConfirm={handleDeleteService}
+        />
+
+        <ConfirmDialog
+          open={showUnpublishDialog}
+          onOpenChange={setShowUnpublishDialog}
+          title="Despublicar Serviço"
+          description={`Tem certeza que deseja despublicar o serviço "${service?.title}"? Ele deixará de estar disponível para os cidadãos.`}
+          confirmText="Despublicar"
+          cancelText="Cancelar"
+          variant="destructive"
+          onConfirm={handleUnpublishService}
         />
 
         {/* Tombamento Modal */}
