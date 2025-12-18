@@ -871,35 +871,23 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                         </Button>
                       ))}
 
-                      {/* Destructive Actions - Separated visually with a divider if there are other buttons */}
-                      {buttonConfig.destructiveButtons.length > 0 && (
-                        <>
-                          {buttonConfig.primaryButtons.length > 0 ||
-                          buttonConfig.secondaryButtons.length > 0 ||
-                          buttonConfig.showEdit ? (
-                            <div className="hidden sm:block w-px h-6 bg-border mx-1" />
-                          ) : null}
-                          {buttonConfig.destructiveButtons.map(
-                            (button, index) => (
-                              <Button
-                                key={`destructive-${index}`}
-                                onClick={button.action}
-                                disabled={
-                                  loading || operationLoading || isSaving
-                                }
-                                variant={button.variant || 'destructive'}
-                                className="w-full sm:w-auto"
-                              >
-                                {button.icon &&
-                                  React.createElement(button.icon, {
-                                    className: 'h-4 w-4 mr-2',
-                                  })}
-                                {button.label}
-                              </Button>
-                            )
-                          )}
-                        </>
-                      )}
+                      {/* Destructive Actions */}
+                      {buttonConfig.destructiveButtons.length > 0 &&
+                        buttonConfig.destructiveButtons.map((button, index) => (
+                          <Button
+                            key={`destructive-${index}`}
+                            onClick={button.action}
+                            disabled={loading || operationLoading || isSaving}
+                            variant={button.variant || 'destructive'}
+                            className="w-full sm:w-auto"
+                          >
+                            {button.icon &&
+                              React.createElement(button.icon, {
+                                className: 'h-4 w-4 mr-2',
+                              })}
+                            {button.label}
+                          </Button>
+                        ))}
                     </>
                   )
                 }
