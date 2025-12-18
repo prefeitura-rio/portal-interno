@@ -564,6 +564,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                 label: 'Enviar para edição',
                 action: () => setShowSendToEditDialog(true),
                 variant: 'outline' as const,
+                icon: Edit,
               },
             ],
             destructiveButtons: [
@@ -838,27 +839,31 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                           </Button>
                         ))}
 
-                        {buttonConfig.secondaryButtons.map((button, index) => (
-                          <Button
-                            key={`secondary-${index}`}
-                            onClick={button.action}
-                            disabled={loading || operationLoading || isSaving}
-                            variant={button.variant || 'outline'}
-                            className={`w-full sm:w-auto ${button.className ?? ''}`}
-                          >
-                            {button.icon &&
-                              React.createElement(button.icon, {
-                                className: 'h-4 w-4 mr-2',
-                              })}
-                            {button.label}
-                          </Button>
-                        ))}
-
-                        {/* Destructive Actions - Show directly on mobile, dropdown on desktop */}
-                        {buttonConfig.destructiveButtons.length > 0 && (
+                        {/* Secondary and Destructive Actions - Show directly on mobile, dropdown on desktop */}
+                        {(buttonConfig.secondaryButtons.length > 0 ||
+                          buttonConfig.destructiveButtons.length > 0) && (
                           <>
                             {/* Mobile: Show buttons directly */}
                             <div className="flex flex-col sm:hidden gap-2 w-full">
+                              {buttonConfig.secondaryButtons.map(
+                                (button, index) => (
+                                  <Button
+                                    key={`secondary-mobile-${index}`}
+                                    onClick={button.action}
+                                    disabled={
+                                      loading || operationLoading || isSaving
+                                    }
+                                    variant={button.variant || 'outline'}
+                                    className={`w-full ${button.className ?? ''}`}
+                                  >
+                                    {button.icon &&
+                                      React.createElement(button.icon, {
+                                        className: 'h-4 w-4 mr-2',
+                                      })}
+                                    {button.label}
+                                  </Button>
+                                )
+                              )}
                               {buttonConfig.destructiveButtons.map(
                                 (button, index) => (
                                   <Button
@@ -895,6 +900,25 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                {buttonConfig.secondaryButtons.map(
+                                  (button, index) => (
+                                    <DropdownMenuItem
+                                      key={`secondary-${index}`}
+                                      onClick={button.action}
+                                      disabled={
+                                        loading || operationLoading || isSaving
+                                      }
+                                      variant="default"
+                                      className="cursor-pointer"
+                                    >
+                                      {button.icon &&
+                                        React.createElement(button.icon, {
+                                          className: 'h-4 w-4 mr-2',
+                                        })}
+                                      {button.label}
+                                    </DropdownMenuItem>
+                                  )
+                                )}
                                 {buttonConfig.destructiveButtons.map(
                                   (button, index) => (
                                     <DropdownMenuItem
