@@ -43,7 +43,7 @@ const fieldLabels: Record<string, string> = {
   orgao_gestor: 'Órgão gestor',
   publico_especifico: 'Público específico',
   canais_digitais: 'Canais de atendimento',
-  canais_presenciais: 'Canais presenciais',
+  canais_presenciais: 'Atendimento presencial',
   legislacao_relacionada: 'Legislação relacionada',
   documentos_necessarios: 'Documentos necessários',
   instrucoes_solicitante: 'Instruções para o solicitante',

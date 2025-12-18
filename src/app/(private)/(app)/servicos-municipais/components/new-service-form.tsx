@@ -1872,7 +1872,7 @@ export function NewServiceForm({
                         : ''
                     }
                   >
-                    Canais presenciais
+                    Atendimento presencial
                   </FormLabel>
                   <div className="space-y-3 mt-2">
                     {physicalChannels.map((channel, index) => (
