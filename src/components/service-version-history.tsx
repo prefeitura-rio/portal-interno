@@ -60,6 +60,7 @@ const markdownFields = new Set([
   'documentos_necessarios',
   'instrucoes_solicitante',
   'resultado_solicitacao',
+  'legislacao_relacionada',
   'search_content',
 ])
 

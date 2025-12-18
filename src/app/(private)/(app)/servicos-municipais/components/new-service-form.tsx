@@ -161,6 +161,10 @@ const buildLegislacaoErrors = (entries: string[]): string[] => {
       return 'Legislação muito curta.'
     }
 
+    if (trimmed.length > 10000) {
+      return 'Legislação não pode exceder 10000 caracteres.'
+    }
+
     return ''
   })
 }
@@ -205,6 +209,7 @@ const getValidLegislacaoEntries = (entries: string[]) =>
   entries
     .filter(entry => entry.trim() !== '')
     .filter(entry => entry.trim().length >= 5)
+    .filter(entry => entry.trim().length <= 10000)
     .map(entry => entry.trim())
 
 const buildButtonErrors = (button: ServiceButton): ButtonErrorState => {
@@ -319,7 +324,14 @@ const serviceFormSchema = z.object({
     .array(z.string().min(1, { message: 'Endereço não pode estar vazio.' }))
     .optional(),
   legislacaoRelacionada: z
-    .array(z.string().min(1, { message: 'Legislação não pode estar vazia.' }))
+    .array(
+      z
+        .string()
+        .min(1, { message: 'Legislação não pode estar vazia.' })
+        .max(10000, {
+          message: 'Legislação não pode exceder 10000 caracteres.',
+        })
+    )
     .optional(),
 })
 
@@ -1855,7 +1867,7 @@ export function NewServiceForm({
                         disabled={isLoading || operationLoading}
                         className="w-full"
                       >
-                        Adicionar campo adicional +
+                        Adicionar canal de atendimento +
                       </Button>
                     )}
                   </div>
@@ -1921,7 +1933,7 @@ export function NewServiceForm({
                         disabled={isLoading || operationLoading}
                         className="w-full"
                       >
-                        Adicionar campo adicional +
+                        Adicionar atendimento presencial +
                       </Button>
                     )}
                   </div>
@@ -1940,18 +1952,23 @@ export function NewServiceForm({
                   >
                     Legislação relacionada
                   </FormLabel>
+                  <p className="text-sm text-muted-foreground mt-1 mb-2">
+                    Adicione 1 legislação por campo
+                  </p>
                   <div className="space-y-3 mt-2">
                     {legislacaoRelacionada.map((legislacao, index) => (
                       <div key={index} className="space-y-2">
                         <div className="flex gap-2 items-start">
                           <div className="flex-1">
-                            <Input
-                              placeholder="Ex: Lei Municipal nº 1234/2023"
+                            <MarkdownEditor
                               value={legislacao}
-                              onChange={e =>
-                                updateLegislacao(index, e.target.value)
-                              }
+                              onChange={value => updateLegislacao(index, value)}
+                              placeholder="Ex: Lei Municipal nº 1234/2023 ou [Lei Municipal nº 1234/2023](https://exemplo.com/lei)"
                               disabled={isLoading || readOnly}
+                              maxLength={10000}
+                              showCharCount={true}
+                              simpleMode={true}
+                              minHeight="min-h-[40px]"
                               className={
                                 legislacaoErrors[index]
                                   ? 'border-destructive'
@@ -1987,7 +2004,7 @@ export function NewServiceForm({
                         disabled={isLoading || operationLoading}
                         className="w-full"
                       >
-                        Adicionar campo adicional +
+                        Adicionar legislação +
                       </Button>
                     )}
                   </div>
