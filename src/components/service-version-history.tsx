@@ -42,7 +42,7 @@ const fieldLabels: Record<string, string> = {
   is_free: 'Serviço gratuito',
   orgao_gestor: 'Órgão gestor',
   publico_especifico: 'Público específico',
-  canais_digitais: 'Canais digitais',
+  canais_digitais: 'Canais de atendimento',
   canais_presenciais: 'Canais presenciais',
   legislacao_relacionada: 'Legislação relacionada',
   documentos_necessarios: 'Documentos necessários',
@@ -214,69 +214,68 @@ function VersionDiffDisplay({
   return (
     <div className="space-y-4">
       {filteredChanges.map((change: ModelsFieldChange, index: number) => {
-          const fieldLabel =
-            fieldLabels[change.field_name || ''] ||
-            change.field_name ||
-            'Campo desconhecido'
-          const isMarkdown = isMarkdownField(change.field_name)
-          const oldValue = formatFieldValue(change.old_value, change.field_name)
-          const newValue = formatFieldValue(change.new_value, change.field_name)
-          const oldValueString = getFieldValueAsString(change.old_value)
-          const newValueString = getFieldValueAsString(change.new_value)
+        const fieldLabel =
+          fieldLabels[change.field_name || ''] ||
+          change.field_name ||
+          'Campo desconhecido'
+        const isMarkdown = isMarkdownField(change.field_name)
+        const oldValue = formatFieldValue(change.old_value, change.field_name)
+        const newValue = formatFieldValue(change.new_value, change.field_name)
+        const oldValueString = getFieldValueAsString(change.old_value)
+        const newValueString = getFieldValueAsString(change.new_value)
 
-          return (
-            <Card key={index} className="p-4 bg-muted/50">
-              <div className="space-y-2">
-                <h4 className="font-semibold text-sm">{fieldLabel}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">
-                      De:
+        return (
+          <Card key={index} className="p-4 bg-muted/50">
+            <div className="space-y-2">
+              <h4 className="font-semibold text-sm">{fieldLabel}</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    De:
+                  </p>
+                  {isMarkdown ? (
+                    <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded p-2">
+                      {oldValueString && oldValueString.trim() !== '' ? (
+                        <MarkdownViewer
+                          content={oldValueString}
+                          className="bg-transparent border-0 p-0"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">—</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded p-2 break-words">
+                      {oldValue}
                     </p>
-                    {isMarkdown ? (
-                      <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded p-2">
-                        {oldValueString && oldValueString.trim() !== '' ? (
-                          <MarkdownViewer
-                            content={oldValueString}
-                            className="bg-transparent border-0 p-0"
-                          />
-                        ) : (
-                          <p className="text-sm text-muted-foreground">—</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded p-2 break-words">
-                        {oldValue}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">
-                      Para:
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    Para:
+                  </p>
+                  {isMarkdown ? (
+                    <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 rounded p-2">
+                      {newValueString && newValueString.trim() !== '' ? (
+                        <MarkdownViewer
+                          content={newValueString}
+                          className="bg-transparent border-0 p-0"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">—</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 rounded p-2 break-words">
+                      {newValue}
                     </p>
-                    {isMarkdown ? (
-                      <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 rounded p-2">
-                        {newValueString && newValueString.trim() !== '' ? (
-                          <MarkdownViewer
-                            content={newValueString}
-                            className="bg-transparent border-0 p-0"
-                          />
-                        ) : (
-                          <p className="text-sm text-muted-foreground">—</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 rounded p-2 break-words">
-                        {newValue}
-                      </p>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
-            </Card>
-          )
-        }
-      )}
+            </div>
+          </Card>
+        )
+      })}
     </div>
   )
 }

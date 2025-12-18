@@ -1808,7 +1808,7 @@ export function NewServiceForm({
                         : ''
                     }
                   >
-                    Canais digitais
+                    Canais de atendimento
                   </FormLabel>
                   <div className="space-y-3 mt-2">
                     {digitalChannels.map((channel, index) => (
