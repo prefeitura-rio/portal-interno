@@ -782,7 +782,9 @@ export const NewMEIOpportunityForm = forwardRef<
                   name="prazo_pagamento"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Prazo de pagamento</FormLabel>
+                      <FormLabel>
+                        Prazo de pagamento após a emissão da nota fisca
+                      </FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Ex: 30 dias"
