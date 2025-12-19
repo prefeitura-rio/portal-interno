@@ -159,8 +159,8 @@ type PartialFormData = Partial<
 
 // Type for backend API data
 type BackendMEIOpportunityData = {
-  orgao_id: number | null
-  subclasses?: string[]
+  orgao_id: string | null
+  cnae_ids?: string[]
   titulo?: string
   descricao_servico?: string
   outras_informacoes?: string
@@ -329,8 +329,8 @@ export const NewMEIOpportunityForm = forwardRef<
       }
 
       return {
-        orgao_id: data.orgao_id ? Number(data.orgao_id) : null,
-        subclasses: data.subclasses || [],
+        orgao_id: data.orgao_id ? String(data.orgao_id) : null,
+        cnae_ids: data.subclasses || [],
         titulo: data.title,
         descricao_servico: data.description,
         outras_informacoes: data.outras_informacoes || '',
@@ -373,7 +373,7 @@ export const NewMEIOpportunityForm = forwardRef<
       }
 
       const draftData: PartialFormData = {
-        orgao_id: data.orgao_id || '',
+        orgao_id: data.orgao_id ? String(data.orgao_id) : '',
         subclasses: data.subclasses || [],
         title:
           data.title || 'Rascunho de oportunidade. Edite antes de publicar!',
