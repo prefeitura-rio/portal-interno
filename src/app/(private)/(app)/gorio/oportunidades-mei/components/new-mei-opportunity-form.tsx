@@ -746,12 +746,12 @@ export const NewMEIOpportunityForm = forwardRef<
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="forma_pagamento"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="md:col-span-1">
                       <FormLabel>Forma de pagamento</FormLabel>
                       <FormControl>
                         <Select
@@ -781,9 +781,9 @@ export const NewMEIOpportunityForm = forwardRef<
                   control={form.control}
                   name="prazo_pagamento"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="md:col-span-2">
                       <FormLabel>
-                        Prazo de pagamento após a emissão da nota fisca
+                        Prazo de pagamento após a emissão da nota fiscal
                       </FormLabel>
                       <FormControl>
                         <Input
