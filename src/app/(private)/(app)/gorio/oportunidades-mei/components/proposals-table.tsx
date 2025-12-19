@@ -429,13 +429,22 @@ export function ProposalsTable({
 
     const headers = [
       'Razão social',
+      'Nome Fantasia',
       'CNPJ',
       'Valor da proposta',
       'Data de envio',
       'Status',
+      'Natureza Jurídica',
+      'Porte',
+      'CNAE Fiscal',
+      'Capital Social',
+      'Situação Cadastral',
+      'Início de Atividade',
+      'Responsável - Qualificação',
+      'Responsável - CPF',
       'E-mail',
       'Telefone',
-      'Endereço',
+      'Endereço Completo',
     ]
 
     // Create worksheet data
@@ -451,15 +460,58 @@ export function ProposalsTable({
         : null
       const razaoSocial = legalEntity?.razao_social || p.companyName || '-'
 
+      // Build complete address from legal entity or use proposal address
+      const address = legalEntity?.endereco
+        ? [
+            legalEntity.endereco.tipo_logradouro,
+            legalEntity.endereco.logradouro,
+            legalEntity.endereco.numero,
+            legalEntity.endereco.complemento,
+            legalEntity.endereco.bairro,
+            legalEntity.endereco.municipio_nome,
+            legalEntity.endereco.uf,
+            legalEntity.endereco.cep,
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : p.address || ''
+
+      // Get contact information from legal entity or proposal
+      const contactEmail = legalEntity?.contato?.email || p.email || ''
+      const contactPhone = legalEntity?.contato?.telefone?.[0]
+        ? `${legalEntity.contato.telefone[0].ddd || ''} ${legalEntity.contato.telefone[0].telefone || ''}`.trim()
+        : p.phone || ''
+
       return {
         'Razão social': razaoSocial,
+        'Nome Fantasia': legalEntity?.nome_fantasia || '-',
         CNPJ: formatCNPJ(p.mei_empresa_id),
         'Valor da proposta': p.amount,
         'Data de envio': new Date(p.submittedAt).toLocaleDateString('pt-BR'),
         Status: statusMap[p.status] || p.status,
-        'E-mail': p.email,
-        Telefone: p.phone || '',
-        Endereço: p.address || '',
+        'Natureza Jurídica': legalEntity?.natureza_juridica?.descricao || '-',
+        Porte: legalEntity?.porte?.descricao || '-',
+        'CNAE Fiscal': legalEntity?.cnae_fiscal || '-',
+        'Capital Social':
+          legalEntity?.capital_social !== undefined &&
+          legalEntity?.capital_social !== null
+            ? legalEntity.capital_social.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              })
+            : '-',
+        'Situação Cadastral': legalEntity?.situacao_cadastral?.descricao || '-',
+        'Início de Atividade': legalEntity?.inicio_atividade_data
+          ? new Date(legalEntity.inicio_atividade_data).toLocaleDateString(
+              'pt-BR'
+            )
+          : '-',
+        'Responsável - Qualificação':
+          legalEntity?.responsavel?.qualificacao_descricao || '-',
+        'Responsável - CPF': legalEntity?.responsavel?.cpf || '-',
+        'E-mail': contactEmail,
+        Telefone: contactPhone,
+        'Endereço Completo': address,
       }
     })
 
