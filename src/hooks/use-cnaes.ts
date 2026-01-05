@@ -123,6 +123,48 @@ export function useCNAEData() {
   }
 }
 
+/**
+ * Normalizes a CNAE subclasse input to the format expected by the API (XXXX-X/XX)
+ * Accepts both formatted (8630-5/01) and unformatted (8630501) inputs
+ * 
+ * Format: XXXX-X/XX (7 digits total)
+ * Example: 8630501 -> 8630-5/01
+ */
+function normalizeCnaeSubclasse(input: string): string {
+  if (!input) return input
+
+  const trimmed = input.trim()
+
+  // If it's already in the correct format (contains - and /), return as is
+  if (trimmed.includes('-') && trimmed.includes('/')) {
+    return trimmed
+  }
+
+  // Remove all non-numeric characters to get just the digits
+  const digitsOnly = input.replace(/[^\d]/g, '')
+
+  // If we have exactly 7 digits, format it as XXXX-X/XX
+  if (digitsOnly.length === 7) {
+    return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4, 5)}/${digitsOnly.slice(5, 7)}`
+  }
+
+  // If we have 5 or 6 digits, try to format what we can
+  // This helps with partial typing (e.g., user types "86305")
+  if (digitsOnly.length >= 5 && digitsOnly.length < 7) {
+    const part1 = digitsOnly.slice(0, 4)
+    const part2 = digitsOnly.slice(4, 5)
+    const part3 = digitsOnly.slice(5, 7) || ''
+    if (part3) {
+      return `${part1}-${part2}/${part3}`
+    }
+    return `${part1}-${part2}`
+  }
+
+  // For other cases (less than 5 digits or more than 7), return as is
+  // The API might handle partial matches or the user might be typing
+  return trimmed
+}
+
 // Hook to search CNAEs by subclasse using Next.js API route
 export function useCnaesBySubclasse(subclasse?: string, enabled = true) {
   const [data, setData] = useState<ModelsCNAE[]>([])
@@ -140,8 +182,11 @@ export function useCnaesBySubclasse(subclasse?: string, enabled = true) {
         setIsLoading(true)
         setError(null)
 
+        // Normalize the subclasse input to the format expected by the API
+        const normalizedSubclasse = normalizeCnaeSubclasse(subclasse.trim())
+
         const params = new URLSearchParams({
-          subclasse: subclasse.trim(),
+          subclasse: normalizedSubclasse,
           per_page: '100',
         })
 
