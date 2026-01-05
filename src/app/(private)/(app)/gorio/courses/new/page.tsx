@@ -18,11 +18,16 @@ import Link from 'next/link'
 
 export default function NewCourse() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
 
   const handleCreateCourse = async (data: any) => {
     try {
       console.log('Creating course:', data)
+
+      // Mark as submitting to prevent guard from blocking
+      setIsSubmitting(true)
+      setHasUnsavedChanges(false)
 
       const response = await fetch('/api/courses/new', {
         method: 'POST',
@@ -51,12 +56,19 @@ export default function NewCourse() {
       toast.error('Erro ao criar curso', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
       })
+      // If there's an error, re-enable the guard
+      setIsSubmitting(false)
+      setHasUnsavedChanges(true)
     }
   }
 
   const handleCreateDraft = async (data: any) => {
     try {
       console.log('Creating draft course:', data)
+
+      // Mark as submitting to prevent guard from blocking
+      setIsSubmitting(true)
+      setHasUnsavedChanges(false)
 
       const response = await fetch('/api/courses/draft', {
         method: 'POST',
@@ -85,13 +97,16 @@ export default function NewCourse() {
       toast.error('Erro ao salvar rascunho', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
       })
+      // If there's an error, re-enable the guard
+      setIsSubmitting(false)
+      setHasUnsavedChanges(true)
     }
   }
 
   return (
     <ContentLayout title="Gestão de Cursos">
       <UnsavedChangesGuard
-        hasUnsavedChanges={hasUnsavedChanges}
+        hasUnsavedChanges={hasUnsavedChanges && !isSubmitting}
         message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
       />
       <div className="space-y-4">

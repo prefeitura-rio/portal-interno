@@ -369,6 +369,7 @@ interface NewServiceFormProps {
   onSave?: () => void // Callback for when service is saved (for already published services)
   serviceId?: string // For editing existing services
   onFormChangesDetected?: (hasChanges: boolean) => void // Callback when form changes are detected
+  onSubmittingChange?: (isSubmitting: boolean) => void // Callback when submitting state changes
 }
 
 export function NewServiceForm({
@@ -382,6 +383,7 @@ export function NewServiceForm({
   onSave,
   serviceId,
   onFormChangesDetected,
+  onSubmittingChange,
 }: NewServiceFormProps) {
   const router = useRouter()
   const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
@@ -1031,6 +1033,14 @@ export function NewServiceForm({
     if (!pendingFormData) return
 
     try {
+      // Mark as submitting to prevent guard from blocking
+      if (onSubmittingChange) {
+        onSubmittingChange(true)
+      }
+      if (onFormChangesDetected) {
+        onFormChangesDetected(false)
+      }
+
       const apiData = transformToApiRequest(pendingFormData)
       apiData.status = 0 // Set to draft/in_edition status
       apiData.awaiting_approval = false // Remove from awaiting approval
@@ -1046,6 +1056,13 @@ export function NewServiceForm({
     } catch (error) {
       console.error('Error sending service to edit:', error)
       toast.error('Erro ao enviar serviço para edição. Tente novamente.')
+      // If there's an error, re-enable the guard
+      if (onSubmittingChange) {
+        onSubmittingChange(false)
+      }
+      if (onFormChangesDetected) {
+        onFormChangesDetected(true)
+      }
     }
   }
 
@@ -1094,6 +1111,13 @@ export function NewServiceForm({
       if (onPublish) {
         onPublish()
       } else {
+        // Mark as submitting and reset changes state before navigation
+        if (onSubmittingChange) {
+          onSubmittingChange(true)
+        }
+        if (onFormChangesDetected) {
+          onFormChangesDetected(false)
+        }
         // Redirect to service detail page with tombamento flag (for new services)
         router.push(
           `/servicos-municipais/servicos/servico/${savedService.id}?tombamento=true`
@@ -1102,6 +1126,13 @@ export function NewServiceForm({
     } catch (error) {
       console.error('Error publishing service:', error)
       toast.error('Erro ao publicar serviço. Tente novamente.')
+      // If there's an error, re-enable the guard
+      if (onSubmittingChange) {
+        onSubmittingChange(false)
+      }
+      if (onFormChangesDetected) {
+        onFormChangesDetected(true)
+      }
     }
   }
 
@@ -1115,6 +1146,14 @@ export function NewServiceForm({
         // For editing existing services - use the provided handler
         onSendToApproval()
       } else {
+        // Mark as submitting and reset changes state
+        if (onSubmittingChange) {
+          onSubmittingChange(true)
+        }
+        if (onFormChangesDetected) {
+          onFormChangesDetected(false)
+        }
+
         // For creating new services - create the service with awaiting_approval flag
         const apiData = transformToApiRequest(pendingFormData)
         apiData.awaiting_approval = true
@@ -1137,6 +1176,13 @@ export function NewServiceForm({
     } catch (error) {
       console.error('Error sending service to approval:', error)
       toast.error('Erro ao enviar serviço para aprovação. Tente novamente.')
+      // If there's an error, re-enable the guard
+      if (onSubmittingChange) {
+        onSubmittingChange(false)
+      }
+      if (onFormChangesDetected) {
+        onFormChangesDetected(true)
+      }
     }
   }
 

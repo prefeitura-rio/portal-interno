@@ -17,20 +17,41 @@ import Link from 'next/link'
 
 export default function NewMEIOpportunity() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { createOpportunity, createDraft } = useCreateMEIOpportunity()
 
   const handleCreateOpportunity = async (data: any) => {
-    await createOpportunity(data)
+    // Mark as submitting to prevent guard from blocking
+    setIsSubmitting(true)
+    setHasUnsavedChanges(false)
+
+    try {
+      await createOpportunity(data)
+    } catch (error) {
+      // If there's an error, re-enable the guard
+      setIsSubmitting(false)
+      setHasUnsavedChanges(true)
+    }
   }
 
   const handleCreateDraft = async (data: any) => {
-    await createDraft(data)
+    // Mark as submitting to prevent guard from blocking
+    setIsSubmitting(true)
+    setHasUnsavedChanges(false)
+
+    try {
+      await createDraft(data)
+    } catch (error) {
+      // If there's an error, re-enable the guard
+      setIsSubmitting(false)
+      setHasUnsavedChanges(true)
+    }
   }
 
   return (
     <ContentLayout title="Gestão de Oportunidades MEI">
       <UnsavedChangesGuard
-        hasUnsavedChanges={hasUnsavedChanges}
+        hasUnsavedChanges={hasUnsavedChanges && !isSubmitting}
         message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
       />
       <div className="space-y-4">
