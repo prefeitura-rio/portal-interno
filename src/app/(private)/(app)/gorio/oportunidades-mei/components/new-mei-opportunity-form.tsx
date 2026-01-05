@@ -638,6 +638,20 @@ export const NewMEIOpportunityForm = forwardRef<
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Subclasses CNAE*</FormLabel>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Clique{' '}
+                      <a
+                        href="https://www8.receita.fazenda.gov.br/SimplesNacional/Arquivos/manual/Anexo_XI.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline hover:text-primary/80"
+                      >
+                        aqui
+                      </a>{' '}
+                      para visualizar Anexo XI da Resolução CGSN Nº 140, de
+                      2018. (Arts. 100, Inciso I e 101, § 1º, Inciso I, § 2º)
+                      Ocupações Permitidas ao MEI
+                    </p>
                     <FormControl>
                       <CnaeSubclasseSelect
                         value={field.value || []}
