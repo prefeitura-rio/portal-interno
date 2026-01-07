@@ -16,6 +16,8 @@ export interface MEIProposal {
   phone?: string
   address?: string
   status: ProposalStatus
+  aceita_custos_integrais?: boolean
+  prazo_execucao?: string
 }
 
 export interface MEIProposalSummary {

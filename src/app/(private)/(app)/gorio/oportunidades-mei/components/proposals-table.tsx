@@ -434,6 +434,8 @@ export function ProposalsTable({
       'Valor da proposta',
       'Data de envio',
       'Status',
+      'Aceita custos integrais',
+      'Prazo de execução (dias)',
       'Natureza Jurídica',
       'Porte',
       'CNAE Fiscal',
@@ -489,6 +491,13 @@ export function ProposalsTable({
         'Valor da proposta': p.amount,
         'Data de envio': new Date(p.submittedAt).toLocaleDateString('pt-BR'),
         Status: statusMap[p.status] || p.status,
+        'Aceita custos integrais':
+          p.aceita_custos_integrais !== undefined
+            ? p.aceita_custos_integrais
+              ? 'Sim'
+              : 'Não'
+            : '-',
+        'Prazo de execução (dias)': p.prazo_execucao || '-',
         'Natureza Jurídica': legalEntity?.natureza_juridica?.descricao || '-',
         Porte: legalEntity?.porte?.descricao || '-',
         'CNAE Fiscal': legalEntity?.cnae_fiscal || '-',
@@ -906,6 +915,46 @@ export function ProposalsTable({
                           </p>
                         </div>
                       </div>
+                      {selectedProposal.aceita_custos_integrais !==
+                        undefined && (
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Aceita custos integrais
+                            </Label>
+                            <p className="text-sm">
+                              {selectedProposal.aceita_custos_integrais
+                                ? 'Sim'
+                                : 'Não'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {selectedProposal.prazo_execucao && (
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Prazo de execução (dias)
+                            </Label>
+                            <p className="text-sm">
+                              {(() => {
+                                const prazo = selectedProposal.prazo_execucao
+                                  ? Number.parseInt(
+                                      selectedProposal.prazo_execucao,
+                                      10
+                                    )
+                                  : null
+                                if (prazo === null || Number.isNaN(prazo)) {
+                                  return selectedProposal.prazo_execucao
+                                }
+                                return `${prazo} dia${prazo > 1 ? 's' : ''}`
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
