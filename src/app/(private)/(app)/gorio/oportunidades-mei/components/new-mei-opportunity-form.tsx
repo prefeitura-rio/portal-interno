@@ -6,6 +6,7 @@ import React, {
   useImperativeHandle,
   useState,
   useEffect,
+  useMemo,
 } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -39,7 +40,9 @@ import {
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { CnaeSubclasseSelect } from '@/components/ui/cnae-subclasse-select'
+import { Combobox } from '@/components/ui/combobox'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -80,8 +83,12 @@ const fullFormSchema = z.object({
     .string()
     .min(1, { message: 'Bairro é obrigatório.' })
     .min(3, { message: 'Bairro deve ter pelo menos 3 caracteres.' }),
-  forma_pagamento: z.string().optional(),
-  prazo_pagamento: z.string().optional(),
+  forma_pagamento: z
+    .string()
+    .min(1, { message: 'Forma de pagamento é obrigatória.' }),
+  prazo_pagamento: z
+    .string()
+    .min(1, { message: 'Prazo de pagamento é obrigatório.' }),
   opportunity_expiration_date: z.date({
     required_error: 'Prazo para expiração da oportunidade é obrigatório.',
   }),
@@ -287,6 +294,17 @@ export const NewMEIOpportunityForm = forwardRef<
       control: form.control as any,
       name: 'gallery_images',
     })
+
+    // Memoize neighborhood options for the combobox
+    const neighborhoodOptions = useMemo(() => {
+      const uniqueNeighborhoods = Array.from(
+        new Set(neighborhoodZone.map(n => n.bairro))
+      )
+      return uniqueNeighborhoods.sort().map(bairro => ({
+        value: bairro,
+        label: bairro,
+      }))
+    }, [])
 
     // Track form changes for unsaved changes guard
     const isDirty = form.formState.isDirty
@@ -749,9 +767,13 @@ export const NewMEIOpportunityForm = forwardRef<
                   <FormItem>
                     <FormLabel>Bairro*</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Ex: Centro"
-                        {...field}
+                      <Combobox
+                        options={neighborhoodOptions}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Selecione o bairro"
+                        searchPlaceholder="Buscar bairro..."
+                        emptyMessage="Nenhum bairro encontrado."
                         disabled={isReadOnly}
                       />
                     </FormControl>
@@ -760,57 +782,56 @@ export const NewMEIOpportunityForm = forwardRef<
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="forma_pagamento"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-1">
-                      <FormLabel>Forma de pagamento</FormLabel>
-                      <FormControl>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={isReadOnly}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a forma de pagamento" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="CHEQUE">Cheque</SelectItem>
-                            <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
-                            <SelectItem value="CARTAO">Cartão</SelectItem>
-                            <SelectItem value="TRANSFERENCIA">
-                              Transferência
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="forma_pagamento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Forma de pagamento*</FormLabel>
+                    <FormControl>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={isReadOnly}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a forma de pagamento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CHEQUE">Cheque</SelectItem>
+                          <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                          <SelectItem value="PIX">PIX</SelectItem>
+                          <SelectItem value="CARTAO">Cartão</SelectItem>
+                          <SelectItem value="TRANSFERENCIA">
+                            Transferência
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="prazo_pagamento"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>
-                        Prazo de pagamento após a emissão da nota fiscal
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: 30 dias"
-                          {...field}
-                          disabled={isReadOnly}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="prazo_pagamento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Prazo de pagamento após a emissão da nota fiscal*
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: 30 dias"
+                        {...field}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="flex flex-wrap items-start gap-4">
                 <FormField
