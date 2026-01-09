@@ -1007,7 +1007,7 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              router.push(`/servicos-municipais/servicos/servico/${service.id}`)
+              window.open(`/servicos-municipais/servicos/servico/${service.id}`, '_blank')
             }}
           >
             <DataTableToolbar table={table} />
@@ -1019,7 +1019,7 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              router.push(`/servicos-municipais/servicos/servico/${service.id}`)
+              window.open(`/servicos-municipais/servicos/servico/${service.id}`, '_blank')
             }}
           >
             <DataTableToolbar table={table} />
@@ -1031,7 +1031,7 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              router.push(`/servicos-municipais/servicos/servico/${service.id}`)
+              window.open(`/servicos-municipais/servicos/servico/${service.id}`, '_blank')
             }}
           >
             <DataTableToolbar table={table} />

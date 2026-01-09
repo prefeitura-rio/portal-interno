@@ -646,8 +646,9 @@ export function OportunidadesMEIDataTable() {
             table={table}
             loading={loading || userRoleLoading}
             onRowClick={oportunidade => {
-              router.push(
-                `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
+              window.open(
+                `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`,
+                '_blank'
               )
             }}
           >
@@ -660,8 +661,9 @@ export function OportunidadesMEIDataTable() {
             table={table}
             loading={loading || userRoleLoading}
             onRowClick={oportunidade => {
-              router.push(
-                `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
+              window.open(
+                `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`,
+                '_blank'
               )
             }}
           >
@@ -674,8 +676,9 @@ export function OportunidadesMEIDataTable() {
             table={table}
             loading={loading || userRoleLoading}
             onRowClick={oportunidade => {
-              router.push(
-                `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`
+              window.open(
+                `/gorio/oportunidades-mei/oportunidade-mei/${oportunidade.id}`,
+                '_blank'
               )
             }}
           >
