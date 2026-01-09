@@ -174,6 +174,8 @@ export async function GET(
           status: frontendStatus,
           aceita_custos_integrais: proposta.aceita_custos_integrais,
           prazo_execucao: proposta.prazo_execucao,
+          celular_pessoa_fisica: proposta.celular_pessoa_fisica,
+          email_pessoa_fisica: proposta.email_pessoa_fisica,
         }
       })
       .filter((p: any) => p !== null)

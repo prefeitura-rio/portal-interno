@@ -444,6 +444,8 @@ export function ProposalsTable({
       'Início de Atividade',
       'Responsável - Qualificação',
       'Responsável - CPF',
+      'E-mail da Pessoa Física',
+      'Celular da Pessoa Física',
       'E-mail',
       'Telefone',
       'Endereço Completo',
@@ -518,6 +520,8 @@ export function ProposalsTable({
         'Responsável - Qualificação':
           legalEntity?.responsavel?.qualificacao_descricao || '-',
         'Responsável - CPF': legalEntity?.responsavel?.cpf || '-',
+        'E-mail da Pessoa Física': p.email_pessoa_fisica || '-',
+        'Celular da Pessoa Física': p.celular_pessoa_fisica || '-',
         'E-mail': contactEmail,
         Telefone: contactPhone,
         'Endereço Completo': address,
@@ -958,6 +962,43 @@ export function ProposalsTable({
                     </div>
                   </div>
 
+                  {(selectedProposal.email_pessoa_fisica ||
+                    selectedProposal.celular_pessoa_fisica) && (
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                        Informações de contato da pessoa física
+                      </h4>
+                      <div className="grid gap-4">
+                        {selectedProposal.email_pessoa_fisica && (
+                          <div className="flex items-center gap-3">
+                            <Mail className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                E-mail
+                              </Label>
+                              <p className="text-sm">
+                                {selectedProposal.email_pessoa_fisica}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedProposal.celular_pessoa_fisica && (
+                          <div className="flex items-center gap-3">
+                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Celular
+                              </Label>
+                              <p className="text-sm">
+                                {selectedProposal.celular_pessoa_fisica}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {(() => {
                     const legalEntity = selectedProposal.mei_empresa_id
                       ? legalEntitiesCache.get(selectedProposal.mei_empresa_id)
@@ -1170,7 +1211,7 @@ export function ProposalsTable({
                     return (
                       <div className="space-y-4">
                         <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                          Contato
+                          Informações de contato da pessoa jurídica
                         </h4>
                         <div className="grid gap-4">
                           {contactEmail && (
