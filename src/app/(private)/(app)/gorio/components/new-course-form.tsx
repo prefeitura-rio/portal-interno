@@ -3478,6 +3478,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       <FieldsCreator
                         fields={field.value || []}
                         onFieldsChange={field.onChange}
+                        disabled={isReadOnly}
                       />
                     </FormControl>
                     <FormMessage />
