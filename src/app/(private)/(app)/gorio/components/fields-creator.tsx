@@ -21,9 +21,11 @@ import {
   SortableOverlay,
 } from '@/components/ui/sortable'
 import {
+  Check,
   ChevronDown,
   CircleCheck,
   GripVertical,
+  Pencil,
   Plus,
   Square,
   Text as TextIcon,
@@ -76,6 +78,8 @@ export function FieldsCreator({
   const [newFieldOptions, setNewFieldOptions] = useState<CustomFieldOption[]>([
     { id: uuidv4(), value: '' },
   ])
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null)
+  const [originalField, setOriginalField] = useState<CustomField | null>(null)
 
   const fieldTypes = [
     {
@@ -138,6 +142,81 @@ export function FieldsCreator({
     onFieldsChange(fields.filter(field => field.id !== fieldId))
   }
 
+  const updateField = (fieldId: string, updates: Partial<CustomField>) => {
+    onFieldsChange(
+      fields.map(field =>
+        field.id === fieldId ? { ...field, ...updates } : field
+      )
+    )
+  }
+
+  const updateFieldOption = (
+    fieldId: string,
+    optionId: string,
+    value: string
+  ) => {
+    onFieldsChange(
+      fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: field.options?.map(opt =>
+                opt.id === optionId ? { ...opt, value } : opt
+              ),
+            }
+          : field
+      )
+    )
+  }
+
+  const addFieldOption = (fieldId: string) => {
+    onFieldsChange(
+      fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: [...(field.options || []), { id: uuidv4(), value: '' }],
+            }
+          : field
+      )
+    )
+  }
+
+  const removeFieldOption = (fieldId: string, optionId: string) => {
+    onFieldsChange(
+      fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: field.options?.filter(opt => opt.id !== optionId),
+            }
+          : field
+      )
+    )
+  }
+
+  const startEditing = (field: CustomField) => {
+    setOriginalField(JSON.parse(JSON.stringify(field)))
+    setEditingFieldId(field.id)
+  }
+
+  const cancelEditing = () => {
+    if (originalField) {
+      onFieldsChange(
+        fields.map(field =>
+          field.id === originalField.id ? originalField : field
+        )
+      )
+    }
+    setEditingFieldId(null)
+    setOriginalField(null)
+  }
+
+  const finishEditing = () => {
+    setEditingFieldId(null)
+    setOriginalField(null)
+  }
+
   const addOption = () => {
     setNewFieldOptions([...newFieldOptions, { id: uuidv4(), value: '' }])
   }
@@ -185,17 +264,181 @@ export function FieldsCreator({
       type => type.value === field.field_type
     )
     const Icon = fieldTypeInfo?.icon || TextIcon
+    const isEditing = editingFieldId === field.id
+    const fieldRequiresOptions = ['radio', 'multiselect', 'select'].includes(
+      field.field_type
+    )
 
+    // Modo de edição do campo
+    if (isEditing && !disabled) {
+      return (
+        <div className="space-y-4 p-4 border border-dashed border-muted-foreground/30 rounded-lg bg-muted/5">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">
+              Editando campo
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  finishEditing()
+                }}
+                className="cursor-pointer"
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Concluir edição
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  cancelEditing()
+                }}
+                className="cursor-pointer"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Cancelar
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium text-muted-foreground">
+              Título do campo
+            </Label>
+            <Input
+              value={field.title}
+              onChange={e => updateField(field.id, { title: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id={`required-${field.id}`}
+              checked={field.required}
+              onCheckedChange={checked =>
+                updateField(field.id, { required: checked as boolean })
+              }
+            />
+            <label
+              htmlFor={`required-${field.id}`}
+              className="text-sm font-medium leading-none"
+            >
+              Campo obrigatório
+            </label>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium text-muted-foreground">
+              Tipo de campo
+            </Label>
+            <Select
+              value={field.field_type}
+              onValueChange={(value: CustomFieldType) => {
+                const newFieldRequiresOptions = [
+                  'radio',
+                  'multiselect',
+                  'select',
+                ].includes(value)
+                updateField(field.id, {
+                  field_type: value,
+                  options: newFieldRequiresOptions
+                    ? field.options?.length
+                      ? field.options
+                      : [
+                          { id: uuidv4(), value: '' },
+                          { id: uuidv4(), value: '' },
+                        ]
+                    : undefined,
+                })
+              }}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {fieldTypes.map(type => {
+                  const TypeIcon = type.icon
+                  return (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex items-center gap-2">
+                        <TypeIcon className="h-4 w-4" />
+                        <span>{type.label}</span>
+                      </div>
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Edição de opções para campos com seleção */}
+          {fieldRequiresOptions && (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Opções de resposta
+              </Label>
+              {field.options?.map((option, index) => (
+                <div key={option.id} className="flex items-center gap-2">
+                  {field.field_type === 'radio' && (
+                    <div className="w-4 h-4 rounded-full border-2 border-muted-foreground flex-shrink-0" />
+                  )}
+                  {field.field_type === 'multiselect' && (
+                    <div className="w-4 h-4 border-2 border-muted-foreground rounded flex-shrink-0" />
+                  )}
+                  <Input
+                    placeholder={`Opção ${index + 1}`}
+                    value={option.value}
+                    onChange={e =>
+                      updateFieldOption(field.id, option.id, e.target.value)
+                    }
+                    className="flex-1"
+                  />
+                  {(field.options?.length || 0) > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFieldOption(field.id, option.id)}
+                      className="text-destructive hover:text-destructive flex-shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => addFieldOption(field.id)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar opção
+              </Button>
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    // Modo de visualização do campo
     return (
       <div className="space-y-3 p-4 border rounded-lg bg-muted/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {showDragHandle && (
+            {showDragHandle && !disabled && (
               <SortableItemHandle asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  disabled={disabled}
                   className="cursor-grab hover:bg-muted/50 p-1 h-8 w-8"
                 >
                   <GripVertical className="h-4 w-4" />
@@ -211,15 +454,31 @@ export function FieldsCreator({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => removeField(field.id)}
-              disabled={disabled}
-              className="text-destructive hover:text-destructive h-8 w-8 p-1"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {!disabled && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  startEditing(field)
+                }}
+                className="h-8 w-8 p-1 cursor-pointer"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+            {!disabled && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeField(field.id)}
+                className="text-destructive hover:text-destructive h-8 w-8 p-1 cursor-pointer"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -391,7 +650,6 @@ export function FieldsCreator({
                 size="sm"
                 onClick={addOption}
                 disabled={disabled}
-                className="text-blue-600 hover:text-blue-700"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Adicionar opção
