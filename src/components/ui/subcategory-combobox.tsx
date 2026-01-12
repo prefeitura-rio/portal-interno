@@ -1,7 +1,7 @@
 'use client'
 
-import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
-import * as React from 'react'
+import { Check, ChevronsUpDown, Loader2, Plus, X } from 'lucide-react'
+import type { MouseEvent } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -19,7 +19,8 @@ import {
 } from '@/components/ui/popover'
 import type { ModelsSubcategory } from '@/http-busca-search/models'
 import { cn } from '@/lib/utils'
-
+import { useIsAdmin } from '@/hooks/use-heimdall-user'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 interface SubcategoryComboboxProps {
   category?: string
   value?: string
@@ -39,15 +40,14 @@ export function SubcategoryCombobox({
   className,
   clearButtonSize = 'h-9! w-9!',
 }: SubcategoryComboboxProps) {
-  const [open, setOpen] = React.useState(false)
-  const [subcategories, setSubcategories] = React.useState<ModelsSubcategory[]>(
-    []
-  )
-  const [loading, setLoading] = React.useState(false)
-  const [search, setSearch] = React.useState('')
+  const [open, setOpen] = useState(false)
+  const [subcategories, setSubcategories] = useState<ModelsSubcategory[]>([])
+  const [loading, setLoading] = useState(false)
+  const [search, setSearch] = useState('')
+  const isAdmin = useIsAdmin()
 
   // Fetch subcategories when category changes or popover opens
-  const fetchSubcategories = React.useCallback(async (categoryName: string) => {
+  const fetchSubcategories = useCallback(async (categoryName: string) => {
     if (!categoryName) {
       setSubcategories([])
       return
@@ -80,7 +80,7 @@ export function SubcategoryCombobox({
   }, [])
 
   // Fetch subcategories when category changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (category) {
       fetchSubcategories(category)
     } else {
@@ -93,7 +93,7 @@ export function SubcategoryCombobox({
   }, [category, fetchSubcategories, value, onValueChange])
 
   // Filtered subcategories based on search
-  const filteredSubcategories = React.useMemo(() => {
+  const filteredSubcategories = useMemo(() => {
     if (!search.trim()) {
       return subcategories
     }
@@ -104,8 +104,27 @@ export function SubcategoryCombobox({
     )
   }, [subcategories, search])
 
+  // Check if search text would create a new subcategory
+  // Only allow creation for admin or superadmin users
+  const canCreateNew = useMemo(() => {
+    if (!search.trim() || !isAdmin) return false
+
+    const searchLower = search.toLowerCase()
+    const exactMatch = subcategories.some(
+      s => s.name?.toLowerCase() === searchLower
+    )
+
+    return !exactMatch && filteredSubcategories.length === 0
+  }, [search, subcategories, filteredSubcategories, isAdmin])
+
+  // Check if the current value is a new subcategory (not in the original list)
+  const isNewSubcategory = useMemo(() => {
+    if (!value || loading) return false
+    return !subcategories.some(s => s.name === value)
+  }, [value, subcategories, loading])
+
   // Display value for selected subcategory
-  const displayValue = React.useMemo(() => {
+  const displayValue = useMemo(() => {
     if (!value) return placeholder
 
     const subcategory = subcategories.find(s => s.name === value)
@@ -118,11 +137,11 @@ export function SubcategoryCombobox({
       return 'Carregando...'
     }
 
-    // Return the value itself if not found in list (for initial load scenarios)
+    // Return the value itself if not found in list (for initial load scenarios or new subcategory)
     return value
   }, [value, subcategories, loading, placeholder])
 
-  const handleClear = (e: React.MouseEvent) => {
+  const handleClear = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
     onValueChange('')
   }
@@ -145,12 +164,23 @@ export function SubcategoryCombobox({
             )}
           >
             <span
-              className="truncate relative! overflow-hidden! flex-1 min-w-0"
+              className="truncate relative! overflow-hidden! flex-1 min-w-0 flex items-center gap-2"
               title={
                 typeof displayValue === 'string' ? displayValue : undefined
               }
             >
-              {!category ? 'Selecione uma categoria primeiro' : displayValue}
+              {!category ? (
+                'Selecione uma categoria primeiro'
+              ) : (
+                <>
+                  {displayValue}
+                  {isNewSubcategory && value && (
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 shrink-0">
+                      Nova
+                    </span>
+                  )}
+                </>
+              )}
             </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -167,9 +197,11 @@ export function SubcategoryCombobox({
               onValueChange={setSearch}
             />
             <CommandList>
-              <CommandEmpty>
-                {loading ? 'Carregando...' : 'Nenhuma subcategoria encontrada.'}
-              </CommandEmpty>
+              {!loading &&
+                !canCreateNew &&
+                filteredSubcategories.length === 0 && (
+                  <CommandEmpty>Nenhuma subcategoria encontrada.</CommandEmpty>
+                )}
               <CommandGroup>
                 {filteredSubcategories.map(subcategory => (
                   <CommandItem
@@ -178,6 +210,7 @@ export function SubcategoryCombobox({
                     onSelect={currentValue => {
                       onValueChange(currentValue === value ? '' : currentValue)
                       setOpen(false)
+                      setSearch('')
                     }}
                   >
                     <Check
@@ -199,6 +232,27 @@ export function SubcategoryCombobox({
                     </div>
                   </CommandItem>
                 ))}
+
+                {/* Create new subcategory option */}
+                {canCreateNew && (
+                  <CommandItem
+                    value={search}
+                    onSelect={currentValue => {
+                      onValueChange(currentValue)
+                      setOpen(false)
+                      setSearch('')
+                    }}
+                    className="text-primary"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    <div className="flex flex-col">
+                      <span className="font-medium">Criar "{search}"</span>
+                      <span className="text-xs text-muted-foreground">
+                        Nova subcategoria
+                      </span>
+                    </div>
+                  </CommandItem>
+                )}
               </CommandGroup>
 
               {/* Loading indicator */}
