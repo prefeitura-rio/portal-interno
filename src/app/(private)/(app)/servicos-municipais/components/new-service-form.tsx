@@ -1070,6 +1070,14 @@ export function NewServiceForm({
     if (!pendingFormData) return
 
     try {
+      // Mark as submitting and reset changes state BEFORE creating/updating
+      if (onSubmittingChange) {
+        onSubmittingChange(true)
+      }
+      if (onFormChangesDetected) {
+        onFormChangesDetected(false)
+      }
+
       const apiData = transformToApiRequest(pendingFormData)
 
       // If service is already published, just save maintaining the published status
@@ -1111,13 +1119,6 @@ export function NewServiceForm({
       if (onPublish) {
         onPublish()
       } else {
-        // Mark as submitting and reset changes state before navigation
-        if (onSubmittingChange) {
-          onSubmittingChange(true)
-        }
-        if (onFormChangesDetected) {
-          onFormChangesDetected(false)
-        }
         // Redirect to service detail page with tombamento flag (for new services)
         router.push(
           `/servicos-municipais/servicos/servico/${savedService.id}?tombamento=true`
