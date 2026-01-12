@@ -7,11 +7,23 @@ import {
   Settings,
 } from 'lucide-react'
 
-type Submenu = {
+export type Submenu = {
   href: string
   label: string
   active?: boolean
   allowedRoles?: string[]
+}
+
+export type SubmenuGroup = {
+  label: string
+  submenus: Submenu[]
+  allowedRoles?: string[]
+}
+
+export type MenuItem = Submenu | SubmenuGroup
+
+function isSubmenuGroup(item: MenuItem): item is SubmenuGroup {
+  return 'submenus' in item && !('href' in item)
 }
 
 type Menu = {
@@ -19,7 +31,7 @@ type Menu = {
   label: string
   active?: boolean
   icon: LucideIcon
-  submenus?: Submenu[]
+  submenus?: MenuItem[]
   allowedRoles?: string[]
 }
 
@@ -76,14 +88,36 @@ export function getMenuList(pathname: string): Group[] {
           allowedRoles: ['admin', 'superadmin', 'go:admin'],
           submenus: [
             {
-              href: '/gorio/oportunidades-mei',
-              label: 'Oportunidades MEI',
+              label: 'MEI',
               allowedRoles: ['admin', 'superadmin', 'go:admin'],
+              submenus: [
+                {
+                  href: '/gorio/oportunidades-mei',
+                  label: 'Oportunidades MEI',
+                  allowedRoles: ['admin', 'superadmin', 'go:admin'],
+                },
+                {
+                  href: '/gorio/oportunidades-mei/new',
+                  label: 'Nova oportunidade MEI',
+                  allowedRoles: ['admin', 'superadmin', 'go:admin'],
+                },
+              ],
             },
             {
-              href: '/gorio/oportunidades-mei/new',
-              label: 'Nova oportunidade MEI',
+              label: 'Empregabilidade',
               allowedRoles: ['admin', 'superadmin', 'go:admin'],
+              submenus: [
+                {
+                  href: '/gorio/empregabilidade',
+                  label: 'Vagas',
+                  allowedRoles: ['admin', 'superadmin', 'go:admin'],
+                },
+                {
+                  href: '/gorio/empregabilidade/new',
+                  label: 'Nova vaga',
+                  allowedRoles: ['admin', 'superadmin', 'go:admin'],
+                },
+              ],
             },
           ],
         },
@@ -188,11 +222,37 @@ export function getFilteredMenuList(
         .map(menu => ({
           ...menu,
           submenus:
-            menu.submenus?.filter(
-              submenu =>
-                !submenu.allowedRoles ||
-                submenu.allowedRoles.some(role => userRoles.includes(role))
-            ) || [],
+            menu.submenus
+              ?.map(item => {
+                if (isSubmenuGroup(item)) {
+                  // Filter submenus within the group
+                  const filteredSubmenus = item.submenus.filter(
+                    submenu =>
+                      !submenu.allowedRoles ||
+                      submenu.allowedRoles.some(role =>
+                        userRoles.includes(role)
+                      )
+                  )
+                  // Only include the group if it has submenus and user has permission
+                  if (
+                    filteredSubmenus.length > 0 &&
+                    (!item.allowedRoles ||
+                      item.allowedRoles.some(role => userRoles.includes(role)))
+                  ) {
+                    return { ...item, submenus: filteredSubmenus }
+                  }
+                  return null
+                }
+                // Regular submenu - filter by role
+                if (
+                  !item.allowedRoles ||
+                  item.allowedRoles.some(role => userRoles.includes(role))
+                ) {
+                  return item
+                }
+                return null
+              })
+              .filter((item): item is MenuItem => item !== null) || [],
         }))
         .filter(
           menu =>
