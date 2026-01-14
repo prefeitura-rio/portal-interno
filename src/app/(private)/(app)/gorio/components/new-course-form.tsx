@@ -2,13 +2,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
+  type FormEvent,
   forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
   useState,
-  type FormEvent,
 } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -47,12 +47,12 @@ import {
 } from '@/components/ui/accordion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   DateTimePicker,
   formatDateTimeToUTC,
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
@@ -1081,6 +1081,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               zona,
               schedules: [
                 {
+                  id:
+                    (location as any).schedule_id ||
+                    '00000000-0000-0000-0000-000000000000',
                   vacancies: location.vacancies || 1,
                   classStartDate: location.classStartDate || new Date(),
                   classEndDate: location.classEndDate || new Date(),
@@ -1308,6 +1311,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         ? Array.isArray(data.remote_class)
           ? {
               schedules: data.remote_class.map(schedule => ({
+                id:
+                  (schedule as any).id ||
+                  '00000000-0000-0000-0000-000000000000',
                 vacancies: schedule.vacancies,
                 class_start_date: schedule.classStartDate
                   ? formatDateTimeToUTC(schedule.classStartDate)
@@ -1323,6 +1329,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               // Legacy single object format - wrap in schedules array
               schedules: [
                 {
+                  id:
+                    (data.remote_class as any).id ||
+                    '00000000-0000-0000-0000-000000000000',
                   vacancies: (data.remote_class as any).vacancies,
                   class_start_date: (data.remote_class as any).classStartDate
                     ? formatDateTimeToUTC(
