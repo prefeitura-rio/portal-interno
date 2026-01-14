@@ -53,6 +53,7 @@ import {
 } from '@/components/ui/sheet'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { type MEIProposal, useMEIProposals } from '@/hooks/use-mei-proposals'
+import type { ModelsLegalEntity } from '@/http-rmi/models/modelsLegalEntity'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 
@@ -64,6 +65,20 @@ interface ProposalsTableProps {
 // Simple schema just to keep consistent form usage (not many validations needed here)
 const proposalNoteSchema = z.object({ note: z.string().optional() })
 type ProposalNoteForm = z.infer<typeof proposalNoteSchema>
+
+// Format CNPJ: XX.XXX.XXX/XXXX-XX
+const formatCNPJ = (cnpj: string | undefined | null): string => {
+  if (!cnpj) return '-'
+  // Remove all non-numeric characters
+  const numbers = cnpj.replace(/\D/g, '')
+  // CNPJ must have 14 digits
+  if (numbers.length !== 14) return cnpj
+  // Format: XX.XXX.XXX/XXXX-XX
+  return numbers.replace(
+    /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
+    '$1.$2.$3/$4-$5'
+  )
+}
 
 export function ProposalsTable({
   opportunityId,
@@ -83,6 +98,29 @@ export function ProposalsTable({
     React.useState<MEIProposal | null>(null)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState('')
+  // Cache for legal entity data by CNPJ
+  const [legalEntitiesCache, setLegalEntitiesCache] = React.useState<
+    Map<string, ModelsLegalEntity>
+  >(new Map())
+  const [loadingLegalEntities, setLoadingLegalEntities] = React.useState<
+    Set<string>
+  >(new Set())
+  // Ref to track which CNPJs are being fetched to avoid duplicate requests
+  const fetchingRef = React.useRef<Set<string>>(new Set())
+  // Ref to track which CNPJs have failed to avoid retrying
+  const failedCnpjsRef = React.useRef<Set<string>>(new Set())
+  // Refs to track current state for useEffect
+  const cacheRef = React.useRef<Map<string, ModelsLegalEntity>>(new Map())
+  const loadingRef = React.useRef<Set<string>>(new Set())
+
+  // Sync refs with state
+  React.useEffect(() => {
+    cacheRef.current = legalEntitiesCache
+  }, [legalEntitiesCache])
+
+  React.useEffect(() => {
+    loadingRef.current = loadingLegalEntities
+  }, [loadingLegalEntities])
 
   const noteForm = useForm<ProposalNoteForm>({
     resolver: zodResolver(proposalNoteSchema),
@@ -156,13 +194,156 @@ export function ProposalsTable({
     }
   }, [proposals, selectedProposal])
 
+  // Fetch legal entity data for proposals - runs automatically when proposals load
+  React.useEffect(() => {
+    if (!proposals || proposals.length === 0) return
+
+    const fetchLegalEntities = async () => {
+      // Use refs to check current state (always up-to-date)
+      const cnpjsToFetch = proposals
+        .map(p => p.mei_empresa_id)
+        .filter(
+          (cnpj): cnpj is string =>
+            !!cnpj &&
+            !cacheRef.current.has(cnpj) &&
+            !loadingRef.current.has(cnpj) &&
+            !fetchingRef.current.has(cnpj) &&
+            !failedCnpjsRef.current.has(cnpj)
+        )
+
+      if (cnpjsToFetch.length === 0) {
+        return
+      }
+
+      // Mark as fetching in ref
+      cnpjsToFetch.forEach(cnpj => fetchingRef.current.add(cnpj))
+
+      // Mark as loading
+      setLoadingLegalEntities(prev => {
+        const newSet = new Set(prev)
+        cnpjsToFetch.forEach(cnpj => newSet.add(cnpj))
+        return newSet
+      })
+
+      // Fetch all legal entities in parallel
+      const fetchPromises = cnpjsToFetch.map(async cnpj => {
+        try {
+          const response = await fetch(`/api/legal-entity/${cnpj}`)
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.data) {
+              return { cnpj, legalEntity: data.data, success: true }
+            }
+          }
+          // Mark as failed and show toast
+          failedCnpjsRef.current.add(cnpj)
+          toast.error(
+            `Não foi possível carregar as informações do MEI de CNPJ ${cnpj}`
+          )
+          return { cnpj, legalEntity: null, success: false }
+        } catch (error) {
+          console.error(`Error fetching legal entity for CNPJ ${cnpj}:`, error)
+          // Mark as failed and show toast
+          failedCnpjsRef.current.add(cnpj)
+          toast.error(
+            `Não foi possível carregar as informações do MEI de CNPJ ${cnpj}`
+          )
+          return { cnpj, legalEntity: null, success: false }
+        }
+      })
+
+      const results = await Promise.all(fetchPromises)
+
+      // Update cache with fetched data (only successful ones)
+      setLegalEntitiesCache(prev => {
+        const newMap = new Map(prev)
+        results.forEach(result => {
+          if (result.success && result.legalEntity) {
+            newMap.set(result.cnpj, result.legalEntity)
+          }
+        })
+        return newMap
+      })
+
+      // Remove from loading set and ref
+      setLoadingLegalEntities(prev => {
+        const newSet = new Set(prev)
+        cnpjsToFetch.forEach(cnpj => {
+          newSet.delete(cnpj)
+          fetchingRef.current.delete(cnpj)
+        })
+        return newSet
+      })
+    }
+
+    fetchLegalEntities()
+  }, [proposals])
+
   const handleRowClick = React.useCallback(
-    (proposal: MEIProposal) => {
+    async (proposal: MEIProposal) => {
       setSelectedProposal(proposal)
       setIsSheetOpen(true)
       noteForm.reset({ note: '' })
+
+      // Fetch legal entity if not cached and not already failed
+      if (
+        proposal.mei_empresa_id &&
+        !legalEntitiesCache.has(proposal.mei_empresa_id) &&
+        !loadingLegalEntities.has(proposal.mei_empresa_id) &&
+        !fetchingRef.current.has(proposal.mei_empresa_id) &&
+        !failedCnpjsRef.current.has(proposal.mei_empresa_id)
+      ) {
+        fetchingRef.current.add(proposal.mei_empresa_id)
+        setLoadingLegalEntities(prev =>
+          new Set(prev).add(proposal.mei_empresa_id!)
+        )
+        try {
+          const response = await fetch(
+            `/api/legal-entity/${proposal.mei_empresa_id}`
+          )
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.data) {
+              setLegalEntitiesCache(prev => {
+                const newMap = new Map(prev)
+                newMap.set(proposal.mei_empresa_id!, data.data)
+                return newMap
+              })
+            } else {
+              // Mark as failed and show toast
+              failedCnpjsRef.current.add(proposal.mei_empresa_id!)
+              toast.error(
+                `Não foi possível carregar as informações do MEI de CNPJ ${proposal.mei_empresa_id}`
+              )
+            }
+          } else {
+            // Mark as failed and show toast
+            failedCnpjsRef.current.add(proposal.mei_empresa_id!)
+            toast.error(
+              `Não foi possível carregar as informações do MEI de CNPJ ${proposal.mei_empresa_id}`
+            )
+          }
+        } catch (error) {
+          console.error(
+            `Error fetching legal entity for CNPJ ${proposal.mei_empresa_id}:`,
+            error
+          )
+          // Mark as failed and show toast
+          failedCnpjsRef.current.add(proposal.mei_empresa_id!)
+          toast.error(
+            `Não foi possível carregar as informações do MEI de CNPJ ${proposal.mei_empresa_id}`
+          )
+        } finally {
+          setLoadingLegalEntities(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(proposal.mei_empresa_id!)
+            return newSet
+          })
+          fetchingRef.current.delete(proposal.mei_empresa_id!)
+        }
+      }
     },
-    [noteForm]
+    [noteForm, legalEntitiesCache, loadingLegalEntities]
   )
 
   const handleApprove = React.useCallback(
@@ -247,14 +428,27 @@ export function ProposalsTable({
     if (proposalsToExport.length === 0) return
 
     const headers = [
-      'Nome da empresa',
+      'Razão social',
+      'Nome Fantasia',
       'CNPJ',
       'Valor da proposta',
       'Data de envio',
       'Status',
+      'Aceita custos integrais',
+      'Prazo de execução (dias)',
+      'Natureza Jurídica',
+      'Porte',
+      'CNAE Fiscal',
+      'Capital Social',
+      'Situação Cadastral',
+      'Início de Atividade',
+      'Responsável - Qualificação',
+      'Responsável - CPF',
+      'E-mail da Pessoa Física',
+      'Celular da Pessoa Física',
       'E-mail',
       'Telefone',
-      'Endereço',
+      'Endereço Completo',
     ]
 
     // Create worksheet data
@@ -265,15 +459,72 @@ export function ProposalsTable({
         rejected: 'Recusado',
       }
 
+      const legalEntity = p.mei_empresa_id
+        ? legalEntitiesCache.get(p.mei_empresa_id)
+        : null
+      const razaoSocial = legalEntity?.razao_social || p.companyName || '-'
+
+      // Build complete address from legal entity or use proposal address
+      const address = legalEntity?.endereco
+        ? [
+            legalEntity.endereco.tipo_logradouro,
+            legalEntity.endereco.logradouro,
+            legalEntity.endereco.numero,
+            legalEntity.endereco.complemento,
+            legalEntity.endereco.bairro,
+            legalEntity.endereco.municipio_nome,
+            legalEntity.endereco.uf,
+            legalEntity.endereco.cep,
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : p.address || ''
+
+      // Get contact information from legal entity or proposal
+      const contactEmail = legalEntity?.contato?.email || p.email || ''
+      const contactPhone = legalEntity?.contato?.telefone?.[0]
+        ? `${legalEntity.contato.telefone[0].ddd || ''} ${legalEntity.contato.telefone[0].telefone || ''}`.trim()
+        : p.phone || ''
+
       return {
-        'Nome da empresa': p.companyName,
-        CNPJ: p.mei_empresa_id || '-',
+        'Razão social': razaoSocial,
+        'Nome Fantasia': legalEntity?.nome_fantasia || '-',
+        CNPJ: formatCNPJ(p.mei_empresa_id),
         'Valor da proposta': p.amount,
         'Data de envio': new Date(p.submittedAt).toLocaleDateString('pt-BR'),
         Status: statusMap[p.status] || p.status,
-        'E-mail': p.email,
-        Telefone: p.phone || '',
-        Endereço: p.address || '',
+        'Aceita custos integrais':
+          p.aceita_custos_integrais !== undefined
+            ? p.aceita_custos_integrais
+              ? 'Sim'
+              : 'Não'
+            : '-',
+        'Prazo de execução (dias)': p.prazo_execucao || '-',
+        'Natureza Jurídica': legalEntity?.natureza_juridica?.descricao || '-',
+        Porte: legalEntity?.porte?.descricao || '-',
+        'CNAE Fiscal': legalEntity?.cnae_fiscal || '-',
+        'Capital Social':
+          legalEntity?.capital_social !== undefined &&
+          legalEntity?.capital_social !== null
+            ? legalEntity.capital_social.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              })
+            : '-',
+        'Situação Cadastral': legalEntity?.situacao_cadastral?.descricao || '-',
+        'Início de Atividade': legalEntity?.inicio_atividade_data
+          ? new Date(legalEntity.inicio_atividade_data).toLocaleDateString(
+              'pt-BR'
+            )
+          : '-',
+        'Responsável - Qualificação':
+          legalEntity?.responsavel?.qualificacao_descricao || '-',
+        'Responsável - CPF': legalEntity?.responsavel?.cpf || '-',
+        'E-mail da Pessoa Física': p.email_pessoa_fisica || '-',
+        'Celular da Pessoa Física': p.celular_pessoa_fisica || '-',
+        'E-mail': contactEmail,
+        Telefone: contactPhone,
+        'Endereço Completo': address,
       }
     })
 
@@ -303,7 +554,7 @@ export function ProposalsTable({
 
     // Write file and trigger download
     XLSX.writeFile(workbook, `${fileName}.xlsx`)
-  }, [proposals, opportunityId, opportunityTitle])
+  }, [proposals, opportunityId, opportunityTitle, legalEntitiesCache])
 
   const columns = React.useMemo<ColumnDef<MEIProposal>[]>(
     () => [
@@ -334,16 +585,29 @@ export function ProposalsTable({
         id: 'companyName',
         accessorKey: 'companyName',
         header: ({ column }: { column: Column<MEIProposal, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Nome da empresa" />
+          <DataTableColumnHeader column={column} title="Razão social" />
         ),
-        cell: ({ cell }) => (
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">
-              {cell.getValue<MEIProposal['companyName']>()}
-            </span>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const proposal = row.original
+          const legalEntity = proposal.mei_empresa_id
+            ? legalEntitiesCache.get(proposal.mei_empresa_id)
+            : null
+          const displayName =
+            legalEntity?.razao_social || proposal.companyName || '-'
+          const isLoading =
+            proposal.mei_empresa_id &&
+            loadingLegalEntities.has(proposal.mei_empresa_id) &&
+            !legalEntity
+
+          return (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">
+                {isLoading ? 'Carregando...' : displayName}
+              </span>
+            </div>
+          )
+        },
         meta: {
           label: 'Empresa/CNPJ',
           placeholder: 'Buscar por empresa ou CNPJ',
@@ -360,7 +624,7 @@ export function ProposalsTable({
         ),
         cell: ({ row }) => (
           <span className="font-mono text-sm">
-            {row.original.mei_empresa_id || '-'}
+            {formatCNPJ(row.original.mei_empresa_id)}
           </span>
         ),
         enableColumnFilter: false,
@@ -466,7 +730,7 @@ export function ProposalsTable({
         enableColumnFilter: true,
       },
     ],
-    []
+    [legalEntitiesCache, loadingLegalEntities]
   )
 
   const table = useReactTable({
@@ -594,7 +858,18 @@ export function ProposalsTable({
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold">
-                          {selectedProposal.companyName}
+                          {(() => {
+                            const legalEntity = selectedProposal.mei_empresa_id
+                              ? legalEntitiesCache.get(
+                                  selectedProposal.mei_empresa_id
+                                )
+                              : null
+                            return (
+                              legalEntity?.razao_social ||
+                              selectedProposal.companyName ||
+                              '-'
+                            )
+                          })()}
                         </h3>
                         <p className="text-sm text-muted-foreground">Empresa</p>
                       </div>
@@ -603,7 +878,7 @@ export function ProposalsTable({
 
                   <div className="space-y-4">
                     <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      Informações
+                      Informações da Proposta
                     </h4>
                     <div className="grid gap-4">
                       <div className="flex items-center gap-3">
@@ -613,7 +888,7 @@ export function ProposalsTable({
                             CNPJ
                           </Label>
                           <p className="font-mono text-sm">
-                            {selectedProposal.mei_empresa_id || '-'}
+                            {formatCNPJ(selectedProposal.mei_empresa_id)}
                           </p>
                         </div>
                       </div>
@@ -644,43 +919,338 @@ export function ProposalsTable({
                           </p>
                         </div>
                       </div>
+                      {selectedProposal.aceita_custos_integrais !==
+                        undefined && (
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Aceita custos integrais
+                            </Label>
+                            <p className="text-sm">
+                              {selectedProposal.aceita_custos_integrais
+                                ? 'Sim'
+                                : 'Não'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {selectedProposal.prazo_execucao && (
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Prazo de execução (dias)
+                            </Label>
+                            <p className="text-sm">
+                              {(() => {
+                                const prazo = selectedProposal.prazo_execucao
+                                  ? Number.parseInt(
+                                      selectedProposal.prazo_execucao,
+                                      10
+                                    )
+                                  : null
+                                if (prazo === null || Number.isNaN(prazo)) {
+                                  return selectedProposal.prazo_execucao
+                                }
+                                return `${prazo} dia${prazo > 1 ? 's' : ''}`
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      Contato
-                    </h4>
-                    <div className="grid gap-4">
-                      <div className="flex items-center gap-3">
-                        <Mail className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <Label className="text-xs text-muted-foreground">
-                            E-mail
-                          </Label>
-                          <p className="text-sm">{selectedProposal.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <Label className="text-xs text-muted-foreground">
-                            Telefone
-                          </Label>
-                          <p className="text-sm">{selectedProposal.phone}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <Label className="text-xs text-muted-foreground">
-                            Endereço
-                          </Label>
-                          <p className="text-sm">{selectedProposal.address}</p>
-                        </div>
+                  {(selectedProposal.email_pessoa_fisica ||
+                    selectedProposal.celular_pessoa_fisica) && (
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                        Informações de contato da pessoa física
+                      </h4>
+                      <div className="grid gap-4">
+                        {selectedProposal.email_pessoa_fisica && (
+                          <div className="flex items-center gap-3">
+                            <Mail className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                E-mail
+                              </Label>
+                              <p className="text-sm">
+                                {selectedProposal.email_pessoa_fisica}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedProposal.celular_pessoa_fisica && (
+                          <div className="flex items-center gap-3">
+                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Celular
+                              </Label>
+                              <p className="text-sm">
+                                {selectedProposal.celular_pessoa_fisica}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {(() => {
+                    const legalEntity = selectedProposal.mei_empresa_id
+                      ? legalEntitiesCache.get(selectedProposal.mei_empresa_id)
+                      : null
+
+                    if (!legalEntity) {
+                      const isLoading =
+                        selectedProposal.mei_empresa_id &&
+                        loadingLegalEntities.has(
+                          selectedProposal.mei_empresa_id
+                        )
+                      return isLoading ? (
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                            Informações da Empresa
+                          </h4>
+                          <div className="flex items-center justify-center py-4">
+                            <LoadingSpinner size="sm" />
+                            <span className="ml-2 text-sm text-muted-foreground">
+                              Carregando dados da empresa...
+                            </span>
+                          </div>
+                        </div>
+                      ) : null
+                    }
+
+                    return (
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                          Informações da Empresa
+                        </h4>
+                        <div className="grid gap-4">
+                          {legalEntity.razao_social && (
+                            <div className="flex items-center gap-3">
+                              <Building2 className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Razão Social
+                                </Label>
+                                <p className="text-sm">
+                                  {legalEntity.razao_social}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {legalEntity.nome_fantasia && (
+                            <div className="flex items-center gap-3">
+                              <Building2 className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Nome Fantasia
+                                </Label>
+                                <p className="text-sm">
+                                  {legalEntity.nome_fantasia}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {legalEntity.cnpj && (
+                            <div className="flex items-center gap-3">
+                              <Hash className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  CNPJ
+                                </Label>
+                                <p className="font-mono text-sm">
+                                  {formatCNPJ(legalEntity.cnpj)}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {legalEntity.natureza_juridica?.descricao && (
+                            <div className="flex items-center gap-3">
+                              <Hash className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Natureza Jurídica
+                                </Label>
+                                <p className="text-sm">
+                                  {legalEntity.natureza_juridica.descricao}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {legalEntity.porte?.descricao && (
+                            <div className="flex items-center gap-3">
+                              <Hash className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Porte
+                                </Label>
+                                <p className="text-sm">
+                                  {legalEntity.porte.descricao}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {legalEntity.cnae_fiscal && (
+                            <div className="flex items-center gap-3">
+                              <Hash className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  CNAE Fiscal
+                                </Label>
+                                <p className="text-sm">
+                                  {legalEntity.cnae_fiscal}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {legalEntity.capital_social !== undefined &&
+                            legalEntity.capital_social !== null && (
+                              <div className="flex items-center gap-3">
+                                <DollarSign className="w-4 h-4 text-muted-foreground" />
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">
+                                    Capital Social
+                                  </Label>
+                                  <p className="text-sm">
+                                    {legalEntity.capital_social.toLocaleString(
+                                      'pt-BR',
+                                      {
+                                        style: 'currency',
+                                        currency: 'BRL',
+                                      }
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          {legalEntity.situacao_cadastral?.descricao && (
+                            <div className="flex items-center gap-3">
+                              <Hash className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Situação Cadastral
+                                </Label>
+                                <p className="text-sm">
+                                  {legalEntity.situacao_cadastral.descricao}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {legalEntity.inicio_atividade_data && (
+                            <div className="flex items-center gap-3">
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Início de Atividade
+                                </Label>
+                                <p className="text-sm">
+                                  {new Date(
+                                    legalEntity.inicio_atividade_data
+                                  ).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {legalEntity.responsavel && (
+                            <div className="flex items-center gap-3">
+                              <Hash className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Responsável
+                                </Label>
+                                <p className="text-sm">
+                                  {legalEntity.responsavel
+                                    .qualificacao_descricao || '-'}
+                                  {legalEntity.responsavel.cpf && (
+                                    <span className="ml-2 font-mono text-xs text-muted-foreground">
+                                      (CPF: {legalEntity.responsavel.cpf})
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {(() => {
+                    const legalEntity = selectedProposal.mei_empresa_id
+                      ? legalEntitiesCache.get(selectedProposal.mei_empresa_id)
+                      : null
+
+                    const contactEmail =
+                      legalEntity?.contato?.email || selectedProposal.email
+                    const contactPhone = legalEntity?.contato?.telefone?.[0]
+                      ? `${legalEntity.contato.telefone[0].ddd || ''} ${legalEntity.contato.telefone[0].telefone || ''}`.trim()
+                      : selectedProposal.phone
+                    const address = legalEntity?.endereco
+                      ? [
+                          legalEntity.endereco.tipo_logradouro,
+                          legalEntity.endereco.logradouro,
+                          legalEntity.endereco.numero,
+                          legalEntity.endereco.complemento,
+                          legalEntity.endereco.bairro,
+                          legalEntity.endereco.municipio_nome,
+                          legalEntity.endereco.uf,
+                          legalEntity.endereco.cep,
+                        ]
+                          .filter(Boolean)
+                          .join(', ')
+                      : selectedProposal.address
+
+                    if (!contactEmail && !contactPhone && !address) return null
+
+                    return (
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                          Informações de contato da pessoa jurídica
+                        </h4>
+                        <div className="grid gap-4">
+                          {contactEmail && (
+                            <div className="flex items-center gap-3">
+                              <Mail className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  E-mail
+                                </Label>
+                                <p className="text-sm">{contactEmail}</p>
+                              </div>
+                            </div>
+                          )}
+                          {contactPhone && (
+                            <div className="flex items-center gap-3">
+                              <Phone className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Telefone
+                                </Label>
+                                <p className="text-sm">{contactPhone}</p>
+                              </div>
+                            </div>
+                          )}
+                          {address && (
+                            <div className="flex items-center gap-3">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Endereço
+                                </Label>
+                                <p className="text-sm">{address}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
               <SheetFooter className="flex-col gap-2">

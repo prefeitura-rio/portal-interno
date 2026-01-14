@@ -8,6 +8,7 @@ interface UnsavedChangesGuardProps {
   hasUnsavedChanges: boolean
   message?: string
   onConfirmNavigation?: () => void
+  allowNavigation?: boolean // Quando true, permite navegação sem mostrar o modal
 }
 
 /**
@@ -17,6 +18,7 @@ export function UnsavedChangesGuard({
   hasUnsavedChanges,
   message = 'Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas.',
   onConfirmNavigation,
+  allowNavigation = false,
 }: UnsavedChangesGuardProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -45,7 +47,7 @@ export function UnsavedChangesGuard({
 
   // Interceptar cliques em links
   useEffect(() => {
-    if (!hasUnsavedChanges || isNavigatingRef.current) return
+    if (!hasUnsavedChanges || isNavigatingRef.current || allowNavigation) return
 
     const handleLinkClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement
@@ -105,11 +107,11 @@ export function UnsavedChangesGuard({
     return () => {
       document.removeEventListener('click', handleLinkClick, true)
     }
-  }, [hasUnsavedChanges, pathname])
+  }, [hasUnsavedChanges, pathname, allowNavigation])
 
   // Interceptar navegação programática do router
   useEffect(() => {
-    if (!hasUnsavedChanges || isNavigatingRef.current) return
+    if (!hasUnsavedChanges || isNavigatingRef.current || allowNavigation) return
 
     const originalPush = router.push
     const originalReplace = router.replace
@@ -201,7 +203,7 @@ export function UnsavedChangesGuard({
       router.back = originalBack
       router.forward = originalForward
     }
-  }, [hasUnsavedChanges, router, pathname])
+  }, [hasUnsavedChanges, router, pathname, allowNavigation])
 
   const handleConfirm = useCallback(() => {
     isNavigatingRef.current = true

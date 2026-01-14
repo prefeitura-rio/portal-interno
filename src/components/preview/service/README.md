@@ -13,7 +13,7 @@ Permite que gestores visualizem como o serviço aparecerá para os cidadãos ant
 ### Componentes principais:
 
 - **`copyable-item.tsx`**: Item visual com ícone de copiar (sem funcionalidade)
-- **`digital-channels.tsx`**: Lista de canais digitais
+- **`digital-channels.tsx`**: Lista de canais de atendimento
 - **`legislation-item.tsx`**: Item de legislação
 - **`main-information.tsx`**: Seção de informações principais do serviço
 - **`markdown-renderer.tsx`**: Wrapper do MarkdownViewer existente

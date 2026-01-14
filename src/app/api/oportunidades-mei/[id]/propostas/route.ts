@@ -117,7 +117,8 @@ export async function GET(
       pageSize: 1000, // Get all proposals to calculate accurate summary
     })
 
-    const summaryData = summaryResponse.data as GetApiV1OportunidadesMeiIdPropostas200
+    const summaryData =
+      summaryResponse.data as GetApiV1OportunidadesMeiIdPropostas200
     const allProposals = ((summaryData as any).data || [])
       .map((proposta: ModelsPropostaMEI) => {
         if (!proposta || !proposta.id) return null
@@ -171,6 +172,10 @@ export async function GET(
           phone: meiEmpresa.whatsapp || undefined,
           address,
           status: frontendStatus,
+          aceita_custos_integrais: proposta.aceita_custos_integrais,
+          prazo_execucao: proposta.prazo_execucao,
+          celular_pessoa_fisica: proposta.celular_pessoa_fisica,
+          email_pessoa_fisica: proposta.email_pessoa_fisica,
         }
       })
       .filter((p: any) => p !== null)

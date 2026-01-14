@@ -23,6 +23,8 @@ interface MarkdownEditorProps {
   className?: string
   maxLength?: number
   showCharCount?: boolean
+  simpleMode?: boolean // Only bold, italic, strikethrough, and link
+  minHeight?: string // Custom min height (default: 120px for normal, 40px for simple)
 }
 
 export function MarkdownEditor({
@@ -33,54 +35,80 @@ export function MarkdownEditor({
   className,
   maxLength,
   showCharCount = false,
+  simpleMode = false,
+  minHeight,
 }: MarkdownEditorProps) {
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3, 4, 5, 6],
-          HTMLAttributes: {
-            class: 'heading-node',
-          },
-        },
-        bulletList: {
-          keepMarks: true,
-          keepAttributes: false,
-        },
-        orderedList: {
-          keepMarks: true,
-          keepAttributes: false,
-        },
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-blue-600 underline hover:text-blue-800',
-        },
-      }),
-      TaskList.configure({
-        HTMLAttributes: {
-          class: 'task-list',
-        },
-      }),
-      TaskItem.configure({
-        HTMLAttributes: {
-          class: 'task-item',
-        },
-        nested: true,
-      }),
-      Typography,
-      CharacterCount.configure({
-        limit: maxLength,
-      }),
-    ],
+    extensions: simpleMode
+      ? [
+          // Simple mode: only paragraph, text, bold, italic, strike, and link
+          StarterKit.configure({
+            heading: false,
+            blockquote: false,
+            codeBlock: false,
+            horizontalRule: false,
+            bulletList: false,
+            orderedList: false,
+          }),
+          Link.configure({
+            openOnClick: false,
+            HTMLAttributes: {
+              class: 'text-blue-600 underline hover:text-blue-800',
+            },
+          }),
+          CharacterCount.configure({
+            limit: maxLength,
+          }),
+        ]
+      : [
+          StarterKit.configure({
+            heading: {
+              levels: [1, 2, 3, 4, 5, 6],
+              HTMLAttributes: {
+                class: 'heading-node',
+              },
+            },
+            bulletList: {
+              keepMarks: true,
+              keepAttributes: false,
+            },
+            orderedList: {
+              keepMarks: true,
+              keepAttributes: false,
+            },
+          }),
+          Link.configure({
+            openOnClick: false,
+            HTMLAttributes: {
+              class: 'text-blue-600 underline hover:text-blue-800',
+            },
+          }),
+          TaskList.configure({
+            HTMLAttributes: {
+              class: 'task-list',
+            },
+          }),
+          TaskItem.configure({
+            HTMLAttributes: {
+              class: 'task-item',
+            },
+            nested: true,
+          }),
+          Typography,
+          CharacterCount.configure({
+            limit: maxLength,
+          }),
+        ],
     content: parseMarkdownToHtml(value || ''),
     editable: !disabled,
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-sm max-w-none focus:outline-none min-h-[120px] p-3 bg-transparent',
+          'prose prose-sm max-w-none focus:outline-none p-3 bg-transparent',
+          simpleMode
+            ? minHeight || 'min-h-[40px]'
+            : minHeight || 'min-h-[120px]',
           'markdown-editor-content',
           disabled && 'cursor-not-allowed opacity-50',
           className
@@ -146,7 +174,7 @@ export function MarkdownEditor({
 
   return (
     <div className="w-full">
-      {!disabled && <MarkdownToolbar editor={editor} />}
+      {!disabled && <MarkdownToolbar editor={editor} simpleMode={simpleMode} />}
 
       <div
         className={cn(

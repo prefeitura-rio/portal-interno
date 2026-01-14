@@ -26,6 +26,11 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:admin',
   ],
 
+  // GO Rio - Empregabilidade (only admin, superadmin, and go:admin)
+  '/gorio/empregabilidade': ['admin', 'superadmin', 'go:admin'],
+  '/gorio/empregabilidade/new': ['admin', 'superadmin', 'go:admin'],
+  '/gorio/empregabilidade/*': ['admin', 'superadmin', 'go:admin'],
+
   // Serviços Municipais (admin, superadmin, busca:services roles)
   '/servicos-municipais/servicos': [
     'admin',

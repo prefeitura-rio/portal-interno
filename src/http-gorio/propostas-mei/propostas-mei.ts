@@ -9,8 +9,8 @@ import type {
   DeleteApiV1OportunidadesMeiIdPropostasPropostaId200,
   GetApiV1OportunidadesMeiIdPropostas200,
   GetApiV1OportunidadesMeiIdPropostasParams,
-  GetPropostasMeiPorEmpresa200,
-  GetPropostasMeiPorEmpresaParams,
+  GetApiV1PropostasMeiPorEmpresa200,
+  GetApiV1PropostasMeiPorEmpresaParams,
   ModelsErrorResponse,
   ModelsPropostaMEI,
   ModelsPropostaStatusUpdateRequest,
@@ -194,7 +194,7 @@ export const putApiV1OportunidadesMeiIdPropostasStatus = async (
 }
 
 /**
- * Retorna uma proposta MEI pelo seu ID
+ * Retorna uma proposta MEI pelo seu ID. Requer que o usuário seja dono do CNPJ ou tenha permissões de leitura.
  * @summary Obter proposta MEI por ID
  */
 export type getApiV1OportunidadesMeiIdPropostasPropostaIdResponse200 = {
@@ -205,6 +205,11 @@ export type getApiV1OportunidadesMeiIdPropostasPropostaIdResponse200 = {
 export type getApiV1OportunidadesMeiIdPropostasPropostaIdResponse400 = {
   data: ModelsErrorResponse
   status: 400
+}
+
+export type getApiV1OportunidadesMeiIdPropostasPropostaIdResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
 }
 
 export type getApiV1OportunidadesMeiIdPropostasPropostaIdResponse404 = {
@@ -220,6 +225,7 @@ export type getApiV1OportunidadesMeiIdPropostasPropostaIdResponse500 = {
 export type getApiV1OportunidadesMeiIdPropostasPropostaIdResponseComposite =
   | getApiV1OportunidadesMeiIdPropostasPropostaIdResponse200
   | getApiV1OportunidadesMeiIdPropostasPropostaIdResponse400
+  | getApiV1OportunidadesMeiIdPropostasPropostaIdResponse403
   | getApiV1OportunidadesMeiIdPropostasPropostaIdResponse404
   | getApiV1OportunidadesMeiIdPropostasPropostaIdResponse500
 
@@ -250,7 +256,7 @@ export const getApiV1OportunidadesMeiIdPropostasPropostaId = async (
 }
 
 /**
- * Atualiza os dados de uma proposta MEI existente
+ * Atualiza os dados de uma proposta MEI existente. Requer que o usuário seja o dono da proposta ou tenha uma das permissões configuradas.
  * @summary Atualizar proposta MEI
  */
 export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse200 = {
@@ -261,6 +267,11 @@ export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse200 = {
 export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse400 = {
   data: ModelsErrorResponse
   status: 400
+}
+
+export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
 }
 
 export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse404 = {
@@ -276,6 +287,7 @@ export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponse500 = {
 export type putApiV1OportunidadesMeiIdPropostasPropostaIdResponseComposite =
   | putApiV1OportunidadesMeiIdPropostasPropostaIdResponse200
   | putApiV1OportunidadesMeiIdPropostasPropostaIdResponse400
+  | putApiV1OportunidadesMeiIdPropostasPropostaIdResponse403
   | putApiV1OportunidadesMeiIdPropostasPropostaIdResponse404
   | putApiV1OportunidadesMeiIdPropostasPropostaIdResponse500
 
@@ -309,7 +321,7 @@ export const putApiV1OportunidadesMeiIdPropostasPropostaId = async (
 }
 
 /**
- * Remove uma proposta MEI pelo ID (soft delete)
+ * Remove uma proposta MEI pelo ID (soft delete). Requer que o usuário seja o dono da proposta ou tenha uma das permissões configuradas.
  * @summary Excluir proposta MEI
  */
 export type deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse200 = {
@@ -322,6 +334,16 @@ export type deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse400 = {
   status: 400
 }
 
+export type deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
+export type deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse404 = {
+  data: ModelsErrorResponse
+  status: 404
+}
+
 export type deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -330,6 +352,8 @@ export type deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse500 = {
 export type deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponseComposite =
   | deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse200
   | deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse400
+  | deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse403
+  | deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse404
   | deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse500
 
 export type deleteApiV1OportunidadesMeiIdPropostasPropostaIdResponse =
@@ -417,33 +441,33 @@ export const putApiV1OportunidadesMeiIdPropostasPropostaIdStatus = async (
  * Retorna uma lista paginada de propostas MEI de uma empresa
  * @summary Listar propostas MEI por MEI empresa
  */
-export type getPropostasMeiPorEmpresaResponse200 = {
-  data: GetPropostasMeiPorEmpresa200
+export type getApiV1PropostasMeiPorEmpresaResponse200 = {
+  data: GetApiV1PropostasMeiPorEmpresa200
   status: 200
 }
 
-export type getPropostasMeiPorEmpresaResponse400 = {
+export type getApiV1PropostasMeiPorEmpresaResponse400 = {
   data: ModelsErrorResponse
   status: 400
 }
 
-export type getPropostasMeiPorEmpresaResponse500 = {
+export type getApiV1PropostasMeiPorEmpresaResponse500 = {
   data: ModelsErrorResponse
   status: 500
 }
 
-export type getPropostasMeiPorEmpresaResponseComposite =
-  | getPropostasMeiPorEmpresaResponse200
-  | getPropostasMeiPorEmpresaResponse400
-  | getPropostasMeiPorEmpresaResponse500
+export type getApiV1PropostasMeiPorEmpresaResponseComposite =
+  | getApiV1PropostasMeiPorEmpresaResponse200
+  | getApiV1PropostasMeiPorEmpresaResponse400
+  | getApiV1PropostasMeiPorEmpresaResponse500
 
-export type getPropostasMeiPorEmpresaResponse =
-  getPropostasMeiPorEmpresaResponseComposite & {
+export type getApiV1PropostasMeiPorEmpresaResponse =
+  getApiV1PropostasMeiPorEmpresaResponseComposite & {
     headers: Headers
   }
 
-export const getGetPropostasMeiPorEmpresaUrl = (
-  params: GetPropostasMeiPorEmpresaParams
+export const getGetApiV1PropostasMeiPorEmpresaUrl = (
+  params: GetApiV1PropostasMeiPorEmpresaParams
 ) => {
   const normalizedParams = new URLSearchParams()
 
@@ -456,16 +480,16 @@ export const getGetPropostasMeiPorEmpresaUrl = (
   const stringifiedParams = normalizedParams.toString()
 
   return stringifiedParams.length > 0
-    ? `/propostas-mei/por-empresa?${stringifiedParams}`
-    : `/propostas-mei/por-empresa`
+    ? `/api/v1/propostas-mei/por-empresa?${stringifiedParams}`
+    : `/api/v1/propostas-mei/por-empresa`
 }
 
-export const getPropostasMeiPorEmpresa = async (
-  params: GetPropostasMeiPorEmpresaParams,
+export const getApiV1PropostasMeiPorEmpresa = async (
+  params: GetApiV1PropostasMeiPorEmpresaParams,
   options?: RequestInit
-): Promise<getPropostasMeiPorEmpresaResponse> => {
-  return customFetchGoRio<getPropostasMeiPorEmpresaResponse>(
-    getGetPropostasMeiPorEmpresaUrl(params),
+): Promise<getApiV1PropostasMeiPorEmpresaResponse> => {
+  return customFetchGoRio<getApiV1PropostasMeiPorEmpresaResponse>(
+    getGetApiV1PropostasMeiPorEmpresaUrl(params),
     {
       ...options,
       method: 'GET',

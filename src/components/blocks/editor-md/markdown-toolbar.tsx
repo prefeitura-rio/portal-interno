@@ -18,9 +18,13 @@ import { LinkDialog } from './link-dialog'
 
 interface MarkdownToolbarProps {
   editor: Editor
+  simpleMode?: boolean // Only show bold, italic, strikethrough, and link
 }
 
-export function MarkdownToolbar({ editor }: MarkdownToolbarProps) {
+export function MarkdownToolbar({
+  editor,
+  simpleMode = false,
+}: MarkdownToolbarProps) {
   const [showLinkDialog, setShowLinkDialog] = useState(false)
   const [currentUrl, setCurrentUrl] = useState('')
 
@@ -49,7 +53,7 @@ export function MarkdownToolbar({ editor }: MarkdownToolbarProps) {
     [editor]
   )
 
-  const toolbarButtons = [
+  const simpleToolbarButtons = [
     {
       icon: Bold,
       label: 'Negrito (Ctrl+B)',
@@ -68,6 +72,16 @@ export function MarkdownToolbar({ editor }: MarkdownToolbarProps) {
       action: () => editor.chain().focus().toggleStrike().run(),
       isActive: editor.isActive('strike'),
     },
+    {
+      icon: LinkIcon,
+      label: 'Link',
+      action: openLinkDialog,
+      isActive: editor.isActive('link'),
+    },
+  ]
+
+  const fullToolbarButtons = [
+    ...simpleToolbarButtons,
     {
       icon: Heading2,
       label: 'Título (##)',
@@ -98,13 +112,9 @@ export function MarkdownToolbar({ editor }: MarkdownToolbarProps) {
       action: () => editor.chain().focus().toggleTaskList().run(),
       isActive: editor.isActive('taskList'),
     },
-    {
-      icon: LinkIcon,
-      label: 'Link',
-      action: openLinkDialog,
-      isActive: editor.isActive('link'),
-    },
   ]
+
+  const toolbarButtons = simpleMode ? simpleToolbarButtons : fullToolbarButtons
 
   return (
     <>

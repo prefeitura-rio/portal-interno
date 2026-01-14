@@ -2,13 +2,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
+  type FormEvent,
   forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
   useState,
-  type FormEvent,
 } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -47,12 +47,12 @@ import {
 } from '@/components/ui/accordion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   DateTimePicker,
   formatDateTimeToUTC,
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
@@ -257,7 +257,10 @@ const fullFormSchema = z
         }),
       external_partner_contact: z.string().optional(),
 
-      accessibility: z.enum(['ACESSIVEL', 'EXCLUSIVO']).optional(),
+      accessibility: z
+        .union([z.enum(['ACESSIVEL', 'EXCLUSIVO']), z.literal(''), z.null()])
+        .optional()
+        .transform(val => (val === '' || val === null ? undefined : val)),
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
       expected_results: z.string().optional(),
@@ -375,7 +378,10 @@ const fullFormSchema = z
         }),
       external_partner_contact: z.string().optional(),
 
-      accessibility: z.enum(['ACESSIVEL', 'EXCLUSIVO']).optional(),
+      accessibility: z
+        .union([z.enum(['ACESSIVEL', 'EXCLUSIVO']), z.literal(''), z.null()])
+        .optional()
+        .transform(val => (val === '' || val === null ? undefined : val)),
       facilitator: z.string().optional(),
       objectives: z.string().optional(),
       expected_results: z.string().optional(),
@@ -1018,7 +1024,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           external_partner_url: data.external_partner_url || '',
           external_partner_logo_url: data.external_partner_logo_url || '',
           external_partner_contact: data.external_partner_contact || '',
-          accessibility: data.accessibility || undefined,
+          accessibility:
+            data.accessibility === '' ||
+            data.accessibility === null ||
+            data.accessibility === undefined
+              ? null
+              : data.accessibility,
           facilitator: data.facilitator || '',
           objectives: data.objectives || '',
           expected_results: data.expected_results || '',
@@ -1070,6 +1081,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               zona,
               schedules: [
                 {
+                  id:
+                    (location as any).schedule_id ||
+                    '00000000-0000-0000-0000-000000000000',
                   vacancies: location.vacancies || 1,
                   classStartDate: location.classStartDate || new Date(),
                   classEndDate: location.classEndDate || new Date(),
@@ -1171,6 +1185,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
       defaultValues: prepareDefaultValues(initialData),
       mode: 'onChange', // Enable real-time validation
+      shouldUnregister: false, // Keep field values even when undefined
     })
 
     const modalidade = form.watch('modalidade')
@@ -1296,6 +1311,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         ? Array.isArray(data.remote_class)
           ? {
               schedules: data.remote_class.map(schedule => ({
+                id:
+                  (schedule as any).id ||
+                  '00000000-0000-0000-0000-000000000000',
                 vacancies: schedule.vacancies,
                 class_start_date: schedule.classStartDate
                   ? formatDateTimeToUTC(schedule.classStartDate)
@@ -1311,6 +1329,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               // Legacy single object format - wrap in schedules array
               schedules: [
                 {
+                  id:
+                    (data.remote_class as any).id ||
+                    '00000000-0000-0000-0000-000000000000',
                   vacancies: (data.remote_class as any).vacancies,
                   class_start_date: (data.remote_class as any).classStartDate
                     ? formatDateTimeToUTC(
@@ -3195,26 +3216,35 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Acessibilidade</FormLabel>
-                                <Select
-                                  onValueChange={value =>
-                                    field.onChange(value as Accessibility)
-                                  }
-                                  value={field.value || undefined}
-                                  disabled={isReadOnly}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Selecione a acessibilidade" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {ACCESSIBILITY_OPTIONS.map(opt => (
-                                      <SelectItem key={opt} value={opt}>
-                                        {accessibilityLabel[opt]}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <FormControl>
+                                  <Combobox
+                                    key={`accessibility-${field.value ?? 'empty'}`}
+                                    options={ACCESSIBILITY_OPTIONS.map(opt => ({
+                                      value: opt,
+                                      label: accessibilityLabel[opt],
+                                    }))}
+                                    value={
+                                      field.value === undefined ||
+                                      field.value === null ||
+                                      field.value === ''
+                                        ? undefined
+                                        : (field.value as string)
+                                    }
+                                    onValueChange={value => {
+                                      // Convert empty string to null (not undefined) to prevent react-hook-form from restoring defaultValue
+                                      const newValue =
+                                        value === '' || value === null
+                                          ? null
+                                          : (value as Accessibility)
+                                      // Use field.onChange directly - this is the recommended way for controlled components
+                                      field.onChange(newValue)
+                                    }}
+                                    placeholder="Selecione a acessibilidade"
+                                    searchPlaceholder="Buscar acessibilidade..."
+                                    emptyMessage="Nenhuma opção encontrada."
+                                    disabled={isReadOnly}
+                                  />
+                                </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -3457,6 +3487,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       <FieldsCreator
                         fields={field.value || []}
                         onFieldsChange={field.onChange}
+                        disabled={isReadOnly}
                       />
                     </FormControl>
                     <FormMessage />

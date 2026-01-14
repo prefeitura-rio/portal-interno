@@ -3,7 +3,7 @@ import { defineConfig } from 'orval'
 export default defineConfig({
   api: {
     input:
-      'https://raw.githubusercontent.com/prefeitura-rio/app-go-api/refs/heads/staging/docs/swagger.json',
+      'https://raw.githubusercontent.com/prefeitura-rio/app-go-api/refs/heads/staging/docs/openapi-v3.json',
     output: {
       target: './src/http-gorio/api.ts',
       schemas: './src/http-gorio/models',

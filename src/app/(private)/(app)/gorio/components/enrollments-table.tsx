@@ -223,7 +223,10 @@ export function EnrollmentsTable({
       !course?.remote_class?.class_end_date
 
     // Para cursos online sem datas, considera como "finalizado" para permitir ações
-    const isCourseFinished = isCourseFinishedByDate || isCourseFinishedByStatus || isOnlineCourseWithoutDates
+    const isCourseFinished =
+      isCourseFinishedByDate ||
+      isCourseFinishedByStatus ||
+      isOnlineCourseWithoutDates
     const hasCertificate = course?.has_certificate || false
 
     return {
@@ -234,7 +237,13 @@ export function EnrollmentsTable({
       hasCertificate,
       isOnlineCourseWithoutDates,
     }
-  }, [getCourseEndDate, course?.status, course?.has_certificate, course?.modalidade, course?.remote_class])
+  }, [
+    getCourseEndDate,
+    course?.status,
+    course?.has_certificate,
+    course?.modalidade,
+    course?.remote_class,
+  ])
 
   const {
     courseEndDate,
@@ -813,12 +822,13 @@ export function EnrollmentsTable({
       return
     }
 
-    // Get all unique custom field titles
+    // Get all unique custom field titles, excluding cidade and estado (they will be in fixed columns)
     const allCustomFieldTitles = Array.from(
       new Set(
         enrollmentsToExport
           .flatMap(enrollment => enrollment.customFields || [])
           .map(field => field.title)
+          .filter(title => title !== 'Cidade' && title !== 'Estado')
       )
     )
 
@@ -833,6 +843,8 @@ export function EnrollmentsTable({
       'Status',
       'Endereço',
       'Bairro',
+      'Cidade',
+      'Estado',
       'Código da Turma',
       'Turma',
       'Dias da Semana',
@@ -912,10 +924,14 @@ export function EnrollmentsTable({
               class_days: enrolledSchedule.class_days || '',
               class_time: enrolledSchedule.class_time || '',
               class_start_date: enrolledSchedule.class_start_date
-                ? new Date(enrolledSchedule.class_start_date).toLocaleDateString('pt-BR')
+                ? new Date(
+                    enrolledSchedule.class_start_date
+                  ).toLocaleDateString('pt-BR')
                 : '',
               class_end_date: enrolledSchedule.class_end_date
-                ? new Date(enrolledSchedule.class_end_date).toLocaleDateString('pt-BR')
+                ? new Date(enrolledSchedule.class_end_date).toLocaleDateString(
+                    'pt-BR'
+                  )
                 : '',
               vacancies: enrolledSchedule.vacancies?.toString() || '',
             }
@@ -926,12 +942,16 @@ export function EnrollmentsTable({
             // Try to find schedule in presencial locations first
             let scheduleFound = false
             for (const location of course.locations || []) {
-              const schedule = location.schedules?.find(s => s.id === enrollment.schedule_id)
+              const schedule = location.schedules?.find(
+                s => s.id === enrollment.schedule_id
+              )
               if (schedule) {
                 scheduleDetails.class_days = schedule.classDays || ''
                 scheduleDetails.class_time = schedule.classTime || ''
                 scheduleDetails.class_start_date = schedule.classStartDate
-                  ? new Date(schedule.classStartDate).toLocaleDateString('pt-BR')
+                  ? new Date(schedule.classStartDate).toLocaleDateString(
+                      'pt-BR'
+                    )
                   : ''
                 scheduleDetails.class_end_date = schedule.classEndDate
                   ? new Date(schedule.classEndDate).toLocaleDateString('pt-BR')
@@ -950,37 +970,70 @@ export function EnrollmentsTable({
               if (remoteSchedule) {
                 scheduleDetails.class_days = remoteSchedule.class_days || ''
                 scheduleDetails.class_time = remoteSchedule.class_time || ''
-                scheduleDetails.class_start_date = remoteSchedule.class_start_date
-                  ? new Date(remoteSchedule.class_start_date).toLocaleDateString('pt-BR')
-                  : ''
+                scheduleDetails.class_start_date =
+                  remoteSchedule.class_start_date
+                    ? new Date(
+                        remoteSchedule.class_start_date
+                      ).toLocaleDateString('pt-BR')
+                    : ''
                 scheduleDetails.class_end_date = remoteSchedule.class_end_date
-                  ? new Date(remoteSchedule.class_end_date).toLocaleDateString('pt-BR')
+                  ? new Date(remoteSchedule.class_end_date).toLocaleDateString(
+                      'pt-BR'
+                    )
                   : ''
-                scheduleDetails.vacancies = remoteSchedule.vacancies?.toString() || ''
+                scheduleDetails.vacancies =
+                  remoteSchedule.vacancies?.toString() || ''
               }
             }
           }
         }
       }
 
+      // Extract cidade and estado from customFields
+      const customFieldsObj = enrollment.customFields as any
+      let cidadeValue = ''
+      let estadoValue = ''
+
+      if (customFieldsObj) {
+        if (Array.isArray(customFieldsObj)) {
+          const cidadeField = customFieldsObj.find(
+            (f: any) => f.id === 'cidade' || f.title === 'Cidade'
+          )
+          const estadoField = customFieldsObj.find(
+            (f: any) => f.id === 'estado' || f.title === 'Estado'
+          )
+          cidadeValue = cidadeField?.value || ''
+          estadoValue = estadoField?.value || ''
+        } else if (typeof customFieldsObj === 'object') {
+          const cidadeField = customFieldsObj.cidade
+          const estadoField = customFieldsObj.estado
+          cidadeValue = cidadeField?.value || ''
+          estadoValue = estadoField?.value || ''
+        }
+      }
+
       // Create row object with headers as keys
       const row: Record<string, string | number> = {
-        'Nome': enrollment.candidateName || '',
-        'CPF': enrollment.cpf || '', // XLSX handles text format automatically
+        Nome: enrollment.candidateName || '',
+        CPF: enrollment.cpf || '', // XLSX handles text format automatically
         'E-mail': enrollment.email || '',
-        'Telefone': enrollment.phone || '',
+        Telefone: enrollment.phone || '',
         'Id do curso': enrollment.courseId || '',
-        'Data de Inscrição': new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR'),
-        'Status': enrollment.status || '',
-        'Endereço': enrollment.address || enrolledUnit?.address || '',
-        'Bairro': enrollment.neighborhood || enrolledUnit?.neighborhood || '',
+        'Data de Inscrição': new Date(
+          enrollment.enrollmentDate
+        ).toLocaleDateString('pt-BR'),
+        Status: enrollment.status || '',
+        Endereço: enrollment.address || enrolledUnit?.address || '',
+        Bairro: enrollment.neighborhood || enrolledUnit?.neighborhood || '',
+        Cidade: cidadeValue,
+        Estado: estadoValue,
         'Código da Turma': scheduleDetails.id,
-        'Turma': turmaLabel,
+        Turma: turmaLabel,
         'Dias da Semana': scheduleDetails.class_days,
-        'Horário': scheduleDetails.class_time,
+        Horário: scheduleDetails.class_time,
         'Data de Início': scheduleDetails.class_start_date,
         'Data de Término': scheduleDetails.class_end_date,
-        'Vagas': scheduleDetails.vacancies,
+        Vagas: scheduleDetails.vacancies,
       }
 
       // Add custom fields to row
@@ -1322,15 +1375,21 @@ export function EnrollmentsTable({
                       </div>
                       {(() => {
                         // Buscar idade nos customFields (pode vir como objeto ou array)
-                        const customFieldsObj = selectedEnrollment.customFields as any
+                        const customFieldsObj =
+                          selectedEnrollment.customFields as any
                         let idadeField = null
-                        
+
                         if (Array.isArray(customFieldsObj)) {
-                          idadeField = customFieldsObj.find((f: any) => f.id === 'idade')
-                        } else if (customFieldsObj && typeof customFieldsObj === 'object') {
+                          idadeField = customFieldsObj.find(
+                            (f: any) => f.id === 'idade'
+                          )
+                        } else if (
+                          customFieldsObj &&
+                          typeof customFieldsObj === 'object'
+                        ) {
                           idadeField = customFieldsObj.idade
                         }
-                        
+
                         return idadeField?.value ? (
                           <div className="flex items-center gap-3">
                             <Hash className="w-4 h-4 text-muted-foreground" />
@@ -1361,7 +1420,8 @@ export function EnrollmentsTable({
                           <p className="text-sm">{selectedEnrollment.phone}</p>
                         </div>
                       </div>
-                      {(selectedEnrollment.address || selectedEnrollment.neighborhood) && (
+                      {(selectedEnrollment.address ||
+                        selectedEnrollment.neighborhood) && (
                         <>
                           {selectedEnrollment.address && (
                             <div className="flex items-center gap-3">
@@ -1370,7 +1430,9 @@ export function EnrollmentsTable({
                                 <Label className="text-xs text-muted-foreground">
                                   Endereço
                                 </Label>
-                                <p className="text-sm">{selectedEnrollment.address}</p>
+                                <p className="text-sm">
+                                  {selectedEnrollment.address}
+                                </p>
                               </div>
                             </div>
                           )}
@@ -1381,7 +1443,9 @@ export function EnrollmentsTable({
                                 <Label className="text-xs text-muted-foreground">
                                   Bairro
                                 </Label>
-                                <p className="text-sm">{selectedEnrollment.neighborhood}</p>
+                                <p className="text-sm">
+                                  {selectedEnrollment.neighborhood}
+                                </p>
                               </div>
                             </div>
                           )}
@@ -1421,23 +1485,27 @@ export function EnrollmentsTable({
                         </div>
                       </div>
                       {/* Schedule/Class Information */}
-                      {selectedEnrollment.schedule_id && course && (() => {
-                        const scheduleOptions = getScheduleOptions(course)
-                        const selectedSchedule = scheduleOptions.find(
-                          opt => opt.id === selectedEnrollment.schedule_id
-                        )
-                        return selectedSchedule ? (
-                          <div className="flex items-start gap-3">
-                            <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                            <div>
-                              <Label className="text-xs text-muted-foreground">
-                                Turma/Horário
-                              </Label>
-                              <p className="text-sm">{selectedSchedule.label}</p>
+                      {selectedEnrollment.schedule_id &&
+                        course &&
+                        (() => {
+                          const scheduleOptions = getScheduleOptions(course)
+                          const selectedSchedule = scheduleOptions.find(
+                            opt => opt.id === selectedEnrollment.schedule_id
+                          )
+                          return selectedSchedule ? (
+                            <div className="flex items-start gap-3">
+                              <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Turma/Horário
+                                </Label>
+                                <p className="text-sm">
+                                  {selectedSchedule.label}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        ) : null
-                      })()}
+                          ) : null
+                        })()}
                       <div className="flex items-center gap-3">
                         <div>
                           <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
@@ -1495,44 +1563,54 @@ export function EnrollmentsTable({
                       )} */}
                       {(() => {
                         // Helper para converter customFields de objeto para array
-                        const customFieldsObj = selectedEnrollment.customFields as any
+                        const customFieldsObj =
+                          selectedEnrollment.customFields as any
                         let allFields: any[] = []
-                        
+
                         if (Array.isArray(customFieldsObj)) {
                           allFields = customFieldsObj
-                        } else if (customFieldsObj && typeof customFieldsObj === 'object') {
+                        } else if (
+                          customFieldsObj &&
+                          typeof customFieldsObj === 'object'
+                        ) {
                           allFields = Object.values(customFieldsObj)
                         }
-                        
+
                         // IDs dos campos socioeconômicos e campos que devem ser excluídos de Informações Complementares
                         const socioeconomicFieldIds = [
                           'endereco',
                           'bairro',
+                          'cidade',
+                          'estado',
                           'pessoa_com_deficiencia',
                           'raca',
                           'genero',
                           'renda_familiar',
                           'escolaridade',
                         ]
-                        
+
                         // Campos que devem ser excluídos de Informações Complementares (inclui idade que já aparece no topo)
                         const excludedFromComplementary = [
                           ...socioeconomicFieldIds,
                           'idade',
                         ]
-                        
+
                         // Separar campos socioeconômicos dos demais
-                        const socioeconomicFields = allFields.filter((field: any) =>
-                          socioeconomicFieldIds.includes(field.id)
+                        const socioeconomicFields = allFields.filter(
+                          (field: any) =>
+                            socioeconomicFieldIds.includes(field.id)
                         )
                         const otherFields = allFields.filter(
-                          (field: any) => !excludedFromComplementary.includes(field.id)
+                          (field: any) =>
+                            !excludedFromComplementary.includes(field.id)
                         )
-                        
+
                         // Ordem específica para os campos socioeconômicos
                         const socioeconomicOrder = [
                           'endereco',
                           'bairro',
+                          'cidade',
+                          'estado',
                           'pessoa_com_deficiencia',
                           'raca',
                           'genero',
@@ -1540,9 +1618,11 @@ export function EnrollmentsTable({
                           'escolaridade',
                         ]
                         const orderedSocioeconomicFields = socioeconomicOrder
-                          .map(id => socioeconomicFields.find((f: any) => f.id === id))
+                          .map(id =>
+                            socioeconomicFields.find((f: any) => f.id === id)
+                          )
                           .filter(Boolean)
-                        
+
                         return (
                           <>
                             {/* Informações Socioeconômicas */}
@@ -1552,32 +1632,41 @@ export function EnrollmentsTable({
                                   Informações Socioeconômicas
                                 </h4>
                                 <div className="space-y-3">
-                                  {orderedSocioeconomicFields.map((field: any) => (
-                                    <div
-                                      key={field.id}
-                                      className="flex items-start gap-3"
-                                    >
-                                      <div className="flex-1">
-                                        <Label className="text-sm text-muted-foreground">
-                                          {field.title}
-                                          {field.required && (
-                                            <span className="text-red-500">*</span>
-                                          )}
-                                        </Label>
-                                        <div className="text-sm mt-1">
-                                          <span className="font-medium">
-                                            {field.value && field.value.trim() !== ''
-                                              ? field.value
-                                              : <span className="text-muted-foreground italic">(sem valor)</span>}
-                                          </span>
+                                  {orderedSocioeconomicFields.map(
+                                    (field: any) => (
+                                      <div
+                                        key={field.id}
+                                        className="flex items-start gap-3"
+                                      >
+                                        <div className="flex-1">
+                                          <Label className="text-sm text-muted-foreground">
+                                            {field.title}
+                                            {field.required && (
+                                              <span className="text-red-500">
+                                                *
+                                              </span>
+                                            )}
+                                          </Label>
+                                          <div className="text-sm mt-1">
+                                            <span className="font-medium">
+                                              {field.value &&
+                                              field.value.trim() !== '' ? (
+                                                field.value
+                                              ) : (
+                                                <span className="text-muted-foreground italic">
+                                                  (sem valor)
+                                                </span>
+                                              )}
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    )
+                                  )}
                                 </div>
                               </div>
                             )}
-                            
+
                             {/* Informações Complementares */}
                             {otherFields.length > 0 && (
                               <div className="space-y-3">
@@ -1589,84 +1678,100 @@ export function EnrollmentsTable({
                                     key={field.id}
                                     className="flex items-start gap-3"
                                   >
-                                <div className="flex-1">
-                                  <Label className="text-sm text-muted-foreground">
-                                    {field.title}
-                                    {field.required && (
-                                      <span className="text-red-500">*</span>
-                                    )}
-                                  </Label>
-                                  <div className="text-sm mt-1">
-                                    {(() => {
-                                      // Handle different field types
-                                      switch (field.field_type) {
-                                        case 'radio':
-                                        case 'select': {
-                                          // For single selection, find the option that matches the value
-                                          const selectedOption =
-                                            field.options?.find(
-                                              (option: any) =>
-                                                option.id === field.value
-                                            )
-                                          return (
-                                            <span className="font-medium">
-                                              {selectedOption?.value ||
-                                                field.value}
-                                            </span>
-                                          )
-                                        }
-
-                                        case 'multiselect': {
-                                          // For multiple selection, the value might be a comma-separated list of option IDs
-                                          const selectedOptionIds =
-                                            field.value
-                                              ?.split(',')
-                                              .filter(Boolean) || []
-                                          const selectedOptions =
-                                            field.options?.filter((option: any) =>
-                                              selectedOptionIds.includes(
-                                                option.id
+                                    <div className="flex-1">
+                                      <Label className="text-sm text-muted-foreground">
+                                        {field.title}
+                                        {field.required && (
+                                          <span className="text-red-500">
+                                            *
+                                          </span>
+                                        )}
+                                      </Label>
+                                      <div className="text-sm mt-1">
+                                        {(() => {
+                                          // Handle different field types
+                                          switch (field.field_type) {
+                                            case 'radio':
+                                            case 'select': {
+                                              // For single selection, find the option that matches the value
+                                              const selectedOption =
+                                                field.options?.find(
+                                                  (option: any) =>
+                                                    option.id === field.value
+                                                )
+                                              return (
+                                                <span className="font-medium">
+                                                  {selectedOption?.value ||
+                                                    field.value}
+                                                </span>
                                               )
-                                            ) || []
-                                          
-                                          // If we have matching options, display them
-                                          if (selectedOptions.length > 0) {
-                                            return (
-                                              <div className="space-y-1">
-                                                {selectedOptions.map((option: any) => (
-                                                  <span
-                                                    key={option.id}
-                                                    className="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs mr-1"
-                                                  >
-                                                    {option.value}
-                                                  </span>
-                                                ))}
-                                              </div>
-                                            )
-                                          }
-                                          
-                                          // If no matching options found, display the raw value
-                                          return (
-                                            <span className="font-medium">
-                                              {field.value ? field.value : <span className="text-muted-foreground italic">(sem valor)</span>}
-                                            </span>
-                                          )
-                                        }
+                                            }
 
-                                        default:
-                                          // For text fields, display the value as is
-                                          // If value is empty or undefined, show a placeholder
-                                          return (
-                                            <span className="font-medium">
-                                              {field.value && field.value.trim() !== '' 
-                                                ? field.value 
-                                                : <span className="text-muted-foreground italic">(sem valor)</span>}
-                                            </span>
-                                          )
-                                      }
-                                    })()}
-                                  </div>
-                                </div>
+                                            case 'multiselect': {
+                                              // For multiple selection, the value might be a comma-separated list of option IDs
+                                              const selectedOptionIds =
+                                                field.value
+                                                  ?.split(',')
+                                                  .filter(Boolean) || []
+                                              const selectedOptions =
+                                                field.options?.filter(
+                                                  (option: any) =>
+                                                    selectedOptionIds.includes(
+                                                      option.id
+                                                    )
+                                                ) || []
+
+                                              // If we have matching options, display them
+                                              if (selectedOptions.length > 0) {
+                                                return (
+                                                  <div className="space-y-1">
+                                                    {selectedOptions.map(
+                                                      (option: any) => (
+                                                        <span
+                                                          key={option.id}
+                                                          className="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs mr-1"
+                                                        >
+                                                          {option.value}
+                                                        </span>
+                                                      )
+                                                    )}
+                                                  </div>
+                                                )
+                                              }
+
+                                              // If no matching options found, display the raw value
+                                              return (
+                                                <span className="font-medium">
+                                                  {field.value ? (
+                                                    field.value
+                                                  ) : (
+                                                    <span className="text-muted-foreground italic">
+                                                      (sem valor)
+                                                    </span>
+                                                  )}
+                                                </span>
+                                              )
+                                            }
+
+                                            default:
+                                              // For text fields, display the value as is
+                                              // If value is empty or undefined, show a placeholder
+                                              return (
+                                                <span className="font-medium">
+                                                  {field.value &&
+                                                  field.value.trim() !== '' ? (
+                                                    field.value
+                                                  ) : (
+                                                    <span className="text-muted-foreground italic">
+                                                      (sem valor)
+                                                    </span>
+                                                  )}
+                                                </span>
+                                              )
+                                          }
+                                        })()}
+                                      </div>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -1786,9 +1891,10 @@ export function EnrollmentsTable({
                         <div className="grid gap-4">
                           {(() => {
                             // Find the schedule in remote_class.schedules that matches the enrollment's schedule_id
-                            const onlineSchedule = course.remote_class.schedules.find(
-                              s => s.id === selectedEnrollment.schedule_id
-                            )
+                            const onlineSchedule =
+                              course.remote_class.schedules.find(
+                                s => s.id === selectedEnrollment.schedule_id
+                              )
 
                             if (!onlineSchedule) return null
 
@@ -1807,7 +1913,8 @@ export function EnrollmentsTable({
                                     Dias da Semana
                                   </Label>
                                   <p className="text-sm font-medium">
-                                    {onlineSchedule.class_days || 'Não informado'}
+                                    {onlineSchedule.class_days ||
+                                      'Não informado'}
                                   </p>
                                 </div>
                                 <div>
@@ -1815,7 +1922,8 @@ export function EnrollmentsTable({
                                     Horário
                                   </Label>
                                   <p className="text-sm font-medium">
-                                    {onlineSchedule.class_time || 'Não informado'}
+                                    {onlineSchedule.class_time ||
+                                      'Não informado'}
                                   </p>
                                 </div>
                                 {onlineSchedule.class_start_date && (
@@ -1847,7 +1955,8 @@ export function EnrollmentsTable({
                                     Vagas
                                   </Label>
                                   <p className="text-sm font-medium">
-                                    {onlineSchedule.vacancies || 'Não informado'}
+                                    {onlineSchedule.vacancies ||
+                                      'Não informado'}
                                   </p>
                                 </div>
                               </div>
@@ -1991,7 +2100,7 @@ export function EnrollmentsTable({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
                   <Button
                     onClick={() => handleConfirmEnrollment(selectedEnrollment)}
-                    className="w-full bg-green-50 border border-green-200 text-green-700"
+                    className="w-full bg-green-50 border border-green-200 text-green-700 hover:bg-green-100!"
                     disabled={
                       selectedEnrollment.status === 'approved' ||
                       (isCourseFinished && !isOnlineCourseWithoutDates)
@@ -2004,7 +2113,7 @@ export function EnrollmentsTable({
                     onClick={() =>
                       handleSetPendingEnrollment(selectedEnrollment)
                     }
-                    className="w-full bg-yellow-50 border border-yellow-200 text-yellow-700"
+                    className="w-full bg-yellow-50 border border-yellow-200 text-yellow-700 hover:bg-yellow-100! "
                     disabled={
                       selectedEnrollment.status === 'pending' ||
                       (isCourseFinished && !isOnlineCourseWithoutDates)
@@ -2016,7 +2125,7 @@ export function EnrollmentsTable({
                   <Button
                     variant="destructive"
                     onClick={() => handleCancelEnrollment(selectedEnrollment)}
-                    className="w-full bg-red-50! border border-red-200 text-red-700"
+                    className="w-full bg-red-50! border border-red-200 text-red-700 hover:bg-red-100!"
                     disabled={
                       selectedEnrollment.status === 'rejected' ||
                       (isCourseFinished && !isOnlineCourseWithoutDates)
@@ -2055,7 +2164,10 @@ export function EnrollmentsTable({
                   <Button
                     onClick={() => handleRejectEnrollment(selectedEnrollment)}
                     className="w-full bg-red-50 border border-red-200 text-red-700 hover:bg-red-100"
-                    disabled={!isCourseFinished || selectedEnrollment.status === 'cancelled'}
+                    disabled={
+                      !isCourseFinished ||
+                      selectedEnrollment.status === 'cancelled'
+                    }
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Marcar como reprovado

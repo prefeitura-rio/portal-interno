@@ -6,6 +6,7 @@ import React, {
   useImperativeHandle,
   useState,
   useEffect,
+  useMemo,
 } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -39,7 +40,9 @@ import {
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { CnaeSubclasseSelect } from '@/components/ui/cnae-subclasse-select'
+import { Combobox } from '@/components/ui/combobox'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -80,8 +83,12 @@ const fullFormSchema = z.object({
     .string()
     .min(1, { message: 'Bairro é obrigatório.' })
     .min(3, { message: 'Bairro deve ter pelo menos 3 caracteres.' }),
-  forma_pagamento: z.string().optional(),
-  prazo_pagamento: z.string().optional(),
+  forma_pagamento: z
+    .string()
+    .min(1, { message: 'Forma de pagamento é obrigatória.' }),
+  prazo_pagamento: z
+    .string()
+    .min(1, { message: 'Prazo de pagamento é obrigatório.' }),
   opportunity_expiration_date: z.date({
     required_error: 'Prazo para expiração da oportunidade é obrigatório.',
   }),
@@ -159,8 +166,8 @@ type PartialFormData = Partial<
 
 // Type for backend API data
 type BackendMEIOpportunityData = {
-  orgao_id: number | null
-  subclasses?: string[]
+  orgao_id: string | null
+  cnae_ids?: string[]
   titulo?: string
   descricao_servico?: string
   outras_informacoes?: string
@@ -288,6 +295,17 @@ export const NewMEIOpportunityForm = forwardRef<
       name: 'gallery_images',
     })
 
+    // Memoize neighborhood options for the combobox
+    const neighborhoodOptions = useMemo(() => {
+      const uniqueNeighborhoods = Array.from(
+        new Set(neighborhoodZone.map(n => n.bairro))
+      )
+      return uniqueNeighborhoods.sort().map(bairro => ({
+        value: bairro,
+        label: bairro,
+      }))
+    }, [])
+
     // Track form changes for unsaved changes guard
     const isDirty = form.formState.isDirty
     const watchedValues = form.watch()
@@ -329,8 +347,8 @@ export const NewMEIOpportunityForm = forwardRef<
       }
 
       return {
-        orgao_id: data.orgao_id ? Number(data.orgao_id) : null,
-        subclasses: data.subclasses || [],
+        orgao_id: data.orgao_id ? String(data.orgao_id) : null,
+        cnae_ids: data.subclasses || [],
         titulo: data.title,
         descricao_servico: data.description,
         outras_informacoes: data.outras_informacoes || '',
@@ -373,7 +391,7 @@ export const NewMEIOpportunityForm = forwardRef<
       }
 
       const draftData: PartialFormData = {
-        orgao_id: data.orgao_id || '',
+        orgao_id: data.orgao_id ? String(data.orgao_id) : '',
         subclasses: data.subclasses || [],
         title:
           data.title || 'Rascunho de oportunidade. Edite antes de publicar!',
@@ -638,6 +656,20 @@ export const NewMEIOpportunityForm = forwardRef<
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Subclasses CNAE*</FormLabel>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Clique{' '}
+                      <a
+                        href="https://www8.receita.fazenda.gov.br/SimplesNacional/Arquivos/manual/Anexo_XI.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline hover:text-primary/80"
+                      >
+                        aqui
+                      </a>{' '}
+                      para visualizar Anexo XI da Resolução CGSN Nº 140, de
+                      2018. (Arts. 100, Inciso I e 101, § 1º, Inciso I, § 2º)
+                      Ocupações Permitidas ao MEI
+                    </p>
                     <FormControl>
                       <CnaeSubclasseSelect
                         value={field.value || []}
@@ -735,9 +767,13 @@ export const NewMEIOpportunityForm = forwardRef<
                   <FormItem>
                     <FormLabel>Bairro*</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Ex: Centro"
-                        {...field}
+                      <Combobox
+                        options={neighborhoodOptions}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Selecione o bairro"
+                        searchPlaceholder="Buscar bairro..."
+                        emptyMessage="Nenhum bairro encontrado."
                         disabled={isReadOnly}
                       />
                     </FormControl>
@@ -746,55 +782,56 @@ export const NewMEIOpportunityForm = forwardRef<
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="forma_pagamento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Forma de pagamento</FormLabel>
-                      <FormControl>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={isReadOnly}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a forma de pagamento" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="CHEQUE">Cheque</SelectItem>
-                            <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
-                            <SelectItem value="CARTAO">Cartão</SelectItem>
-                            <SelectItem value="TRANSFERENCIA">
-                              Transferência
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="forma_pagamento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Forma de pagamento*</FormLabel>
+                    <FormControl>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={isReadOnly}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a forma de pagamento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CHEQUE">Cheque</SelectItem>
+                          <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                          <SelectItem value="PIX">PIX</SelectItem>
+                          <SelectItem value="CARTAO">Cartão</SelectItem>
+                          <SelectItem value="TRANSFERENCIA">
+                            Transferência
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="prazo_pagamento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prazo de pagamento</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: 30 dias"
-                          {...field}
-                          disabled={isReadOnly}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="prazo_pagamento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Prazo de pagamento após a emissão da nota fiscal*
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: 30 dias"
+                        {...field}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="flex flex-wrap items-start gap-4">
                 <FormField

@@ -16,11 +16,20 @@ import { NewServiceForm } from '../../components/new-service-form'
 
 export default function NewServicePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleFormChangesDetected = (hasChanges: boolean) => {
+    // Don't update if we're currently submitting
+    if (!isSubmitting) {
+      setHasUnsavedChanges(hasChanges)
+    }
+  }
 
   return (
     <ContentLayout title="Gestão de Serviços Municipais">
       <UnsavedChangesGuard
         hasUnsavedChanges={hasUnsavedChanges}
+        allowNavigation={isSubmitting}
         message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
       />
       <div className="space-y-4">
@@ -48,7 +57,10 @@ export default function NewServicePage() {
           </div>
         </div>
 
-        <NewServiceForm onFormChangesDetected={setHasUnsavedChanges} />
+        <NewServiceForm
+          onFormChangesDetected={handleFormChangesDetected}
+          onSubmittingChange={setIsSubmitting}
+        />
       </div>
     </ContentLayout>
   )
