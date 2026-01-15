@@ -96,8 +96,8 @@ export default function EmpregabilidadeDetailPage({
     diferenciais: '', // TODO: Map from API when available
     responsabilidades: '', // TODO: Map from API when available
     beneficios: empregabilidade.beneficios || '',
-    etapas: '', // TODO: Map from API when available
-    informacoes_complementares: '', // TODO: Map from API when available
+    etapas: [], // TODO: Map from API when available
+    informacoes_complementares: [], // TODO: Map from API when available
     id_orgao_parceiro: empregabilidade.orgao_id || '',
   }
 
