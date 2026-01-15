@@ -75,7 +75,8 @@ export function EmpregabilidadeDataTable() {
   })
 
   // Get active tab from search params, default to 'active'
-  const activeTab = (searchParams.get('tab') || 'active') as VagaEmpregabilidadeStatus
+  const activeTab = (searchParams.get('tab') ||
+    'active') as VagaEmpregabilidadeStatus
   const [searchQuery, setSearchQuery] = React.useState('')
   const [selectedCompany, setSelectedCompany] = React.useState('')
 
@@ -125,11 +126,10 @@ export function EmpregabilidadeDataTable() {
       {
         id: 'title',
         accessorKey: 'title',
-        header: ({ column }: { column: Column<VagaEmpregabilidade, unknown> }) => (
-          <DataTableColumnHeader
-            column={column}
-            title="Título da vaga"
-          />
+        header: ({
+          column,
+        }: { column: Column<VagaEmpregabilidade, unknown> }) => (
+          <DataTableColumnHeader column={column} title="Título da vaga" />
         ),
         cell: ({ cell }) => (
           <div className="flex items-center gap-2">
@@ -150,7 +150,9 @@ export function EmpregabilidadeDataTable() {
       {
         id: 'company',
         accessorKey: 'company',
-        header: ({ column }: { column: Column<VagaEmpregabilidade, unknown> }) => (
+        header: ({
+          column,
+        }: { column: Column<VagaEmpregabilidade, unknown> }) => (
           <DataTableColumnHeader column={column} title="Empresa" />
         ),
         cell: ({ cell }) => {
@@ -177,7 +179,9 @@ export function EmpregabilidadeDataTable() {
       {
         id: 'managingOrgan',
         accessorKey: 'managingOrgan',
-        header: ({ column }: { column: Column<VagaEmpregabilidade, unknown> }) => (
+        header: ({
+          column,
+        }: { column: Column<VagaEmpregabilidade, unknown> }) => (
           <DataTableColumnHeader column={column} title="Órgão responsável" />
         ),
         cell: ({ cell }) => {
@@ -213,7 +217,9 @@ export function EmpregabilidadeDataTable() {
           const date = new Date(year, month - 1, day)
           return date.getTime()
         },
-        header: ({ column }: { column: Column<VagaEmpregabilidade, unknown> }) => (
+        header: ({
+          column,
+        }: { column: Column<VagaEmpregabilidade, unknown> }) => (
           <DataTableColumnHeader column={column} title="Data de publicação" />
         ),
         cell: ({ cell }) => {
@@ -245,7 +251,9 @@ export function EmpregabilidadeDataTable() {
           const date = new Date(year, month - 1, day)
           return date.getTime()
         },
-        header: ({ column }: { column: Column<VagaEmpregabilidade, unknown> }) => {
+        header: ({
+          column,
+        }: { column: Column<VagaEmpregabilidade, unknown> }) => {
           const getExpirationTitle = () => {
             switch (activeTab) {
               case 'active':
@@ -344,42 +352,32 @@ export function EmpregabilidadeDataTable() {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="active">Vagas ativas</TabsTrigger>
           <TabsTrigger value="expired">Vagas expiradas</TabsTrigger>
-          <TabsTrigger value="awaiting_approval">Prontas para aprovação</TabsTrigger>
+          <TabsTrigger value="awaiting_approval">
+            Prontas para aprovação
+          </TabsTrigger>
           <TabsTrigger value="draft">Rascunhos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
-          <DataTable
-            table={table}
-            loading={userRoleLoading}
-          >
+          <DataTable table={table} loading={userRoleLoading}>
             <DataTableToolbar table={table} />
           </DataTable>
         </TabsContent>
 
         <TabsContent value="expired" className="space-y-4">
-          <DataTable
-            table={table}
-            loading={userRoleLoading}
-          >
+          <DataTable table={table} loading={userRoleLoading}>
             <DataTableToolbar table={table} />
           </DataTable>
         </TabsContent>
 
         <TabsContent value="awaiting_approval" className="space-y-4">
-          <DataTable
-            table={table}
-            loading={userRoleLoading}
-          >
+          <DataTable table={table} loading={userRoleLoading}>
             <DataTableToolbar table={table} />
           </DataTable>
         </TabsContent>
 
         <TabsContent value="draft" className="space-y-4">
-          <DataTable
-            table={table}
-            loading={userRoleLoading}
-          >
+          <DataTable table={table} loading={userRoleLoading}>
             <DataTableToolbar table={table} />
           </DataTable>
         </TabsContent>
