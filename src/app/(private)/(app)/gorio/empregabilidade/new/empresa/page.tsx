@@ -1,6 +1,5 @@
 'use client'
 
-import { NewEmpregabilidadeForm } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-empregabilidade-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import {
@@ -13,34 +12,20 @@ import {
 } from '@/components/ui/breadcrumb'
 import { useState } from 'react'
 import Link from 'next/link'
+import { NewEmpresaForm } from './components/new-empresa-form'
 
-export default function NewEmpregabilidadePage() {
+export default function NewEmpresaPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleCreateVaga = async (data: any) => {
+  const handleCreateEmpresa = async (data: any) => {
     // Mark as submitting to prevent guard from blocking
     setIsSubmitting(true)
     setHasUnsavedChanges(false)
 
     try {
-      // TODO: Implement API call to create vaga
-      console.log('Creating vaga:', data)
-    } catch (error) {
-      // If there's an error, re-enable the guard
-      setIsSubmitting(false)
-      setHasUnsavedChanges(true)
-    }
-  }
-
-  const handleCreateDraft = async (data: any) => {
-    // Mark as submitting to prevent guard from blocking
-    setIsSubmitting(true)
-    setHasUnsavedChanges(false)
-
-    try {
-      // TODO: Implement API call to create draft
-      console.log('Saving draft:', data)
+      // TODO: Implement API call to create empresa
+      console.log('Creating empresa:', data)
     } catch (error) {
       // If there's an error, re-enable the guard
       setIsSubmitting(false)
@@ -68,22 +53,19 @@ export default function NewEmpregabilidadePage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Nova vaga</BreadcrumbPage>
+                <BreadcrumbPage>Nova empresa</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">
-              Nova Vaga de Empregos
-            </h2>
+            <h2 className="text-2xl font-bold tracking-tight">Nova empresa</h2>
             <p className="text-muted-foreground">
-              Crie uma nova vaga de empregos
+              Cadastre uma nova empresa no sistema
             </p>
           </div>
         </div>
-        <NewEmpregabilidadeForm
-          onSubmit={handleCreateVaga}
-          onSaveDraft={handleCreateDraft}
+        <NewEmpresaForm
+          onSubmit={handleCreateEmpresa}
           onFormChangesDetected={setHasUnsavedChanges}
         />
       </div>
