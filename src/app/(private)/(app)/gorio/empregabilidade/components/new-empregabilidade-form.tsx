@@ -33,6 +33,7 @@ import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import { DateTimePicker } from '@/components/ui/datetime-picker'
 import { Combobox } from '@/components/ui/combobox'
 import { MultiSelect } from '@/components/ui/multi-select'
+import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { useRouter } from 'next/navigation'
 
@@ -209,10 +210,10 @@ export const NewEmpregabilidadeForm = forwardRef<
                   <FormItem>
                     <FormLabel>Descrição*</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[120px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Descreva a vaga de forma clara e objetiva..."
-                        {...field}
                         disabled={isReadOnly}
                       />
                     </FormControl>
@@ -462,10 +463,10 @@ export const NewEmpregabilidadeForm = forwardRef<
                   <FormItem>
                     <FormLabel>Requisitos*</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[120px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Liste os requisitos necessários para a vaga..."
-                        {...field}
                         disabled={isReadOnly}
                       />
                     </FormControl>
@@ -481,10 +482,10 @@ export const NewEmpregabilidadeForm = forwardRef<
                   <FormItem>
                     <FormLabel>Diferenciais</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Liste os diferenciais que seriam desejáveis..."
-                        {...field}
                         disabled={isReadOnly}
                       />
                     </FormControl>
@@ -500,10 +501,10 @@ export const NewEmpregabilidadeForm = forwardRef<
                   <FormItem>
                     <FormLabel>Responsabilidades*</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[120px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Descreva as principais responsabilidades da função..."
-                        {...field}
                         disabled={isReadOnly}
                       />
                     </FormControl>
@@ -519,10 +520,10 @@ export const NewEmpregabilidadeForm = forwardRef<
                   <FormItem>
                     <FormLabel>Benefícios</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
+                      <MarkdownEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
                         placeholder="Liste os benefícios oferecidos..."
-                        {...field}
                         disabled={isReadOnly}
                       />
                     </FormControl>
