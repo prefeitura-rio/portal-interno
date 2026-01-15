@@ -51,7 +51,8 @@ export default function NewMEIOpportunity() {
   return (
     <ContentLayout title="Gestão de Oportunidades MEI">
       <UnsavedChangesGuard
-        hasUnsavedChanges={hasUnsavedChanges && !isSubmitting}
+        hasUnsavedChanges={hasUnsavedChanges}
+        allowNavigation={isSubmitting}
         message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
       />
       <div className="space-y-4">
