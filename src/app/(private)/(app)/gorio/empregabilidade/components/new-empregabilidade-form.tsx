@@ -36,6 +36,18 @@ import { MultiSelect } from '@/components/ui/multi-select'
 import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { useRouter } from 'next/navigation'
+import {
+  EtapasProcessoSeletivo,
+  type EtapaProcessoSeletivo,
+} from './etapas-processo-seletivo'
+
+// Schema para etapa do processo seletivo
+const etapaSchema = z.object({
+  id: z.string(),
+  titulo: z.string(),
+  descricao: z.string(),
+  ordem: z.number(),
+})
 
 // Form schema - minimal validation for now (only UI)
 const formSchema = z.object({
@@ -53,7 +65,7 @@ const formSchema = z.object({
   diferenciais: z.string().optional(),
   responsabilidades: z.string().optional(),
   beneficios: z.string().optional(),
-  etapas: z.string().optional(),
+  etapas: z.array(etapaSchema).optional(),
   informacoes_complementares: z.string().optional(),
   id_orgao_parceiro: z.string().optional(),
 })
@@ -130,27 +142,46 @@ export const NewEmpregabilidadeForm = forwardRef<
       { value: 'empresa2', label: 'Empresa 2' },
     ]
 
+    // Helper para converter etapas de string (legado) para array
+    const parseEtapas = (
+      etapas: string | EtapaProcessoSeletivo[] | undefined
+    ): EtapaProcessoSeletivo[] => {
+      if (!etapas) return []
+      if (Array.isArray(etapas)) return etapas
+      try {
+        const parsed = JSON.parse(etapas)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+
     const form = useForm<FormData>({
       resolver: zodResolver(formSchema),
-      defaultValues: initialData || {
-        titulo: '',
-        descricao: '',
-        contratante: '',
-        regime_contratacao: '',
-        modelo_trabalho: '',
-        vaga_pcd: false,
-        tipo_pcd: [],
-        valor_vaga: undefined,
-        bairro: '',
-        data_limite: undefined,
-        requisitos: '',
-        diferenciais: '',
-        responsabilidades: '',
-        beneficios: '',
-        etapas: '',
-        informacoes_complementares: '',
-        id_orgao_parceiro: '',
-      },
+      defaultValues: initialData
+        ? {
+            ...initialData,
+            etapas: parseEtapas(initialData.etapas as any),
+          }
+        : {
+            titulo: '',
+            descricao: '',
+            contratante: '',
+            regime_contratacao: '',
+            modelo_trabalho: '',
+            vaga_pcd: false,
+            tipo_pcd: [],
+            valor_vaga: undefined,
+            bairro: '',
+            data_limite: undefined,
+            requisitos: '',
+            diferenciais: '',
+            responsabilidades: '',
+            beneficios: '',
+            etapas: [],
+            informacoes_complementares: '',
+            id_orgao_parceiro: '',
+          },
       mode: 'onChange',
     })
 
@@ -539,10 +570,9 @@ export const NewEmpregabilidadeForm = forwardRef<
                   <FormItem>
                     <FormLabel>Etapas do Processo Seletivo</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
-                        placeholder="Descreva as etapas do processo seletivo..."
-                        {...field}
+                      <EtapasProcessoSeletivo
+                        etapas={field.value || []}
+                        onEtapasChange={field.onChange}
                         disabled={isReadOnly}
                       />
                     </FormControl>
