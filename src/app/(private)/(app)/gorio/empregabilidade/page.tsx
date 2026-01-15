@@ -1,4 +1,5 @@
 'use client'
+
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import {
   Breadcrumb,
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { BookPlus } from 'lucide-react'
 import Link from 'next/link'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
+import { EmpregabilidadeDataTable } from './components/empregabilidade-data-table'
 
 export default function EmpregabilidadePage() {
   const { canEditGoRio } = useHeimdallUserContext()
@@ -55,6 +57,8 @@ export default function EmpregabilidadePage() {
             </div>
           )}
         </div>
+
+        <EmpregabilidadeDataTable />
       </div>
     </ContentLayout>
   )
