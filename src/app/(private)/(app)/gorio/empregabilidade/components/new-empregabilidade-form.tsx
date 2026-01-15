@@ -40,6 +40,10 @@ import {
   EtapasProcessoSeletivo,
   type EtapaProcessoSeletivo,
 } from './etapas-processo-seletivo'
+import {
+  InformacoesComplementaresCreator,
+  type InformacaoComplementar,
+} from './informacoes-complementares-creator'
 
 // Schema para etapa do processo seletivo
 const etapaSchema = z.object({
@@ -47,6 +51,32 @@ const etapaSchema = z.object({
   titulo: z.string(),
   descricao: z.string(),
   ordem: z.number(),
+})
+
+// Schema para informação complementar
+const informacaoComplementarOptionSchema = z.object({
+  id: z.string(),
+  value: z.string(),
+})
+
+const informacaoComplementarSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  required: z.boolean(),
+  field_type: z.enum([
+    'text',
+    'number',
+    'email',
+    'date',
+    'select',
+    'textarea',
+    'checkbox',
+    'radio',
+    'multiselect',
+  ]),
+  options: z.array(informacaoComplementarOptionSchema).optional(),
+  valor_min: z.number().optional(),
+  valor_max: z.number().optional(),
 })
 
 // Form schema - minimal validation for now (only UI)
@@ -66,7 +96,7 @@ const formSchema = z.object({
   responsabilidades: z.string().optional(),
   beneficios: z.string().optional(),
   etapas: z.array(etapaSchema).optional(),
-  informacoes_complementares: z.string().optional(),
+  informacoes_complementares: z.array(informacaoComplementarSchema).optional(),
   id_orgao_parceiro: z.string().optional(),
 })
 
@@ -156,12 +186,29 @@ export const NewEmpregabilidadeForm = forwardRef<
       }
     }
 
+    // Helper para converter informações complementares de string (legado) para array
+    const parseInformacoesComplementares = (
+      informacoes: string | InformacaoComplementar[] | undefined
+    ): InformacaoComplementar[] => {
+      if (!informacoes) return []
+      if (Array.isArray(informacoes)) return informacoes
+      try {
+        const parsed = JSON.parse(informacoes)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+
     const form = useForm<FormData>({
       resolver: zodResolver(formSchema),
       defaultValues: initialData
         ? {
             ...initialData,
             etapas: parseEtapas(initialData.etapas as any),
+            informacoes_complementares: parseInformacoesComplementares(
+              initialData.informacoes_complementares as any
+            ),
           }
         : {
             titulo: '',
@@ -179,7 +226,7 @@ export const NewEmpregabilidadeForm = forwardRef<
             responsabilidades: '',
             beneficios: '',
             etapas: [],
-            informacoes_complementares: '',
+            informacoes_complementares: [],
             id_orgao_parceiro: '',
           },
       mode: 'onChange',
@@ -588,10 +635,9 @@ export const NewEmpregabilidadeForm = forwardRef<
                   <FormItem>
                     <FormLabel>Informações Complementares</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className="min-h-[100px]"
-                        placeholder="Informações adicionais relevantes..."
-                        {...field}
+                      <InformacoesComplementaresCreator
+                        fields={field.value || []}
+                        onFieldsChange={field.onChange}
                         disabled={isReadOnly}
                       />
                     </FormControl>

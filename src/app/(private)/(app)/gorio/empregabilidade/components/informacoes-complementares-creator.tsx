@@ -1,0 +1,842 @@
+'use client'
+
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Sortable,
+  SortableContent,
+  SortableItem,
+  SortableItemHandle,
+  SortableOverlay,
+} from '@/components/ui/sortable'
+import {
+  Check,
+  ChevronDown,
+  CircleCheck,
+  GripVertical,
+  Hash,
+  Pencil,
+  Plus,
+  Square,
+  Text as TextIcon,
+  Trash2,
+  X,
+} from 'lucide-react'
+import { useState } from 'react'
+import { v4 as uuidv4 } from 'uuid'
+
+export type InformacaoComplementarType =
+  | 'text'
+  | 'number'
+  | 'email'
+  | 'date'
+  | 'select'
+  | 'textarea'
+  | 'checkbox'
+  | 'radio'
+  | 'multiselect'
+
+export interface InformacaoComplementarOption {
+  id: string
+  value: string
+}
+
+export interface InformacaoComplementar {
+  id: string
+  title: string
+  required: boolean
+  field_type: InformacaoComplementarType
+  options?: InformacaoComplementarOption[]
+  valor_min?: number
+  valor_max?: number
+}
+
+interface InformacoesComplementaresCreatorProps {
+  fields: InformacaoComplementar[]
+  onFieldsChange: (fields: InformacaoComplementar[]) => void
+  disabled?: boolean
+}
+
+export function InformacoesComplementaresCreator({
+  fields,
+  onFieldsChange,
+  disabled = false,
+}: InformacoesComplementaresCreatorProps) {
+  const [newFieldTitle, setNewFieldTitle] = useState('')
+  const [newFieldRequired, setNewFieldRequired] = useState(false)
+  const [newFieldType, setNewFieldType] =
+    useState<InformacaoComplementarType>('text')
+  const [newFieldOptions, setNewFieldOptions] = useState<
+    InformacaoComplementarOption[]
+  >([{ id: uuidv4(), value: '' }])
+  const [newFieldValorMin, setNewFieldValorMin] = useState<string>('')
+  const [newFieldValorMax, setNewFieldValorMax] = useState<string>('')
+  const [editingFieldId, setEditingFieldId] =
+    useState<string | null>(null)
+  const [originalField, setOriginalField] =
+    useState<InformacaoComplementar | null>(null)
+
+  const fieldTypes = [
+    {
+      value: 'text' as InformacaoComplementarType,
+      label: 'Resposta curta',
+      icon: TextIcon,
+      description: 'Texto de resposta curta',
+    },
+    {
+      value: 'number' as InformacaoComplementarType,
+      label: 'Numérico',
+      icon: Hash,
+      description: 'Campo numérico com validação de min/max',
+    },
+    {
+      value: 'radio' as InformacaoComplementarType,
+      label: 'Seleção única',
+      icon: CircleCheck,
+      description: 'Permite selecionar apenas uma opção',
+    },
+    {
+      value: 'multiselect' as InformacaoComplementarType,
+      label: 'Seleção múltipla',
+      icon: Square,
+      description: 'Permite selecionar múltiplas opções',
+    },
+    {
+      value: 'select' as InformacaoComplementarType,
+      label: 'Seleção em pulldown',
+      icon: ChevronDown,
+      description: 'Lista suspensa para seleção única',
+    },
+  ]
+
+  const resetForm = () => {
+    setNewFieldTitle('')
+    setNewFieldRequired(false)
+    setNewFieldType('text')
+    setNewFieldOptions([{ id: uuidv4(), value: '' }])
+    setNewFieldValorMin('')
+    setNewFieldValorMax('')
+  }
+
+  const addField = () => {
+    if (!isFieldValid()) return
+
+    const requiresOptions = ['radio', 'multiselect', 'select'].includes(
+      newFieldType
+    )
+    const isNumberType = newFieldType === 'number'
+
+    const newField: InformacaoComplementar = {
+      id: uuidv4(),
+      title: newFieldTitle.trim(),
+      required: newFieldRequired,
+      field_type: newFieldType,
+      options: requiresOptions
+        ? newFieldOptions.filter(opt => opt.value.trim())
+        : undefined,
+      valor_min:
+        isNumberType && newFieldValorMin.trim()
+          ? Number.parseFloat(newFieldValorMin)
+          : undefined,
+      valor_max:
+        isNumberType && newFieldValorMax.trim()
+          ? Number.parseFloat(newFieldValorMax)
+          : undefined,
+    }
+
+    // Add new field
+    onFieldsChange([...fields, newField])
+
+    resetForm()
+  }
+
+  const removeField = (fieldId: string) => {
+    onFieldsChange(fields.filter(field => field.id !== fieldId))
+  }
+
+  const updateField = (
+    fieldId: string,
+    updates: Partial<InformacaoComplementar>
+  ) => {
+    onFieldsChange(
+      fields.map(field =>
+        field.id === fieldId ? { ...field, ...updates } : field
+      )
+    )
+  }
+
+  const updateFieldOption = (
+    fieldId: string,
+    optionId: string,
+    value: string
+  ) => {
+    onFieldsChange(
+      fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: field.options?.map(opt =>
+                opt.id === optionId ? { ...opt, value } : opt
+              ),
+            }
+          : field
+      )
+    )
+  }
+
+  const addFieldOption = (fieldId: string) => {
+    onFieldsChange(
+      fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: [
+                ...(field.options || []),
+                { id: uuidv4(), value: '' },
+              ],
+            }
+          : field
+      )
+    )
+  }
+
+  const removeFieldOption = (fieldId: string, optionId: string) => {
+    onFieldsChange(
+      fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: field.options?.filter(opt => opt.id !== optionId),
+            }
+          : field
+      )
+    )
+  }
+
+  const startEditing = (field: InformacaoComplementar) => {
+    setOriginalField(JSON.parse(JSON.stringify(field)))
+    setEditingFieldId(field.id)
+  }
+
+  const cancelEditing = () => {
+    if (originalField) {
+      onFieldsChange(
+        fields.map(field =>
+          field.id === originalField.id ? originalField : field
+        )
+      )
+    }
+    setEditingFieldId(null)
+    setOriginalField(null)
+  }
+
+  const finishEditing = () => {
+    setEditingFieldId(null)
+    setOriginalField(null)
+  }
+
+  const addOption = () => {
+    setNewFieldOptions([...newFieldOptions, { id: uuidv4(), value: '' }])
+  }
+
+  const updateOption = (optionId: string, value: string) => {
+    setNewFieldOptions(
+      newFieldOptions.map(opt =>
+        opt.id === optionId ? { ...opt, value } : opt
+      )
+    )
+  }
+
+  const removeOption = (optionId: string) => {
+    if (newFieldOptions.length > 1) {
+      setNewFieldOptions(newFieldOptions.filter(opt => opt.id !== optionId))
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addField()
+    }
+  }
+
+  const selectedFieldType = fieldTypes.find(type => type.value === newFieldType)
+  const requiresOptions = ['radio', 'multiselect', 'select'].includes(
+    newFieldType
+  )
+  const isNumberType = newFieldType === 'number'
+
+  // Check if field is valid for submission
+  const isFieldValid = () => {
+    if (!newFieldTitle.trim()) return false
+
+    if (requiresOptions) {
+      const validOptions = newFieldOptions.filter(opt => opt.value.trim())
+      return validOptions.length >= 2
+    }
+
+    return true
+  }
+
+  const renderFieldPreview = (
+    field: InformacaoComplementar,
+    showDragHandle = true
+  ) => {
+    const fieldTypeInfo = fieldTypes.find(
+      type => type.value === field.field_type
+    )
+    const Icon = fieldTypeInfo?.icon || TextIcon
+    const isEditing = editingFieldId === field.id
+    const fieldRequiresOptions = ['radio', 'multiselect', 'select'].includes(
+      field.field_type
+    )
+    const fieldIsNumber = field.field_type === 'number'
+
+    // Modo de edição do campo
+    if (isEditing && !disabled) {
+      return (
+        <div className="space-y-4 p-4 border border-dashed border-muted-foreground/30 rounded-lg bg-muted/5">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">
+              Editando campo
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  finishEditing()
+                }}
+                className="cursor-pointer"
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Concluir edição
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  cancelEditing()
+                }}
+                className="cursor-pointer"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Cancelar
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium text-muted-foreground">
+              Título do campo
+            </Label>
+            <Input
+              value={field.title}
+              onChange={e => updateField(field.id, { title: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id={`required-${field.id}`}
+              checked={field.required}
+              onCheckedChange={checked =>
+                updateField(field.id, { required: checked as boolean })
+              }
+            />
+            <label
+              htmlFor={`required-${field.id}`}
+              className="text-sm font-medium leading-none"
+            >
+              Campo obrigatório
+            </label>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium text-muted-foreground">
+              Tipo de campo
+            </Label>
+            <Select
+              value={field.field_type}
+              onValueChange={(value: InformacaoComplementarType) => {
+                const newFieldRequiresOptions = [
+                  'radio',
+                  'multiselect',
+                  'select',
+                ].includes(value)
+                const newFieldIsNumber = value === 'number'
+                updateField(field.id, {
+                  field_type: value,
+                  options: newFieldRequiresOptions
+                    ? field.options?.length
+                      ? field.options
+                      : [
+                          { id: uuidv4(), value: '' },
+                          { id: uuidv4(), value: '' },
+                        ]
+                    : undefined,
+                  valor_min: newFieldIsNumber ? field.valor_min : undefined,
+                  valor_max: newFieldIsNumber ? field.valor_max : undefined,
+                })
+              }}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {fieldTypes.map(type => {
+                  const TypeIcon = type.icon
+                  return (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex items-center gap-2">
+                        <TypeIcon className="h-4 w-4" />
+                        <span>{type.label}</span>
+                      </div>
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Campos de valor min/max para tipo numérico */}
+          {fieldIsNumber && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Valor mínimo (opcional)
+                </Label>
+                <Input
+                  type="number"
+                  value={field.valor_min ?? ''}
+                  onChange={e => {
+                    const value = e.target.value
+                    updateField(field.id, {
+                      valor_min:
+                        value === '' ? undefined : Number.parseFloat(value),
+                    })
+                  }}
+                  className="mt-1"
+                  placeholder="Ex: 0"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Valor máximo (opcional)
+                </Label>
+                <Input
+                  type="number"
+                  value={field.valor_max ?? ''}
+                  onChange={e => {
+                    const value = e.target.value
+                    updateField(field.id, {
+                      valor_max:
+                        value === '' ? undefined : Number.parseFloat(value),
+                    })
+                  }}
+                  className="mt-1"
+                  placeholder="Ex: 100"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Edição de opções para campos com seleção */}
+          {fieldRequiresOptions && (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Opções de resposta
+              </Label>
+              {field.options?.map((option, index) => (
+                <div key={option.id} className="flex items-center gap-2">
+                  {field.field_type === 'radio' && (
+                    <div className="w-4 h-4 rounded-full border-2 border-muted-foreground shrink-0" />
+                  )}
+                  {field.field_type === 'multiselect' && (
+                    <div className="w-4 h-4 border-2 border-muted-foreground rounded shrink-0" />
+                  )}
+                  <Input
+                    placeholder={`Opção ${index + 1}`}
+                    value={option.value}
+                    onChange={e =>
+                      updateFieldOption(field.id, option.id, e.target.value)
+                    }
+                    className="flex-1"
+                  />
+                  {(field.options?.length || 0) > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFieldOption(field.id, option.id)}
+                      className="text-destructive hover:text-destructive shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => addFieldOption(field.id)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar opção
+              </Button>
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    // Modo de visualização do campo
+    return (
+      <div className="space-y-3 p-4 border rounded-lg bg-muted/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {showDragHandle && !disabled && (
+              <SortableItemHandle asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="cursor-grab hover:bg-muted/50 p-1 h-8 w-8"
+                >
+                  <GripVertical className="h-4 w-4" />
+                </Button>
+              </SortableItemHandle>
+            )}
+            <Icon className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{field.title}</span>
+            {field.required && (
+              <Badge variant="secondary" className="text-xs">
+                Obrigatório
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {!disabled && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  startEditing(field)
+                }}
+                className="h-8 w-8 p-1 cursor-pointer"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+            {!disabled && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeField(field.id)}
+                className="text-destructive hover:text-destructive h-8 w-8 p-1 cursor-pointer"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Field preview based on type */}
+        {field.field_type === 'text' && (
+          <div className="pl-6">
+            <Input
+              placeholder="Texto de resposta curta"
+              disabled
+              className="bg-muted/50"
+            />
+          </div>
+        )}
+
+        {field.field_type === 'number' && (
+          <div className="pl-6 space-y-2">
+            <Input
+              type="number"
+              placeholder="Número"
+              disabled
+              className="bg-muted/50"
+            />
+            {(field.valor_min !== undefined ||
+              field.valor_max !== undefined) && (
+              <div className="text-xs text-muted-foreground">
+                {field.valor_min !== undefined &&
+                  field.valor_max !== undefined &&
+                  `Valor entre ${field.valor_min} e ${field.valor_max}`}
+                {field.valor_min !== undefined &&
+                  field.valor_max === undefined &&
+                  `Valor mínimo: ${field.valor_min}`}
+                {field.valor_min === undefined &&
+                  field.valor_max !== undefined &&
+                  `Valor máximo: ${field.valor_max}`}
+              </div>
+            )}
+          </div>
+        )}
+
+        {field.field_type === 'select' && (
+          <div className="pl-6">
+            <Select disabled>
+              <SelectTrigger className="bg-muted/50">
+                <SelectValue placeholder="Selecione uma opção" />
+              </SelectTrigger>
+            </Select>
+            {field.options && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                Opções: {field.options.map(opt => opt.value).join(', ')}
+              </div>
+            )}
+          </div>
+        )}
+
+        {field.field_type === 'radio' && field.options && (
+          <div className="pl-6 space-y-2">
+            {field.options.map(option => (
+              <div key={option.id} className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full border-2 border-muted-foreground" />
+                <span className="text-sm">{option.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {field.field_type === 'multiselect' && field.options && (
+          <div className="pl-6 space-y-2">
+            {field.options.map(option => (
+              <div key={option.id} className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-muted-foreground rounded" />
+                <span className="text-sm">{option.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+      {/* Add/Edit field section */}
+      <div className="space-y-4">
+        <div>
+          <Label className="text-sm font-medium text-muted-foreground">
+            Título do campo
+          </Label>
+          <Input
+            placeholder="Digite o título do campo (ex: Quantos anos você tem?)"
+            value={newFieldTitle}
+            onChange={e => setNewFieldTitle(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="mt-1"
+            disabled={disabled}
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="required-field"
+            checked={newFieldRequired}
+            onCheckedChange={checked =>
+              setNewFieldRequired(checked as boolean)
+            }
+            disabled={disabled}
+          />
+          <label
+            htmlFor="required-field"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Campo obrigatório
+          </label>
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium text-muted-foreground">
+            Tipo de campo
+          </Label>
+          <Select
+            value={newFieldType}
+            onValueChange={(value: InformacaoComplementarType) => {
+              setNewFieldType(value)
+              if (!requiresOptions) {
+                setNewFieldOptions([{ id: uuidv4(), value: '' }])
+              }
+              if (value !== 'number') {
+                setNewFieldValorMin('')
+                setNewFieldValorMax('')
+              }
+            }}
+            disabled={disabled}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {fieldTypes.map(type => {
+                const Icon = type.icon
+                return (
+                  <SelectItem key={type.value} value={type.value}>
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4" />
+                      <span>{type.label}</span>
+                    </div>
+                  </SelectItem>
+                )
+              })}
+            </SelectContent>
+          </Select>
+          {selectedFieldType && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {selectedFieldType.description}
+            </p>
+          )}
+        </div>
+
+        {/* Campos de valor min/max para tipo numérico */}
+        {isNumberType && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">
+                Valor mínimo (opcional)
+              </Label>
+              <Input
+                type="number"
+                value={newFieldValorMin}
+                onChange={e => setNewFieldValorMin(e.target.value)}
+                className="mt-1"
+                placeholder="Ex: 0"
+                disabled={disabled}
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">
+                Valor máximo (opcional)
+              </Label>
+              <Input
+                type="number"
+                value={newFieldValorMax}
+                onChange={e => setNewFieldValorMax(e.target.value)}
+                className="mt-1"
+                placeholder="Ex: 100"
+                disabled={disabled}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Options configuration for select/radio/multiselect fields */}
+        {requiresOptions && (
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-muted-foreground">
+              Opções de resposta
+            </Label>
+            {newFieldOptions.map((option, index) => (
+              <div key={option.id} className="flex items-center gap-2">
+                {newFieldType === 'radio' && (
+                  <div className="w-4 h-4 rounded-full border-2 border-muted-foreground shrink-0" />
+                )}
+                {newFieldType === 'multiselect' && (
+                  <div className="w-4 h-4 border-2 border-muted-foreground rounded shrink-0" />
+                )}
+                <Input
+                  placeholder={`Opção ${index + 1}`}
+                  value={option.value}
+                  onChange={e => updateOption(option.id, e.target.value)}
+                  disabled={disabled}
+                  className="flex-1"
+                />
+                {newFieldOptions.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeOption(option.id)}
+                    disabled={disabled}
+                    className="text-destructive hover:text-destructive shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={addOption}
+              disabled={disabled}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Adicionar opção
+            </Button>
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <Button
+            onClick={addField}
+            disabled={!isFieldValid() || disabled}
+            className="flex-1"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar campo
+          </Button>
+        </div>
+      </div>
+
+      {/* Display existing fields with sorting */}
+      {fields.length > 0 && (
+        <div className="space-y-3 pt-4 border-t">
+          <h4 className="text-sm font-medium text-muted-foreground">
+            Campos adicionados ({fields.length})
+          </h4>
+          <Sortable
+            value={fields}
+            onValueChange={onFieldsChange}
+            getItemValue={field => field.id}
+          >
+            <SortableContent withoutSlot>
+              <div className="space-y-4">
+                {fields.map(field => (
+                  <SortableItem key={field.id} value={field.id} asChild>
+                    <div>{renderFieldPreview(field)}</div>
+                  </SortableItem>
+                ))}
+              </div>
+            </SortableContent>
+            <SortableOverlay>
+              {({ value }) => {
+                const field = fields.find(f => f.id === value)
+                return field ? (
+                  <div className="opacity-90">
+                    {renderFieldPreview(field, false)}
+                  </div>
+                ) : null
+              }}
+            </SortableOverlay>
+          </Sortable>
+        </div>
+      )}
+    </div>
+  )
+}
