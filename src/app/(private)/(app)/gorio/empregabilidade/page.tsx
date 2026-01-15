@@ -43,10 +43,12 @@ export default function EmpregabilidadePage() {
           {canEditGoRio && (
             //adicionar botão de nova empresa ao lado
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="cursor-pointer">
-                <BookPlus className="mr-2 h-4 w-4" />
-                Nova empresa
-              </Button>
+              <Link href="/gorio/empregabilidade/new/empresa">
+                <Button variant="outline" className="cursor-pointer">
+                  <BookPlus className="mr-2 h-4 w-4" />
+                  Nova empresa
+                </Button>
+              </Link>
 
               <Link href="/gorio/empregabilidade/new">
                 <Button className="cursor-pointer">

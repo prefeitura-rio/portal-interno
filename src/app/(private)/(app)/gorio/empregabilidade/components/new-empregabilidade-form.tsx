@@ -1,7 +1,12 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import React, { forwardRef, useImperativeHandle, useState, useMemo } from 'react'
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  useMemo,
+} from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -233,7 +238,10 @@ export const NewEmpregabilidadeForm = forwardRef<
                         </SelectTrigger>
                         <SelectContent>
                           {empresasOptions.map(empresa => (
-                            <SelectItem key={empresa.value} value={empresa.value}>
+                            <SelectItem
+                              key={empresa.value}
+                              value={empresa.value}
+                            >
                               {empresa.label}
                             </SelectItem>
                           ))}
