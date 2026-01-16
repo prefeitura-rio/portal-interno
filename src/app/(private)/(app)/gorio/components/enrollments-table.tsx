@@ -59,8 +59,8 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { AddParticipantsModal } from './add-participants'
-import { getScheduleOptions } from './add-participants/utils/schedule-helpers'
 import type { CourseData } from './add-participants/types'
+import { getScheduleOptions } from './add-participants/utils/schedule-helpers'
 
 // Constantes para validação de certificados
 const VALID_CERTIFICATE_EXTENSIONS = [
@@ -2184,10 +2184,12 @@ export function EnrollmentsTable({
 
         <DataTableActionBar table={table}>
           <DataTableActionBarSelection table={table} />
+          {/* Bulk action buttons - logic aligned with individual buttons */}
+          {/* Allows actions for online courses without defined dates */}
           <DataTableActionBarAction
             tooltip="Confirmar todas as inscrições selecionadas"
             onClick={handleBulkConfirmEnrollments}
-            disabled={isCourseFinished}
+            disabled={isCourseFinished && !isOnlineCourseWithoutDates}
           >
             <CheckCircle className="mr-2 h-4 w-4" />
             Confirmar inscrições
@@ -2195,7 +2197,7 @@ export function EnrollmentsTable({
           <DataTableActionBarAction
             tooltip="Definir todas as inscrições selecionadas como pendentes"
             onClick={handleBulkSetPending}
-            disabled={isCourseFinished}
+            disabled={isCourseFinished && !isOnlineCourseWithoutDates}
           >
             <Clock className="mr-2 h-4 w-4" />
             Definir como pendentes
@@ -2203,7 +2205,7 @@ export function EnrollmentsTable({
           <DataTableActionBarAction
             tooltip="Recusar inscrições selecionadas"
             onClick={handleBulkCancelEnrollments}
-            disabled={isCourseFinished}
+            disabled={isCourseFinished && !isOnlineCourseWithoutDates}
           >
             <XCircle className="mr-2 h-4 w-4" />
             Recusar inscrições
