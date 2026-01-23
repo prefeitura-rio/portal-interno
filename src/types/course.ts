@@ -1,4 +1,5 @@
 import type { Accessibility } from '../app/(private)/(app)/gorio/components/new-course-form'
+import type { ModelsCitizenPersonalInfo } from '@/http-gorio/models'
 
 // API Response types based on actual API responses
 export interface ApiPagination {
@@ -323,6 +324,7 @@ export interface Enrollment {
   notes?: string
   reason?: string
   customFields?: CustomField[]
+  personal_info?: ModelsCitizenPersonalInfo
   created_at: string
   updated_at: string
   certificateUrl?: string

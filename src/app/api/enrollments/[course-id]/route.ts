@@ -197,6 +197,7 @@ function convertApiEnrollmentToFrontend(
     })(),
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
     schedule_id: (apiEnrollment as any).schedule_id as string | undefined,
+    personal_info: apiEnrollment.personal_info as any,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     updated_at:
