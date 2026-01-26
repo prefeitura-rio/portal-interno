@@ -1012,45 +1012,6 @@ export function EnrollmentsTable({
         }
       }
 
-      // Prioridade de fontes de idade:
-      // 1. personal_info.data_nascimento (do RMI) - mais confiável e atualizada
-      // 2. enrollment.age (do banco - Super App ou inscrição manual)
-      // 3. customFields.idade (campos customizados do curso)
-      const personalInfo = enrollment.personal_info
-      let idadeValue = ''
-
-      // 1ª prioridade: calcular idade a partir de data_nascimento do RMI
-      if (personalInfo?.data_nascimento) {
-        const birthDate = new Date(personalInfo.data_nascimento)
-        const today = new Date()
-        let age = today.getFullYear() - birthDate.getFullYear()
-        const monthDiff = today.getMonth() - birthDate.getMonth()
-        if (
-          monthDiff < 0 ||
-          (monthDiff === 0 && today.getDate() < birthDate.getDate())
-        ) {
-          age--
-        }
-        idadeValue = age.toString()
-      }
-
-      // 2ª prioridade: usar campo age do banco (Super App ou inscrição manual)
-      if (!idadeValue && enrollment.age && enrollment.age > 0) {
-        idadeValue = enrollment.age.toString()
-      }
-
-      // 3ª prioridade: buscar idade em customFields
-      if (!idadeValue) {
-        if (Array.isArray(customFieldsObj)) {
-          const idadeField = customFieldsObj.find(
-            (f: any) => f.id === 'idade' || f.title === 'Idade'
-          )
-          idadeValue = idadeField?.value || ''
-        } else if (customFieldsObj && typeof customFieldsObj === 'object') {
-          idadeValue = customFieldsObj.idade?.value || ''
-        }
-      }
-
       // Create row object with headers as keys
       const row: Record<string, string | number> = {
         Nome: enrollment.candidateName || '',
@@ -1413,69 +1374,30 @@ export function EnrollmentsTable({
                         </div>
                       </div>
                       {(() => {
-                        // Prioridade de fontes de idade:
-                        // 1. personal_info.data_nascimento (do RMI) - mais confiável e atualizada
-                        // 2. enrollment.age (do banco - Super App ou inscrição manual)
-                        // 3. customFields.idade (campos customizados do curso)
-                        const personalInfo = selectedEnrollment.personal_info
-                        let idadeValue = ''
+                        // Buscar idade nos customFields (pode vir como objeto ou array)
+                        const customFieldsObj =
+                          selectedEnrollment.customFields as any
+                        let idadeField = null
 
-                        // 1ª prioridade: calcular idade a partir de data_nascimento do RMI
-                        if (personalInfo?.data_nascimento) {
-                          const birthDate = new Date(
-                            personalInfo.data_nascimento
+                        if (Array.isArray(customFieldsObj)) {
+                          idadeField = customFieldsObj.find(
+                            (f: any) => f.id === 'idade'
                           )
-                          const today = new Date()
-                          let age =
-                            today.getFullYear() - birthDate.getFullYear()
-                          const monthDiff =
-                            today.getMonth() - birthDate.getMonth()
-                          if (
-                            monthDiff < 0 ||
-                            (monthDiff === 0 &&
-                              today.getDate() < birthDate.getDate())
-                          ) {
-                            age--
-                          }
-                          idadeValue = age.toString()
-                        }
-
-                        // 2ª prioridade: usar campo age do banco (Super App ou inscrição manual)
-                        if (
-                          !idadeValue &&
-                          selectedEnrollment.age &&
-                          selectedEnrollment.age > 0
+                        } else if (
+                          customFieldsObj &&
+                          typeof customFieldsObj === 'object'
                         ) {
-                          idadeValue = selectedEnrollment.age.toString()
+                          idadeField = customFieldsObj.idade
                         }
 
-                        // 3ª prioridade: buscar idade em customFields
-                        if (!idadeValue) {
-                          const customFieldsObj =
-                            selectedEnrollment.customFields as any
-
-                          if (Array.isArray(customFieldsObj)) {
-                            const idadeField = customFieldsObj.find(
-                              (f: any) =>
-                                f.id === 'idade' || f.title === 'Idade'
-                            )
-                            idadeValue = idadeField?.value || ''
-                          } else if (
-                            customFieldsObj &&
-                            typeof customFieldsObj === 'object'
-                          ) {
-                            idadeValue = customFieldsObj.idade?.value || ''
-                          }
-                        }
-
-                        return idadeValue ? (
+                        return idadeField?.value ? (
                           <div className="flex items-center gap-3">
                             <Hash className="w-4 h-4 text-muted-foreground" />
                             <div>
                               <Label className="text-xs text-muted-foreground">
                                 Idade
                               </Label>
-                              <p className="text-sm">{idadeValue}</p>
+                              <p className="text-sm">{idadeField.value}</p>
                             </div>
                           </div>
                         ) : null

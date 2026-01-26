@@ -1,4 +1,3 @@
-import type { ModelsCitizenPersonalInfo } from '@/http-gorio/models'
 import type { Accessibility } from '../app/(private)/(app)/gorio/components/new-course-form'
 
 // API Response types based on actual API responses
@@ -27,10 +26,7 @@ export interface ApiCourse {
   enrollment_end_date?: string | null
   // External partner fields
   is_external_partner?: boolean
-  course_management_type?:
-    | 'OWN_ORG'
-    | 'EXTERNAL_MANAGED_BY_ORG'
-    | 'EXTERNAL_MANAGED_BY_PARTNER'
+  course_management_type?: 'OWN_ORG' | 'EXTERNAL_MANAGED_BY_ORG' | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
   external_partner_url?: string
   external_partner_logo_url?: string
@@ -76,10 +72,7 @@ export interface CourseListItem {
   orgao_id?: string | null
   // External partner fields (optional for CourseListItem)
   is_external_partner?: boolean
-  course_management_type?:
-    | 'OWN_ORG'
-    | 'EXTERNAL_MANAGED_BY_ORG'
-    | 'EXTERNAL_MANAGED_BY_PARTNER'
+  course_management_type?: 'OWN_ORG' | 'EXTERNAL_MANAGED_BY_ORG' | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
 }
 
@@ -185,11 +178,7 @@ export interface Course {
   updated_at: Date
 }
 
-export type CourseModality =
-  | 'Presencial'
-  | 'Remoto'
-  | 'Semipresencial'
-  | 'Livre formação (online)'
+export type CourseModality = 'Presencial' | 'Remoto' | 'Semipresencial' | 'Livre formação (online)'
 
 export interface CourseLocation {
   id: string
@@ -329,13 +318,11 @@ export interface Enrollment {
   phone: string
   address?: string
   neighborhood?: string
-  age?: number
   enrollmentDate: string
   status: EnrollmentStatus
   notes?: string
   reason?: string
   customFields?: CustomField[]
-  personal_info?: ModelsCitizenPersonalInfo
   created_at: string
   updated_at: string
   certificateUrl?: string
