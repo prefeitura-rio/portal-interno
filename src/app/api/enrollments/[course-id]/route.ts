@@ -61,7 +61,7 @@ function convertFrontendStatusToApi(
 // Helper function to convert API enrollment to frontend enrollment
 function convertApiEnrollmentToFrontend(
   apiEnrollment: ModelsInscricao,
-  courseCustomFields?: Array<{
+  courseCustomFields?: Array<{ 
     id: string
     title?: string
     name?: string
@@ -70,6 +70,14 @@ function convertApiEnrollmentToFrontend(
     options?: Array<{ id: string; value: string }>
   }>
 ): Enrollment {
+  // Calculate age from enrolled_at date (rough estimate - ideally should use birth date)
+  // console.log('📋 API Enrollment Data:', JSON.stringify(apiEnrollment, null, 2))
+
+  const enrolledDate = new Date((apiEnrollment.enrolled_at as string) || '')
+  const currentYear = new Date().getFullYear()
+  const enrolledYear = enrolledDate.getFullYear()
+  const estimatedAge = Math.max(18, 30 + (currentYear - enrolledYear)) // Fallback age calculation
+
   const converted = {
     id: (apiEnrollment.id as string) || '',
     courseId: (apiEnrollment.course_id as number)?.toString() || '',
@@ -79,7 +87,6 @@ function convertApiEnrollmentToFrontend(
     phone: (apiEnrollment.phone as string) || '',
     address: (apiEnrollment.address as string) || undefined,
     neighborhood: (apiEnrollment.neighborhood as string) || undefined,
-    age: (apiEnrollment.age as number) || undefined,
     enrollmentDate:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     status: convertApiStatusToFrontend(
@@ -120,76 +127,69 @@ function convertApiEnrollmentToFrontend(
 
       if (typeof fields === 'object') {
         // fields is an object where keys are UUIDs and values are the responses
-        const convertedFields = Object.entries(
-          fields as Record<string, unknown>
-        ).map(([fieldId, fieldData]) => {
-          // Try to find the field definition in course custom fields
-          const fieldDefinition = courseCustomFields?.find(
-            cf => cf.id === fieldId
-          )
+        const convertedFields = Object.entries(fields as Record<string, unknown>).map(
+          ([fieldId, fieldData]) => {
+            // Try to find the field definition in course custom fields
+            const fieldDefinition = courseCustomFields?.find(cf => cf.id === fieldId)
 
-          // Handle the case where fieldData is an object with {id, title, value, required}
-          let title = fieldId
-          let value = ''
-          let required = false
+            // Handle the case where fieldData is an object with {id, title, value, required}
+            let title = fieldId
+            let value = ''
+            let required = false
 
-          if (
-            fieldData &&
-            typeof fieldData === 'object' &&
-            !Array.isArray(fieldData)
-          ) {
-            const fieldObj = fieldData as {
-              id?: string
-              title?: string
-              value?: unknown
-              required?: boolean
-            }
-
-            // Extract title, preferring the one from fieldData, then from definition, then fallback to fieldId
-            title =
-              fieldObj.title ||
-              fieldDefinition?.title ||
-              fieldDefinition?.name ||
-              fieldId
-
-            // Extract value - handle different types
-            if (fieldObj.value !== undefined && fieldObj.value !== null) {
-              if (Array.isArray(fieldObj.value)) {
-                value = fieldObj.value.join(', ')
-              } else if (typeof fieldObj.value === 'object') {
-                // If value is an object, try to stringify it or get a meaningful representation
-                value = JSON.stringify(fieldObj.value)
-              } else {
-                value = String(fieldObj.value)
+            if (fieldData && typeof fieldData === 'object' && !Array.isArray(fieldData)) {
+              const fieldObj = fieldData as {
+                id?: string
+                title?: string
+                value?: unknown
+                required?: boolean
               }
+
+              // Extract title, preferring the one from fieldData, then from definition, then fallback to fieldId
+              title =
+                fieldObj.title ||
+                fieldDefinition?.title ||
+                fieldDefinition?.name ||
+                fieldId
+
+              // Extract value - handle different types
+              if (fieldObj.value !== undefined && fieldObj.value !== null) {
+                if (Array.isArray(fieldObj.value)) {
+                  value = fieldObj.value.join(', ')
+                } else if (typeof fieldObj.value === 'object') {
+                  // If value is an object, try to stringify it or get a meaningful representation
+                  value = JSON.stringify(fieldObj.value)
+                } else {
+                  value = String(fieldObj.value)
+                }
+              }
+
+              // Extract required flag
+              required = Boolean(fieldObj.required ?? fieldDefinition?.required ?? false)
+            } else {
+              // Fallback: if fieldData is not an object, treat it as a direct value
+              title =
+                fieldDefinition?.title || fieldDefinition?.name || fieldId
+              value =
+                fieldData !== undefined && fieldData !== null
+                  ? Array.isArray(fieldData)
+                    ? fieldData.join(', ')
+                    : String(fieldData)
+                  : ''
+              required = Boolean(fieldDefinition?.required ?? false)
             }
 
-            // Extract required flag
-            required = Boolean(
-              fieldObj.required ?? fieldDefinition?.required ?? false
-            )
-          } else {
-            // Fallback: if fieldData is not an object, treat it as a direct value
-            title = fieldDefinition?.title || fieldDefinition?.name || fieldId
-            value =
-              fieldData !== undefined && fieldData !== null
-                ? Array.isArray(fieldData)
-                  ? fieldData.join(', ')
-                  : String(fieldData)
-                : ''
-            required = Boolean(fieldDefinition?.required ?? false)
+            return {
+              id: fieldId,
+              title,
+              value,
+              required,
+              field_type: fieldDefinition?.field_type,
+              options: fieldDefinition?.options,
+            }
           }
-
-          return {
-            id: fieldId,
-            title,
-            value,
-            required,
-            field_type: fieldDefinition?.field_type,
-            options: fieldDefinition?.options,
-          }
-        })
-
+        )
+        
         return convertedFields
       }
 
@@ -197,7 +197,6 @@ function convertApiEnrollmentToFrontend(
     })(),
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
     schedule_id: (apiEnrollment as any).schedule_id as string | undefined,
-    personal_info: apiEnrollment.personal_info as any,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     updated_at:
@@ -252,13 +251,10 @@ export async function GET(
     }
 
     // Fetch course data to get custom fields definitions
-    const courseResponse = await getApiV1CoursesCourseId(
-      Number.parseInt(courseId, 10)
-    )
-    const courseCustomFields =
-      courseResponse.status === 200
-        ? (courseResponse.data as any)?.data?.custom_fields || []
-        : []
+    const courseResponse = await getApiV1CoursesCourseId(Number.parseInt(courseId, 10))
+    const courseCustomFields = courseResponse.status === 200
+      ? ((courseResponse.data as any)?.data?.custom_fields || [])
+      : []
 
     // Call the API
     const response = await getApiV1CoursesCourseIdEnrollments(
@@ -288,9 +284,8 @@ export async function GET(
         apiData.data?.enrollments &&
         Array.isArray(apiData.data.enrollments)
       ) {
-        enrollments = apiData.data.enrollments.map(
-          (enrollment: ModelsInscricao) =>
-            convertApiEnrollmentToFrontend(enrollment, courseCustomFields)
+        enrollments = apiData.data.enrollments.map((enrollment: ModelsInscricao) =>
+          convertApiEnrollmentToFrontend(enrollment, courseCustomFields)
         )
       }
 
@@ -377,13 +372,10 @@ export async function PATCH(
     const apiStatus = convertFrontendStatusToApi(status as EnrollmentStatus)
 
     // Fetch course data to get custom fields definitions
-    const courseResponse = await getApiV1CoursesCourseId(
-      Number.parseInt(courseId, 10)
-    )
-    const courseCustomFields =
-      courseResponse.status === 200
-        ? (courseResponse.data as any)?.data?.custom_fields || []
-        : []
+    const courseResponse = await getApiV1CoursesCourseId(Number.parseInt(courseId, 10))
+    const courseCustomFields = courseResponse.status === 200
+      ? ((courseResponse.data as any)?.data?.custom_fields || [])
+      : []
 
     // Call the API to update individual enrollment status
     const response = await putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus(
@@ -398,10 +390,7 @@ export async function PATCH(
 
     if (response.status === 200) {
       const apiEnrollment = response.data as ModelsInscricao
-      const updatedEnrollment = convertApiEnrollmentToFrontend(
-        apiEnrollment,
-        courseCustomFields
-      )
+      const updatedEnrollment = convertApiEnrollmentToFrontend(apiEnrollment, courseCustomFields)
 
       return NextResponse.json(updatedEnrollment)
     }
@@ -504,24 +493,19 @@ export async function POST(
     }
 
     const body = await request.json()
-    const {
-      name,
-      cpf,
-      age,
-      phone,
-      email,
-      address,
-      neighborhood,
-      schedule_id,
-      custom_fields,
-    } = body
+    const { name, cpf, age, phone, email, address, neighborhood, schedule_id, custom_fields } =
+      body
 
-    if (!name || !cpf || !age || !phone || !address || !neighborhood) {
+    if (
+      !name ||
+      !cpf ||
+      !age ||
+      !phone ||
+      !address ||
+      !neighborhood
+    ) {
       return NextResponse.json(
-        {
-          error:
-            'Required fields: name, cpf, age, phone, address, neighborhood',
-        },
+        { error: 'Required fields: name, cpf, age, phone, address, neighborhood' },
         { status: 400 }
       )
     }
@@ -540,13 +524,10 @@ export async function POST(
     }
 
     // Fetch course data to get custom fields definitions
-    const courseResponse = await getApiV1CoursesCourseId(
-      Number.parseInt(courseId, 10)
-    )
-    const courseCustomFields =
-      courseResponse.status === 200
-        ? (courseResponse.data as any)?.data?.custom_fields || []
-        : []
+    const courseResponse = await getApiV1CoursesCourseId(Number.parseInt(courseId, 10))
+    const courseCustomFields = courseResponse.status === 200
+      ? ((courseResponse.data as any)?.data?.custom_fields || [])
+      : []
 
     // Call the API to create manual enrollment
     const response = await postApiV1CoursesCourseIdEnrollmentsManual(
@@ -555,10 +536,7 @@ export async function POST(
     )
     if (response.status === 201) {
       const apiEnrollment = response.data as ModelsInscricao
-      const newEnrollment = convertApiEnrollmentToFrontend(
-        apiEnrollment,
-        courseCustomFields
-      )
+      const newEnrollment = convertApiEnrollmentToFrontend(apiEnrollment, courseCustomFields)
 
       return NextResponse.json(newEnrollment, { status: 201 })
     }
@@ -569,7 +547,7 @@ export async function POST(
       {
         error: 'Failed to create manual enrollment',
         backendError: response.data,
-        status: response.status,
+        status: response.status
       },
       { status: response.status }
     )
