@@ -895,8 +895,14 @@ export function EnrollmentsTable({
       // Extract socioeconomic info from personal_info first, then fallback to customFields
       const personalInfo = enrollment.personal_info
 
-      // Calculate idade from data_nascimento
+      // Prioridade de fontes de idade:
+      // 1. personal_info.data_nascimento (do RMI) - mais confiável e atualizada
+      // 2. enrollment.age (do banco - Super App ou inscrição manual)
+      // 3. customFields.idade (campos customizados do curso)
+
       let idadeValue = ''
+
+      // 1ª prioridade: calcular idade a partir de data_nascimento do RMI
       if (personalInfo?.data_nascimento) {
         const birthDate = new Date(personalInfo.data_nascimento)
         const today = new Date()
@@ -911,7 +917,12 @@ export function EnrollmentsTable({
         idadeValue = age.toString()
       }
 
-      // Fallback: buscar idade em customFields
+      // 2ª prioridade: usar campo age do banco (Super App ou inscrição manual)
+      if (!idadeValue && enrollment.age && enrollment.age > 0) {
+        idadeValue = enrollment.age.toString()
+      }
+
+      // 3ª prioridade: buscar idade em customFields
       if (!idadeValue) {
         const customFieldsObj = enrollment.customFields as any
         if (Array.isArray(customFieldsObj)) {

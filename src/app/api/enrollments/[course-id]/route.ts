@@ -70,13 +70,6 @@ function convertApiEnrollmentToFrontend(
     options?: Array<{ id: string; value: string }>
   }>
 ): Enrollment {
-  // Calculate age from enrolled_at date (rough estimate - ideally should use birth date)
-  // console.log('📋 API Enrollment Data:', JSON.stringify(apiEnrollment, null, 2))
-
-  const enrolledDate = new Date((apiEnrollment.enrolled_at as string) || '')
-  const currentYear = new Date().getFullYear()
-  const enrolledYear = enrolledDate.getFullYear()
-  const estimatedAge = Math.max(18, 30 + (currentYear - enrolledYear)) // Fallback age calculation
 
   const converted = {
     id: (apiEnrollment.id as string) || '',
@@ -87,6 +80,7 @@ function convertApiEnrollmentToFrontend(
     phone: (apiEnrollment.phone as string) || '',
     address: (apiEnrollment.address as string) || undefined,
     neighborhood: (apiEnrollment.neighborhood as string) || undefined,
+    age: (apiEnrollment.age as number) || undefined,
     enrollmentDate:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     status: convertApiStatusToFrontend(
