@@ -319,6 +319,7 @@ export interface Enrollment {
   phone: string
   address?: string
   neighborhood?: string
+  age?: number
   enrollmentDate: string
   status: EnrollmentStatus
   notes?: string
