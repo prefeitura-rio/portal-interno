@@ -5,6 +5,7 @@
  * API de serviços para aplicativos da Prefeitura do Rio
  * OpenAPI spec version: 1.0
  */
+import type { ModelsCitizenPersonalInfo } from './modelsCitizenPersonalInfo'
 import type { ModelsCurso } from './modelsCurso'
 import type { ModelsEnrolledUnit } from './modelsEnrolledUnit'
 import type { ModelsInscricaoCustomFields } from './modelsInscricaoCustomFields'
@@ -30,6 +31,7 @@ export interface ModelsInscricao {
   name?: string
   /** Bairro */
   neighborhood?: string
+  personal_info?: ModelsCitizenPersonalInfo
   phone?: string
   reason?: string
   schedule_id?: string
