@@ -87,6 +87,7 @@ function convertApiEnrollmentToFrontend(
     phone: (apiEnrollment.phone as string) || '',
     address: (apiEnrollment.address as string) || undefined,
     neighborhood: (apiEnrollment.neighborhood as string) || undefined,
+    age: (apiEnrollment.age as number) || undefined,
     enrollmentDate:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     status: convertApiStatusToFrontend(
@@ -195,6 +196,7 @@ function convertApiEnrollmentToFrontend(
 
       return []
     })(),
+    personal_info: apiEnrollment.personal_info as any,
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
     schedule_id: (apiEnrollment as any).schedule_id as string | undefined,
     created_at:
