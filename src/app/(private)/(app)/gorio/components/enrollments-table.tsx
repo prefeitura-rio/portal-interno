@@ -292,6 +292,55 @@ export function EnrollmentsTable({
     filters,
   })
 
+  /**
+   * Extrai a idade de uma inscrição com hierarquia de fallback
+   * 1. Calcula de personal_info.data_nascimento (mais preciso)
+   * 2. Usa campo age direto
+   * 3. Busca em customFields
+   */
+  const getEnrollmentAge = React.useCallback((enrollment: Enrollment): string => {
+    // Prioridade 1: Calcular de data_nascimento
+    if (enrollment.personal_info?.data_nascimento) {
+      try {
+        const birthDate = new Date(enrollment.personal_info.data_nascimento)
+        const today = new Date()
+        let age = today.getFullYear() - birthDate.getFullYear()
+        const monthDiff = today.getMonth() - birthDate.getMonth()
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--
+        }
+        // Validação de sanidade
+        if (age >= 0 && age <= 150) {
+          return age.toString()
+        }
+      } catch (error) {
+        console.warn('Erro ao calcular idade de data_nascimento:', error)
+      }
+    }
+
+    // Prioridade 2: Campo age direto
+    if (enrollment.age !== undefined && enrollment.age !== null) {
+      return enrollment.age.toString()
+    }
+
+    // Prioridade 3: Custom fields
+    const customFieldsObj = enrollment.customFields as any
+    if (Array.isArray(customFieldsObj)) {
+      const idadeField = customFieldsObj.find(
+        (f: any) => f.id === 'idade' || f.title === 'Idade'
+      )
+      if (idadeField?.value) {
+        return idadeField.value
+      }
+    } else if (customFieldsObj && typeof customFieldsObj === 'object') {
+      if (customFieldsObj.idade?.value) {
+        return customFieldsObj.idade.value
+      }
+    }
+
+    return ''
+  }, [])
+
   const handleConfirmEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
       try {
@@ -822,13 +871,33 @@ export function EnrollmentsTable({
       return
     }
 
-    // Get all unique custom field titles, excluding cidade and estado (they will be in fixed columns)
+    // Socioeconomic field IDs to exclude from custom fields section
+    const socioeconomicFieldIds = [
+      'endereco',
+      'bairro',
+      'cidade',
+      'estado',
+      'pessoa_com_deficiencia',
+      'raca',
+      'genero',
+      'renda_familiar',
+      'escolaridade',
+      'idade',
+    ]
+
+    // Get all unique custom field titles, excluding socioeconomic fields
     const allCustomFieldTitles = Array.from(
       new Set(
         enrollmentsToExport
           .flatMap(enrollment => enrollment.customFields || [])
+          .filter(field => {
+            const fieldId = field.id || ''
+            const fieldTitle = field.title || ''
+            return !socioeconomicFieldIds.includes(fieldId.toLowerCase()) &&
+              fieldTitle !== 'Cidade' &&
+              fieldTitle !== 'Estado'
+          })
           .map(field => field.title)
-          .filter(title => title !== 'Cidade' && title !== 'Estado')
       )
     )
 
@@ -845,6 +914,12 @@ export function EnrollmentsTable({
       'Bairro',
       'Cidade',
       'Estado',
+      'Raça',
+      'Idade',
+      'Gênero',
+      'Escolaridade',
+      'Renda familiar',
+      'Pessoa com deficiência',
       'Código da Turma',
       'Turma',
       'Dias da Semana',
@@ -989,26 +1064,85 @@ export function EnrollmentsTable({
         }
       }
 
-      // Extract cidade and estado from customFields
-      const customFieldsObj = enrollment.customFields as any
-      let cidadeValue = ''
-      let estadoValue = ''
+      // Extract socioeconomic info from personal_info first, then fallback to customFields
+      const personalInfo = enrollment.personal_info
 
-      if (customFieldsObj) {
+      // Calcular idade usando a função utilitária
+      const idadeValue = getEnrollmentAge(enrollment)
+
+      // Extract raça
+      const racaValue = personalInfo?.raca || (() => {
+        const customFieldsObj = enrollment.customFields as any
         if (Array.isArray(customFieldsObj)) {
-          const cidadeField = customFieldsObj.find(
-            (f: any) => f.id === 'cidade' || f.title === 'Cidade'
-          )
-          const estadoField = customFieldsObj.find(
-            (f: any) => f.id === 'estado' || f.title === 'Estado'
-          )
-          cidadeValue = cidadeField?.value || ''
-          estadoValue = estadoField?.value || ''
-        } else if (typeof customFieldsObj === 'object') {
-          const cidadeField = customFieldsObj.cidade
-          const estadoField = customFieldsObj.estado
-          cidadeValue = cidadeField?.value || ''
-          estadoValue = estadoField?.value || ''
+          return customFieldsObj.find((f: any) => f.id === 'raca')?.value || ''
+        }
+        return customFieldsObj?.raca?.value || ''
+      })()
+
+      // Extract gênero
+      const generoValue = personalInfo?.genero || (() => {
+        const customFieldsObj = enrollment.customFields as any
+        if (Array.isArray(customFieldsObj)) {
+          return customFieldsObj.find((f: any) => f.id === 'genero')?.value || ''
+        }
+        return customFieldsObj?.genero?.value || ''
+      })()
+
+      // Extract escolaridade
+      const escolaridadeValue = personalInfo?.escolaridade || (() => {
+        const customFieldsObj = enrollment.customFields as any
+        if (Array.isArray(customFieldsObj)) {
+          return customFieldsObj.find((f: any) => f.id === 'escolaridade')?.value || ''
+        }
+        return customFieldsObj?.escolaridade?.value || ''
+      })()
+
+      // Extract renda_familiar
+      const rendaFamiliarValue = personalInfo?.renda_familiar || (() => {
+        const customFieldsObj = enrollment.customFields as any
+        if (Array.isArray(customFieldsObj)) {
+          return customFieldsObj.find((f: any) => f.id === 'renda_familiar')?.value || ''
+        }
+        return customFieldsObj?.renda_familiar?.value || ''
+      })()
+
+      // Extract deficiência
+      const deficienciaValue = personalInfo?.deficiencia || (() => {
+        const customFieldsObj = enrollment.customFields as any
+        if (Array.isArray(customFieldsObj)) {
+          return customFieldsObj.find((f: any) => f.id === 'pessoa_com_deficiencia')?.value || ''
+        }
+        return customFieldsObj?.pessoa_com_deficiencia?.value || ''
+      })()
+
+      // Extract cidade and estado from personal_info first, then fallback to customFields
+      const enderecoInfo = personalInfo?.endereco
+      let cidadeValue = enderecoInfo?.municipio || ''
+      let estadoValue = enderecoInfo?.estado || ''
+      const enderecoCompleto = enderecoInfo
+        ? `${enderecoInfo.logradouro || ''}${enderecoInfo.numero ? `, ${enderecoInfo.numero}` : ''}${enderecoInfo.complemento ? ` - ${enderecoInfo.complemento}` : ''}`.trim()
+        : ''
+      const bairroValue = enderecoInfo?.bairro || ''
+
+      // Fallback: Extract cidade and estado from customFields if not in personal_info
+      if (!cidadeValue || !estadoValue) {
+        const customFieldsObj = enrollment.customFields as any
+        if (customFieldsObj) {
+          if (Array.isArray(customFieldsObj)) {
+            const cidadeField = customFieldsObj.find(
+              (f: any) => f.id === 'cidade' || f.title === 'Cidade'
+            )
+            const estadoField = customFieldsObj.find(
+              (f: any) => f.id === 'estado' || f.title === 'Estado'
+            )
+            cidadeValue = cidadeValue || cidadeField?.value || ''
+            estadoValue = estadoValue || estadoField?.value || ''
+          } else if (typeof customFieldsObj === 'object') {
+            const cidadeField = customFieldsObj.cidade
+            const estadoField = customFieldsObj.estado
+            cidadeValue = cidadeValue || cidadeField?.value || ''
+            estadoValue = estadoValue || estadoField?.value || ''
+          }
         }
       }
 
@@ -1023,10 +1157,16 @@ export function EnrollmentsTable({
           enrollment.enrollmentDate
         ).toLocaleDateString('pt-BR'),
         Status: enrollment.status || '',
-        Endereço: enrollment.address || enrolledUnit?.address || '',
-        Bairro: enrollment.neighborhood || enrolledUnit?.neighborhood || '',
+        Endereço: enderecoCompleto || enrollment.address || enrolledUnit?.address || '',
+        Bairro: bairroValue || enrollment.neighborhood || enrolledUnit?.neighborhood || '',
         Cidade: cidadeValue,
         Estado: estadoValue,
+        Raça: racaValue,
+        Idade: idadeValue,
+        Gênero: generoValue,
+        Escolaridade: escolaridadeValue,
+        'Renda familiar': rendaFamiliarValue,
+        'Pessoa com deficiência': deficienciaValue,
         'Código da Turma': scheduleDetails.id,
         Turma: turmaLabel,
         'Dias da Semana': scheduleDetails.class_days,
@@ -1073,7 +1213,7 @@ export function EnrollmentsTable({
 
     // Write file and trigger download
     XLSX.writeFile(workbook, `${fileName}.xlsx`)
-  }, [enrollments, courseId, courseTitle, course])
+  }, [enrollments, courseId, courseTitle, course, getEnrollmentAge])
 
   const handleBulkCancelEnrollments = React.useCallback(async () => {
     try {
@@ -1374,30 +1514,16 @@ export function EnrollmentsTable({
                         </div>
                       </div>
                       {(() => {
-                        // Buscar idade nos customFields (pode vir como objeto ou array)
-                        const customFieldsObj =
-                          selectedEnrollment.customFields as any
-                        let idadeField = null
+                        const idadeValue = getEnrollmentAge(selectedEnrollment)
 
-                        if (Array.isArray(customFieldsObj)) {
-                          idadeField = customFieldsObj.find(
-                            (f: any) => f.id === 'idade'
-                          )
-                        } else if (
-                          customFieldsObj &&
-                          typeof customFieldsObj === 'object'
-                        ) {
-                          idadeField = customFieldsObj.idade
-                        }
-
-                        return idadeField?.value ? (
+                        return idadeValue ? (
                           <div className="flex items-center gap-3">
                             <Hash className="w-4 h-4 text-muted-foreground" />
                             <div>
                               <Label className="text-xs text-muted-foreground">
                                 Idade
                               </Label>
-                              <p className="text-sm">{idadeField.value}</p>
+                              <p className="text-sm">{idadeValue} anos</p>
                             </div>
                           </div>
                         ) : null
