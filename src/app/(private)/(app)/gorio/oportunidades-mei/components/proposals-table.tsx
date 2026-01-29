@@ -600,9 +600,9 @@ export function ProposalsTable({
             !legalEntity
 
           return (
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">
+            <div className="flex items-start gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <span className="font-medium whitespace-normal break-words inline-block min-w-[200px]">
                 {isLoading ? 'Carregando...' : displayName}
               </span>
             </div>
