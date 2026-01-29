@@ -62,6 +62,58 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import * as React from 'react'
 
+/**
+ * Maximum length for search input
+ *
+ * Prevents URL from becoming too long (HTTP spec limits URLs to ~2000 chars)
+ * Edge case: 200 chars is reasonable for search terms while keeping URLs clean
+ */
+const MAX_SEARCH_LENGTH = 200
+
+/**
+ * Wrapper for DataTableToolbar that enforces max length on search input
+ *
+ * Edge cases handled:
+ * - Truncates input if user pastes text > maxLength
+ * - Silent truncation (no error toast to avoid spam during typing)
+ * - Preserves all other toolbar functionality
+ */
+function DataTableToolbarWithValidation<TData>({
+  table,
+  maxSearchLength,
+}: {
+  table: any
+  maxSearchLength: number
+}) {
+  // Intercept title column setFilterValue to enforce max length
+  const originalColumns = table.getAllColumns()
+  const titleColumn = originalColumns.find((col: any) => col.id === 'title')
+
+  React.useEffect(() => {
+    if (!titleColumn) return
+
+    // Store original setFilterValue
+    const originalSetFilterValue = titleColumn.setFilterValue
+
+    // Override with validation wrapper
+    titleColumn.setFilterValue = (value: any) => {
+      if (typeof value === 'string' && value.length > maxSearchLength) {
+        // Truncate silently - better UX than error toast during typing
+        originalSetFilterValue(value.substring(0, maxSearchLength))
+      } else {
+        originalSetFilterValue(value)
+      }
+    }
+
+    // Cleanup: restore original on unmount
+    return () => {
+      titleColumn.setFilterValue = originalSetFilterValue
+    }
+  }, [titleColumn, maxSearchLength])
+
+  return <DataTableToolbar table={table} />
+}
+
 // Status configuration for badges
 const statusConfig: Record<ServiceStatus, ServiceStatusConfig> = {
   published: {
@@ -106,8 +158,19 @@ export function ServicesDataTable() {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'last_update', desc: true },
   ])
+
+  // Initialize columnFilters from URL search param
+  // Edge case: Function initializer runs once on mount, prevents stale closure
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    () => {
+      const searchFromUrl = searchParams.get('search') || ''
+      // Only initialize with filter if search term exists in URL
+      // Edge case: Empty string should not create filter entry
+      if (searchFromUrl) {
+        return [{ id: 'title', value: searchFromUrl }]
+      }
+      return []
+    }
   )
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
@@ -133,7 +196,12 @@ export function ServicesDataTable() {
 
   // Get active tab from search params, default to 'published'
   const activeTab = (searchParams.get('tab') || 'published') as ServiceStatus
-  const [searchQuery, setSearchQuery] = React.useState('')
+
+  // Initialize search from URL - decode automatically handles special chars
+  // Edge case: URLSearchParams.get() returns null-safe decoded string
+  const searchFromUrl = searchParams.get('search') || ''
+
+  const [searchQuery, setSearchQuery] = React.useState(searchFromUrl)
   const [selectedSecretaria, setSelectedSecretaria] = React.useState('')
   const [lastRefreshTimestamp, setLastRefreshTimestamp] = React.useState(
     Date.now()
@@ -242,35 +310,151 @@ export function ServicesDataTable() {
     }
   }, [services, activeTab, fetchTombamentos])
 
-  // Debounced search function with cleanup
+  /**
+   * Sync URL → State (handles browser back/forward navigation ONLY)
+   *
+   * CRITICAL: This effect should ONLY run on URL changes from browser navigation,
+   * NOT from our own router.replace() calls during typing.
+   *
+   * We use a ref to track if we're currently updating the URL from local state.
+   * This prevents the race condition where:
+   * 1. User types fast
+   * 2. Our debouncedUrlUpdate runs
+   * 3. searchParams changes
+   * 4. This effect runs and overwrites columnFilters with stale URL value
+   * 5. Last character gets deleted
+   *
+   * Edge cases handled:
+   * - Empty URL param removes filter (not adds empty filter)
+   * - Only updates if different (prevents infinite loop)
+   * - Preserves other filters (non-title filters remain untouched)
+   * - Special chars decoded automatically by URLSearchParams.get()
+   * - Ignores URL changes we caused ourselves (prevents character deletion bug)
+   */
+  const isUpdatingUrlRef = React.useRef(false)
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: columnFilters in deps would cause infinite loop
+  React.useEffect(() => {
+    // Skip if we're in the middle of updating URL from local state
+    if (isUpdatingUrlRef.current) {
+      return
+    }
+
+    const urlSearch = searchParams.get('search') || ''
+
+    // Find current title filter in columnFilters
+    const currentTitleFilter = columnFilters.find(f => f.id === 'title')
+    const currentSearch = (currentTitleFilter?.value as string) || ''
+
+    // Only update if URL differs from current state (avoid infinite loop)
+    if (urlSearch !== currentSearch) {
+      if (urlSearch) {
+        // Add or update title filter
+        setColumnFilters(prev => [
+          ...prev.filter(f => f.id !== 'title'),
+          { id: 'title', value: urlSearch },
+        ])
+      } else {
+        // Remove title filter
+        setColumnFilters(prev => prev.filter(f => f.id !== 'title'))
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]) // Only depend on searchParams - columnFilters causes infinite loop
+
+  // Debounced search function with cleanup (200ms for API calls)
   const debouncedSearch = useDebouncedCallback((query: string) => {
     setSearchQuery(query)
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
   }, 200)
 
-  // Handle search filter changes
+  /**
+   * Debounced URL update (500ms to avoid polluting browser history)
+   *
+   * Uses router.replace (not push) to avoid creating history entry per keystroke.
+   * Longer delay than API debounce to reduce URL churn.
+   *
+   * CRITICAL: Sets isUpdatingUrlRef flag to prevent URL→State sync from
+   * overwriting columnFilters during typing (fixes character deletion bug).
+   *
+   * Edge cases handled:
+   * - Empty query removes 'search' param (URL cleanup)
+   * - Preserves other params (tab, etc)
+   * - Special chars encoded automatically by URLSearchParams.set()
+   * - Flag prevents race condition between typing and URL sync
+   *
+   * Note: useDebouncedCallback uses useCallbackRef internally to maintain
+   * stable reference while allowing closure access to latest searchParams/router
+   */
+  const debouncedUrlUpdate = useDebouncedCallback((query: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+
+    if (query) {
+      // URLSearchParams.set() handles encoding automatically
+      params.set('search', query)
+    } else {
+      // Clean URL when search is empty
+      params.delete('search')
+    }
+
+    // Set flag to prevent URL→State sync from overwriting our local state
+    isUpdatingUrlRef.current = true
+
+    // Use replace to avoid creating history entries per keystroke
+    router.replace(`/servicos-municipais/servicos?${params.toString()}`, {
+      scroll: false, // Prevent scroll to top on URL change
+    })
+
+    // Clear flag after a tick to allow future browser navigation to work
+    setTimeout(() => {
+      isUpdatingUrlRef.current = false
+    }, 100)
+  }, 500)
+
+  /**
+   * Sync State → URL and State → API
+   *
+   * Triggers when columnFilters changes (user types in search input).
+   * Debounces both API call (200ms) and URL update (500ms).
+   *
+   * Edge case: Checks if value actually changed before triggering
+   */
   React.useEffect(() => {
     const titleFilter = columnFilters.find(filter => filter.id === 'title')
     const newSearchQuery = (titleFilter?.value as string) || ''
 
     if (newSearchQuery !== searchQuery) {
       debouncedSearch(newSearchQuery)
+      debouncedUrlUpdate(newSearchQuery)
     }
-  }, [columnFilters, debouncedSearch, searchQuery])
+  }, [columnFilters, debouncedSearch, debouncedUrlUpdate, searchQuery])
 
-  // Handle tab changes
+  /**
+   * Handle tab changes
+   *
+   * IMPORTANT: Does NOT reset search or filters - they persist across tabs.
+   * This is the core UX improvement: users can compare same search across statuses.
+   *
+   * Edge cases handled:
+   * - Reset pagination (page 3 in "Published" shouldn't carry to "In Edition")
+   * - Preserve search param automatically via searchParams.toString()
+   * - Use router.push (not replace) to create history entry for tab change
+   */
   const handleTabChange = React.useCallback(
     (value: string) => {
       // Reset to first page when changing tabs
+      // (different tabs may have different result counts)
       setPagination(prev => ({ ...prev, pageIndex: 0 }))
 
-      // Clear any pending debounced searches
-      setSearchQuery('')
-      setColumnFilters([])
+      // ✅ REMOVED: setSearchQuery('') - search now persists!
+      // ✅ REMOVED: setColumnFilters([]) - filters now persist!
 
       // Update URL with tab parameter
+      // searchParams.toString() automatically preserves existing 'search' param
       const params = new URLSearchParams(searchParams.toString())
       params.set('tab', value)
+
+      // Use push (not replace) to allow back navigation between tabs
       router.push(`/servicos-municipais/servicos?${params.toString()}`)
     },
     [router, searchParams]
@@ -812,18 +996,19 @@ export function ServicesDataTable() {
                     </DropdownMenuItem>
                   )}
                 {/* Send to edition - only for admins on awaiting_approval status */}
-                {isBuscaServicesAdmin && service.status === 'awaiting_approval' && (
-                  <DropdownMenuItem
-                    onClick={e => {
-                      e.stopPropagation()
-                      handleSendToEdition(service.id, service.title)
-                    }}
-                    disabled={operationLoading || isRefreshingAfterOperation}
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    Enviar para edição
-                  </DropdownMenuItem>
-                )}
+                {isBuscaServicesAdmin &&
+                  service.status === 'awaiting_approval' && (
+                    <DropdownMenuItem
+                      onClick={e => {
+                        e.stopPropagation()
+                        handleSendToEdition(service.id, service.title)
+                      }}
+                      disabled={operationLoading || isRefreshingAfterOperation}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Enviar para edição
+                    </DropdownMenuItem>
+                  )}
                 {isBuscaServicesAdmin && (
                   <>
                     {service.status === 'published' ? (
@@ -923,6 +1108,38 @@ export function ServicesDataTable() {
     activeTab,
   ])
 
+  /**
+   * Custom column filters handler that also clears URL params
+   *
+   * Edge case: When filters are cleared (empty array), remove 'search' from URL
+   */
+  const handleColumnFiltersChange = React.useCallback(
+    (updater: React.SetStateAction<ColumnFiltersState>) => {
+      setColumnFilters(updater)
+
+      // If filters were cleared completely (resetColumnFilters called)
+      // we need to also clear URL params
+      if (typeof updater === 'function') {
+        const newFilters = updater([])
+        if (newFilters.length === 0) {
+          const params = new URLSearchParams(searchParams.toString())
+          params.delete('search')
+          router.replace(`/servicos-municipais/servicos?${params.toString()}`, {
+            scroll: false,
+          })
+        }
+      } else if (updater.length === 0) {
+        // Direct empty array assignment
+        const params = new URLSearchParams(searchParams.toString())
+        params.delete('search')
+        router.replace(`/servicos-municipais/servicos?${params.toString()}`, {
+          scroll: false,
+        })
+      }
+    },
+    [router, searchParams]
+  )
+
   const table = useReactTable({
     data: services,
     columns,
@@ -933,7 +1150,7 @@ export function ServicesDataTable() {
       pagination,
     },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: handleColumnFiltersChange,
     onPaginationChange: updater => {
       setPagination(updater)
       // The useServices hook will automatically refetch when pagination changes
@@ -1007,10 +1224,16 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              window.open(`/servicos-municipais/servicos/servico/${service.id}`, '_blank')
+              window.open(
+                `/servicos-municipais/servicos/servico/${service.id}`,
+                '_blank'
+              )
             }}
           >
-            <DataTableToolbar table={table} />
+            <DataTableToolbarWithValidation
+              table={table}
+              maxSearchLength={MAX_SEARCH_LENGTH}
+            />
           </DataTable>
         </TabsContent>
 
@@ -1019,10 +1242,16 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              window.open(`/servicos-municipais/servicos/servico/${service.id}`, '_blank')
+              window.open(
+                `/servicos-municipais/servicos/servico/${service.id}`,
+                '_blank'
+              )
             }}
           >
-            <DataTableToolbar table={table} />
+            <DataTableToolbarWithValidation
+              table={table}
+              maxSearchLength={MAX_SEARCH_LENGTH}
+            />
           </DataTable>
         </TabsContent>
 
@@ -1031,10 +1260,16 @@ export function ServicesDataTable() {
             table={table}
             loading={loading || isRefreshingAfterOperation}
             onRowClick={service => {
-              window.open(`/servicos-municipais/servicos/servico/${service.id}`, '_blank')
+              window.open(
+                `/servicos-municipais/servicos/servico/${service.id}`,
+                '_blank'
+              )
             }}
           >
-            <DataTableToolbar table={table} />
+            <DataTableToolbarWithValidation
+              table={table}
+              maxSearchLength={MAX_SEARCH_LENGTH}
+            />
           </DataTable>
         </TabsContent>
       </Tabs>
