@@ -401,9 +401,9 @@ export default function Courses() {
           <DataTableColumnHeader column={column} title="Título do curso" />
         ),
         cell: ({ cell }) => (
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium max-w-[300px] truncate">
+          <div className="flex items-start gap-2">
+            <BookOpen className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <span className="font-medium whitespace-normal break-words inline-block min-w-[200px]">
               {cell.getValue<CourseListItem['title']>()}
             </span>
           </div>
