@@ -292,6 +292,61 @@ export function EnrollmentsTable({
     filters,
   })
 
+  /**
+   * Extrai a idade de uma inscrição com hierarquia de fallback
+   * 1. Calcula de personal_info.data_nascimento (mais preciso)
+   * 2. Usa campo age direto
+   * 3. Busca em customFields
+   */
+  const getEnrollmentAge = React.useCallback(
+    (enrollment: Enrollment): string => {
+      // Prioridade 1: Calcular de data_nascimento
+      if (enrollment.personal_info?.data_nascimento) {
+        try {
+          const birthDate = new Date(enrollment.personal_info.data_nascimento)
+          const today = new Date()
+          let age = today.getFullYear() - birthDate.getFullYear()
+          const monthDiff = today.getMonth() - birthDate.getMonth()
+          if (
+            monthDiff < 0 ||
+            (monthDiff === 0 && today.getDate() < birthDate.getDate())
+          ) {
+            age--
+          }
+          // Validação de sanidade
+          if (age >= 0 && age <= 150) {
+            return age.toString()
+          }
+        } catch (error) {
+          console.warn('Erro ao calcular idade de data_nascimento:', error)
+        }
+      }
+
+      // Prioridade 2: Campo age direto
+      if (enrollment.age !== undefined && enrollment.age !== null) {
+        return enrollment.age.toString()
+      }
+
+      // Prioridade 3: Custom fields
+      const customFieldsObj = enrollment.customFields as any
+      if (Array.isArray(customFieldsObj)) {
+        const idadeField = customFieldsObj.find(
+          (f: any) => f.id === 'idade' || f.title === 'Idade'
+        )
+        if (idadeField?.value) {
+          return idadeField.value
+        }
+      } else if (customFieldsObj && typeof customFieldsObj === 'object') {
+        if (customFieldsObj.idade?.value) {
+          return customFieldsObj.idade.value
+        }
+      }
+
+      return ''
+    },
+    []
+  )
+
   const handleConfirmEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
       try {
@@ -822,7 +877,7 @@ export function EnrollmentsTable({
       return
     }
 
-    // Get all unique custom field titles, excluding campos socioeconômicos (they will be in fixed columns)
+    // Socioeconomic field IDs to exclude from custom fields section
     const socioeconomicFieldIds = [
       'endereco',
       'bairro',
@@ -836,28 +891,21 @@ export function EnrollmentsTable({
       'idade',
     ]
 
+    // Get all unique custom field titles, excluding socioeconomic fields
     const allCustomFieldTitles = Array.from(
       new Set(
         enrollmentsToExport
           .flatMap(enrollment => enrollment.customFields || [])
+          .filter(field => {
+            const fieldId = field.id || ''
+            const fieldTitle = field.title || ''
+            return (
+              !socioeconomicFieldIds.includes(fieldId.toLowerCase()) &&
+              fieldTitle !== 'Cidade' &&
+              fieldTitle !== 'Estado'
+            )
+          })
           .map(field => field.title)
-          .filter(
-            title =>
-              !socioeconomicFieldIds.some(
-                id =>
-                  id === title.toLowerCase().replace(/\s+/g, '_') ||
-                  title === 'Cidade' ||
-                  title === 'Estado' ||
-                  title === 'Raça' ||
-                  title === 'Idade' ||
-                  title === 'Gênero' ||
-                  title === 'Escolaridade' ||
-                  title === 'Renda familiar' ||
-                  title === 'Pessoa com deficiência' ||
-                  title === 'Endereço' ||
-                  title === 'Bairro'
-              )
-          )
       )
     )
 
@@ -892,114 +940,6 @@ export function EnrollmentsTable({
 
     // Create worksheet data
     const worksheetData = enrollmentsToExport.map(enrollment => {
-      // Extract socioeconomic info from personal_info first, then fallback to customFields
-      const personalInfo = enrollment.personal_info
-
-      // Prioridade de fontes de idade:
-      // 1. personal_info.data_nascimento (do RMI) - mais confiável e atualizada
-      // 2. enrollment.age (do banco - Super App ou inscrição manual)
-      // 3. customFields.idade (campos customizados do curso)
-
-      let idadeValue = ''
-
-      // 1ª prioridade: calcular idade a partir de data_nascimento do RMI
-      if (personalInfo?.data_nascimento) {
-        const birthDate = new Date(personalInfo.data_nascimento)
-        const today = new Date()
-        let age = today.getFullYear() - birthDate.getFullYear()
-        const monthDiff = today.getMonth() - birthDate.getMonth()
-        if (
-          monthDiff < 0 ||
-          (monthDiff === 0 && today.getDate() < birthDate.getDate())
-        ) {
-          age--
-        }
-        idadeValue = age.toString()
-      }
-
-      // 2ª prioridade: usar campo age do banco (Super App ou inscrição manual)
-      if (!idadeValue && enrollment.age && enrollment.age > 0) {
-        idadeValue = enrollment.age.toString()
-      }
-
-      // 3ª prioridade: buscar idade em customFields
-      if (!idadeValue) {
-        const customFieldsObj = enrollment.customFields as any
-        if (Array.isArray(customFieldsObj)) {
-          const idadeField = customFieldsObj.find(
-            (f: any) => f.id === 'idade' || f.title === 'Idade'
-          )
-          idadeValue = idadeField?.value || ''
-        } else if (customFieldsObj && typeof customFieldsObj === 'object') {
-          idadeValue = customFieldsObj.idade?.value || ''
-        }
-      }
-
-      // Get socioeconomic values from personal_info with fallback to customFields
-      const racaValue =
-        personalInfo?.raca ||
-        (() => {
-          const customFieldsObj = enrollment.customFields as any
-          if (Array.isArray(customFieldsObj)) {
-            return (
-              customFieldsObj.find((f: any) => f.id === 'raca')?.value || ''
-            )
-          }
-          return customFieldsObj?.raca?.value || ''
-        })()
-
-      const generoValue =
-        personalInfo?.genero ||
-        (() => {
-          const customFieldsObj = enrollment.customFields as any
-          if (Array.isArray(customFieldsObj)) {
-            return (
-              customFieldsObj.find((f: any) => f.id === 'genero')?.value || ''
-            )
-          }
-          return customFieldsObj?.genero?.value || ''
-        })()
-
-      const escolaridadeValue =
-        personalInfo?.escolaridade ||
-        (() => {
-          const customFieldsObj = enrollment.customFields as any
-          if (Array.isArray(customFieldsObj)) {
-            return (
-              customFieldsObj.find((f: any) => f.id === 'escolaridade')
-                ?.value || ''
-            )
-          }
-          return customFieldsObj?.escolaridade?.value || ''
-        })()
-
-      const rendaFamiliarValue =
-        personalInfo?.renda_familiar ||
-        (() => {
-          const customFieldsObj = enrollment.customFields as any
-          if (Array.isArray(customFieldsObj)) {
-            return (
-              customFieldsObj.find((f: any) => f.id === 'renda_familiar')
-                ?.value || ''
-            )
-          }
-          return customFieldsObj?.renda_familiar?.value || ''
-        })()
-
-      const deficienciaValue =
-        personalInfo?.deficiencia ||
-        (() => {
-          const customFieldsObj = enrollment.customFields as any
-          if (Array.isArray(customFieldsObj)) {
-            return (
-              customFieldsObj.find(
-                (f: any) => f.id === 'pessoa_com_deficiencia'
-              )?.value || ''
-            )
-          }
-          return customFieldsObj?.pessoa_com_deficiencia?.value || ''
-        })()
-
       const customFieldValues = allCustomFieldTitles.map(title => {
         const field = enrollment.customFields?.find(f => f.title === title)
         if (!field) return ''
@@ -1132,6 +1072,81 @@ export function EnrollmentsTable({
         }
       }
 
+      // Extract socioeconomic info from personal_info first, then fallback to customFields
+      const personalInfo = enrollment.personal_info
+
+      // Calcular idade usando a função utilitária
+      const idadeValue = getEnrollmentAge(enrollment)
+
+      // Extract raça
+      const racaValue =
+        personalInfo?.raca ||
+        (() => {
+          const customFieldsObj = enrollment.customFields as any
+          if (Array.isArray(customFieldsObj)) {
+            return (
+              customFieldsObj.find((f: any) => f.id === 'raca')?.value || ''
+            )
+          }
+          return customFieldsObj?.raca?.value || ''
+        })()
+
+      // Extract gênero
+      const generoValue =
+        personalInfo?.genero ||
+        (() => {
+          const customFieldsObj = enrollment.customFields as any
+          if (Array.isArray(customFieldsObj)) {
+            return (
+              customFieldsObj.find((f: any) => f.id === 'genero')?.value || ''
+            )
+          }
+          return customFieldsObj?.genero?.value || ''
+        })()
+
+      // Extract escolaridade
+      const escolaridadeValue =
+        personalInfo?.escolaridade ||
+        (() => {
+          const customFieldsObj = enrollment.customFields as any
+          if (Array.isArray(customFieldsObj)) {
+            return (
+              customFieldsObj.find((f: any) => f.id === 'escolaridade')
+                ?.value || ''
+            )
+          }
+          return customFieldsObj?.escolaridade?.value || ''
+        })()
+
+      // Extract renda_familiar
+      const rendaFamiliarValue =
+        personalInfo?.renda_familiar ||
+        (() => {
+          const customFieldsObj = enrollment.customFields as any
+          if (Array.isArray(customFieldsObj)) {
+            return (
+              customFieldsObj.find((f: any) => f.id === 'renda_familiar')
+                ?.value || ''
+            )
+          }
+          return customFieldsObj?.renda_familiar?.value || ''
+        })()
+
+      // Extract deficiência
+      const deficienciaValue =
+        personalInfo?.deficiencia ||
+        (() => {
+          const customFieldsObj = enrollment.customFields as any
+          if (Array.isArray(customFieldsObj)) {
+            return (
+              customFieldsObj.find(
+                (f: any) => f.id === 'pessoa_com_deficiencia'
+              )?.value || ''
+            )
+          }
+          return customFieldsObj?.pessoa_com_deficiencia?.value || ''
+        })()
+
       // Extract cidade and estado from personal_info first, then fallback to customFields
       const enderecoInfo = personalInfo?.endereco
       let cidadeValue = enderecoInfo?.municipio || ''
@@ -1167,8 +1182,8 @@ export function EnrollmentsTable({
       const row: Record<string, string | number> = {
         Nome: enrollment.candidateName || '',
         CPF: enrollment.cpf || '', // XLSX handles text format automatically
-        'E-mail': enrollment.email || personalInfo?.email || '',
-        Telefone: enrollment.phone || personalInfo?.celular || '',
+        'E-mail': enrollment.email || '',
+        Telefone: enrollment.phone || '',
         'Id do curso': enrollment.courseId || '',
         'Data de Inscrição': new Date(
           enrollment.enrollmentDate
@@ -1235,7 +1250,7 @@ export function EnrollmentsTable({
 
     // Write file and trigger download
     XLSX.writeFile(workbook, `${fileName}.xlsx`)
-  }, [enrollments, courseId, courseTitle, course])
+  }, [enrollments, courseId, courseTitle, course, getEnrollmentAge])
 
   const handleBulkCancelEnrollments = React.useCallback(async () => {
     try {
@@ -1503,51 +1518,18 @@ export function EnrollmentsTable({
                 <div className="space-y-6">
                   {/* Candidate Info */}
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-12 h-12 bg-card border border-border rounded-lg">
-                          <User className="w-6 h-6 bg-background-light" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold">
-                            {selectedEnrollment.candidateName}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            Candidato
-                          </p>
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-12 h-12 bg-card border border-border rounded-lg">
+                        <User className="w-6 h-6 bg-background-light" />
                       </div>
-                      {(() => {
-                        const statusConfig = {
-                          approved: {
-                            label: 'Confirmado',
-                            className: 'bg-green-100 text-green-800',
-                          },
-                          pending: {
-                            label: 'Pendente',
-                            className: 'bg-yellow-100 text-yellow-800',
-                          },
-                          cancelled: {
-                            label: 'Reprovado',
-                            className: 'text-red-600 border-red-200 bg-red-50',
-                          },
-                          rejected: {
-                            label: 'Recusado',
-                            className: 'text-red-600 border-red-200 bg-red-50',
-                          },
-                          concluded: {
-                            label: 'Concluído',
-                            className:
-                              'text-blue-600 border-blue-200 bg-blue-50',
-                          },
-                        }
-                        const config = statusConfig[selectedEnrollment.status]
-                        return (
-                          <Badge className={config.className}>
-                            {config.label}
-                          </Badge>
-                        )
-                      })()}
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          {selectedEnrollment.candidateName}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Candidato
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -1569,61 +1551,16 @@ export function EnrollmentsTable({
                         </div>
                       </div>
                       {(() => {
-                        // Calcular idade a partir de data_nascimento em personal_info
-                        if (selectedEnrollment.personal_info?.data_nascimento) {
-                          const birthDate = new Date(
-                            selectedEnrollment.personal_info.data_nascimento
-                          )
-                          const today = new Date()
-                          let age =
-                            today.getFullYear() - birthDate.getFullYear()
-                          const monthDiff =
-                            today.getMonth() - birthDate.getMonth()
-                          if (
-                            monthDiff < 0 ||
-                            (monthDiff === 0 &&
-                              today.getDate() < birthDate.getDate())
-                          ) {
-                            age--
-                          }
+                        const idadeValue = getEnrollmentAge(selectedEnrollment)
 
-                          return (
-                            <div className="flex items-center gap-3">
-                              <Hash className="w-4 h-4 text-muted-foreground" />
-                              <div>
-                                <Label className="text-xs text-muted-foreground">
-                                  Idade
-                                </Label>
-                                <p className="text-sm">{age} anos</p>
-                              </div>
-                            </div>
-                          )
-                        }
-
-                        // Fallback: buscar idade nos customFields (pode vir como objeto ou array)
-                        const customFieldsObj =
-                          selectedEnrollment.customFields as any
-                        let idadeField = null
-
-                        if (Array.isArray(customFieldsObj)) {
-                          idadeField = customFieldsObj.find(
-                            (f: any) => f.id === 'idade'
-                          )
-                        } else if (
-                          customFieldsObj &&
-                          typeof customFieldsObj === 'object'
-                        ) {
-                          idadeField = customFieldsObj.idade
-                        }
-
-                        return idadeField?.value ? (
+                        return idadeValue ? (
                           <div className="flex items-center gap-3">
                             <Hash className="w-4 h-4 text-muted-foreground" />
                             <div>
                               <Label className="text-xs text-muted-foreground">
                                 Idade
                               </Label>
-                              <p className="text-sm">{idadeField.value}</p>
+                              <p className="text-sm">{idadeValue} anos</p>
                             </div>
                           </div>
                         ) : null
@@ -1646,204 +1583,39 @@ export function EnrollmentsTable({
                           <p className="text-sm">{selectedEnrollment.phone}</p>
                         </div>
                       </div>
-                      {(() => {
-                        // Priorizar endereço de personal_info, depois fallback para address/neighborhood
-                        const endereco =
-                          selectedEnrollment.personal_info?.endereco
-                        const address =
-                          endereco?.logradouro && endereco?.numero
-                            ? `${endereco.logradouro}, ${endereco.numero}${
-                                endereco.complemento
-                                  ? ` - ${endereco.complemento}`
-                                  : ''
-                              }`
-                            : selectedEnrollment.address
-                        const neighborhood =
-                          endereco?.bairro || selectedEnrollment.neighborhood
-                        const cidade = endereco?.municipio
-                        const estado = endereco?.estado
-                        const cep = endereco?.cep
-
-                        if (
-                          address ||
-                          neighborhood ||
-                          cidade ||
-                          estado ||
-                          cep
-                        ) {
-                          return (
-                            <>
-                              {address && (
-                                <div className="flex items-center gap-3">
-                                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">
-                                      Endereço
-                                    </Label>
-                                    <p className="text-sm">{address}</p>
-                                  </div>
-                                </div>
-                              )}
-                              {neighborhood && (
-                                <div className="flex items-center gap-3">
-                                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">
-                                      Bairro
-                                    </Label>
-                                    <p className="text-sm">{neighborhood}</p>
-                                  </div>
-                                </div>
-                              )}
-                              {cidade && (
-                                <div className="flex items-center gap-3">
-                                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">
-                                      Cidade
-                                    </Label>
-                                    <p className="text-sm">{cidade}</p>
-                                  </div>
-                                </div>
-                              )}
-                              {estado && (
-                                <div className="flex items-center gap-3">
-                                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">
-                                      Estado
-                                    </Label>
-                                    <p className="text-sm">{estado}</p>
-                                  </div>
-                                </div>
-                              )}
-                              {cep && (
-                                <div className="flex items-center gap-3">
-                                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">
-                                      CEP
-                                    </Label>
-                                    <p className="text-sm">{cep}</p>
-                                  </div>
-                                </div>
-                              )}
-                            </>
-                          )
-                        }
-                        return null
-                      })()}
+                      {(selectedEnrollment.address ||
+                        selectedEnrollment.neighborhood) && (
+                        <>
+                          {selectedEnrollment.address && (
+                            <div className="flex items-center gap-3">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Endereço
+                                </Label>
+                                <p className="text-sm">
+                                  {selectedEnrollment.address}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {selectedEnrollment.neighborhood && (
+                            <div className="flex items-center gap-3">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Bairro
+                                </Label>
+                                <p className="text-sm">
+                                  {selectedEnrollment.neighborhood}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
-
-                  {/* Socioeconomic Information */}
-                  {(() => {
-                    // Extrair informações socioeconômicas de personal_info
-                    const personalInfo = selectedEnrollment.personal_info
-                    const hasSocioeconomicInfo =
-                      personalInfo?.raca ||
-                      personalInfo?.genero ||
-                      personalInfo?.renda_familiar ||
-                      personalInfo?.escolaridade ||
-                      personalInfo?.deficiencia ||
-                      personalInfo?.nome_social
-
-                    if (!hasSocioeconomicInfo) return null
-
-                    return (
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                          Informações Socioeconômicas
-                        </h4>
-                        <div className="space-y-3">
-                          {personalInfo?.deficiencia && (
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1">
-                                <Label className="text-sm text-muted-foreground">
-                                  Pessoa com Deficiência
-                                </Label>
-                                <div className="text-sm mt-1">
-                                  <span className="font-medium">
-                                    {personalInfo.deficiencia}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          {personalInfo?.raca && (
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1">
-                                <Label className="text-sm text-muted-foreground">
-                                  Raça/Cor
-                                </Label>
-                                <div className="text-sm mt-1">
-                                  <span className="font-medium">
-                                    {personalInfo.raca}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          {personalInfo?.genero && (
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1">
-                                <Label className="text-sm text-muted-foreground">
-                                  Gênero
-                                </Label>
-                                <div className="text-sm mt-1">
-                                  <span className="font-medium">
-                                    {personalInfo.genero}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          {personalInfo?.renda_familiar && (
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1">
-                                <Label className="text-sm text-muted-foreground">
-                                  Renda Familiar
-                                </Label>
-                                <div className="text-sm mt-1">
-                                  <span className="font-medium">
-                                    {personalInfo.renda_familiar}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          {personalInfo?.escolaridade && (
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1">
-                                <Label className="text-sm text-muted-foreground">
-                                  Escolaridade
-                                </Label>
-                                <div className="text-sm mt-1">
-                                  <span className="font-medium">
-                                    {personalInfo.escolaridade}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          {personalInfo?.nome_social && (
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1">
-                                <Label className="text-sm text-muted-foreground">
-                                  Nome Social
-                                </Label>
-                                <div className="text-sm mt-1">
-                                  <span className="font-medium">
-                                    {personalInfo.nome_social}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })()}
 
                   {/* Enrollment Information */}
                   <div className="space-y-4">
@@ -1897,6 +1669,49 @@ export function EnrollmentsTable({
                             </div>
                           ) : null
                         })()}
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                            Status
+                          </Label>
+                          <div className="mt-1">
+                            {(() => {
+                              const statusConfig = {
+                                approved: {
+                                  label: 'Confirmado',
+                                  className: 'bg-green-100 text-green-800',
+                                },
+                                pending: {
+                                  label: 'Pendente',
+                                  className: 'bg-yellow-100 text-yellow-800',
+                                },
+                                cancelled: {
+                                  label: 'Reprovado',
+                                  className:
+                                    'text-red-600 border-red-200 bg-red-50',
+                                },
+                                rejected: {
+                                  label: 'Recusado',
+                                  className:
+                                    'text-red-600 border-red-200 bg-red-50',
+                                },
+                                concluded: {
+                                  label: 'Concluído',
+                                  className:
+                                    'text-blue-600 border-blue-200 bg-blue-50',
+                                },
+                              }
+                              const config =
+                                statusConfig[selectedEnrollment.status]
+                              return (
+                                <Badge className={config.className}>
+                                  {config.label}
+                                </Badge>
+                              )
+                            })()}
+                          </div>
+                        </div>
+                      </div>
                       {/* {selectedEnrollment.reason && (
                         <div className="flex items-start gap-3">
                           <div>
@@ -1924,8 +1739,7 @@ export function EnrollmentsTable({
                           allFields = Object.values(customFieldsObj)
                         }
 
-                        // IDs dos campos socioeconômicos que devem ser excluídos de Informações Complementares
-                        // (agora vêm de personal_info, não de custom_fields)
+                        // IDs dos campos socioeconômicos e campos que devem ser excluídos de Informações Complementares
                         const socioeconomicFieldIds = [
                           'endereco',
                           'bairro',
@@ -1944,102 +1758,59 @@ export function EnrollmentsTable({
                           'idade',
                         ]
 
-                        // Filtrar apenas campos complementares (não socioeconômicos)
+                        // Separar campos socioeconômicos dos demais
+                        const socioeconomicFields = allFields.filter(
+                          (field: any) =>
+                            socioeconomicFieldIds.includes(field.id)
+                        )
                         const otherFields = allFields.filter(
                           (field: any) =>
                             !excludedFromComplementary.includes(field.id)
                         )
 
-                        // Informações Complementares
-                        if (otherFields.length === 0) return null
+                        // Ordem específica para os campos socioeconômicos
+                        const socioeconomicOrder = [
+                          'endereco',
+                          'bairro',
+                          'cidade',
+                          'estado',
+                          'pessoa_com_deficiencia',
+                          'raca',
+                          'genero',
+                          'renda_familiar',
+                          'escolaridade',
+                        ]
+                        const orderedSocioeconomicFields = socioeconomicOrder
+                          .map(id =>
+                            socioeconomicFields.find((f: any) => f.id === id)
+                          )
+                          .filter(Boolean)
 
                         return (
-                          <div className="space-y-3">
-                            <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                              Informações Complementares
-                            </Label>
-                            {otherFields.map((field: any) => (
-                              <div
-                                key={field.id}
-                                className="flex items-start gap-3"
-                              >
-                                <div className="flex-1">
-                                  <Label className="text-sm text-muted-foreground">
-                                    {field.title}
-                                    {field.required && (
-                                      <span className="text-red-500">*</span>
-                                    )}
-                                  </Label>
-                                  <div className="text-sm mt-1">
-                                    {(() => {
-                                      // Handle different field types
-                                      switch (field.field_type) {
-                                        case 'radio':
-                                        case 'select': {
-                                          // For single selection, find the option that matches the value
-                                          const selectedOption =
-                                            field.options?.find(
-                                              (option: any) =>
-                                                option.id === field.value
-                                            )
-                                          return (
-                                            <span className="font-medium">
-                                              {selectedOption?.value ||
-                                                field.value}
-                                            </span>
-                                          )
-                                        }
-
-                                        case 'multiselect': {
-                                          // For multiple selection, the value might be a comma-separated list of option IDs
-                                          const selectedOptionIds =
-                                            field.value
-                                              ?.split(',')
-                                              .filter(Boolean) || []
-                                          const selectedOptions =
-                                            field.options?.filter(
-                                              (option: any) =>
-                                                selectedOptionIds.includes(
-                                                  option.id
-                                                )
-                                            ) || []
-
-                                          // If we have matching options, display them
-                                          if (selectedOptions.length > 0) {
-                                            return (
-                                              <div className="space-y-1">
-                                                {selectedOptions.map(
-                                                  (option: any) => (
-                                                    <span
-                                                      key={option.id}
-                                                      className="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs mr-1"
-                                                    >
-                                                      {option.value}
-                                                    </span>
-                                                  )
-                                                )}
-                                              </div>
-                                            )
-                                          }
-
-                                          // If no matching options found, display the raw value
-                                          return (
-                                            <span className="font-medium">
-                                              {field.value ? (
-                                                field.value
-                                              ) : (
-                                                <span className="text-muted-foreground italic">
-                                                  (sem valor)
-                                                </span>
-                                              )}
-                                            </span>
-                                          )
-                                        }
-
-                                        default:
-                                          // For text fields, display the value as is
-                                          // If value is empty or undefined, show a placeholder
-                                          return (
+                          <>
+                            {/* Informações Socioeconômicas */}
+                            {orderedSocioeconomicFields.length > 0 && (
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                                  Informações Socioeconômicas
+                                </h4>
+                                <div className="space-y-3">
+                                  {orderedSocioeconomicFields.map(
+                                    (field: any) => (
+                                      <div
+                                        key={field.id}
+                                        className="flex items-start gap-3"
+                                      >
+                                        <div className="flex-1">
+                                          <Label className="text-sm text-muted-foreground">
+                                            {field.title}
+                                            {field.required && (
+                                              <span className="text-red-500">
+                                                *
+                                              </span>
+                                            )}
+                                          </Label>
+                                          <div className="text-sm mt-1">
                                             <span className="font-medium">
                                               {field.value &&
                                               field.value.trim() !== '' ? (
@@ -2050,14 +1821,125 @@ export function EnrollmentsTable({
                                                 </span>
                                               )}
                                             </span>
-                                          )
-                                      }
-                                    })()}
-                                  </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )
+                                  )}
                                 </div>
                               </div>
-                            ))}
-                          </div>
+                            )}
+
+                            {/* Informações Complementares */}
+                            {otherFields.length > 0 && (
+                              <div className="space-y-3">
+                                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                                  Informações Complementares
+                                </Label>
+                                {otherFields.map((field: any) => (
+                                  <div
+                                    key={field.id}
+                                    className="flex items-start gap-3"
+                                  >
+                                    <div className="flex-1">
+                                      <Label className="text-sm text-muted-foreground">
+                                        {field.title}
+                                        {field.required && (
+                                          <span className="text-red-500">
+                                            *
+                                          </span>
+                                        )}
+                                      </Label>
+                                      <div className="text-sm mt-1">
+                                        {(() => {
+                                          // Handle different field types
+                                          switch (field.field_type) {
+                                            case 'radio':
+                                            case 'select': {
+                                              // For single selection, find the option that matches the value
+                                              const selectedOption =
+                                                field.options?.find(
+                                                  (option: any) =>
+                                                    option.id === field.value
+                                                )
+                                              return (
+                                                <span className="font-medium">
+                                                  {selectedOption?.value ||
+                                                    field.value}
+                                                </span>
+                                              )
+                                            }
+
+                                            case 'multiselect': {
+                                              // For multiple selection, the value might be a comma-separated list of option IDs
+                                              const selectedOptionIds =
+                                                field.value
+                                                  ?.split(',')
+                                                  .filter(Boolean) || []
+                                              const selectedOptions =
+                                                field.options?.filter(
+                                                  (option: any) =>
+                                                    selectedOptionIds.includes(
+                                                      option.id
+                                                    )
+                                                ) || []
+
+                                              // If we have matching options, display them
+                                              if (selectedOptions.length > 0) {
+                                                return (
+                                                  <div className="space-y-1">
+                                                    {selectedOptions.map(
+                                                      (option: any) => (
+                                                        <span
+                                                          key={option.id}
+                                                          className="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs mr-1"
+                                                        >
+                                                          {option.value}
+                                                        </span>
+                                                      )
+                                                    )}
+                                                  </div>
+                                                )
+                                              }
+
+                                              // If no matching options found, display the raw value
+                                              return (
+                                                <span className="font-medium">
+                                                  {field.value ? (
+                                                    field.value
+                                                  ) : (
+                                                    <span className="text-muted-foreground italic">
+                                                      (sem valor)
+                                                    </span>
+                                                  )}
+                                                </span>
+                                              )
+                                            }
+
+                                            default:
+                                              // For text fields, display the value as is
+                                              // If value is empty or undefined, show a placeholder
+                                              return (
+                                                <span className="font-medium">
+                                                  {field.value &&
+                                                  field.value.trim() !== '' ? (
+                                                    field.value
+                                                  ) : (
+                                                    <span className="text-muted-foreground italic">
+                                                      (sem valor)
+                                                    </span>
+                                                  )}
+                                                </span>
+                                              )
+                                          }
+                                        })()}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
                         )
                       })()}
                     </div>
