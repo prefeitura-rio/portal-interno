@@ -177,6 +177,39 @@ const validateGoogleCloudStorageURL = (url: string | undefined) => {
   )
 }
 
+// Shared custom_fields schema - used across all form schemas
+// Supports all 9 field types to maintain compatibility with legacy data
+const customFieldsSchema = z
+  .array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      required: z.boolean(),
+      field_type: z
+        .enum([
+          'text',
+          'number',
+          'email',
+          'date',
+          'select',
+          'textarea',
+          'checkbox',
+          'radio',
+          'multiselect',
+        ])
+        .default('text'),
+      options: z
+        .array(
+          z.object({
+            id: z.string(),
+            value: z.string(),
+          })
+        )
+        .optional(),
+    })
+  )
+  .optional()
+
 // Create the full schema for complete validation (used for publishing)
 const fullFormSchema = z
   .discriminatedUnion('modalidade', [
@@ -269,36 +302,7 @@ const fullFormSchema = z
       resources_used: z.string().optional(),
       material_used: z.string().optional(),
       teaching_material: z.string().optional(),
-      custom_fields: z
-        .array(
-          z.object({
-            id: z.string(),
-            title: z.string(),
-            required: z.boolean(),
-            field_type: z
-              .enum([
-                'text',
-                'number',
-                'email',
-                'date',
-                'select',
-                'textarea',
-                'checkbox',
-                'radio',
-                'multiselect',
-              ])
-              .default('text'),
-            options: z
-              .array(
-                z.object({
-                  id: z.string(),
-                  value: z.string(),
-                })
-              )
-              .optional(),
-          })
-        )
-        .optional(),
+      custom_fields: customFieldsSchema,
       remote_class: remoteClassSchema,
     }),
     z.object({
@@ -390,36 +394,7 @@ const fullFormSchema = z
       resources_used: z.string().optional(),
       material_used: z.string().optional(),
       teaching_material: z.string().optional(),
-      custom_fields: z
-        .array(
-          z.object({
-            id: z.string(),
-            title: z.string(),
-            required: z.boolean(),
-            field_type: z
-              .enum([
-                'text',
-                'number',
-                'email',
-                'date',
-                'select',
-                'textarea',
-                'checkbox',
-                'radio',
-                'multiselect',
-              ])
-              .default('text'),
-            options: z
-              .array(
-                z.object({
-                  id: z.string(),
-                  value: z.string(),
-                })
-              )
-              .optional(),
-          })
-        )
-        .optional(),
+      custom_fields: customFieldsSchema,
       locations: z.array(locationClassSchema).min(1, {
         message: 'Pelo menos uma unidade deve ser informada.',
       }),
@@ -519,36 +494,7 @@ const fullFormSchema = z
       resources_used: z.string().optional(),
       material_used: z.string().optional(),
       teaching_material: z.string().optional(),
-      custom_fields: z
-        .array(
-          z.object({
-            id: z.string(),
-            title: z.string(),
-            required: z.boolean(),
-            field_type: z
-              .enum([
-                'text',
-                'number',
-                'email',
-                'date',
-                'select',
-                'textarea',
-                'checkbox',
-                'radio',
-                'multiselect',
-              ])
-              .default('text'),
-            options: z
-              .array(
-                z.object({
-                  id: z.string(),
-                  value: z.string(),
-                })
-              )
-              .optional(),
-          })
-        )
-        .optional(),
+      custom_fields: customFieldsSchema,
     }),
   ])
   .refine(data => data.enrollment_end_date >= data.enrollment_start_date, {
@@ -700,26 +646,7 @@ const draftFormSchema = z.object({
   teaching_material: z.string().optional(),
   is_visible: z.boolean().optional(),
   formacao_link: z.string().url().optional().or(z.literal('')),
-  custom_fields: z
-    .array(
-      z.object({
-        id: z.string(),
-        title: z.string(),
-        required: z.boolean(),
-        field_type: z
-          .enum(['text', 'select', 'multiselect', 'radio'])
-          .default('text'),
-        options: z
-          .array(
-            z.object({
-              id: z.string(),
-              value: z.string(),
-            })
-          )
-          .optional(),
-      })
-    )
-    .optional(),
+  custom_fields: customFieldsSchema,
   locations: z
     .array(
       z.object({
