@@ -94,93 +94,44 @@ export function useCandidatos({
     setError(null)
 
     try {
-      // If multiple statuses are selected, fetch each separately
-      if (filters?.status && filters.status.length > 1) {
-        const promises = filters.status.map(async status => {
-          const params = new URLSearchParams({
-            page: '1',
-            perPage: '1000',
-          })
+      // Build query params
+      const params = new URLSearchParams({
+        page: page.toString(),
+        perPage: perPage.toString(),
+        id_vaga: empregabilidadeId,
+      })
 
-          params.append('status', status)
-
-          if (filters?.search) {
-            params.append('search', filters.search)
-          }
-
-          const response = await fetch(
-            `/api/empregos/${empregabilidadeId}/candidatos?${params.toString()}`
-          )
-
-          if (!response.ok) {
-            throw new Error(
-              `Failed to fetch candidatos: ${response.statusText}`
-            )
-          }
-
-          return response.json()
-        })
-
-        const results = await Promise.all(promises)
-
-        // Combine all candidatos from different statuses
-        const allCandidatos = results.flatMap(
-          (result: any) => result.candidatos || []
-        )
-
-        // Remove duplicates by id
-        const uniqueCandidatos = Array.from(
-          new Map(allCandidatos.map((c: Candidato) => [c.id, c])).values()
-        )
-
-        // Client-side pagination
-        const startIndex = (page - 1) * perPage
-        const endIndex = startIndex + perPage
-        const paginatedCandidatos = uniqueCandidatos.slice(
-          startIndex,
-          endIndex
-        )
-
-        setCandidatos(paginatedCandidatos)
-        setSummary(results[0]?.summary || null)
-        setPagination({
-          page,
-          perPage,
-          total: uniqueCandidatos.length,
-          totalPages: Math.ceil(uniqueCandidatos.length / perPage),
-        })
-      } else {
-        // Single status or no status filter
-        const params = new URLSearchParams({
-          page: page.toString(),
-          perPage: perPage.toString(),
-        })
-
-        if (filters?.status && filters.status.length === 1) {
-          params.append('status', filters.status[0])
-        }
-
-        if (filters?.search) {
-          params.append('search', filters.search)
-        }
-
-        const response = await fetch(
-          `/api/empregos/${empregabilidadeId}/candidatos?${params.toString()}`
-        )
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch candidatos: ${response.statusText}`
-          )
-        }
-
-        const data = await response.json()
-
-        setCandidatos(data.candidatos || [])
-        setSummary(data.summary || null)
-        setPagination(data.pagination || null)
+      // Add status filter if present (single status only for now)
+      if (filters?.status && filters.status.length === 1) {
+        params.append('status', filters.status[0])
       }
+
+      // Add search filter if present
+      if (filters?.search) {
+        params.append('search', filters.search)
+      }
+
+      console.log('Fetching candidatos with params:', params.toString())
+
+      const response = await fetch(
+        `/api/empregabilidade/candidaturas?${params.toString()}`
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch candidatos: ${response.statusText}`
+        )
+      }
+
+      const data = await response.json()
+
+      console.log('Received candidatos:', data)
+
+      setCandidatos(data.candidatos || [])
+      setSummary(data.summary || null)
+      setPagination(data.pagination || null)
     } catch (err) {
+      console.error('Error fetching candidatos:', err)
       setError(
         err instanceof Error ? err.message : 'Failed to fetch candidatos'
       )
@@ -204,17 +155,37 @@ export function useCandidatos({
       status: CandidatoStatus
     ): Promise<Candidato | null> => {
       try {
-        // TODO: Implement API call when endpoint is available
-        // For now, update locally
-        setCandidatos(prev =>
-          prev.map(c =>
-            c.id === candidatoId ? { ...c, status } : c
-          )
-        )
+        let endpoint = ''
+
+        // Map to specific endpoints
+        if (status === 'approved') {
+          endpoint = `/api/empregabilidade/candidaturas/${candidatoId}/approve`
+        } else if (status === 'rejected') {
+          endpoint = `/api/empregabilidade/candidaturas/${candidatoId}/reject`
+        } else {
+          endpoint = `/api/empregabilidade/candidaturas/${candidatoId}/status`
+        }
+
+        console.log('Updating candidato status:', { candidatoId, status, endpoint })
+
+        const response = await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: status !== 'approved' && status !== 'rejected'
+            ? JSON.stringify({ status })
+            : undefined,
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to update candidato status')
+        }
 
         // Refetch to get updated data
         await fetchCandidatos()
-        return null
+
+        const data = await response.json()
+        return data.candidatura || null
       } catch (err) {
         console.error('Error updating candidato status:', err)
         throw err
@@ -229,13 +200,11 @@ export function useCandidatos({
       status: CandidatoStatus
     ): Promise<boolean> => {
       try {
-        // TODO: Implement bulk API call when endpoint is available
-        // For now, update locally
-        setCandidatos(prev =>
-          prev.map(c =>
-            candidatoIds.includes(c.id) ? { ...c, status } : c
-          )
-        )
+        console.log('Updating multiple candidatos:', { count: candidatoIds.length, status })
+
+        // Execute all updates in parallel
+        const promises = candidatoIds.map(id => updateCandidatoStatus(id, status))
+        await Promise.all(promises)
 
         // Refetch to get updated data
         await fetchCandidatos()
@@ -245,7 +214,7 @@ export function useCandidatos({
         return false
       }
     },
-    [fetchCandidatos]
+    [updateCandidatoStatus, fetchCandidatos]
   )
 
   return {
