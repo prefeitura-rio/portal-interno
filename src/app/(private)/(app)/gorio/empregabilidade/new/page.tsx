@@ -2,7 +2,6 @@
 
 import { NewEmpregabilidadeForm } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-empregabilidade-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,22 +10,71 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { useState } from 'react'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
 export default function NewEmpregabilidadePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter()
 
   const handleCreateVaga = async (data: any) => {
-    // Mark as submitting to prevent guard from blocking
-    setIsSubmitting(true)
-    setHasUnsavedChanges(false)
-
     try {
-      // TODO: Implement API call to create vaga
       console.log('Creating vaga:', data)
+
+      // Mark as submitting to prevent guard from blocking
+      setIsSubmitting(true)
+      setHasUnsavedChanges(false)
+
+      // Map form data to API expected format
+      const {
+        contratante,
+        regime_contratacao,
+        modelo_trabalho,
+        tipo_pcd,
+        ...rest
+      } = data
+
+      const apiData = {
+        ...rest,
+        id_contratante: contratante,
+        id_regime_contratacao: regime_contratacao,
+        id_modelo_trabalho: modelo_trabalho,
+        tipos_pcd: tipo_pcd,
+      }
+
+      console.log('Mapped API data:', apiData)
+
+      const response = await fetch('/api/empregabilidade/vagas/new', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create vaga')
+      }
+
+      const result = await response.json()
+      console.log('Vaga created successfully:', result)
+
+      // Show success toast and redirect to vagas list
+      toast.success('Vaga criada com sucesso!')
+      router.push('/gorio/empregabilidade?tab=created')
+
+      // Trigger cache revalidation
+      router.refresh()
     } catch (error) {
+      console.error('Error creating vaga:', error)
+      toast.error('Erro ao criar vaga', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
       // If there's an error, re-enable the guard
       setIsSubmitting(false)
       setHasUnsavedChanges(true)
@@ -34,14 +82,59 @@ export default function NewEmpregabilidadePage() {
   }
 
   const handleCreateDraft = async (data: any) => {
-    // Mark as submitting to prevent guard from blocking
-    setIsSubmitting(true)
-    setHasUnsavedChanges(false)
-
     try {
-      // TODO: Implement API call to create draft
       console.log('Saving draft:', data)
+
+      // Mark as submitting to prevent guard from blocking
+      setIsSubmitting(true)
+      setHasUnsavedChanges(false)
+
+      // Map form data to API expected format
+      const {
+        contratante,
+        regime_contratacao,
+        modelo_trabalho,
+        tipo_pcd,
+        ...rest
+      } = data
+
+      const apiData = {
+        ...rest,
+        id_contratante: contratante,
+        id_regime_contratacao: regime_contratacao,
+        id_modelo_trabalho: modelo_trabalho,
+        tipos_pcd: tipo_pcd,
+      }
+
+      console.log('Mapped draft API data:', apiData)
+
+      const response = await fetch('/api/empregabilidade/vagas/draft', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create draft vaga')
+      }
+
+      const result = await response.json()
+      console.log('Draft vaga created successfully:', result)
+
+      // Show success toast and redirect to vagas with 'draft' tab
+      toast.success('Rascunho salvo com sucesso!')
+      router.push('/gorio/empregabilidade?tab=draft')
+
+      // Trigger cache revalidation
+      router.refresh()
     } catch (error) {
+      console.error('Error creating draft vaga:', error)
+      toast.error('Erro ao salvar rascunho', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
       // If there's an error, re-enable the guard
       setIsSubmitting(false)
       setHasUnsavedChanges(true)

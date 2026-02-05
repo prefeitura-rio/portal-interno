@@ -44,6 +44,9 @@ import {
   InformacoesComplementaresCreator,
   type InformacaoComplementar,
 } from './informacoes-complementares-creator'
+import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
+import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
+import { useEmpresas } from '@/hooks/use-empresas'
 
 // Schema para etapa do processo seletivo
 const etapaSchema = z.object({
@@ -144,19 +147,37 @@ export const NewEmpregabilidadeForm = forwardRef<
       return uniqueNeighborhoods
     }, [])
 
-    // Mock data for enums - will be replaced with API calls later
-    const regimeContratacaoOptions = [
-      { value: 'clt', label: 'CLT' },
-      { value: 'pj', label: 'PJ' },
-      { value: 'estagiario', label: 'Estagiário' },
-      { value: 'temporario', label: 'Temporário' },
-    ]
+    // Fetch real data from backend via API routes
+    const {
+      regimes,
+      loading: regimesLoading,
+      error: regimesError,
+    } = useRegimesContratacao()
+    const {
+      modelos,
+      loading: modelosLoading,
+      error: modelosError,
+    } = useModelosTrabalho()
+    const {
+      empresas,
+      loading: empresasLoading,
+      error: empresasError,
+    } = useEmpresas()
 
-    const modeloTrabalhoOptions = [
-      { value: 'presencial', label: 'Presencial' },
-      { value: 'remoto', label: 'Remoto' },
-      { value: 'hibrido', label: 'Híbrido' },
-    ]
+    // Transform API data to select options (UUID values)
+    const regimeContratacaoOptions = useMemo(() => {
+      return regimes.map(regime => ({
+        value: regime.id || '',
+        label: regime.descricao || '',
+      }))
+    }, [regimes])
+
+    const modeloTrabalhoOptions = useMemo(() => {
+      return modelos.map(modelo => ({
+        value: modelo.id || '',
+        label: modelo.descricao || '',
+      }))
+    }, [modelos])
 
     const tipoPcdOptions = [
       { value: 'fisica', label: 'Deficiência Física' },
@@ -166,11 +187,13 @@ export const NewEmpregabilidadeForm = forwardRef<
       { value: 'psicossocial', label: 'Deficiência Psicossocial' },
     ]
 
-    // Mock empresas - will be replaced with API call later
-    const empresasOptions = [
-      { value: 'empresa1', label: 'Empresa 1' },
-      { value: 'empresa2', label: 'Empresa 2' },
-    ]
+    // Transform empresas API data to select options (CNPJ as value)
+    const empresasOptions = useMemo(() => {
+      return empresas.map(empresa => ({
+        value: empresa.cnpj || '',
+        label: empresa.nome_fantasia || empresa.razao_social || 'Empresa sem nome',
+      }))
+    }, [empresas])
 
     // Helper para converter etapas de string (legado) para array
     const parseEtapas = (
@@ -310,10 +333,18 @@ export const NewEmpregabilidadeForm = forwardRef<
                       <Select
                         onValueChange={field.onChange}
                         value={field.value || undefined}
-                        disabled={isReadOnly}
+                        disabled={isReadOnly || empresasLoading}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione a empresa" />
+                          <SelectValue
+                            placeholder={
+                              empresasLoading
+                                ? 'Carregando empresas...'
+                                : empresasOptions.length === 0
+                                  ? 'Nenhuma empresa cadastrada'
+                                  : 'Selecione a empresa'
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {empresasOptions.map(empresa => (
@@ -327,6 +358,11 @@ export const NewEmpregabilidadeForm = forwardRef<
                         </SelectContent>
                       </Select>
                     </FormControl>
+                    {empresasError && (
+                      <p className="text-sm text-destructive">
+                        Erro ao carregar empresas
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -343,10 +379,16 @@ export const NewEmpregabilidadeForm = forwardRef<
                         <Select
                           onValueChange={field.onChange}
                           value={field.value || undefined}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || regimesLoading}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecione o regime" />
+                            <SelectValue
+                              placeholder={
+                                regimesLoading
+                                  ? 'Carregando regimes...'
+                                  : 'Selecione o regime'
+                              }
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             {regimeContratacaoOptions.map(regime => (
@@ -360,6 +402,11 @@ export const NewEmpregabilidadeForm = forwardRef<
                           </SelectContent>
                         </Select>
                       </FormControl>
+                      {regimesError && (
+                        <p className="text-sm text-destructive">
+                          Erro ao carregar regimes
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -375,10 +422,16 @@ export const NewEmpregabilidadeForm = forwardRef<
                         <Select
                           onValueChange={field.onChange}
                           value={field.value || undefined}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || modelosLoading}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecione o modelo" />
+                            <SelectValue
+                              placeholder={
+                                modelosLoading
+                                  ? 'Carregando modelos...'
+                                  : 'Selecione o modelo'
+                              }
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             {modeloTrabalhoOptions.map(modelo => (
@@ -392,6 +445,11 @@ export const NewEmpregabilidadeForm = forwardRef<
                           </SelectContent>
                         </Select>
                       </FormControl>
+                      {modelosError && (
+                        <p className="text-sm text-destructive">
+                          Erro ao carregar modelos
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
