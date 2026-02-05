@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { Search } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 // Format CNPJ: XX.XXX.XXX/XXXX-XX
 const formatCNPJ = (cnpj: string): string => {
@@ -58,6 +59,7 @@ type FormData = z.infer<typeof formSchema>
 interface NewEmpresaFormProps {
   initialData?: Partial<FormData>
   isReadOnly?: boolean
+  isEditMode?: boolean // ← NEW: Flag to indicate edit mode
   onSubmit?: (data: FormData) => void
   onFormChangesDetected?: (hasChanges: boolean) => void
 }
@@ -65,12 +67,25 @@ interface NewEmpresaFormProps {
 export function NewEmpresaForm({
   initialData,
   isReadOnly = false,
+  isEditMode = false, // ← NEW: Default to false (create mode)
   onSubmit,
   onFormChangesDetected,
 }: NewEmpresaFormProps) {
   const [isSearching, setIsSearching] = useState(false)
   const [searchedCompany, setSearchedCompany] = useState<string | null>(null)
   const [imageError, setImageError] = useState(false)
+  const [showStagingDialog, setShowStagingDialog] = useState(false)
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null)
+
+  // Check if running in staging environment
+  const isStaging = process.env.NEXT_PUBLIC_ENVIROMENT === 'staging'
+
+  // ← NEW: Pre-populate searchedCompany in edit mode
+  React.useEffect(() => {
+    if (isEditMode && initialData?.empresa_nome) {
+      setSearchedCompany(initialData.empresa_nome)
+    }
+  }, [isEditMode, initialData])
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -105,25 +120,41 @@ export function NewEmpresaForm({
 
     setIsSearching(true)
     try {
-      // TODO: Implement API call to search company by CNPJ
-      // For now, using mock data
       const cnpjNumbers = cnpj.replace(/\D/g, '')
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock response - replace with actual API call
-      const mockCompanyName = 'Petróleo Brasileiro S.A' // This would come from API
-      const mockNomeFantasia = 'PETROBRAS' // This would come from API
-      
-      setSearchedCompany(mockCompanyName)
-      form.setValue('empresa_nome', mockCompanyName)
-      form.setValue('nome_fantasia', mockNomeFantasia)
-      
-      toast.success('Empresa encontrada!')
+
+      console.log('Searching CNPJ via RMI:', cnpjNumbers)
+
+      const response = await fetch(
+        `/api/empregabilidade/empresas/consulta-cnpj/${cnpjNumbers}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to search CNPJ')
+      }
+
+      const result = await response.json()
+      console.log('CNPJ found:', result)
+
+      const empresaData = result.empresa
+
+      // Set searched company data
+      setSearchedCompany(empresaData.razao_social || '')
+      form.setValue('empresa_nome', empresaData.razao_social || '')
+      form.setValue('nome_fantasia', empresaData.nome_fantasia || '')
+
+      toast.success('Empresa encontrada na Receita Federal!')
     } catch (error) {
       console.error('Error searching CNPJ:', error)
-      toast.error('Erro ao buscar empresa. Tente novamente.')
+      toast.error('Erro ao buscar empresa', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
       setSearchedCompany(null)
       form.setValue('empresa_nome', '')
       form.setValue('nome_fantasia', '')
@@ -133,11 +164,7 @@ export function NewEmpresaForm({
   }
 
   const handleSubmit = (data: FormData) => {
-    if (!data.empresa_nome) {
-      toast.error('Por favor, pesquise e selecione uma empresa pelo CNPJ')
-      return
-    }
-
+    // Validate basic fields
     if (!data.descricao || data.descricao.trim() === '') {
       toast.error('Por favor, preencha a descrição da empresa')
       return
@@ -148,9 +175,32 @@ export function NewEmpresaForm({
       return
     }
 
+    // Check if empresa_nome is missing (CNPJ not searched)
+    if (!data.empresa_nome) {
+      // In staging, allow submission without CNPJ search with confirmation
+      if (isStaging) {
+        setPendingFormData(data)
+        setShowStagingDialog(true)
+        return
+      }
+
+      // In production, require CNPJ search
+      toast.error('Por favor, pesquise e selecione uma empresa pelo CNPJ')
+      return
+    }
+
     console.log('Form submitted:', data)
     if (onSubmit) {
       onSubmit(data)
+    }
+  }
+
+  const handleConfirmStagingSubmit = () => {
+    if (pendingFormData && onSubmit) {
+      console.log('Form submitted (staging bypass):', pendingFormData)
+      setShowStagingDialog(false)
+      onSubmit(pendingFormData)
+      setPendingFormData(null)
     }
   }
 
@@ -169,13 +219,19 @@ export function NewEmpresaForm({
     }
   }
   
-  const isFormValid =
-    searchedCompany &&
-    descricao &&
-    descricao.trim().length >= 10 &&
-    logoUrl &&
-    logoUrl.trim() !== '' &&
-    isValidUrl(logoUrl)
+  // In staging, allow form submission without CNPJ search
+  const isFormValid = isStaging
+    ? descricao &&
+      descricao.trim().length >= 10 &&
+      logoUrl &&
+      logoUrl.trim() !== '' &&
+      isValidUrl(logoUrl)
+    : searchedCompany &&
+      descricao &&
+      descricao.trim().length >= 10 &&
+      logoUrl &&
+      logoUrl.trim() !== '' &&
+      isValidUrl(logoUrl)
 
   return (
     <Form {...form}>
@@ -196,7 +252,8 @@ export function NewEmpresaForm({
                       onChange={e => {
                         handleCNPJChange(e.target.value)
                       }}
-                      disabled={isReadOnly || isSearching}
+                      disabled={isReadOnly || isSearching || isEditMode} // ← MODIFIED: Disable in edit mode
+                      readOnly={isEditMode} // ← NEW: Make readonly in edit mode
                       maxLength={18}
                     />
                   </FormControl>
@@ -207,7 +264,7 @@ export function NewEmpresaForm({
             <Button
               type="button"
               onClick={handleSearchCNPJ}
-              disabled={isReadOnly || isSearching}
+              disabled={isReadOnly || isSearching || isEditMode}
               className="min-w-[120px]"
             >
               <Search className="mr-2 h-4 w-4" />
@@ -342,9 +399,21 @@ export function NewEmpresaForm({
             Cancelar
           </Button>
           <Button type="submit" disabled={isReadOnly || !isFormValid}>
-            Cadastrar empresa
+            {isEditMode ? 'Salvar alterações' : 'Cadastrar empresa'}
           </Button>
         </div>
+
+        {/* Staging Environment Dialog */}
+        <ConfirmDialog
+          open={showStagingDialog}
+          onOpenChange={setShowStagingDialog}
+          title="Ambiente de Staging"
+          description="Você está no ambiente de staging e não pesquisou o CNPJ na Receita Federal. Deseja continuar mesmo assim?"
+          confirmText="Sim, continuar"
+          cancelText="Cancelar"
+          onConfirm={handleConfirmStagingSubmit}
+          variant="default"
+        />
       </form>
     </Form>
   )

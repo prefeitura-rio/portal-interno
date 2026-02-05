@@ -10,8 +10,12 @@ import React, {
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
+import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Combobox } from '@/components/ui/combobox'
+import { DateTimePicker } from '@/components/ui/datetime-picker'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import {
   Form,
   FormControl,
@@ -21,6 +25,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { MultiSelect } from '@/components/ui/multi-select'
 import {
   Select,
   SelectContent,
@@ -29,20 +34,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { DepartmentCombobox } from '@/components/ui/department-combobox'
-import { DateTimePicker } from '@/components/ui/datetime-picker'
-import { Combobox } from '@/components/ui/combobox'
-import { MultiSelect } from '@/components/ui/multi-select'
-import { MarkdownEditor } from '@/components/blocks/editor-md'
+import { useEmpresas } from '@/hooks/use-empresas'
+import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
+import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { useRouter } from 'next/navigation'
 import {
-  EtapasProcessoSeletivo,
   type EtapaProcessoSeletivo,
+  EtapasProcessoSeletivo,
 } from './etapas-processo-seletivo'
 import {
-  InformacoesComplementaresCreator,
   type InformacaoComplementar,
+  InformacoesComplementaresCreator,
 } from './informacoes-complementares-creator'
 
 // Schema para etapa do processo seletivo
@@ -105,6 +108,8 @@ type FormData = z.infer<typeof formSchema>
 interface NewEmpregabilidadeFormProps {
   initialData?: Partial<FormData>
   isReadOnly?: boolean
+  /** Show action buttons at the end of form (for /new page). Default: false */
+  showActionButtons?: boolean
   onSubmit?: (data: FormData) => void
   onSaveDraft?: (data: FormData) => void
   onFormChangesDetected?: (hasChanges: boolean) => void
@@ -123,6 +128,7 @@ export const NewEmpregabilidadeForm = forwardRef<
     {
       initialData,
       isReadOnly = false,
+      showActionButtons = false,
       onSubmit,
       onSaveDraft,
       onFormChangesDetected,
@@ -144,19 +150,37 @@ export const NewEmpregabilidadeForm = forwardRef<
       return uniqueNeighborhoods
     }, [])
 
-    // Mock data for enums - will be replaced with API calls later
-    const regimeContratacaoOptions = [
-      { value: 'clt', label: 'CLT' },
-      { value: 'pj', label: 'PJ' },
-      { value: 'estagiario', label: 'Estagiário' },
-      { value: 'temporario', label: 'Temporário' },
-    ]
+    // Fetch real data from backend via API routes
+    const {
+      regimes,
+      loading: regimesLoading,
+      error: regimesError,
+    } = useRegimesContratacao()
+    const {
+      modelos,
+      loading: modelosLoading,
+      error: modelosError,
+    } = useModelosTrabalho()
+    const {
+      empresas,
+      loading: empresasLoading,
+      error: empresasError,
+    } = useEmpresas()
 
-    const modeloTrabalhoOptions = [
-      { value: 'presencial', label: 'Presencial' },
-      { value: 'remoto', label: 'Remoto' },
-      { value: 'hibrido', label: 'Híbrido' },
-    ]
+    // Transform API data to select options (UUID values)
+    const regimeContratacaoOptions = useMemo(() => {
+      return regimes.map(regime => ({
+        value: regime.id || '',
+        label: regime.descricao || '',
+      }))
+    }, [regimes])
+
+    const modeloTrabalhoOptions = useMemo(() => {
+      return modelos.map(modelo => ({
+        value: modelo.id || '',
+        label: modelo.descricao || '',
+      }))
+    }, [modelos])
 
     const tipoPcdOptions = [
       { value: 'fisica', label: 'Deficiência Física' },
@@ -166,11 +190,14 @@ export const NewEmpregabilidadeForm = forwardRef<
       { value: 'psicossocial', label: 'Deficiência Psicossocial' },
     ]
 
-    // Mock empresas - will be replaced with API call later
-    const empresasOptions = [
-      { value: 'empresa1', label: 'Empresa 1' },
-      { value: 'empresa2', label: 'Empresa 2' },
-    ]
+    // Transform empresas API data to select options (CNPJ as value)
+    const empresasOptions = useMemo(() => {
+      return empresas.map(empresa => ({
+        value: empresa.cnpj || '',
+        label:
+          empresa.nome_fantasia || empresa.razao_social || 'Empresa sem nome',
+      }))
+    }, [empresas])
 
     // Helper para converter etapas de string (legado) para array
     const parseEtapas = (
@@ -244,6 +271,28 @@ export const NewEmpregabilidadeForm = forwardRef<
 
     const handleSubmit = (data: FormData) => {
       console.log('Form submitted:', data)
+
+      // Validate required fields for publication (not draft)
+      // This validation only runs when clicking "Publicar Vaga" button
+      const requiredFields = [
+        { field: 'titulo', label: 'Título' },
+        { field: 'descricao', label: 'Descrição' },
+        { field: 'contratante', label: 'Empresa' },
+        { field: 'regime_contratacao', label: 'Regime de Contratação' },
+        { field: 'modelo_trabalho', label: 'Modelo de Trabalho' },
+      ]
+
+      const missingFields = requiredFields.filter(({ field }) => {
+        const value = data[field as keyof FormData]
+        return !value || (typeof value === 'string' && value.trim() === '')
+      })
+
+      if (missingFields.length > 0) {
+        const missingLabels = missingFields.map(f => f.label).join(', ')
+        alert(`Por favor, preencha os campos obrigatórios: ${missingLabels}`)
+        return
+      }
+
       if (onSubmit) {
         onSubmit(data)
       }
@@ -310,10 +359,18 @@ export const NewEmpregabilidadeForm = forwardRef<
                       <Select
                         onValueChange={field.onChange}
                         value={field.value || undefined}
-                        disabled={isReadOnly}
+                        disabled={isReadOnly || empresasLoading}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione a empresa" />
+                          <SelectValue
+                            placeholder={
+                              empresasLoading
+                                ? 'Carregando empresas...'
+                                : empresasOptions.length === 0
+                                  ? 'Nenhuma empresa cadastrada'
+                                  : 'Selecione a empresa'
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {empresasOptions.map(empresa => (
@@ -327,6 +384,11 @@ export const NewEmpregabilidadeForm = forwardRef<
                         </SelectContent>
                       </Select>
                     </FormControl>
+                    {empresasError && (
+                      <p className="text-sm text-destructive">
+                        Erro ao carregar empresas
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -343,10 +405,16 @@ export const NewEmpregabilidadeForm = forwardRef<
                         <Select
                           onValueChange={field.onChange}
                           value={field.value || undefined}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || regimesLoading}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecione o regime" />
+                            <SelectValue
+                              placeholder={
+                                regimesLoading
+                                  ? 'Carregando regimes...'
+                                  : 'Selecione o regime'
+                              }
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             {regimeContratacaoOptions.map(regime => (
@@ -360,6 +428,11 @@ export const NewEmpregabilidadeForm = forwardRef<
                           </SelectContent>
                         </Select>
                       </FormControl>
+                      {regimesError && (
+                        <p className="text-sm text-destructive">
+                          Erro ao carregar regimes
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -375,10 +448,16 @@ export const NewEmpregabilidadeForm = forwardRef<
                         <Select
                           onValueChange={field.onChange}
                           value={field.value || undefined}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || modelosLoading}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecione o modelo" />
+                            <SelectValue
+                              placeholder={
+                                modelosLoading
+                                  ? 'Carregando modelos...'
+                                  : 'Selecione o modelo'
+                              }
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             {modeloTrabalhoOptions.map(modelo => (
@@ -392,6 +471,11 @@ export const NewEmpregabilidadeForm = forwardRef<
                           </SelectContent>
                         </Select>
                       </FormControl>
+                      {modelosError && (
+                        <p className="text-sm text-destructive">
+                          Erro ao carregar modelos
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -648,20 +732,22 @@ export const NewEmpregabilidadeForm = forwardRef<
             </div>
           </div>
 
-          {/* Botões de ação */}
-          <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSaveDraft}
-              disabled={isReadOnly}
-            >
-              Salvar Rascunho
-            </Button>
-            <Button type="submit" disabled={isReadOnly}>
-              Publicar Vaga
-            </Button>
-          </div>
+          {/* Action Buttons - Only shown when showActionButtons is true (e.g., /new page) */}
+          {showActionButtons && (
+            <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isReadOnly}
+              >
+                Salvar Rascunho
+              </Button>
+              <Button type="submit" disabled={isReadOnly}>
+                Publicar Vaga
+              </Button>
+            </div>
+          )}
         </form>
       </Form>
     )
