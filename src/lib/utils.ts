@@ -1,6 +1,7 @@
 import type { CourseStatus } from '@/types/course'
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { normalizeCustomFields } from './field-type-normalizer'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -321,8 +322,8 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     cover_image: courseData.cover_image || '',
     is_visible: courseData.is_visible ?? true,
     coverImage: courseData.cover_image || '',
-    custom_fields: courseData.custom_fields || [],
-    customFields: courseData.custom_fields || [],
+    custom_fields: normalizeCustomFields(courseData.custom_fields),
+    customFields: normalizeCustomFields(courseData.custom_fields),
     formacao_link: courseData.formacao_link || '',
     remote_class: courseData.remote_class,
     status: getDynamicCourseStatus(courseData),
