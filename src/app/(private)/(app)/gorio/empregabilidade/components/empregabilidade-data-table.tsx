@@ -1,5 +1,44 @@
 'use client'
 
+/**
+ * ============================================================================
+ * COMPONENT: EmpregabilidadeDataTable
+ * ============================================================================
+ *
+ * FEATURES:
+ * - Persistent search across tabs (stored in URL param 'search')
+ * - Server-side pagination and filtering via useEmpregabilidadeVagas hook
+ * - Opens vagas in new tab on row click (window.open with '_blank')
+ * - Multi-tab view: active, expired, awaiting_approval, draft
+ *
+ * SEARCH PERSISTENCE PATTERN (matching ServicesDataTable):
+ * 1. URL 'search' param is source of truth
+ * 2. columnFilters synced with URL via React effects
+ * 3. Debounced updates prevent overload:
+ *    - API call: 200ms (debouncedSearch)
+ *    - URL update: 500ms (debouncedUrlUpdate)
+ * 4. isUpdatingUrlRef prevents race conditions during typing
+ * 5. Router.replace (not push) avoids polluting browser history
+ *
+ * DATA FLOW:
+ * User types → columnFilters change → Effect triggers →
+ * → debouncedSearch (200ms) → setSearchQuery → API call
+ * → debouncedUrlUpdate (500ms) → router.replace → URL updated
+ *
+ * Browser back/forward → URL changes → Effect triggers →
+ * → setColumnFilters → columnFilters updated → debouncedSearch → API call
+ *
+ * DEPENDENCIES:
+ * - useEmpregabilidadeVagas: API calls with server-side filtering
+ * - useSearchParams: Next.js URL state management
+ * - useDebouncedCallback: Custom debounce hook
+ * - useHeimdallUserContext: RBAC (canEditGoRio permission)
+ *
+ * REFERENCE IMPLEMENTATION:
+ * - src/app/(private)/(app)/servicos-municipais/components/services-data-table.tsx
+ * - Lines 162-430: Complete search persistence pattern
+ */
+
 import { DataTable } from '@/components/data-table/data-table'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
@@ -27,10 +66,9 @@ import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useEmpregabilidadeVagas } from '@/hooks/use-empregabilidade-vagas'
 import type { EmpregabilidadeVaga } from '@/http-gorio/models'
 import {
-  vagaStatusConfig,
   type VagaStatus,
+  vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
-import { useRouter, useSearchParams } from 'next/navigation'
 import {
   type Column,
   type ColumnDef,
@@ -53,8 +91,15 @@ import {
   Trash2,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import * as React from 'react'
 import { toast } from 'sonner'
+
+/**
+ * Maximum length for search input
+ * Prevents URL from becoming too long (HTTP spec limits URLs to ~2000 chars)
+ */
+const MAX_SEARCH_LENGTH = 200
 
 // Types for Empregabilidade (Job Opportunities)
 type VagaEmpregabilidadeStatus =
@@ -86,8 +131,18 @@ export function EmpregabilidadeDataTable() {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'expiresAt', desc: true },
   ])
+  /**
+   * Initialize filters from URL on mount
+   * Pattern: URL params are source of truth for persistent search
+   */
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    () => {
+      const searchFromUrl = searchParams.get('search') || ''
+      if (searchFromUrl) {
+        return [{ id: 'title', value: searchFromUrl }]
+      }
+      return []
+    }
   )
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
@@ -100,6 +155,13 @@ export function EmpregabilidadeDataTable() {
   const [searchQuery, setSearchQuery] = React.useState('')
   const [selectedCompany, setSelectedCompany] = React.useState('')
 
+  /**
+   * Ref to track if we're updating URL from local state
+   * Prevents URL→State sync from overwriting during typing
+   * See: services-data-table.tsx pattern
+   */
+  const isUpdatingUrlRef = React.useRef(false)
+
   // Fetch vagas using the hook
   const { vagas, loading, error, total, pageCount, refetch } =
     useEmpregabilidadeVagas({
@@ -110,21 +172,102 @@ export function EmpregabilidadeDataTable() {
       titulo: searchQuery || undefined,
     })
 
-  // Debounced search function
+  /**
+   * Debounced search with max length enforcement
+   * Truncates silently to MAX_SEARCH_LENGTH (better UX than error toast)
+   */
   const debouncedSearch = useDebouncedCallback((query: string) => {
-    setSearchQuery(query)
+    // Truncate silently - better UX than error toast during typing
+    const truncatedQuery = query.substring(0, MAX_SEARCH_LENGTH)
+    setSearchQuery(truncatedQuery)
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
   }, 300)
 
-  // Handle search filter changes
+  /**
+   * Debounced URL update (500ms to avoid polluting browser history)
+   *
+   * Pattern from services-data-table.tsx:
+   * - Uses router.replace (not push) to avoid creating history entry per keystroke
+   * - Sets isUpdatingUrlRef flag to prevent URL→State sync from overwriting
+   * - 500ms delay (vs 200ms for API) reduces URL churn
+   */
+  const debouncedUrlUpdate = useDebouncedCallback((query: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+
+    if (query) {
+      params.set('search', query)
+    } else {
+      params.delete('search')
+    }
+
+    // Set flag to prevent URL→State sync from overwriting our local state
+    isUpdatingUrlRef.current = true
+
+    // Use replace to avoid creating history entries per keystroke
+    router.replace(`/gorio/empregabilidade?${params.toString()}`, {
+      scroll: false,
+    })
+
+    // Clear flag after a tick to allow future browser navigation to work
+    setTimeout(() => {
+      isUpdatingUrlRef.current = false
+    }, 100)
+  }, 500)
+
+  /**
+   * Sync State → URL and State → API
+   *
+   * Triggers when columnFilters changes (user types in search input)
+   * Debounces both API call (200ms) and URL update (500ms)
+   */
   React.useEffect(() => {
     const titleFilter = columnFilters.find(filter => filter.id === 'title')
     const newSearchQuery = (titleFilter?.value as string) || ''
 
     if (newSearchQuery !== searchQuery) {
       debouncedSearch(newSearchQuery)
+      debouncedUrlUpdate(newSearchQuery)
     }
-  }, [columnFilters, searchQuery, debouncedSearch])
+  }, [columnFilters, searchQuery, debouncedSearch, debouncedUrlUpdate])
+
+  /**
+   * Sync URL → State (handles browser back/forward navigation)
+   *
+   * CRITICAL: Only runs on URL changes from browser navigation,
+   * NOT from our own router.replace() calls during typing
+   *
+   * Pattern from services-data-table.tsx:
+   * - isUpdatingUrlRef prevents race condition where typing gets overwritten
+   * - Only updates if URL differs from current state (avoid infinite loop)
+   * - columnFilters NOT in deps array (would cause infinite loop)
+   */
+  React.useEffect(() => {
+    // Skip if we're in the middle of updating URL from local state
+    if (isUpdatingUrlRef.current) {
+      return
+    }
+
+    const urlSearch = searchParams.get('search') || ''
+
+    // Find current title filter in columnFilters
+    const currentTitleFilter = columnFilters.find(f => f.id === 'title')
+    const currentSearch = (currentTitleFilter?.value as string) || ''
+
+    // Only update if URL differs from current state (avoid infinite loop)
+    if (urlSearch !== currentSearch) {
+      if (urlSearch) {
+        // Add or update title filter
+        setColumnFilters(prev => [
+          ...prev.filter(f => f.id !== 'title'),
+          { id: 'title', value: urlSearch },
+        ])
+      } else {
+        // Remove title filter
+        setColumnFilters(prev => prev.filter(f => f.id !== 'title'))
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   // Handle tab changes
   const handleTabChange = React.useCallback(
@@ -147,15 +290,7 @@ export function EmpregabilidadeDataTable() {
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
   }, [])
 
-  // Handle row click - navigate to vaga details page
-  const handleRowClick = React.useCallback(
-    (vaga: EmpregabilidadeVaga) => {
-      if (vaga.id) {
-        router.push(`/gorio/empregabilidade/${vaga.id}`)
-      }
-    },
-    [router]
-  )
+  // Row click handler removed - now inline in DataTable components below
 
   // Handle delete action
   const handleDelete = React.useCallback(
@@ -345,7 +480,9 @@ export function EmpregabilidadeDataTable() {
         cell: ({ cell }) => {
           const timestamp = cell.getValue<number | null>()
           if (!timestamp)
-            return <span className="text-muted-foreground">Sem data limite</span>
+            return (
+              <span className="text-muted-foreground">Sem data limite</span>
+            )
 
           const date = new Date(timestamp)
           return (
@@ -499,25 +636,57 @@ export function EmpregabilidadeDataTable() {
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
-          <DataTable table={table} loading={loading} onRowClick={handleRowClick}>
+          <DataTable
+            table={table}
+            loading={loading}
+            onRowClick={(vaga: EmpregabilidadeVaga) => {
+              if (vaga.id) {
+                window.open(`/gorio/empregabilidade/${vaga.id}`, '_blank')
+              }
+            }}
+          >
             <DataTableToolbar table={table} />
           </DataTable>
         </TabsContent>
 
         <TabsContent value="expired" className="space-y-4">
-          <DataTable table={table} loading={loading} onRowClick={handleRowClick}>
+          <DataTable
+            table={table}
+            loading={loading}
+            onRowClick={(vaga: EmpregabilidadeVaga) => {
+              if (vaga.id) {
+                window.open(`/gorio/empregabilidade/${vaga.id}`, '_blank')
+              }
+            }}
+          >
             <DataTableToolbar table={table} />
           </DataTable>
         </TabsContent>
 
         <TabsContent value="awaiting_approval" className="space-y-4">
-          <DataTable table={table} loading={loading} onRowClick={handleRowClick}>
+          <DataTable
+            table={table}
+            loading={loading}
+            onRowClick={(vaga: EmpregabilidadeVaga) => {
+              if (vaga.id) {
+                window.open(`/gorio/empregabilidade/${vaga.id}`, '_blank')
+              }
+            }}
+          >
             <DataTableToolbar table={table} />
           </DataTable>
         </TabsContent>
 
         <TabsContent value="draft" className="space-y-4">
-          <DataTable table={table} loading={loading} onRowClick={handleRowClick}>
+          <DataTable
+            table={table}
+            loading={loading}
+            onRowClick={(vaga: EmpregabilidadeVaga) => {
+              if (vaga.id) {
+                window.open(`/gorio/empregabilidade/${vaga.id}`, '_blank')
+              }
+            }}
+          >
             <DataTableToolbar table={table} />
           </DataTable>
         </TabsContent>

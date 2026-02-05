@@ -9,9 +9,15 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
-import { BookPlus } from 'lucide-react'
-import Link from 'next/link'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
+import { BookPlus, Building2, ChevronDown, Eye, Plus } from 'lucide-react'
+import Link from 'next/link'
 import { EmpregabilidadeDataTable } from './components/empregabilidade-data-table'
 
 export default function EmpregabilidadePage() {
@@ -41,14 +47,30 @@ export default function EmpregabilidadePage() {
             </p>
           </div>
           {canEditGoRio && (
-            //adicionar botão de nova empresa ao lado
             <div className="flex items-center gap-2">
-              <Link href="/gorio/empregabilidade/new/empresa">
-                <Button variant="outline" className="cursor-pointer">
-                  <BookPlus className="mr-2 h-4 w-4" />
-                  Nova empresa
-                </Button>
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="cursor-pointer">
+                    <Building2 className="mr-2 h-4 w-4" />
+                    Empresas
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href="/gorio/empregabilidade/new/empresa">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Criar nova Empresa
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/gorio/empregabilidade/empresas">
+                      <Eye className="mr-2 h-4 w-4" />
+                      Ver empresas
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Link href="/gorio/empregabilidade/new">
                 <Button className="cursor-pointer">

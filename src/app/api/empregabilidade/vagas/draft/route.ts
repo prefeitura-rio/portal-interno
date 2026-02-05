@@ -17,6 +17,12 @@ export async function POST(request: Request) {
 
     console.log('Creating draft vaga with data:', JSON.stringify(body, null, 2))
 
+    // The POST /api/v1/empregabilidade/vagas/draft endpoint creates a DRAFT vaga by default
+    // No need to set status - the API endpoint determines this
+    console.log(
+      '✅ [API /vagas/draft] Using POST /vagas/draft endpoint which creates DRAFT vagas (em_edicao)'
+    )
+
     // Call the external API using the existing client function
     const response = await postApiV1EmpregabilidadeVagasDraft(body)
 

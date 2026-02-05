@@ -6,7 +6,6 @@ import {
   type NewEmpregabilidadeFormRef,
 } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-empregabilidade-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { Badge } from '@/components/ui/badge'
 import {
   Breadcrumb,
@@ -20,11 +19,12 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useVaga } from '@/hooks/use-vaga'
 import {
-  vagaStatusConfig,
   type VagaStatus,
+  vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -432,7 +432,10 @@ export default function EmpregabilidadeDetailPage({
                   <>
                     <Button
                       onClick={handleSave}
-                      disabled={isLoading || !hasUnsavedChanges}
+                      disabled={
+                        isLoading ||
+                        (vaga.status !== 'em_edicao' && !hasUnsavedChanges)
+                      }
                     >
                       <Save className="mr-2 h-4 w-4" />
                       {isLoading ? 'Salvando...' : 'Salvar'}
@@ -453,7 +456,11 @@ export default function EmpregabilidadeDetailPage({
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="about">Sobre a vaga</TabsTrigger>
             <TabsTrigger value="candidates">

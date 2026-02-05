@@ -1,5 +1,5 @@
 import type { EmpregabilidadeEmpresa } from '@/http-gorio/models'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 /**
  * ============================================================================
@@ -48,9 +48,7 @@ export interface UseEmpresasResult {
   refetch: () => void
 }
 
-export function useEmpresas(
-  params: UseEmpresasParams = {}
-): UseEmpresasResult {
+export function useEmpresas(params: UseEmpresasParams = {}): UseEmpresasResult {
   const [empresas, setEmpresas] = useState<EmpregabilidadeEmpresa[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -134,12 +132,42 @@ export function useEmpresas(
     fetchEmpresas()
   }, [fetchEmpresas])
 
+  /**
+   * TEMPORARY: Client-side filtering until backend implements 'nome' parameter
+   *
+   * LIMITATION: Only filters empresas from current page (server-side pagination)
+   * FUTURE: Once backend adds 'nome' to GetApiV1EmpregabilidadeEmpresasParams,
+   *         remove this client-side filter and use server-side filtering
+   *
+   * BACKEND ISSUE: API does not support 'nome' query parameter yet
+   */
+  const filteredEmpresas = useMemo(() => {
+    if (!nome?.trim()) {
+      return empresas
+    }
+
+    const searchTerm = nome.toLowerCase().trim()
+    return empresas.filter(empresa => {
+      const razaoSocial = empresa.razao_social?.toLowerCase() || ''
+      const nomeFantasia = empresa.nome_fantasia?.toLowerCase() || ''
+      return (
+        razaoSocial.includes(searchTerm) || nomeFantasia.includes(searchTerm)
+      )
+    })
+  }, [empresas, nome])
+
+  // Calculate filtered total and pageCount
+  const filteredTotal = nome?.trim() ? filteredEmpresas.length : total
+  const filteredPageCount = nome?.trim()
+    ? Math.ceil(filteredEmpresas.length / pageSize)
+    : pageCount
+
   return {
-    empresas,
+    empresas: filteredEmpresas,
     loading,
     error,
-    total,
-    pageCount,
+    total: filteredTotal,
+    pageCount: filteredPageCount,
     refetch: fetchEmpresas,
   }
 }

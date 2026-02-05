@@ -95,14 +95,14 @@ export default function EmpresasPage() {
    */
   React.useEffect(() => {
     const nameFilter = columnFilters.find(
-      (filter) => filter.id === 'razao_social'
+      filter => filter.id === 'razao_social'
     )
     const newSearchQuery = (nameFilter?.value as string) || ''
 
     if (newSearchQuery !== searchQuery) {
       setSearchQuery(newSearchQuery)
       // Reset to first page when searching
-      setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+      setPagination(prev => ({ ...prev, pageIndex: 0 }))
     }
   }, [columnFilters, searchQuery])
 
@@ -124,9 +124,7 @@ export default function EmpresasPage() {
 
       // Confirm deletion (hard delete - permanent)
       const confirmed = window.confirm(
-        `Tem certeza que deseja excluir a empresa "${empresa.razao_social || empresa.nome_fantasia}"?\n\n` +
-          'Esta ação é PERMANENTE e não pode ser desfeita.\n\n' +
-          'A empresa só pode ser excluída se não possuir vagas associadas.'
+        `Tem certeza que deseja excluir a empresa "${empresa.razao_social || empresa.nome_fantasia}"?\n\nEsta ação é PERMANENTE e não pode ser desfeita.\n\nA empresa só pode ser excluída se não possuir vagas associadas.`
       )
 
       if (!confirmed) return
@@ -253,7 +251,7 @@ export default function EmpresasPage() {
       {
         id: 'created_at',
         accessorKey: 'created_at',
-        accessorFn: (row) => {
+        accessorFn: row => {
           if (!row.created_at) return null
           return new Date(row.created_at).getTime()
         },
@@ -331,7 +329,7 @@ export default function EmpresasPage() {
   const table = useReactTable({
     data: empresas,
     columns,
-    getRowId: (row) => row.cnpj || '',
+    getRowId: row => row.cnpj || '',
     state: {
       sorting,
       columnFilters,
@@ -358,7 +356,12 @@ export default function EmpresasPage() {
             Erro ao carregar empresas
           </p>
           <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
-          <Button variant="outline" size="sm" className="mt-3" onClick={refetch}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={refetch}
+          >
             Tentar novamente
           </Button>
         </div>
@@ -401,7 +404,18 @@ export default function EmpresasPage() {
         </div>
 
         {/* Data Table */}
-        <DataTable table={table} loading={loading}>
+        <DataTable
+          table={table}
+          loading={loading}
+          onRowClick={(empresa: EmpregabilidadeEmpresa) => {
+            if (empresa.cnpj) {
+              window.open(
+                `/gorio/empregabilidade/empresas/${empresa.cnpj}`,
+                '_blank'
+              )
+            }
+          }}
+        >
           <DataTableToolbar table={table} />
         </DataTable>
       </div>

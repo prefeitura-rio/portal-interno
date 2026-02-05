@@ -23,7 +23,7 @@ export default function NewEmpregabilidadePage() {
 
   const handleCreateVaga = async (data: any) => {
     try {
-      console.log('Creating vaga:', data)
+      console.log('🔵 [handleCreateVaga] Form data received:', data)
 
       // Mark as submitting to prevent guard from blocking
       setIsSubmitting(true)
@@ -46,7 +46,14 @@ export default function NewEmpregabilidadePage() {
         tipos_pcd: tipo_pcd,
       }
 
-      console.log('Mapped API data:', apiData)
+      console.log('🔵 [handleCreateVaga] Mapped API data:', apiData)
+      console.log('🔵 [handleCreateVaga] Required fields check:', {
+        titulo: apiData.titulo,
+        descricao: apiData.descricao,
+        id_contratante: apiData.id_contratante,
+        id_regime_contratacao: apiData.id_regime_contratacao,
+        id_modelo_trabalho: apiData.id_modelo_trabalho,
+      })
 
       const response = await fetch('/api/empregabilidade/vagas/new', {
         method: 'POST',
@@ -64,9 +71,9 @@ export default function NewEmpregabilidadePage() {
       const result = await response.json()
       console.log('Vaga created successfully:', result)
 
-      // Show success toast and redirect to vagas list
-      toast.success('Vaga criada com sucesso!')
-      router.push('/gorio/empregabilidade?tab=created')
+      // Show success toast and redirect to vagas list (active tab for published vagas)
+      toast.success('Vaga publicada com sucesso!')
+      router.push('/gorio/empregabilidade?tab=active')
 
       // Trigger cache revalidation
       router.refresh()
@@ -83,7 +90,7 @@ export default function NewEmpregabilidadePage() {
 
   const handleCreateDraft = async (data: any) => {
     try {
-      console.log('Saving draft:', data)
+      console.log('🟢 [handleCreateDraft] Form data received:', data)
 
       // Mark as submitting to prevent guard from blocking
       setIsSubmitting(true)
@@ -106,7 +113,7 @@ export default function NewEmpregabilidadePage() {
         tipos_pcd: tipo_pcd,
       }
 
-      console.log('Mapped draft API data:', apiData)
+      console.log('🟢 [handleCreateDraft] Mapped draft API data:', apiData)
 
       const response = await fetch('/api/empregabilidade/vagas/draft', {
         method: 'POST',
@@ -175,6 +182,7 @@ export default function NewEmpregabilidadePage() {
           </div>
         </div>
         <NewEmpregabilidadeForm
+          showActionButtons={true}
           onSubmit={handleCreateVaga}
           onSaveDraft={handleCreateDraft}
           onFormChangesDetected={setHasUnsavedChanges}

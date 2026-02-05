@@ -10,8 +10,12 @@ import React, {
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
+import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Combobox } from '@/components/ui/combobox'
+import { DateTimePicker } from '@/components/ui/datetime-picker'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import {
   Form,
   FormControl,
@@ -21,6 +25,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { MultiSelect } from '@/components/ui/multi-select'
 import {
   Select,
   SelectContent,
@@ -29,24 +34,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { DepartmentCombobox } from '@/components/ui/department-combobox'
-import { DateTimePicker } from '@/components/ui/datetime-picker'
-import { Combobox } from '@/components/ui/combobox'
-import { MultiSelect } from '@/components/ui/multi-select'
-import { MarkdownEditor } from '@/components/blocks/editor-md'
+import { useEmpresas } from '@/hooks/use-empresas'
+import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
+import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { useRouter } from 'next/navigation'
 import {
-  EtapasProcessoSeletivo,
   type EtapaProcessoSeletivo,
+  EtapasProcessoSeletivo,
 } from './etapas-processo-seletivo'
 import {
-  InformacoesComplementaresCreator,
   type InformacaoComplementar,
+  InformacoesComplementaresCreator,
 } from './informacoes-complementares-creator'
-import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
-import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
-import { useEmpresas } from '@/hooks/use-empresas'
 
 // Schema para etapa do processo seletivo
 const etapaSchema = z.object({
@@ -108,6 +108,8 @@ type FormData = z.infer<typeof formSchema>
 interface NewEmpregabilidadeFormProps {
   initialData?: Partial<FormData>
   isReadOnly?: boolean
+  /** Show action buttons at the end of form (for /new page). Default: false */
+  showActionButtons?: boolean
   onSubmit?: (data: FormData) => void
   onSaveDraft?: (data: FormData) => void
   onFormChangesDetected?: (hasChanges: boolean) => void
@@ -126,6 +128,7 @@ export const NewEmpregabilidadeForm = forwardRef<
     {
       initialData,
       isReadOnly = false,
+      showActionButtons = false,
       onSubmit,
       onSaveDraft,
       onFormChangesDetected,
@@ -191,7 +194,8 @@ export const NewEmpregabilidadeForm = forwardRef<
     const empresasOptions = useMemo(() => {
       return empresas.map(empresa => ({
         value: empresa.cnpj || '',
-        label: empresa.nome_fantasia || empresa.razao_social || 'Empresa sem nome',
+        label:
+          empresa.nome_fantasia || empresa.razao_social || 'Empresa sem nome',
       }))
     }, [empresas])
 
@@ -267,6 +271,28 @@ export const NewEmpregabilidadeForm = forwardRef<
 
     const handleSubmit = (data: FormData) => {
       console.log('Form submitted:', data)
+
+      // Validate required fields for publication (not draft)
+      // This validation only runs when clicking "Publicar Vaga" button
+      const requiredFields = [
+        { field: 'titulo', label: 'Título' },
+        { field: 'descricao', label: 'Descrição' },
+        { field: 'contratante', label: 'Empresa' },
+        { field: 'regime_contratacao', label: 'Regime de Contratação' },
+        { field: 'modelo_trabalho', label: 'Modelo de Trabalho' },
+      ]
+
+      const missingFields = requiredFields.filter(({ field }) => {
+        const value = data[field as keyof FormData]
+        return !value || (typeof value === 'string' && value.trim() === '')
+      })
+
+      if (missingFields.length > 0) {
+        const missingLabels = missingFields.map(f => f.label).join(', ')
+        alert(`Por favor, preencha os campos obrigatórios: ${missingLabels}`)
+        return
+      }
+
       if (onSubmit) {
         onSubmit(data)
       }
@@ -706,20 +732,22 @@ export const NewEmpregabilidadeForm = forwardRef<
             </div>
           </div>
 
-          {/* Botões de ação */}
-          <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSaveDraft}
-              disabled={isReadOnly}
-            >
-              Salvar Rascunho
-            </Button>
-            <Button type="submit" disabled={isReadOnly}>
-              Publicar Vaga
-            </Button>
-          </div>
+          {/* Action Buttons - Only shown when showActionButtons is true (e.g., /new page) */}
+          {showActionButtons && (
+            <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isReadOnly}
+              >
+                Salvar Rascunho
+              </Button>
+              <Button type="submit" disabled={isReadOnly}>
+                Publicar Vaga
+              </Button>
+            </div>
+          )}
         </form>
       </Form>
     )

@@ -14,10 +14,11 @@ export async function GET(request: Request) {
       page: searchParams.get('page')
         ? Number(searchParams.get('page'))
         : undefined,
-      page_size: searchParams.get('page_size')
+      pageSize: searchParams.get('page_size')
         ? Number(searchParams.get('page_size'))
         : undefined,
-      nome: searchParams.get('nome') || undefined,
+      // NOTE: 'nome' parameter removed - backend doesn't support it yet
+      // Client-side filtering is implemented in use-empresas.ts hook
     }
 
     console.log('Fetching empresas with params:', params)
