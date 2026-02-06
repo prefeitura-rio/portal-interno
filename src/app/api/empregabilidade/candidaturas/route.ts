@@ -1,4 +1,8 @@
-import { getApiV1EmpregabilidadeCandidaturas } from '@/http-gorio/empregabilidade-candidaturas/empregabilidade-candidaturas'
+import {
+  getApiV1EmpregabilidadeCandidaturas,
+  postApiV1EmpregabilidadeCandidaturas,
+} from '@/http-gorio/empregabilidade-candidaturas/empregabilidade-candidaturas'
+import { cleanCPF } from '@/lib/cpf-validator'
 import { mapBackendStatusToFrontend } from '@/lib/status-config/empregabilidade'
 import { NextResponse } from 'next/server'
 
@@ -96,6 +100,130 @@ export async function GET(request: Request) {
       {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+
+    console.log('Creating candidatura with body:', body)
+
+    // Validate required fields
+    if (!body.cpf) {
+      return NextResponse.json(
+        { error: 'CPF é obrigatório' },
+        { status: 400 }
+      )
+    }
+
+    if (!body.id_vaga) {
+      return NextResponse.json(
+        { error: 'ID da vaga é obrigatório' },
+        { status: 400 }
+      )
+    }
+
+    // Clean CPF (remove formatting)
+    const cpfLimpo = cleanCPF(body.cpf)
+
+    // Validate CPF length after cleaning
+    if (cpfLimpo.length !== 11) {
+      return NextResponse.json(
+        { error: 'CPF deve ter 11 dígitos' },
+        { status: 400 }
+      )
+    }
+
+    console.log('Calling Orval client with cleaned CPF:', cpfLimpo)
+
+    // Call Orval client to create candidatura
+    const response = await postApiV1EmpregabilidadeCandidaturas({
+      cpf: cpfLimpo,
+      id_vaga: body.id_vaga,
+      respostas_info_complementares: body.respostas_info_complementares || [],
+      // Status will default to "candidatura_enviada" in backend
+    })
+
+    console.log('API Response status:', response.status)
+
+    if (response.status === 201) {
+      console.log('Candidatura created successfully:', response.data)
+      return NextResponse.json(
+        {
+          success: true,
+          candidatura: response.data,
+        },
+        { status: 201 }
+      )
+    }
+
+    // Handle non-201 responses
+    console.error('Unexpected response status:', response.status)
+    return NextResponse.json(
+      { error: 'Erro ao criar candidatura' },
+      { status: response.status }
+    )
+  } catch (error: any) {
+    console.error('Error creating candidatura:', error)
+
+    // Try to extract error message from response
+    const errorMessage = error?.message || 'Unknown error'
+    const errorResponse = error?.response
+
+    // Map specific backend errors to user-friendly messages
+    if (errorMessage.includes('já existe') || errorMessage.includes('já se candidatou')) {
+      return NextResponse.json(
+        { error: 'Este CPF já está inscrito nesta vaga' },
+        { status: 409 }
+      )
+    }
+
+    if (errorMessage.includes('não encontrada') || errorMessage.includes('not found')) {
+      return NextResponse.json(
+        { error: 'Vaga não encontrada' },
+        { status: 404 }
+      )
+    }
+
+    if (
+      errorMessage.includes('expirada') ||
+      errorMessage.includes('não está ativa') ||
+      errorMessage.includes('expired')
+    ) {
+      return NextResponse.json(
+        { error: 'Esta vaga não está mais ativa' },
+        { status: 400 }
+      )
+    }
+
+    // Check if it's a validation error (400)
+    if (errorResponse?.status === 400) {
+      return NextResponse.json(
+        {
+          error: 'Dados inválidos',
+          message: errorMessage,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Check if it's a conflict error (409)
+    if (errorResponse?.status === 409) {
+      return NextResponse.json(
+        { error: 'Este CPF já está inscrito nesta vaga' },
+        { status: 409 }
+      )
+    }
+
+    // Generic error
+    return NextResponse.json(
+      {
+        error: 'Erro interno ao criar candidatura',
+        message: errorMessage,
       },
       { status: 500 }
     )

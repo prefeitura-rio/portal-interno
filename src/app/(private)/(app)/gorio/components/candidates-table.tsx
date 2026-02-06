@@ -22,6 +22,7 @@ import {
   Phone,
   Text,
   User,
+  UserPlus,
   XCircle,
 } from 'lucide-react'
 import * as React from 'react'
@@ -47,6 +48,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-candidate-dialog'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import {
   useCandidatos,
   type Candidato,
@@ -54,14 +57,24 @@ import {
 } from '@/hooks/use-candidatos'
 import { toast } from 'sonner'
 
+interface InformacaoComplementar {
+  id: string
+  titulo: string
+  obrigatorio: boolean
+  tipo_campo: string
+  opcoes?: string[]
+}
+
 interface CandidatesTableProps {
   empregabilidadeId: string
   empregabilidadeTitle?: string
+  informacoesComplementares?: InformacaoComplementar[]
 }
 
 export function CandidatesTable({
   empregabilidadeId,
   empregabilidadeTitle,
+  informacoesComplementares = [],
 }: CandidatesTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'enrollmentDate', desc: true },
@@ -76,6 +89,11 @@ export function CandidatesTable({
   const [selectedCandidato, setSelectedCandidato] =
     React.useState<Candidato | null>(null)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
+  const [showNewCandidateDialog, setShowNewCandidateDialog] =
+    React.useState(false)
+
+  // Get user permissions
+  const { canEditGoRio } = useHeimdallUserContext()
 
   // Convert column filters to candidato filters
   const filters = React.useMemo(() => {
@@ -457,6 +475,18 @@ export function CandidatesTable({
 
   return (
     <div className="space-y-4">
+      {/* Header with Add Candidate Button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {canEditGoRio && (
+            <Button onClick={() => setShowNewCandidateDialog(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Adicionar candidato
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -759,6 +789,16 @@ export function CandidatesTable({
           </DataTableActionBarAction>
         </DataTableActionBar>
       </DataTable>
+
+      {/* New Candidate Dialog */}
+      <NewCandidateDialog
+        open={showNewCandidateDialog}
+        onOpenChange={setShowNewCandidateDialog}
+        vagaId={empregabilidadeId}
+        vagaTitle={empregabilidadeTitle || 'esta vaga'}
+        informacoesComplementares={informacoesComplementares}
+        onSuccess={refetch}
+      />
     </div>
   )
 }

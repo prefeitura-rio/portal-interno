@@ -586,6 +586,7 @@ export function EmpregabilidadeDataTable() {
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true, // Use server-side pagination
     manualFiltering: true, // Use server-side filtering
+    manualSorting: true, // Use server-side sorting (backend already orders by created_at DESC)
     pageCount: pageCount, // From hook
     rowCount: total, // From hook
   })

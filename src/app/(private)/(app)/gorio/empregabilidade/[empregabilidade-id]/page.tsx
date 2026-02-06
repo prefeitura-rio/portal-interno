@@ -176,6 +176,29 @@ export default function EmpregabilidadeDetailPage({
   const confirmPublish = useCallback(async () => {
     if (!vaga?.id) return
 
+    // Validate required fields before publishing
+    const requiredFields = [
+      { field: 'titulo', label: 'Título' },
+      { field: 'descricao', label: 'Descrição' },
+      { field: 'id_contratante', label: 'Empresa' },
+      { field: 'id_regime_contratacao', label: 'Regime de Contratação' },
+      { field: 'id_modelo_trabalho', label: 'Modelo de Trabalho' },
+    ]
+
+    const missingFields = requiredFields.filter(({ field }) => {
+      const value = vaga?.[field as keyof typeof vaga]
+      return !value || (typeof value === 'string' && value.trim() === '')
+    })
+
+    if (missingFields.length > 0) {
+      const missingLabels = missingFields.map(f => f.label).join(', ')
+      toast.error('Campos obrigatórios faltando', {
+        description: `Complete os seguintes campos antes de publicar: ${missingLabels}`,
+      })
+      setConfirmDialog({ open: false, type: null })
+      return
+    }
+
     setIsLoading(true)
     setConfirmDialog({ open: false, type: null })
 
@@ -486,6 +509,9 @@ export default function EmpregabilidadeDetailPage({
             <CandidatesTable
               empregabilidadeId={vagaId}
               empregabilidadeTitle={vaga.titulo}
+              informacoesComplementares={
+                (vaga.informacoes_complementares as any) || []
+              }
             />
           </TabsContent>
         </Tabs>
