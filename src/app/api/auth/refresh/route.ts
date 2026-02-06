@@ -1,6 +1,10 @@
 import { refreshAccessToken } from '@/lib/token-refresh'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import {
+  getAccessTokenCookieConfig,
+  getRefreshTokenCookieConfig,
+} from '@/lib/auth-cookie-config'
 
 export async function POST() {
   try {
@@ -31,21 +35,19 @@ export async function POST() {
       })
 
       // Set new access token
-      response.cookies.set('access_token', refreshResult.accessToken, {
-        httpOnly: true,
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-      })
+      response.cookies.set(
+        'access_token',
+        refreshResult.accessToken,
+        getAccessTokenCookieConfig(refreshResult.accessToken)
+      )
 
       // Set new refresh token if provided
       if (refreshResult.newRefreshToken) {
-        response.cookies.set('refresh_token', refreshResult.newRefreshToken, {
-          httpOnly: true,
-          path: '/',
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-        })
+        response.cookies.set(
+          'refresh_token',
+          refreshResult.newRefreshToken,
+          getRefreshTokenCookieConfig(refreshResult.newRefreshToken)
+        )
       }
 
       return response
