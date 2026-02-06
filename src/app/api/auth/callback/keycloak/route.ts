@@ -1,5 +1,9 @@
 // src/app/api/auth/callback/keycloak/route.ts
 import { type NextRequest, NextResponse } from 'next/server'
+import {
+  getAccessTokenCookieConfig,
+  getRefreshTokenCookieConfig,
+} from '@/lib/auth-cookie-config'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -30,14 +34,16 @@ export async function GET(req: NextRequest) {
     ''
   )
   const res = NextResponse.redirect(baseRedirect)
-  res.cookies.set('access_token', data.access_token, {
-    httpOnly: true,
-    path: '/',
-  })
-  res.cookies.set('refresh_token', data.refresh_token, {
-    httpOnly: true,
-    path: '/',
-  })
+  res.cookies.set(
+    'access_token',
+    data.access_token,
+    getAccessTokenCookieConfig(data.access_token)
+  )
+  res.cookies.set(
+    'refresh_token',
+    data.refresh_token,
+    getRefreshTokenCookieConfig(data.refresh_token)
+  )
 
   return res
 }

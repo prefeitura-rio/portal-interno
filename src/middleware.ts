@@ -58,6 +58,17 @@ export async function middleware(request: NextRequest) {
   const authToken = request.cookies.get('access_token')
   const refreshToken = request.cookies.get('refresh_token')
 
+  // Debug: Log cookie status for troubleshooting
+  const cpfDebug = authToken ? getCpfFromToken(authToken.value) : 'no-token'
+  console.log(`[${cpfDebug}] [MIDDLEWARE] Cookie status:`, {
+    path,
+    hasAccessToken: !!authToken,
+    hasRefreshToken: !!refreshToken,
+    accessTokenLength: authToken?.value?.length || 0,
+    refreshTokenLength: refreshToken?.value?.length || 0,
+    allCookieNames: request.cookies.getAll().map(c => c.name),
+  })
+
   // TEMPORARY: Block access to "oportunidades-mei" and "empregabilidade" routes when feature flag is enabled
   // TODO: Remove this block once the feature is ready
   if (
