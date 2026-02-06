@@ -4,6 +4,10 @@ import {
   REDIRECT_WHEN_UNAUTHORIZED_ROUTE,
 } from '../constants/url'
 import { refreshAccessToken } from './token-refresh'
+import {
+  getAccessTokenCookieConfig,
+  getRefreshTokenCookieConfig,
+} from './auth-cookie-config'
 
 export async function handleExpiredToken(
   request: NextRequest,
@@ -18,16 +22,18 @@ export async function handleExpiredToken(
       const response = NextResponse.next()
 
       // Set new tokens in cookies
-      response.cookies.set('access_token', refreshResult.accessToken, {
-        httpOnly: true,
-        path: '/',
-      })
+      response.cookies.set(
+        'access_token',
+        refreshResult.accessToken,
+        getAccessTokenCookieConfig(refreshResult.accessToken)
+      )
 
       if (refreshResult.newRefreshToken) {
-        response.cookies.set('refresh_token', refreshResult.newRefreshToken, {
-          httpOnly: true,
-          path: '/',
-        })
+        response.cookies.set(
+          'refresh_token',
+          refreshResult.newRefreshToken,
+          getRefreshTokenCookieConfig(refreshResult.newRefreshToken)
+        )
       }
 
       return response
