@@ -23,7 +23,20 @@ export function getAccessTokenCookieConfig(token: string) {
     const decoded = jwtDecode<{ exp: number }>(token)
 
     // Calcular maxAge em segundos até a expiração
-    const maxAge = decoded.exp - Math.floor(Date.now() / 1000)
+    const now = Math.floor(Date.now() / 1000)
+    const maxAge = decoded.exp - now
+
+    // Log detalhado para debug do TTL
+    const maxAgeMinutes = Math.floor(maxAge / 60)
+    const maxAgeHours = Math.floor(maxAge / 3600)
+    console.log('[AUTH_COOKIE_CONFIG] Access token cookie config:', {
+      exp: decoded.exp,
+      now,
+      maxAge,
+      maxAgeMinutes,
+      maxAgeHours,
+      expiresAt: new Date(decoded.exp * 1000).toISOString(),
+    })
 
     // Garantir que maxAge não seja negativo
     if (maxAge <= 0) {
@@ -60,7 +73,18 @@ export function getRefreshTokenCookieConfig(token: string) {
     const decoded = jwtDecode<{ exp: number }>(token)
 
     // Calcular maxAge em segundos até a expiração
-    const maxAge = decoded.exp - Math.floor(Date.now() / 1000)
+    const now = Math.floor(Date.now() / 1000)
+    const maxAge = decoded.exp - now
+
+    // Log detalhado para debug do TTL
+    const maxAgeMinutes = Math.floor(maxAge / 60)
+    console.log('[AUTH_COOKIE_CONFIG] Refresh token cookie config:', {
+      exp: decoded.exp,
+      now,
+      maxAge,
+      maxAgeMinutes,
+      expiresAt: new Date(decoded.exp * 1000).toISOString(),
+    })
 
     // Garantir que maxAge não seja negativo
     if (maxAge <= 0) {

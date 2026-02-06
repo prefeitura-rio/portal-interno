@@ -59,6 +59,7 @@ export function useTokenRefresh(
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
         credentials: 'include',
+        cache: 'no-store', // CRÍTICO: Nunca cachear refresh de token
       })
 
       if (response.ok) {
@@ -76,9 +77,12 @@ export function useTokenRefresh(
 
   const checkAndRefreshToken = useCallback(async () => {
     try {
+      console.log('[useTokenRefresh] Checking token status...')
+
       // Verificar o status do token
       const tokenStatusResponse = await fetch('/api/auth/token-status', {
         credentials: 'include',
+        cache: 'no-store', // CRÍTICO: Nunca cachear status de token
       })
 
       if (!tokenStatusResponse.ok) {
@@ -88,6 +92,11 @@ export function useTokenRefresh(
       }
 
       const tokenData = await tokenStatusResponse.json()
+      console.log('[useTokenRefresh] Token status:', {
+        hasToken: !!tokenData.token,
+        isExpired: tokenData.isExpired,
+        hasRefreshToken: !!tokenData.refreshToken,
+      })
 
       // Se não temos token ou está expirado, tentar refresh
       if (!tokenData.token || tokenData.isExpired) {
@@ -112,6 +121,12 @@ export function useTokenRefresh(
       const now = Date.now()
       const timeUntilExpiry = tokenExpiry - now
       const minutesUntilExpiry = Math.round(timeUntilExpiry / 1000 / 60)
+
+      console.log('[useTokenRefresh] Time until expiry:', {
+        minutesUntilExpiry,
+        refreshBeforeExpiry,
+        shouldRefresh: minutesUntilExpiry <= refreshBeforeExpiry && minutesUntilExpiry > 0,
+      })
 
       // Se o token está próximo da expiração, fazer o refresh
       if (minutesUntilExpiry <= refreshBeforeExpiry && minutesUntilExpiry > 0) {
