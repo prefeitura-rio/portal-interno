@@ -2,6 +2,10 @@ import { isJwtExpired } from '@/lib/jwt-utils'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+// Desabilitar cache completamente nesta rota
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     const cookieStore = cookies()
@@ -22,7 +26,7 @@ export async function GET() {
 
     const isExpired = isJwtExpired(accessToken.value)
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         authenticated: !isExpired,
         token: accessToken.value,
@@ -32,6 +36,13 @@ export async function GET() {
       },
       { status: 200 }
     )
+
+    // Headers anti-cache
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+
+    return response
   } catch (error) {
     console.error('Error checking token status:', error)
     return NextResponse.json(

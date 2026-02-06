@@ -28,6 +28,16 @@ export async function GET(req: NextRequest) {
   if (!response.ok) return NextResponse.redirect('/')
 
   const data = await response.json()
+
+  // Log da resposta do Keycloak para debug de TTL
+  console.log('[KEYCLOAK_CALLBACK] Token response from Keycloak:', {
+    expires_in: data.expires_in,
+    refresh_expires_in: data.refresh_expires_in,
+    expires_in_minutes: data.expires_in ? Math.floor(data.expires_in / 60) : null,
+    expires_in_hours: data.expires_in ? Math.floor(data.expires_in / 3600) : null,
+    refresh_expires_in_minutes: data.refresh_expires_in ? Math.floor(data.refresh_expires_in / 60) : null,
+  })
+
   const redirectUri = process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_REDIRECT_URI!
   const baseRedirect = redirectUri.replace(
     /\/api\/auth\/callback\/keycloak$/,

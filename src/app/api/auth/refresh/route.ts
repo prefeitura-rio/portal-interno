@@ -6,6 +6,10 @@ import {
   getRefreshTokenCookieConfig,
 } from '@/lib/auth-cookie-config'
 
+// Desabilitar cache completamente nesta rota
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function POST() {
   try {
     const cookieStore = cookies()
@@ -49,6 +53,14 @@ export async function POST() {
           getRefreshTokenCookieConfig(refreshResult.newRefreshToken)
         )
       }
+
+      // Headers anti-cache
+      response.headers.set(
+        'Cache-Control',
+        'no-store, no-cache, must-revalidate, proxy-revalidate'
+      )
+      response.headers.set('Pragma', 'no-cache')
+      response.headers.set('Expires', '0')
 
       return response
     }
