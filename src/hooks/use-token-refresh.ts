@@ -59,6 +59,7 @@ export function useTokenRefresh(
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
         credentials: 'include',
+        cache: 'no-store', // CRÍTICO: Nunca cachear refresh de token
       })
 
       if (response.ok) {
@@ -81,6 +82,7 @@ export function useTokenRefresh(
       // Verificar o status do token
       const tokenStatusResponse = await fetch('/api/auth/token-status', {
         credentials: 'include',
+        cache: 'no-store', // CRÍTICO: Nunca cachear status de token
       })
 
       if (!tokenStatusResponse.ok) {
