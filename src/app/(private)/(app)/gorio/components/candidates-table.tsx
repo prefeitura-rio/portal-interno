@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import * as React from 'react'
 
+import type { InformacaoComplementar } from '@/app/(private)/(app)/gorio/empregabilidade/components/informacoes-complementares-creator'
 import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-candidate-dialog'
 import { DataTable } from '@/components/data-table/data-table'
 import {
@@ -56,14 +57,6 @@ import {
   useCandidatos,
 } from '@/hooks/use-candidatos'
 import { toast } from 'sonner'
-
-interface InformacaoComplementar {
-  id: string
-  titulo: string
-  obrigatorio: boolean
-  tipo_campo: string
-  opcoes?: string[]
-}
 
 interface CandidatesTableProps {
   empregabilidadeId: string

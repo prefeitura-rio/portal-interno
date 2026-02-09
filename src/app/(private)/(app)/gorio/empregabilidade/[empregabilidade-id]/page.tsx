@@ -563,19 +563,21 @@ export default function EmpregabilidadeDetailPage({
       />
 
       {/* New Candidate Dialog */}
-      <NewCandidateDialog
-        open={showNewCandidateDialog}
-        onOpenChange={setShowNewCandidateDialog}
-        vagaId={vagaId}
-        vagaTitle={vaga.titulo}
-        informacoesComplementares={fromApiInformacaoComplementar(
-          vaga.informacoes_complementares
-        )}
-        onSuccess={() => {
-          setShowNewCandidateDialog(false)
-          // The CandidatesTable will auto-refresh via its own refetch
-        }}
-      />
+      {vagaId && vaga.titulo && (
+        <NewCandidateDialog
+          open={showNewCandidateDialog}
+          onOpenChange={setShowNewCandidateDialog}
+          vagaId={vagaId}
+          vagaTitle={vaga.titulo}
+          informacoesComplementares={fromApiInformacaoComplementar(
+            vaga.informacoes_complementares
+          )}
+          onSuccess={() => {
+            setShowNewCandidateDialog(false)
+            // The CandidatesTable will auto-refresh via its own refetch
+          }}
+        />
+      )}
     </ContentLayout>
   )
 }

@@ -10,15 +10,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useRef, useState } from 'react'
-import { NewCandidateForm, type NewCandidateFormRef } from './new-candidate-form'
-
-interface InformacaoComplementar {
-  id: string
-  titulo: string
-  obrigatorio: boolean
-  tipo_campo: string
-  opcoes?: string[]
-}
+import type { InformacaoComplementar } from './informacoes-complementares-creator'
+import {
+  NewCandidateForm,
+  type NewCandidateFormRef,
+} from './new-candidate-form'
 
 interface NewCandidateDialogProps {
   open: boolean

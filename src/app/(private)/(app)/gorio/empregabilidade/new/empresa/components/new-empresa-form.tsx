@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   Form,
   FormControl,
@@ -16,9 +17,8 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { toast } from 'sonner'
 import { Search } from 'lucide-react'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { toast } from 'sonner'
 
 // Format CNPJ: XX.XXX.XXX/XXXX-XX
 const formatCNPJ = (cnpj: string): string => {
@@ -78,7 +78,7 @@ export function NewEmpresaForm({
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null)
 
   // Check if running in staging environment
-  const isStaging = process.env.NEXT_PUBLIC_ENVIROMENT === 'staging'
+  const isStaging = process.env.NEXT_PUBLIC_ENVIRONMENT === 'staging'
 
   // ← NEW: Pre-populate searchedCompany in edit mode
   React.useEffect(() => {
@@ -197,7 +197,6 @@ export function NewEmpresaForm({
 
   const handleConfirmStagingSubmit = () => {
     if (pendingFormData && onSubmit) {
-      console.log('Form submitted (staging bypass):', pendingFormData)
       setShowStagingDialog(false)
       onSubmit(pendingFormData)
       setPendingFormData(null)
@@ -207,7 +206,7 @@ export function NewEmpresaForm({
   // Watch form values to enable/disable submit button
   const descricao = form.watch('descricao')
   const logoUrl = form.watch('logo_url')
-  
+
   // Validate URL format
   const isValidUrl = (url: string): boolean => {
     if (!url || url.trim() === '') return false
@@ -218,7 +217,7 @@ export function NewEmpresaForm({
       return false
     }
   }
-  
+
   // In staging, allow form submission without CNPJ search
   const isFormValid = isStaging
     ? descricao &&
