@@ -65,6 +65,25 @@ export default function NewEmpregabilidadePage() {
 
       if (!response.ok) {
         const errorData = await response.json()
+
+        // Try to extract field-specific errors
+        let errorMessage = 'Falha ao criar vaga'
+        let errorDescription = undefined
+
+        if (errorData.error && typeof errorData.error === 'string') {
+          // Check if error contains field names
+          const fieldPattern = /(titulo|descricao|contratante|regime|modelo)/i
+          if (fieldPattern.test(errorData.error)) {
+            errorDescription = errorData.error
+          } else {
+            errorMessage = errorData.error
+          }
+        }
+
+        toast.error(errorMessage, {
+          description: errorDescription,
+        })
+
         throw new Error(errorData.error || 'Failed to create vaga')
       }
 
@@ -125,7 +144,28 @@ export default function NewEmpregabilidadePage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create draft vaga')
+
+        // Try to extract field-specific errors from backend response
+        let errorMessage = 'Falha ao criar rascunho'
+        let errorDescription = undefined
+
+        if (errorData.error && typeof errorData.error === 'string') {
+          errorMessage = errorData.error
+        }
+
+        // Check if error is about UUID (missing required fields)
+        if (errorData.message && typeof errorData.message === 'object') {
+          const backendError = errorData.message.error || ''
+          if (backendError.includes('UUID') || backendError.includes('not null')) {
+            errorDescription = 'Preencha todos os campos obrigatórios: Título, Descrição, Empresa, Regime de Contratação e Modelo de Trabalho'
+          }
+        }
+
+        toast.error(errorMessage, {
+          description: errorDescription,
+        })
+
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()

@@ -118,14 +118,14 @@ export function useCandidatos({
       )
 
       if (!response.ok) {
-        throw new Error(
-          `Failed to fetch candidatos: ${response.statusText}`
-        )
+        throw new Error(`Failed to fetch candidatos: ${response.statusText}`)
       }
 
       const data = await response.json()
 
-      console.log('Received candidatos:', data)
+      console.log('useCandidatos - received data:', data)
+      console.log('useCandidatos - candidatos count:', data.candidatos?.length)
+      console.log('useCandidatos - pagination:', data.pagination)
 
       setCandidatos(data.candidatos || [])
       setSummary(data.summary || null)
@@ -166,19 +166,26 @@ export function useCandidatos({
           endpoint = `/api/empregabilidade/candidaturas/${candidatoId}/status`
         }
 
-        console.log('Updating candidato status:', { candidatoId, status, endpoint })
+        console.log('Updating candidato status:', {
+          candidatoId,
+          status,
+          endpoint,
+        })
 
         const response = await fetch(endpoint, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: status !== 'approved' && status !== 'rejected'
-            ? JSON.stringify({ status })
-            : undefined,
+          body:
+            status !== 'approved' && status !== 'rejected'
+              ? JSON.stringify({ status })
+              : undefined,
         })
 
         if (!response.ok) {
           const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to update candidato status')
+          throw new Error(
+            errorData.error || 'Failed to update candidato status'
+          )
         }
 
         // Refetch to get updated data
@@ -200,10 +207,15 @@ export function useCandidatos({
       status: CandidatoStatus
     ): Promise<boolean> => {
       try {
-        console.log('Updating multiple candidatos:', { count: candidatoIds.length, status })
+        console.log('Updating multiple candidatos:', {
+          count: candidatoIds.length,
+          status,
+        })
 
         // Execute all updates in parallel
-        const promises = candidatoIds.map(id => updateCandidatoStatus(id, status))
+        const promises = candidatoIds.map(id =>
+          updateCandidatoStatus(id, status)
+        )
         await Promise.all(promises)
 
         // Refetch to get updated data

@@ -1,6 +1,7 @@
 'use client'
 
 import { CandidatesTable } from '@/app/(private)/(app)/gorio/components/candidates-table'
+import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-candidate-dialog'
 import {
   NewEmpregabilidadeForm,
   type NewEmpregabilidadeFormRef,
@@ -22,13 +23,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useVaga } from '@/hooks/use-vaga'
+import { fromApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
 import {
   type VagaStatus,
   vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Ban, Edit, Play, Save, Trash2, Users, X } from 'lucide-react'
+import { Ban, Edit, Play, Save, Trash2, UserPlus, Users, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -50,6 +52,7 @@ export default function EmpregabilidadeDetailPage({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showTabChangeDialog, setShowTabChangeDialog] = useState(false)
   const [pendingTab, setPendingTab] = useState<string | null>(null)
+  const [showNewCandidateDialog, setShowNewCandidateDialog] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean
     type: 'delete' | 'publish' | null
@@ -176,6 +179,29 @@ export default function EmpregabilidadeDetailPage({
   const confirmPublish = useCallback(async () => {
     if (!vaga?.id) return
 
+    // Validate required fields before publishing
+    const requiredFields = [
+      { field: 'titulo', label: 'Título' },
+      { field: 'descricao', label: 'Descrição' },
+      { field: 'id_contratante', label: 'Empresa' },
+      { field: 'id_regime_contratacao', label: 'Regime de Contratação' },
+      { field: 'id_modelo_trabalho', label: 'Modelo de Trabalho' },
+    ]
+
+    const missingFields = requiredFields.filter(({ field }) => {
+      const value = vaga?.[field as keyof typeof vaga]
+      return !value || (typeof value === 'string' && value.trim() === '')
+    })
+
+    if (missingFields.length > 0) {
+      const missingLabels = missingFields.map(f => f.label).join(', ')
+      toast.error('Campos obrigatórios faltando', {
+        description: `Complete os seguintes campos antes de publicar: ${missingLabels}`,
+      })
+      setConfirmDialog({ open: false, type: null })
+      return
+    }
+
     setIsLoading(true)
     setConfirmDialog({ open: false, type: null })
 
@@ -229,8 +255,6 @@ export default function EmpregabilidadeDetailPage({
           id_modelo_trabalho: modelo_trabalho || vaga.id_modelo_trabalho,
           tipos_pcd: tipo_pcd || vaga.tipos_pcd,
         }
-
-        console.log('Saving vaga with data:', apiData)
 
         const response = await fetch(`/api/empregabilidade/vagas/${vaga.id}`, {
           method: 'PUT',
@@ -335,7 +359,9 @@ export default function EmpregabilidadeDetailPage({
     responsabilidades: vaga.responsabilidades,
     beneficios: vaga.beneficios,
     etapas: (vaga.etapas as any) || [],
-    informacoes_complementares: (vaga.informacoes_complementares as any) || [],
+    informacoes_complementares: fromApiInformacaoComplementar(
+      vaga.informacoes_complementares
+    ),
     id_orgao_parceiro: vaga.id_orgao_parceiro,
   }
 
@@ -399,6 +425,16 @@ export default function EmpregabilidadeDetailPage({
               <div className="flex gap-2">
                 {!isEditing && (
                   <>
+                    {/* Show "Adicionar Candidato" button only on candidates tab */}
+                    {activeTab === 'candidates' && (
+                      <Button
+                        onClick={() => setShowNewCandidateDialog(true)}
+                        variant="default"
+                      >
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Adicionar candidato
+                      </Button>
+                    )}
                     {vaga.status === 'em_edicao' && (
                       <Button
                         onClick={handlePublish}
@@ -411,7 +447,7 @@ export default function EmpregabilidadeDetailPage({
                     )}
                     <Button
                       onClick={() => setIsEditing(true)}
-                      disabled={isLoading}
+                      disabled={isLoading || activeTab === 'candidates'}
                       variant="outline"
                     >
                       <Edit className="mr-2 h-4 w-4" />
@@ -430,13 +466,7 @@ export default function EmpregabilidadeDetailPage({
 
                 {isEditing && (
                   <>
-                    <Button
-                      onClick={handleSave}
-                      disabled={
-                        isLoading ||
-                        (vaga.status !== 'em_edicao' && !hasUnsavedChanges)
-                      }
-                    >
+                    <Button onClick={handleSave} disabled={isLoading}>
                       <Save className="mr-2 h-4 w-4" />
                       {isLoading ? 'Salvando...' : 'Salvar'}
                     </Button>
@@ -486,6 +516,9 @@ export default function EmpregabilidadeDetailPage({
             <CandidatesTable
               empregabilidadeId={vagaId}
               empregabilidadeTitle={vaga.titulo}
+              informacoesComplementares={fromApiInformacaoComplementar(
+                vaga.informacoes_complementares
+              )}
             />
           </TabsContent>
         </Tabs>
@@ -527,6 +560,21 @@ export default function EmpregabilidadeDetailPage({
         cancelText="Continuar editando"
         onConfirm={handleConfirmTabChange}
         variant="destructive"
+      />
+
+      {/* New Candidate Dialog */}
+      <NewCandidateDialog
+        open={showNewCandidateDialog}
+        onOpenChange={setShowNewCandidateDialog}
+        vagaId={vagaId}
+        vagaTitle={vaga.titulo}
+        informacoesComplementares={fromApiInformacaoComplementar(
+          vaga.informacoes_complementares
+        )}
+        onSuccess={() => {
+          setShowNewCandidateDialog(false)
+          // The CandidatesTable will auto-refresh via its own refetch
+        }}
       />
     </ContentLayout>
   )

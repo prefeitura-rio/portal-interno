@@ -39,6 +39,7 @@ import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
 import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import {
   type EtapaProcessoSeletivo,
   EtapasProcessoSeletivo,
@@ -104,6 +105,94 @@ const formSchema = z.object({
 })
 
 type FormData = z.infer<typeof formSchema>
+
+// ============================================
+// SCHEMAS DE VALIDAÇÃO
+// ============================================
+
+// Schema para validação de rascunho (todos os 5 campos obrigatórios - backend exige)
+const draftValidationSchema = z.object({
+  titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
+  descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
+  contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
+  regime_contratacao: z.string().min(1, { message: 'Regime de contratação é obrigatório.' }),
+  modelo_trabalho: z.string().min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+})
+
+// Schema para validação de publicação (5 campos obrigatórios)
+const publishValidationSchema = z.object({
+  titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
+  descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
+  contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
+  regime_contratacao: z.string().min(1, { message: 'Regime de contratação é obrigatório.' }),
+  modelo_trabalho: z.string().min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+})
+
+// ============================================
+// FUNÇÕES DE VALIDAÇÃO MANUAL
+// ============================================
+
+const validateForPublish = (
+  data: FormData,
+  form: ReturnType<typeof useForm<FormData>>
+) => {
+  const result = publishValidationSchema.safeParse(data)
+
+  if (!result.success) {
+    // Limpar erros anteriores
+    form.clearErrors()
+
+    // Aplicar erros a cada campo
+    result.error.errors.forEach(error => {
+      const fieldName = error.path[0] as keyof FormData
+      form.setError(fieldName, {
+        type: 'manual',
+        message: error.message,
+      })
+    })
+
+    // Mostrar toast com lista de campos faltantes
+    const errorMessages = result.error.errors.map(e => e.message)
+    toast.error('Campos obrigatórios não preenchidos', {
+      description: errorMessages.join(', '),
+    })
+
+    return false
+  }
+
+  return true
+}
+
+const validateForDraft = (
+  data: FormData,
+  form: ReturnType<typeof useForm<FormData>>
+) => {
+  const result = draftValidationSchema.safeParse(data)
+
+  if (!result.success) {
+    // Limpar erros anteriores
+    form.clearErrors()
+
+    // Aplicar erros a cada campo
+    result.error.errors.forEach(error => {
+      const fieldName = error.path[0] as keyof FormData
+      form.setError(fieldName, {
+        type: 'manual',
+        message: error.message,
+      })
+    })
+
+    // Mostrar toast com lista de campos faltantes
+    const errorMessages = result.error.errors.map(e => e.message)
+    toast.error('Campos obrigatórios não preenchidos', {
+      description: errorMessages.join(', '),
+    })
+
+    return false
+  }
+
+  return true
+}
 
 interface NewEmpregabilidadeFormProps {
   initialData?: Partial<FormData>
@@ -272,27 +361,12 @@ export const NewEmpregabilidadeForm = forwardRef<
     const handleSubmit = (data: FormData) => {
       console.log('Form submitted:', data)
 
-      // Validate required fields for publication (not draft)
-      // This validation only runs when clicking "Publicar Vaga" button
-      const requiredFields = [
-        { field: 'titulo', label: 'Título' },
-        { field: 'descricao', label: 'Descrição' },
-        { field: 'contratante', label: 'Empresa' },
-        { field: 'regime_contratacao', label: 'Regime de Contratação' },
-        { field: 'modelo_trabalho', label: 'Modelo de Trabalho' },
-      ]
-
-      const missingFields = requiredFields.filter(({ field }) => {
-        const value = data[field as keyof FormData]
-        return !value || (typeof value === 'string' && value.trim() === '')
-      })
-
-      if (missingFields.length > 0) {
-        const missingLabels = missingFields.map(f => f.label).join(', ')
-        alert(`Por favor, preencha os campos obrigatórios: ${missingLabels}`)
+      // Validar para publicação
+      if (!validateForPublish(data, form)) {
         return
       }
 
+      // Se passou validação, enviar
       if (onSubmit) {
         onSubmit(data)
       }
@@ -301,6 +375,13 @@ export const NewEmpregabilidadeForm = forwardRef<
     const handleSaveDraft = () => {
       const currentValues = form.getValues()
       console.log('Saving draft:', currentValues)
+
+      // Validar apenas título para rascunho
+      if (!validateForDraft(currentValues, form)) {
+        return
+      }
+
+      // Se passou validação, enviar
       if (onSaveDraft) {
         onSaveDraft(currentValues)
       }
@@ -309,6 +390,14 @@ export const NewEmpregabilidadeForm = forwardRef<
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="">
+          {/* Nota explicativa sobre campos obrigatórios */}
+          <div className="mb-6 p-4 border border-muted rounded-md bg-muted/50">
+            <p className="text-sm text-muted-foreground">
+              <strong>Nota:</strong> Campos marcados com <span className="text-destructive">*</span> são obrigatórios para salvar a vaga (rascunho ou publicação).
+              A diferença é que rascunhos não aparecem publicamente até serem publicados.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16">
             {/* Coluna Esquerda */}
             <div className="space-y-6">

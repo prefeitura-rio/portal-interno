@@ -22,10 +22,12 @@ import {
   Phone,
   Text,
   User,
+  UserPlus,
   XCircle,
 } from 'lucide-react'
 import * as React from 'react'
 
+import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-candidate-dialog'
 import { DataTable } from '@/components/data-table/data-table'
 import {
   DataTableActionBar,
@@ -47,21 +49,32 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import {
-  useCandidatos,
   type Candidato,
   type CandidatoStatus,
+  useCandidatos,
 } from '@/hooks/use-candidatos'
 import { toast } from 'sonner'
+
+interface InformacaoComplementar {
+  id: string
+  titulo: string
+  obrigatorio: boolean
+  tipo_campo: string
+  opcoes?: string[]
+}
 
 interface CandidatesTableProps {
   empregabilidadeId: string
   empregabilidadeTitle?: string
+  informacoesComplementares?: InformacaoComplementar[]
 }
 
 export function CandidatesTable({
   empregabilidadeId,
   empregabilidadeTitle,
+  informacoesComplementares = [],
 }: CandidatesTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'enrollmentDate', desc: true },
@@ -76,6 +89,11 @@ export function CandidatesTable({
   const [selectedCandidato, setSelectedCandidato] =
     React.useState<Candidato | null>(null)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
+  const [showNewCandidateDialog, setShowNewCandidateDialog] =
+    React.useState(false)
+
+  // Get user permissions
+  const { canEditGoRio } = useHeimdallUserContext()
 
   // Convert column filters to candidato filters
   const filters = React.useMemo(() => {
@@ -155,24 +173,18 @@ export function CandidatesTable({
     [updateCandidatoStatus]
   )
 
-  const handlePaginationChange = React.useCallback(
-    (updater: any) => {
-      setPagination(prev => {
-        const newPagination =
-          typeof updater === 'function' ? updater(prev) : updater
-        return newPagination
-      })
-    },
-    []
-  )
+  const handlePaginationChange = React.useCallback((updater: any) => {
+    setPagination(prev => {
+      const newPagination =
+        typeof updater === 'function' ? updater(prev) : updater
+      return newPagination
+    })
+  }, [])
 
-  const handleRowClick = React.useCallback(
-    (candidato: Candidato) => {
-      setSelectedCandidato(candidato)
-      setIsSheetOpen(true)
-    },
-    []
-  )
+  const handleRowClick = React.useCallback((candidato: Candidato) => {
+    setSelectedCandidato(candidato)
+    setIsSheetOpen(true)
+  }, [])
 
   const columns = React.useMemo<ColumnDef<Candidato>[]>(
     () => [
@@ -572,9 +584,7 @@ export function CandidatesTable({
                             <Label className="text-xs text-muted-foreground">
                               Telefone
                             </Label>
-                            <p className="text-sm">
-                              {selectedCandidato.phone}
-                            </p>
+                            <p className="text-sm">{selectedCandidato.phone}</p>
                           </div>
                         </div>
                       )}
@@ -681,7 +691,10 @@ export function CandidatesTable({
                         </h4>
                         <div className="space-y-3">
                           {selectedCandidato.customFields.map(field => (
-                            <div key={field.id} className="flex items-start gap-3">
+                            <div
+                              key={field.id}
+                              className="flex items-start gap-3"
+                            >
                               <div className="flex-1">
                                 <Label className="text-sm text-muted-foreground">
                                   {field.title}
@@ -759,6 +772,16 @@ export function CandidatesTable({
           </DataTableActionBarAction>
         </DataTableActionBar>
       </DataTable>
+
+      {/* New Candidate Dialog */}
+      <NewCandidateDialog
+        open={showNewCandidateDialog}
+        onOpenChange={setShowNewCandidateDialog}
+        vagaId={empregabilidadeId}
+        vagaTitle={empregabilidadeTitle || 'esta vaga'}
+        informacoesComplementares={informacoesComplementares}
+        onSuccess={refetch}
+      />
     </div>
   )
 }
