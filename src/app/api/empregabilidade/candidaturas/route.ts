@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
     const params: any = {
       page,
-      page_size: pageSize,
+      pageSize: pageSize,
     }
 
     if (status) {
@@ -31,21 +31,16 @@ export async function GET(request: Request) {
     }
 
     if (idVaga) {
-      params.id_vaga = idVaga
+      params.vagaId = idVaga
     }
 
     if (search) {
       params.cpf = search
     }
 
-    console.log('Fetching candidaturas with params:', params)
-    console.log('id_vaga filter:', params.id_vaga)
-
     // Call Orval client
     const response = await getApiV1EmpregabilidadeCandidaturas(params)
 
-    console.log('API Response status:', response.status)
-    console.log('API Response data:', JSON.stringify(response.data, null, 2))
 
     if (response.status === 200) {
       const data = response.data as any
