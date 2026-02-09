@@ -20,6 +20,7 @@ import {
   SortableOverlay,
 } from '@/components/ui/sortable'
 import {
+  AlertCircle,
   Check,
   ChevronDown,
   CircleCheck,
@@ -81,8 +82,7 @@ export function InformacoesComplementaresCreator({
   >([{ id: uuidv4(), value: '' }])
   const [newFieldValorMin, setNewFieldValorMin] = useState<string>('')
   const [newFieldValorMax, setNewFieldValorMax] = useState<string>('')
-  const [editingFieldId, setEditingFieldId] =
-    useState<string | null>(null)
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null)
   const [originalField, setOriginalField] =
     useState<InformacaoComplementar | null>(null)
 
@@ -200,10 +200,7 @@ export function InformacoesComplementaresCreator({
         field.id === fieldId
           ? {
               ...field,
-              options: [
-                ...(field.options || []),
-                { id: uuidv4(), value: '' },
-              ],
+              options: [...(field.options || []), { id: uuidv4(), value: '' }],
             }
           : field
       )
@@ -658,9 +655,7 @@ export function InformacoesComplementaresCreator({
           <Checkbox
             id="required-field"
             checked={newFieldRequired}
-            onCheckedChange={checked =>
-              setNewFieldRequired(checked as boolean)
-            }
+            onCheckedChange={checked => setNewFieldRequired(checked as boolean)}
             disabled={disabled}
           />
           <label
@@ -792,15 +787,27 @@ export function InformacoesComplementaresCreator({
           </div>
         )}
 
-        <div className="flex gap-2">
-          <Button
-            onClick={addField}
-            disabled={!isFieldValid() || disabled}
-            className="flex-1"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar campo
-          </Button>
+        <div className="space-y-3">
+          <div className="flex gap-2 items-center">
+            <Button
+              onClick={addField}
+              disabled={!isFieldValid() || disabled || fields.length >= 5}
+              className="flex-1"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar campo
+            </Button>
+            <div className="text-sm text-muted-foreground whitespace-nowrap">
+              {fields.length}/5 campos
+            </div>
+          </div>
+
+          {fields.length >= 5 && (
+            <p className="text-sm text-amber-600 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              Limite de 5 campos atingido
+            </p>
+          )}
         </div>
       </div>
 

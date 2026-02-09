@@ -24,14 +24,7 @@ import { forwardRef, useImperativeHandle, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-
-interface InformacaoComplementar {
-  id: string
-  titulo: string
-  obrigatorio: boolean
-  tipo_campo: string
-  opcoes?: string[]
-}
+import type { InformacaoComplementar } from './informacoes-complementares-creator'
 
 interface NewCandidateFormProps {
   vagaId: string
@@ -57,10 +50,10 @@ function createFormSchema(informacoesComplementares: InformacaoComplementar[]) {
   // Add dynamic fields
   const dynamicSchema: Record<string, any> = {}
 
-  informacoesComplementares.forEach((info) => {
+  informacoesComplementares.forEach(info => {
     const fieldKey = `resposta_${info.id}`
 
-    if (info.obrigatorio) {
+    if (info.required) {
       dynamicSchema[fieldKey] = z.string().min(1, 'Campo obrigatório')
     } else {
       dynamicSchema[fieldKey] = z.string().optional()
@@ -87,7 +80,7 @@ export const NewCandidateForm = forwardRef<
   }
 
   // Add default values for dynamic fields
-  informacoesComplementares.forEach((info) => {
+  informacoesComplementares.forEach(info => {
     defaultValues[`resposta_${info.id}`] = ''
   })
 
@@ -108,7 +101,7 @@ export const NewCandidateForm = forwardRef<
     try {
       // Map form data to API format
       const respostasInfoComplementares = informacoesComplementares.map(
-        (info) => ({
+        info => ({
           id_info: info.id,
           resposta: data[`resposta_${info.id}` as keyof FormData] || '',
         })
@@ -116,11 +109,11 @@ export const NewCandidateForm = forwardRef<
 
       // Filter out empty optional responses
       const respostasFiltradas = respostasInfoComplementares.filter(
-        (resposta) => {
+        resposta => {
           const info = informacoesComplementares.find(
-            (i) => i.id === resposta.id_info
+            i => i.id === resposta.id_info
           )
-          return info?.obrigatorio || resposta.resposta.trim() !== ''
+          return info?.required || resposta.resposta.trim() !== ''
         }
       )
 
@@ -182,6 +175,7 @@ export const NewCandidateForm = forwardRef<
       form.reset()
 
       // Call success callback
+      console.log('Calling onSuccess to refetch candidates...')
       onSuccess()
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -197,21 +191,17 @@ export const NewCandidateForm = forwardRef<
     info: InformacaoComplementar,
     field: any
   ): React.ReactNode => {
-    const tipo = info.tipo_campo?.toLowerCase() || 'texto'
-    const placeholder = info.titulo ? `Digite ${info.titulo.toLowerCase()}` : 'Digite aqui'
+    const tipo = info.field_type?.toLowerCase() || 'text'
+    const placeholder = info.title
+      ? `Digite ${info.title.toLowerCase()}`
+      : 'Digite aqui'
 
     switch (tipo) {
-      case 'texto':
       case 'text':
         return (
-          <Input
-            {...field}
-            disabled={isSubmitting}
-            placeholder={placeholder}
-          />
+          <Input {...field} disabled={isSubmitting} placeholder={placeholder} />
         )
 
-      case 'area_texto':
       case 'textarea':
         return (
           <Textarea
@@ -222,7 +212,6 @@ export const NewCandidateForm = forwardRef<
           />
         )
 
-      case 'numero':
       case 'number':
         return (
           <Input
@@ -234,8 +223,10 @@ export const NewCandidateForm = forwardRef<
         )
 
       case 'select':
-      case 'selecao': {
-        const selectPlaceholder = info.titulo ? `Selecione ${info.titulo.toLowerCase()}` : 'Selecione uma opção'
+      case 'multiselect': {
+        const selectPlaceholder = info.title
+          ? `Selecione ${info.title.toLowerCase()}`
+          : 'Selecione uma opção'
         return (
           <Select
             onValueChange={field.onChange}
@@ -246,9 +237,9 @@ export const NewCandidateForm = forwardRef<
               <SelectValue placeholder={selectPlaceholder} />
             </SelectTrigger>
             <SelectContent>
-              {info.opcoes?.map((opcao) => (
-                <SelectItem key={opcao} value={opcao}>
-                  {opcao}
+              {info.options?.map(option => (
+                <SelectItem key={option.id} value={option.value}>
+                  {option.value}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -259,11 +250,7 @@ export const NewCandidateForm = forwardRef<
       default:
         // Default to text input
         return (
-          <Input
-            {...field}
-            disabled={isSubmitting}
-            placeholder={placeholder}
-          />
+          <Input {...field} disabled={isSubmitting} placeholder={placeholder} />
         )
     }
   }
@@ -282,7 +269,7 @@ export const NewCandidateForm = forwardRef<
                 <Input
                   {...field}
                   placeholder="000.000.000-00"
-                  onChange={(e) => {
+                  onChange={e => {
                     const formatted = formatCPF(e.target.value)
                     field.onChange(formatted)
                   }}
@@ -296,7 +283,7 @@ export const NewCandidateForm = forwardRef<
         />
 
         {/* Dynamic Complementary Fields */}
-        {informacoesComplementares.map((info) => (
+        {informacoesComplementares.map(info => (
           <FormField
             key={info.id}
             control={form.control}
@@ -304,7 +291,7 @@ export const NewCandidateForm = forwardRef<
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  {info.titulo || 'Campo adicional'} {info.obrigatorio && '*'}
+                  {info.title || 'Campo adicional'} {info.required && '*'}
                 </FormLabel>
                 <FormControl>{renderFieldByType(info, field)}</FormControl>
                 <FormMessage />

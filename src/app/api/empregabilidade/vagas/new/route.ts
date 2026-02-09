@@ -3,24 +3,23 @@ import {
   putApiV1EmpregabilidadeVagasIdPublish,
 } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
 import type { EmpregabilidadeVagaBody } from '@/http-gorio/models/empregabilidadeVagaBody'
+import { toApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const body: EmpregabilidadeVagaBody = await request.json()
+    const rawBody = await request.json()
 
-    console.log(
-      '🔵 [API /vagas/new] Received body:',
-      JSON.stringify(body, null, 2)
-    )
-    console.log('🔵 [API /vagas/new] Required fields:', {
-      titulo: body.titulo,
-      descricao: body.descricao,
-      id_contratante: body.id_contratante,
-      id_regime_contratacao: body.id_regime_contratacao,
-      id_modelo_trabalho: body.id_modelo_trabalho,
-    })
+    // Convert informacoes_complementares from frontend format to API format
+    const convertedInfos = rawBody.informacoes_complementares
+      ? toApiInformacaoComplementar(rawBody.informacoes_complementares)
+      : undefined
+
+    const body: EmpregabilidadeVagaBody = {
+      ...rawBody,
+      informacoes_complementares: convertedInfos,
+    }
 
     // Validate required fields (check for empty strings too)
     const isMissing = (value: any) =>
@@ -33,10 +32,6 @@ export async function POST(request: Request) {
       isMissing(body.id_regime_contratacao) ||
       isMissing(body.id_modelo_trabalho)
     ) {
-      console.error(
-        '🔴 [API /vagas/new] Validation failed - missing required fields'
-      )
-
       // Show which fields are missing for better debugging
       const missingFields = []
       if (isMissing(body.titulo)) missingFields.push('titulo')
@@ -48,8 +43,6 @@ export async function POST(request: Request) {
       if (isMissing(body.id_modelo_trabalho))
         missingFields.push('id_modelo_trabalho')
 
-      console.error('🔴 [API /vagas/new] Missing fields:', missingFields)
-
       return NextResponse.json(
         {
           error: `Campos obrigatórios faltando: ${missingFields.join(', ')}`,
@@ -59,25 +52,11 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log(
-      '✅ [API /vagas/new] Validation passed, creating and publishing vaga with data:',
-      JSON.stringify(body, null, 2)
-    )
-
     // IMPORTANT: The backend API creates vagas as DRAFT by default with POST /vagas
     // To publish immediately, we need to:
     // 1. Create the vaga (will be created as draft/em_edicao)
     // 2. Immediately publish it using PUT /vagas/{id}/publish
-    console.log(
-      '🔵 [API /vagas/new] Step 1: Creating vaga (will be draft initially)...'
-    )
-
     const createResponse = await postApiV1EmpregabilidadeVagas(body)
-
-    console.log('🔵 [API /vagas/new] Create response:', {
-      status: createResponse.status,
-      data: createResponse.data,
-    })
 
     if (createResponse.status !== 201) {
       return NextResponse.json(
@@ -95,14 +74,7 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log('🔵 [API /vagas/new] Step 2: Publishing vaga with ID:', vagaId)
-
     const publishResponse = await putApiV1EmpregabilidadeVagasIdPublish(vagaId)
-
-    console.log('🔵 [API /vagas/new] Publish response:', {
-      status: publishResponse.status,
-      data: publishResponse.data,
-    })
 
     if (publishResponse.status === 200) {
       // Revalidate vagas cache

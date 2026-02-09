@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import * as React from 'react'
 
+import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-candidate-dialog'
 import { DataTable } from '@/components/data-table/data-table'
 import {
   DataTableActionBar,
@@ -48,12 +49,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-candidate-dialog'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import {
-  useCandidatos,
   type Candidato,
   type CandidatoStatus,
+  useCandidatos,
 } from '@/hooks/use-candidatos'
 import { toast } from 'sonner'
 
@@ -173,24 +173,18 @@ export function CandidatesTable({
     [updateCandidatoStatus]
   )
 
-  const handlePaginationChange = React.useCallback(
-    (updater: any) => {
-      setPagination(prev => {
-        const newPagination =
-          typeof updater === 'function' ? updater(prev) : updater
-        return newPagination
-      })
-    },
-    []
-  )
+  const handlePaginationChange = React.useCallback((updater: any) => {
+    setPagination(prev => {
+      const newPagination =
+        typeof updater === 'function' ? updater(prev) : updater
+      return newPagination
+    })
+  }, [])
 
-  const handleRowClick = React.useCallback(
-    (candidato: Candidato) => {
-      setSelectedCandidato(candidato)
-      setIsSheetOpen(true)
-    },
-    []
-  )
+  const handleRowClick = React.useCallback((candidato: Candidato) => {
+    setSelectedCandidato(candidato)
+    setIsSheetOpen(true)
+  }, [])
 
   const columns = React.useMemo<ColumnDef<Candidato>[]>(
     () => [
@@ -475,18 +469,6 @@ export function CandidatesTable({
 
   return (
     <div className="space-y-4">
-      {/* Header with Add Candidate Button */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {canEditGoRio && (
-            <Button onClick={() => setShowNewCandidateDialog(true)}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Adicionar candidato
-            </Button>
-          )}
-        </div>
-      </div>
-
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -602,9 +584,7 @@ export function CandidatesTable({
                             <Label className="text-xs text-muted-foreground">
                               Telefone
                             </Label>
-                            <p className="text-sm">
-                              {selectedCandidato.phone}
-                            </p>
+                            <p className="text-sm">{selectedCandidato.phone}</p>
                           </div>
                         </div>
                       )}
@@ -711,7 +691,10 @@ export function CandidatesTable({
                         </h4>
                         <div className="space-y-3">
                           {selectedCandidato.customFields.map(field => (
-                            <div key={field.id} className="flex items-start gap-3">
+                            <div
+                              key={field.id}
+                              className="flex items-start gap-3"
+                            >
                               <div className="flex-1">
                                 <Label className="text-sm text-muted-foreground">
                                   {field.title}

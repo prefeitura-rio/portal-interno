@@ -35,7 +35,7 @@ export default function NewEmpresaPage() {
       const cnpjNumbers = data.cnpj?.replace(/\D/g, '') || ''
 
       // Check if we're in staging and missing empresa_nome (CNPJ not searched)
-      const isStaging = process.env.NEXT_PUBLIC_ENVIROMENT === 'staging'
+      const isStaging = process.env.NEXT_PUBLIC_ENVIRONMENT === 'staging'
       const needsStagingDefaults = isStaging && !data.empresa_nome
 
       // Generate unique staging values with random ID to avoid conflicts
@@ -44,15 +44,14 @@ export default function NewEmpresaPage() {
       // Map form data to API format
       const apiData = {
         cnpj: cnpjNumbers || (needsStagingDefaults ? '00000000000000' : ''),
-        razao_social: data.empresa_nome || (needsStagingDefaults ? `EMPRESA TESTE ${randomId}` : ''),
-        nome_fantasia: data.nome_fantasia || (needsStagingDefaults ? `Teste ${randomId}` : ''),
+        razao_social:
+          data.empresa_nome ||
+          (needsStagingDefaults ? `EMPRESA TESTE ${randomId}` : ''),
+        nome_fantasia:
+          data.nome_fantasia ||
+          (needsStagingDefaults ? `Teste ${randomId}` : ''),
         descricao: data.descricao,
         url_logo: data.logo_url,
-      }
-
-      console.log('Sending empresa data to API:', apiData)
-      if (needsStagingDefaults) {
-        console.log('⚠️ STAGING MODE: Using default values with random ID for uniqueness')
       }
 
       const response = await fetch('/api/empregabilidade/empresas', {

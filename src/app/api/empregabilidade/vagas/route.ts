@@ -35,7 +35,6 @@ export async function GET(request: Request) {
     const response = await getApiV1EmpregabilidadeVagas(apiParams)
 
     console.log('🔵 [API Route] Response status:', response.status)
-    console.log('🔵 [API Route] Response data:', JSON.stringify(response.data, null, 2))
     console.log('🔵 [API Route] Response headers:', response.headers)
 
     if (response.status === 200) {
@@ -68,8 +67,14 @@ export async function GET(request: Request) {
     )
   } catch (error) {
     console.error('💥 [API Route] CATCH ERROR:', error)
-    console.error('💥 [API Route] Error stack:', error instanceof Error ? error.stack : 'No stack')
-    console.error('💥 [API Route] Error message:', error instanceof Error ? error.message : String(error))
+    console.error(
+      '💥 [API Route] Error stack:',
+      error instanceof Error ? error.stack : 'No stack'
+    )
+    console.error(
+      '💥 [API Route] Error message:',
+      error instanceof Error ? error.message : String(error)
+    )
     return NextResponse.json(
       {
         error: 'Internal server error',

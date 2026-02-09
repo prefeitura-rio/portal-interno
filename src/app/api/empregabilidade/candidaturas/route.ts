@@ -15,7 +15,10 @@ export async function GET(request: Request) {
     const perPage = searchParams.get('perPage') || searchParams.get('page_size')
     const pageSize = perPage ? Number(perPage) : 10
     const status = searchParams.get('status') || undefined
-    const idVaga = searchParams.get('id_vaga') || searchParams.get('empregabilidadeId') || undefined
+    const idVaga =
+      searchParams.get('id_vaga') ||
+      searchParams.get('empregabilidadeId') ||
+      undefined
     const search = searchParams.get('search') || undefined
 
     const params: any = {
@@ -36,22 +39,31 @@ export async function GET(request: Request) {
     }
 
     console.log('Fetching candidaturas with params:', params)
+    console.log('id_vaga filter:', params.id_vaga)
 
     // Call Orval client
     const response = await getApiV1EmpregabilidadeCandidaturas(params)
 
     console.log('API Response status:', response.status)
+    console.log('API Response data:', JSON.stringify(response.data, null, 2))
 
     if (response.status === 200) {
       const data = response.data as any
 
+      // Backend returns { data: [...], meta: {...} } structure
+      const candidaturas = data.data || data.candidaturas || []
+
       // Map backend candidaturas to frontend format
-      const candidatos = (data.candidaturas || []).map((c: any) => ({
+      const candidatos = candidaturas.map((c: any) => ({
         id: c.id,
-        candidateName: c.curriculo_snapshot?.nome || c.curriculo_snapshot?.nome_completo || 'Nome não disponível',
+        candidateName:
+          c.curriculo_snapshot?.nome ||
+          c.curriculo_snapshot?.nome_completo ||
+          'Nome não disponível',
         cpf: c.cpf,
         email: c.curriculo_snapshot?.email || '',
-        phone: c.curriculo_snapshot?.telefone || c.curriculo_snapshot?.celular || '',
+        phone:
+          c.curriculo_snapshot?.telefone || c.curriculo_snapshot?.celular || '',
         enrollmentDate: c.created_at,
         status: mapBackendStatusToFrontend(c.status),
         address: c.curriculo_snapshot?.endereco || '',
@@ -71,20 +83,29 @@ export async function GET(request: Request) {
       // Calculate summary
       const summary = {
         total: candidatos.length,
-        pendingCount: candidatos.filter((c: any) => c.status === 'pending').length,
-        approvedCount: candidatos.filter((c: any) => c.status === 'approved').length,
-        rejectedCount: candidatos.filter((c: any) => c.status === 'rejected').length,
-        cancelledCount: candidatos.filter((c: any) => c.status === 'cancelled').length,
+        pendingCount: candidatos.filter((c: any) => c.status === 'pending')
+          .length,
+        approvedCount: candidatos.filter((c: any) => c.status === 'approved')
+          .length,
+        rejectedCount: candidatos.filter((c: any) => c.status === 'rejected')
+          .length,
+        cancelledCount: candidatos.filter((c: any) => c.status === 'cancelled')
+          .length,
       }
 
       return NextResponse.json({
         candidatos,
         summary,
         pagination: {
-          page,
-          perPage: pageSize,
-          total: data.total || candidatos.length,
-          totalPages: data.total_pages || Math.ceil(candidatos.length / pageSize),
+          page: data.meta?.page || page,
+          perPage: data.meta?.page_size || pageSize,
+          total: data.meta?.total || candidatos.length,
+          totalPages:
+            data.meta?.total_pages ||
+            Math.ceil(
+              (data.meta?.total || candidatos.length) /
+                (data.meta?.page_size || pageSize)
+            ),
         },
         success: true,
       })
@@ -114,10 +135,7 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!body.cpf) {
-      return NextResponse.json(
-        { error: 'CPF é obrigatório' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'CPF é obrigatório' }, { status: 400 })
     }
 
     if (!body.id_vaga) {
@@ -149,6 +167,12 @@ export async function POST(request: Request) {
     })
 
     console.log('API Response status:', response.status)
+    console.log('POST Response:', JSON.stringify(response.data, null, 2))
+    console.log('Candidatura created with id:', response.data?.id)
+    console.log(
+      'curriculo_snapshot populated?',
+      !!response.data?.curriculo_snapshot
+    )
 
     if (response.status === 201) {
       console.log('Candidatura created successfully:', response.data)
@@ -175,14 +199,20 @@ export async function POST(request: Request) {
     const errorResponse = error?.response
 
     // Map specific backend errors to user-friendly messages
-    if (errorMessage.includes('já existe') || errorMessage.includes('já se candidatou')) {
+    if (
+      errorMessage.includes('já existe') ||
+      errorMessage.includes('já se candidatou')
+    ) {
       return NextResponse.json(
         { error: 'Este CPF já está inscrito nesta vaga' },
         { status: 409 }
       )
     }
 
-    if (errorMessage.includes('não encontrada') || errorMessage.includes('not found')) {
+    if (
+      errorMessage.includes('não encontrada') ||
+      errorMessage.includes('not found')
+    ) {
       return NextResponse.json(
         { error: 'Vaga não encontrada' },
         { status: 404 }

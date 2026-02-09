@@ -4,6 +4,7 @@ import {
   putApiV1EmpregabilidadeVagasId,
 } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
 import type { EmpregabilidadeVagaBody } from '@/http-gorio/models/empregabilidadeVagaBody'
+import { toApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -17,11 +18,7 @@ export async function GET(
   try {
     const { id } = await params
 
-    console.log('Fetching vaga:', id)
-
     const response = await getApiV1EmpregabilidadeVagasId(id)
-
-    console.log('API Response:', { status: response.status })
 
     if (response.status === 200) {
       return NextResponse.json({
@@ -62,9 +59,17 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const body: EmpregabilidadeVagaBody = await request.json()
+    const rawBody = await request.json()
 
-    console.log('Updating vaga:', id, 'with data:', JSON.stringify(body, null, 2))
+    // Convert informacoes_complementares from frontend format to API format
+    const convertedInfos = rawBody.informacoes_complementares
+      ? toApiInformacaoComplementar(rawBody.informacoes_complementares)
+      : undefined
+
+    const body: EmpregabilidadeVagaBody = {
+      ...rawBody,
+      informacoes_complementares: convertedInfos,
+    }
 
     // Validar campos obrigatórios
     if (
@@ -84,8 +89,6 @@ export async function PUT(
     }
 
     const response = await putApiV1EmpregabilidadeVagasId(id, body)
-
-    console.log('Update response:', { status: response.status })
 
     if (response.status === 200) {
       revalidateTag('empregabilidade-vagas')

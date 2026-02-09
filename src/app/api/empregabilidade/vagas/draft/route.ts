@@ -1,11 +1,20 @@
 import { postApiV1EmpregabilidadeVagasDraft } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
 import type { EmpregabilidadeVagaBody } from '@/http-gorio/models/empregabilidadeVagaBody'
+import { toApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const body: EmpregabilidadeVagaBody = await request.json()
+    const rawBody = await request.json()
+
+    // Convert informacoes_complementares from frontend format to API format
+    const body: EmpregabilidadeVagaBody = {
+      ...rawBody,
+      informacoes_complementares: rawBody.informacoes_complementares
+        ? toApiInformacaoComplementar(rawBody.informacoes_complementares)
+        : undefined,
+    }
 
     // For drafts, only validate minimum required fields
     if (!body.titulo) {
