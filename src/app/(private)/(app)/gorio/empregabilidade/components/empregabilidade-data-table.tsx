@@ -64,6 +64,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useEmpregabilidadeVagas } from '@/hooks/use-empregabilidade-vagas'
+import { useEmpresas } from '@/hooks/use-empresas'
 import type { EmpregabilidadeVaga } from '@/http-gorio/models'
 import {
   type VagaStatus,
@@ -153,7 +154,7 @@ export function EmpregabilidadeDataTable() {
   const activeTab = (searchParams.get('tab') ||
     'active') as VagaEmpregabilidadeStatus
   const [searchQuery, setSearchQuery] = React.useState('')
-  const [selectedCompany, setSelectedCompany] = React.useState('')
+  const [selectedCompany, setSelectedCompany] = React.useState('all')
 
   /**
    * Ref to track if we're updating URL from local state
@@ -162,13 +163,23 @@ export function EmpregabilidadeDataTable() {
    */
   const isUpdatingUrlRef = React.useRef(false)
 
+  // Fetch empresas for company filter dropdown
+  const {
+    empresas,
+    loading: loadingEmpresas,
+    error: errorEmpresas,
+  } = useEmpresas({
+    page: 1,
+    pageSize: 1000, // Fetch all companies
+  })
+
   // Fetch vagas using the hook
   const { vagas, loading, error, total, pageCount, refetch } =
     useEmpregabilidadeVagas({
       page: pagination.pageIndex + 1, // Convert 0-based to 1-based
       pageSize: pagination.pageSize,
       status: mapTabToStatus(activeTab),
-      companyId: selectedCompany || undefined,
+      companyId: selectedCompany === 'all' ? undefined : selectedCompany,
       titulo: searchQuery || undefined,
     })
 
@@ -241,6 +252,8 @@ export function EmpregabilidadeDataTable() {
    * - Only updates if URL differs from current state (avoid infinite loop)
    * - columnFilters NOT in deps array (would cause infinite loop)
    */
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   React.useEffect(() => {
     // Skip if we're in the middle of updating URL from local state
     if (isUpdatingUrlRef.current) {
@@ -591,6 +604,16 @@ export function EmpregabilidadeDataTable() {
     rowCount: total, // From hook
   })
 
+  // Helper to display company name with fallback
+  const getEmpresaDisplayName = (empresa: any): string => {
+    return (
+      empresa.nome_fantasia ||
+      empresa.razao_social ||
+      empresa.cnpj ||
+      'Empresa sem nome'
+    )
+  }
+
   // Show error if data fetch failed
   if (error) {
     return (
@@ -610,15 +633,44 @@ export function EmpregabilidadeDataTable() {
     <div className="space-y-4">
       <div className="flex flex-col pb-4">
         <Label className="py-4">Filtrar por empresa</Label>
-        <Select
-          value={selectedCompany || undefined}
-          onValueChange={handleCompanyChange}
-        >
+        <Select value={selectedCompany} onValueChange={handleCompanyChange}>
           <SelectTrigger className="md:w-auto h-14!">
             <SelectValue placeholder="Todas as empresas" />
           </SelectTrigger>
           <SelectContent>
-            {/* Add company options here when data is available */}
+            <SelectItem value="all">Todas as empresas</SelectItem>
+
+            {loadingEmpresas && (
+              <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                Carregando empresas...
+              </div>
+            )}
+
+            {errorEmpresas && (
+              <div className="px-2 py-1.5 text-sm text-destructive">
+                Erro ao carregar empresas
+              </div>
+            )}
+
+            {!loadingEmpresas && !errorEmpresas && empresas.length === 0 && (
+              <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                Nenhuma empresa cadastrada
+              </div>
+            )}
+
+            {!loadingEmpresas &&
+              empresas.length > 0 &&
+              empresas
+                .sort((a, b) => {
+                  const nameA = getEmpresaDisplayName(a).toLowerCase()
+                  const nameB = getEmpresaDisplayName(b).toLowerCase()
+                  return nameA.localeCompare(nameB, 'pt-BR')
+                })
+                .map(empresa => (
+                  <SelectItem key={empresa.cnpj} value={empresa.cnpj || ''}>
+                    {getEmpresaDisplayName(empresa)}
+                  </SelectItem>
+                ))}
           </SelectContent>
         </Select>
       </div>
