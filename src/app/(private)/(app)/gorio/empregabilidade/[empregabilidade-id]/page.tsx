@@ -118,10 +118,24 @@ export default function EmpregabilidadeDetailPage({
     setHasUnsavedChanges(hasChanges)
   }, [])
 
-  // Handle save - trigger form submission
+  // Handle save - trigger form submission (for published vagas or general save)
   const handleSave = useCallback(() => {
     if (formRef.current) {
       formRef.current.triggerSubmit()
+    }
+  }, [])
+
+  // Handle save as draft - trigger draft save (for em_edicao status)
+  const handleSaveDraft = useCallback(() => {
+    if (formRef.current) {
+      formRef.current.triggerSaveDraft()
+    }
+  }, [])
+
+  // Handle save and publish - save draft then publish
+  const handleSaveAndPublish = useCallback(() => {
+    if (formRef.current) {
+      formRef.current.triggerSaveAndPublish()
     }
   }, [])
 
@@ -230,7 +244,30 @@ export default function EmpregabilidadeDetailPage({
     }
   }, [vaga, refetch])
 
-  // Handle form submission
+  // Helper function to map form data to API format
+  const mapFormToApiData = useCallback(
+    (data: any) => {
+      const {
+        contratante,
+        regime_contratacao,
+        modelo_trabalho,
+        tipo_pcd,
+        ...rest
+      } = data
+
+      return {
+        ...rest,
+        id_contratante: contratante || vaga?.id_contratante,
+        id_regime_contratacao:
+          regime_contratacao || vaga?.id_regime_contratacao,
+        id_modelo_trabalho: modelo_trabalho || vaga?.id_modelo_trabalho,
+        tipos_pcd: tipo_pcd || vaga?.tipos_pcd,
+      }
+    },
+    [vaga]
+  )
+
+  // Handle form submission (for published vagas - validates 11 fields)
   const handleFormSubmit = useCallback(
     async (data: any) => {
       if (!vaga?.id) return
@@ -238,23 +275,7 @@ export default function EmpregabilidadeDetailPage({
       setIsLoading(true)
 
       try {
-        // Map form field names to API field names
-        const {
-          contratante,
-          regime_contratacao,
-          modelo_trabalho,
-          tipo_pcd,
-          ...rest
-        } = data
-
-        const apiData = {
-          ...rest,
-          id_contratante: contratante || vaga.id_contratante,
-          id_regime_contratacao:
-            regime_contratacao || vaga.id_regime_contratacao,
-          id_modelo_trabalho: modelo_trabalho || vaga.id_modelo_trabalho,
-          tipos_pcd: tipo_pcd || vaga.tipos_pcd,
-        }
+        const apiData = mapFormToApiData(data)
 
         const response = await fetch(`/api/empregabilidade/vagas/${vaga.id}`, {
           method: 'PUT',
@@ -280,7 +301,98 @@ export default function EmpregabilidadeDetailPage({
         setIsLoading(false)
       }
     },
-    [vaga, refetch]
+    [vaga, refetch, mapFormToApiData]
+  )
+
+  // Handle save as draft (for em_edicao - validates 5 fields only)
+  const handleFormSaveDraft = useCallback(
+    async (data: any) => {
+      if (!vaga?.id) return
+
+      setIsLoading(true)
+
+      try {
+        const apiData = mapFormToApiData(data)
+
+        const response = await fetch(`/api/empregabilidade/vagas/${vaga.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...apiData, _saveAsDraft: true }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Erro ao salvar rascunho')
+        }
+
+        toast.success('Rascunho salvo com sucesso!')
+        setIsEditing(false)
+        setHasUnsavedChanges(false)
+        await refetch()
+      } catch (error) {
+        console.error('Error saving draft:', error)
+        toast.error(
+          error instanceof Error ? error.message : 'Erro ao salvar rascunho'
+        )
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [vaga, refetch, mapFormToApiData]
+  )
+
+  // Handle save and publish (validates 11 fields, saves then publishes)
+  const handleFormSaveAndPublish = useCallback(
+    async (data: any) => {
+      if (!vaga?.id) return
+
+      setIsLoading(true)
+
+      try {
+        const apiData = mapFormToApiData(data)
+
+        // First save the vaga
+        const saveResponse = await fetch(
+          `/api/empregabilidade/vagas/${vaga.id}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(apiData),
+          }
+        )
+
+        if (!saveResponse.ok) {
+          const errorData = await saveResponse.json()
+          throw new Error(errorData.error || 'Erro ao salvar vaga')
+        }
+
+        // Then publish
+        const publishResponse = await fetch(
+          `/api/empregabilidade/vagas/${vaga.id}/publish`,
+          {
+            method: 'PUT',
+          }
+        )
+
+        if (!publishResponse.ok) {
+          const errorData = await publishResponse.json()
+          throw new Error(errorData.error || 'Erro ao publicar vaga')
+        }
+
+        toast.success('Vaga salva e publicada com sucesso!')
+        setIsEditing(false)
+        setHasUnsavedChanges(false)
+        await refetch()
+      } catch (error) {
+        console.error('Error saving and publishing:', error)
+        toast.error(
+          error instanceof Error ? error.message : 'Erro ao salvar e publicar'
+        )
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [vaga, refetch, mapFormToApiData]
   )
 
   // Auto-enable edit mode if edit=true query parameter is present
@@ -466,10 +578,32 @@ export default function EmpregabilidadeDetailPage({
 
                 {isEditing && (
                   <>
-                    <Button onClick={handleSave} disabled={isLoading}>
-                      <Save className="mr-2 h-4 w-4" />
-                      {isLoading ? 'Salvando...' : 'Salvar'}
-                    </Button>
+                    {vaga.status === 'em_edicao' ? (
+                      <>
+                        {/* Draft: Show "Salvar Rascunho" and "Salvar e Publicar" */}
+                        <Button
+                          variant="outline"
+                          onClick={handleSaveDraft}
+                          disabled={isLoading}
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          {isLoading ? 'Salvando...' : 'Salvar Rascunho'}
+                        </Button>
+                        <Button
+                          onClick={handleSaveAndPublish}
+                          disabled={isLoading}
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          {isLoading ? 'Publicando...' : 'Salvar e Publicar'}
+                        </Button>
+                      </>
+                    ) : (
+                      /* Published: Show only "Salvar" */
+                      <Button onClick={handleSave} disabled={isLoading}>
+                        <Save className="mr-2 h-4 w-4" />
+                        {isLoading ? 'Salvando...' : 'Salvar'}
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       onClick={handleCancelEdit}
@@ -492,7 +626,10 @@ export default function EmpregabilidadeDetailPage({
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="about" disabled={isEditing && hasUnsavedChanges}>
+            <TabsTrigger
+              value="about"
+              disabled={isEditing && hasUnsavedChanges}
+            >
               Sobre a vaga
             </TabsTrigger>
             <TabsTrigger value="candidates" disabled={isEditing}>
@@ -508,8 +645,17 @@ export default function EmpregabilidadeDetailPage({
                 ref={formRef}
                 initialData={formData}
                 isReadOnly={!isEditing}
+                vagaStatus={
+                  vaga.status as
+                    | 'em_edicao'
+                    | 'publicado_ativo'
+                    | 'publicado_expirado'
+                    | null
+                }
                 onFormChangesDetected={handleFormChanges}
                 onSubmit={handleFormSubmit}
+                onSaveDraft={handleFormSaveDraft}
+                onSaveAndPublish={handleFormSaveAndPublish}
               />
             </div>
           </TabsContent>

@@ -6,10 +6,12 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -17,7 +19,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Search } from 'lucide-react'
+import { Building2, Globe, Info, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Format CNPJ: XX.XXX.XXX/XXXX-XX
@@ -52,6 +54,14 @@ const formSchema = z.object({
     .string()
     .min(1, { message: 'URL da imagem é obrigatória.' })
     .url({ message: 'Deve ser uma URL válida.' }),
+  // Campos opcionais adicionais
+  website: z
+    .string()
+    .url({ message: 'Deve ser uma URL válida.' })
+    .optional()
+    .or(z.literal('')),
+  setor: z.string().max(500).optional(),
+  porte: z.string().max(100).optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -95,6 +105,9 @@ export function NewEmpresaForm({
       nome_fantasia: '',
       descricao: '',
       logo_url: '',
+      website: '',
+      setor: '',
+      porte: '',
     },
     mode: 'onChange',
   })
@@ -234,158 +247,258 @@ export function NewEmpresaForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* CNPJ Search Section */}
-        <div className="space-y-4">
-          <FormLabel>Insira um CNPJ válido</FormLabel>
-          <div className="flex gap-2">
-            <FormField
-              control={form.control}
-              name="cnpj"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input
-                      placeholder="000.000.000/0000-00"
-                      {...field}
-                      onChange={e => {
-                        handleCNPJChange(e.target.value)
-                      }}
-                      disabled={isReadOnly || isSearching || isEditMode} // ← MODIFIED: Disable in edit mode
-                      readOnly={isEditMode} // ← NEW: Make readonly in edit mode
-                      maxLength={18}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button
-              type="button"
-              onClick={handleSearchCNPJ}
-              disabled={isReadOnly || isSearching || isEditMode}
-              className="min-w-[120px]"
-            >
-              <Search className="mr-2 h-4 w-4" />
-              {isSearching ? 'Pesquisando...' : 'Pesquisar'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Company Information Section */}
-        {searchedCompany && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Empresa correspondente</h3>
-            <FormField
-              control={form.control}
-              name="empresa_nome"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Empresa</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      readOnly
-                      className="bg-muted"
-                      disabled={true}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="nome_fantasia"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome fantasia</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      readOnly
-                      className="bg-muted"
-                      disabled={true}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        )}
-
-        {/* Company Description */}
-        <FormField
-          control={form.control}
-          name="descricao"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição da empresa*</FormLabel>
-              <FormControl>
-                <Textarea
-                  className="min-h-[120px]"
-                  placeholder="Descreva a empresa..."
-                  {...field}
-                  disabled={isReadOnly}
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        {/* Card: Identificação da Empresa */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Identificação da Empresa
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* CNPJ Search Section */}
+            <div className="space-y-2">
+              <FormLabel>CNPJ</FormLabel>
+              <div className="flex gap-2">
+                <FormField
+                  control={form.control}
+                  name="cnpj"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormControl>
+                        <Input
+                          placeholder="00.000.000/0000-00"
+                          {...field}
+                          onChange={e => {
+                            handleCNPJChange(e.target.value)
+                          }}
+                          disabled={isReadOnly || isSearching || isEditMode}
+                          readOnly={isEditMode}
+                          maxLength={18}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <Button
+                  type="button"
+                  onClick={handleSearchCNPJ}
+                  disabled={isReadOnly || isSearching || isEditMode}
+                  className="min-w-[120px]"
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  {isSearching ? 'Pesquisando...' : 'Pesquisar'}
+                </Button>
+              </div>
+              {!isEditMode && (
+                <p className="text-sm text-muted-foreground">
+                  Insira um CNPJ válido e clique em Pesquisar para buscar os
+                  dados da empresa na Receita Federal.
+                </p>
+              )}
+            </div>
 
-        {/* Company Logo */}
-        <FormField
-          control={form.control}
-          name="logo_url"
-          render={({ field }) => {
-            const logoUrl = field.value
-            const isValidUrl =
-              logoUrl &&
-              logoUrl.trim() !== '' &&
-              (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'))
+            {/* Company Information Section - Shown after CNPJ search or in edit mode */}
+            {searchedCompany && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="empresa_nome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Razão Social</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          readOnly
+                          className="bg-muted"
+                          disabled={true}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="nome_fantasia"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome Fantasia</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          readOnly
+                          className="bg-muted"
+                          disabled={true}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            return (
-              <FormItem>
-                <FormLabel>Imagem de logo da empresa*</FormLabel>
-                <FormControl>
-                  <div className="space-y-3">
-                    <Input
-                      type="url"
-                      placeholder="URL da imagem"
+        {/* Card: Informações da Empresa */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              Informações da Empresa
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Company Description */}
+            <FormField
+              control={form.control}
+              name="descricao"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição*</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      className="min-h-[120px]"
+                      placeholder="Descreva a empresa, sua área de atuação, cultura organizacional..."
                       {...field}
-                      onChange={e => {
-                        field.onChange(e)
-                        setImageError(false)
-                      }}
                       disabled={isReadOnly}
                     />
-                    {isValidUrl && (
-                      <div className="relative rounded-lg border p-4 bg-muted/50">
-                        {!imageError ? (
-                          <img
-                            src={logoUrl}
-                            alt="Preview do logo"
-                            className="max-h-[200px] max-w-full rounded-lg object-contain mx-auto"
-                            onError={() => setImageError(true)}
-                            onLoad={() => setImageError(false)}
-                          />
-                        ) : (
-                          <div className="text-sm text-destructive text-center py-4">
-                            Erro ao carregar imagem. Verifique se a URL está
-                            correta.
+                  </FormControl>
+                  <FormDescription>Mínimo de 10 caracteres</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Company Logo */}
+            <FormField
+              control={form.control}
+              name="logo_url"
+              render={({ field }) => {
+                const logoUrl = field.value
+                const isValidLogoUrl =
+                  logoUrl &&
+                  logoUrl.trim() !== '' &&
+                  (logoUrl.startsWith('http://') ||
+                    logoUrl.startsWith('https://'))
+
+                return (
+                  <FormItem>
+                    <FormLabel>URL do Logo*</FormLabel>
+                    <FormControl>
+                      <div className="space-y-3">
+                        <Input
+                          type="url"
+                          placeholder="https://exemplo.com.br/logo.png"
+                          {...field}
+                          onChange={e => {
+                            field.onChange(e)
+                            setImageError(false)
+                          }}
+                          disabled={isReadOnly}
+                        />
+                        {isValidLogoUrl && (
+                          <div className="relative rounded-lg border p-4 bg-muted/50">
+                            {!imageError ? (
+                              <img
+                                src={logoUrl}
+                                alt="Preview do logo"
+                                className="max-h-[200px] max-w-full rounded-lg object-contain mx-auto"
+                                onError={() => setImageError(true)}
+                                onLoad={() => setImageError(false)}
+                              />
+                            ) : (
+                              <div className="text-sm text-destructive text-center py-4">
+                                Erro ao carregar imagem. Verifique se a URL está
+                                correta.
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )
-          }}
-        />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Card: Informações Adicionais */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Informações Adicionais
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Setor */}
+              <FormField
+                control={form.control}
+                name="setor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Setor</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: Tecnologia, Varejo, Indústria"
+                        {...field}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Porte */}
+              <FormField
+                control={form.control}
+                name="porte"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Porte</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: MEI, ME, EPP, Médio, Grande"
+                        {...field}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Website */}
+            <FormField
+              control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="url"
+                      placeholder="https://www.exemplo.com.br"
+                      {...field}
+                      disabled={isReadOnly}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
 
         {/* Action Buttons */}
         <div className="flex justify-end gap-4 pt-6 border-t">

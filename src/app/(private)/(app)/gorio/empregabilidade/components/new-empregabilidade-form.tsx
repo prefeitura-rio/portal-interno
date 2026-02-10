@@ -110,22 +110,42 @@ type FormData = z.infer<typeof formSchema>
 // SCHEMAS DE VALIDAÇÃO
 // ============================================
 
-// Schema para validação de rascunho (todos os 5 campos obrigatórios - backend exige)
+// Schema para validação de rascunho (5 campos obrigatórios)
 const draftValidationSchema = z.object({
   titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
   descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
   contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
-  regime_contratacao: z.string().min(1, { message: 'Regime de contratação é obrigatório.' }),
-  modelo_trabalho: z.string().min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+  regime_contratacao: z
+    .string()
+    .min(1, { message: 'Regime de contratação é obrigatório.' }),
+  modelo_trabalho: z
+    .string()
+    .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
 })
 
-// Schema para validação de publicação (5 campos obrigatórios)
+// Schema para validação de publicação (11 campos obrigatórios)
 const publishValidationSchema = z.object({
   titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
   descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
   contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
-  regime_contratacao: z.string().min(1, { message: 'Regime de contratação é obrigatório.' }),
-  modelo_trabalho: z.string().min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+  regime_contratacao: z
+    .string()
+    .min(1, { message: 'Regime de contratação é obrigatório.' }),
+  modelo_trabalho: z
+    .string()
+    .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+  valor_vaga: z
+    .number({ required_error: 'Valor da vaga é obrigatório.' })
+    .min(0, { message: 'Valor da vaga deve ser maior ou igual a zero.' }),
+  bairro: z.string().min(1, { message: 'Bairro é obrigatório.' }),
+  data_limite: z.date({ required_error: 'Data limite é obrigatória.' }),
+  id_orgao_parceiro: z
+    .string()
+    .min(1, { message: 'Órgão parceiro é obrigatório.' }),
+  requisitos: z.string().min(1, { message: 'Requisitos são obrigatórios.' }),
+  responsabilidades: z
+    .string()
+    .min(1, { message: 'Responsabilidades são obrigatórias.' }),
 })
 
 // ============================================
@@ -199,14 +219,19 @@ interface NewEmpregabilidadeFormProps {
   isReadOnly?: boolean
   /** Show action buttons at the end of form (for /new page). Default: false */
   showActionButtons?: boolean
+  /** Current vaga status - used for edit mode to determine validation rules */
+  vagaStatus?: 'em_edicao' | 'publicado_ativo' | 'publicado_expirado' | null
   onSubmit?: (data: FormData) => void
   onSaveDraft?: (data: FormData) => void
+  /** Called when saving draft in edit mode and then publishing */
+  onSaveAndPublish?: (data: FormData) => void
   onFormChangesDetected?: (hasChanges: boolean) => void
 }
 
 export interface NewEmpregabilidadeFormRef {
   triggerSubmit: () => void
   triggerSaveDraft: () => void
+  triggerSaveAndPublish: () => void
 }
 
 export const NewEmpregabilidadeForm = forwardRef<
@@ -218,8 +243,10 @@ export const NewEmpregabilidadeForm = forwardRef<
       initialData,
       isReadOnly = false,
       showActionButtons = false,
+      vagaStatus = null,
       onSubmit,
       onSaveDraft,
+      onSaveAndPublish,
       onFormChangesDetected,
     },
     ref
@@ -356,14 +383,26 @@ export const NewEmpregabilidadeForm = forwardRef<
       triggerSaveDraft: () => {
         handleSaveDraft()
       },
+      triggerSaveAndPublish: () => {
+        handleSaveAndPublish()
+      },
     }))
 
     const handleSubmit = (data: FormData) => {
       console.log('Form submitted:', data)
 
-      // Validar para publicação
-      if (!validateForPublish(data, form)) {
-        return
+      // Se está editando vaga publicada, usa validação de publicação
+      // Se está criando nova vaga (sem vagaStatus), usa validação de publicação
+      // Se está editando rascunho, onSubmit não deve ser chamado diretamente
+      // (deve usar onSaveDraft ou onSaveAndPublish)
+      const isPublished =
+        vagaStatus === 'publicado_ativo' || vagaStatus === 'publicado_expirado'
+
+      if (isPublished || !vagaStatus) {
+        // Validar para publicação (11 campos)
+        if (!validateForPublish(data, form)) {
+          return
+        }
       }
 
       // Se passou validação, enviar
@@ -376,7 +415,7 @@ export const NewEmpregabilidadeForm = forwardRef<
       const currentValues = form.getValues()
       console.log('Saving draft:', currentValues)
 
-      // Validar apenas título para rascunho
+      // Validar 5 campos para rascunho
       if (!validateForDraft(currentValues, form)) {
         return
       }
@@ -387,14 +426,32 @@ export const NewEmpregabilidadeForm = forwardRef<
       }
     }
 
+    const handleSaveAndPublish = () => {
+      const currentValues = form.getValues()
+      console.log('Save and publish:', currentValues)
+
+      // Validar 11 campos para publicação
+      if (!validateForPublish(currentValues, form)) {
+        return
+      }
+
+      // Se passou validação, enviar
+      if (onSaveAndPublish) {
+        onSaveAndPublish(currentValues)
+      }
+    }
+
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="">
           {/* Nota explicativa sobre campos obrigatórios */}
           <div className="mb-6 p-4 border border-muted rounded-md bg-muted/50">
             <p className="text-sm text-muted-foreground">
-              <strong>Nota:</strong> Campos marcados com <span className="text-destructive">*</span> são obrigatórios para salvar a vaga (rascunho ou publicação).
-              A diferença é que rascunhos não aparecem publicamente até serem publicados.
+              <strong>Nota:</strong> Campos marcados com{' '}
+              <span className="text-destructive">*</span> são obrigatórios para
+              publicação da vaga. Para salvar como rascunho, apenas Título,
+              Descrição, Contratante, Regime de Contratação e Modelo de Trabalho
+              são obrigatórios.
             </p>
           </div>
 
@@ -621,7 +678,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                 name="valor_vaga"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor da Vaga (R$)</FormLabel>
+                    <FormLabel>Valor da Vaga (R$)*</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -690,7 +747,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                 name="id_orgao_parceiro"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Órgão Parceiro</FormLabel>
+                    <FormLabel>Órgão Parceiro*</FormLabel>
                     <FormControl>
                       <DepartmentCombobox
                         value={field.value || ''}

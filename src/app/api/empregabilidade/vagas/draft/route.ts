@@ -16,10 +16,25 @@ export async function POST(request: Request) {
         : undefined,
     }
 
-    // For drafts, only validate minimum required fields
-    if (!body.titulo) {
+    // For drafts, validate 5 required fields
+    const isMissing = (value: any) =>
+      !value || (typeof value === 'string' && value.trim() === '')
+
+    const missingFields = []
+    if (isMissing(body.titulo)) missingFields.push('Título')
+    if (isMissing(body.descricao)) missingFields.push('Descrição')
+    if (isMissing(body.id_contratante)) missingFields.push('Empresa')
+    if (isMissing(body.id_regime_contratacao))
+      missingFields.push('Regime de Contratação')
+    if (isMissing(body.id_modelo_trabalho))
+      missingFields.push('Modelo de Trabalho')
+
+    if (missingFields.length > 0) {
       return NextResponse.json(
-        { error: 'Título é obrigatório mesmo para rascunhos' },
+        {
+          error: `Campos obrigatórios faltando: ${missingFields.join(', ')}`,
+          missingFields,
+        },
         { status: 400 }
       )
     }
