@@ -52,6 +52,10 @@ export default function NewEmpresaPage() {
           (needsStagingDefaults ? `Teste ${randomId}` : ''),
         descricao: data.descricao,
         url_logo: data.logo_url,
+        // Novos campos opcionais
+        website: data.website || '',
+        setor: data.setor || '',
+        porte: data.porte || '',
       }
 
       const response = await fetch('/api/empregabilidade/empresas', {

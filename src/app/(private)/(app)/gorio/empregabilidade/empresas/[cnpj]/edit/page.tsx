@@ -1,5 +1,6 @@
 'use client'
 
+import { NewEmpresaForm } from '@/app/(private)/(app)/gorio/empregabilidade/new/empresa/components/new-empresa-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import {
   Breadcrumb,
@@ -10,7 +11,6 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Skeleton } from '@/components/ui/skeleton'
-import { NewEmpresaForm } from '@/app/(private)/(app)/gorio/empregabilidade/new/empresa/components/new-empresa-form'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEmpresa } from '@/hooks/use-empresa'
 import Link from 'next/link'
@@ -107,6 +107,9 @@ export default function EditEmpresaPage({
     nome_fantasia?: string
     descricao: string
     logo_url: string
+    website?: string
+    setor?: string
+    porte?: string
   }) => {
     setIsSubmitting(true)
 
@@ -127,6 +130,10 @@ export default function EditEmpresaPage({
         nome_fantasia: data.nome_fantasia || '',
         descricao: data.descricao,
         url_logo: data.logo_url, // ← TRANSFORM
+        // Campos adicionais
+        website: data.website || '',
+        setor: data.setor || '',
+        porte: data.porte || '',
       }
 
       console.log('[EditEmpresaPage] API payload:', apiData)
@@ -269,6 +276,7 @@ export default function EditEmpresaPage({
    * - razao_social → empresa_nome
    * - url_logo → logo_url
    * - cnpj (14 digits) → cnpj (formatted)
+   * - website, setor, porte → direto (mesmo nome)
    */
   const initialData = {
     cnpj: formatCNPJ(empresa.cnpj || ''),
@@ -276,6 +284,10 @@ export default function EditEmpresaPage({
     nome_fantasia: empresa.nome_fantasia || '',
     descricao: empresa.descricao || '',
     logo_url: empresa.url_logo || '', // ← TRANSFORM
+    // Campos adicionais (mapeamento direto)
+    website: empresa.website || '',
+    setor: empresa.setor || '',
+    porte: empresa.porte || '',
   }
 
   return (
