@@ -53,6 +53,7 @@ export default function EmpregabilidadeDetailPage({
   const [showTabChangeDialog, setShowTabChangeDialog] = useState(false)
   const [pendingTab, setPendingTab] = useState<string | null>(null)
   const [showNewCandidateDialog, setShowNewCandidateDialog] = useState(false)
+  const [candidatesRefreshKey, setCandidatesRefreshKey] = useState(0)
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean
     type: 'delete' | 'publish' | null
@@ -537,7 +538,6 @@ export default function EmpregabilidadeDetailPage({
               <div className="flex gap-2">
                 {!isEditing && (
                   <>
-                    {/* Show "Adicionar Candidato" button only on candidates tab */}
                     {activeTab === 'candidates' && (
                       <Button
                         onClick={() => setShowNewCandidateDialog(true)}
@@ -662,6 +662,7 @@ export default function EmpregabilidadeDetailPage({
 
           <TabsContent value="candidates" className="mt-6">
             <CandidatesTable
+              key={candidatesRefreshKey}
               empregabilidadeId={vagaId}
               empregabilidadeTitle={vaga.titulo}
               informacoesComplementares={fromApiInformacaoComplementar(
@@ -722,7 +723,7 @@ export default function EmpregabilidadeDetailPage({
           )}
           onSuccess={() => {
             setShowNewCandidateDialog(false)
-            // The CandidatesTable will auto-refresh via its own refetch
+            setCandidatesRefreshKey(prev => prev + 1)
           }}
         />
       )}

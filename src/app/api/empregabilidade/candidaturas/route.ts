@@ -41,7 +41,6 @@ export async function GET(request: Request) {
     // Call Orval client
     const response = await getApiV1EmpregabilidadeCandidaturas(params)
 
-
     if (response.status === 200) {
       const data = response.data as any
 
@@ -52,11 +51,12 @@ export async function GET(request: Request) {
       const candidatos = candidaturas.map((c: any) => ({
         id: c.id,
         candidateName:
+          c.nome ||
           c.curriculo_snapshot?.nome ||
           c.curriculo_snapshot?.nome_completo ||
           'Nome não disponível',
         cpf: c.cpf,
-        email: c.curriculo_snapshot?.email || '',
+        email: c.email || c.curriculo_snapshot?.email || '',
         phone:
           c.curriculo_snapshot?.telefone || c.curriculo_snapshot?.celular || '',
         enrollmentDate: c.created_at,
@@ -156,6 +156,8 @@ export async function POST(request: Request) {
     // Call Orval client to create candidatura
     const response = await postApiV1EmpregabilidadeCandidaturas({
       cpf: cpfLimpo,
+      nome: body.nome,
+      email: body.email,
       id_vaga: body.id_vaga,
       respostas_info_complementares: body.respostas_info_complementares || [],
       // Status will default to "candidatura_enviada" in backend

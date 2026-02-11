@@ -5,6 +5,7 @@
  * API de serviços para aplicativos da Prefeitura do Rio
  * OpenAPI spec version: 1.0
  */
+import type { EmpregabilidadeAcessibilidadePCD } from './empregabilidadeAcessibilidadePCD'
 import type { EmpregabilidadeEmpresa } from './empregabilidadeEmpresa'
 import type { EmpregabilidadeEtapa } from './empregabilidadeEtapa'
 import type { EmpregabilidadeInformacaoComplementar } from './empregabilidadeInformacaoComplementar'
@@ -12,8 +13,10 @@ import type { EmpregabilidadeModeloTrabalho } from './empregabilidadeModeloTraba
 import type { EmpregabilidadeRegimeContratacao } from './empregabilidadeRegimeContratacao'
 import type { EmpregabilidadeStatusVaga } from './empregabilidadeStatusVaga'
 import type { EmpregabilidadeTipoPCD } from './empregabilidadeTipoPCD'
+import type { ModelsOrgaoSnapshot } from './modelsOrgaoSnapshot'
 
 export interface EmpregabilidadeVaga {
+  acessibilidade_pcd?: EmpregabilidadeAcessibilidadePCD
   bairro?: string
   beneficios?: string
   /** Relationships */
@@ -31,6 +34,7 @@ export interface EmpregabilidadeVaga {
   id_regime_contratacao?: string
   informacoes_complementares?: EmpregabilidadeInformacaoComplementar[]
   modelo_trabalho?: EmpregabilidadeModeloTrabalho
+  orgao_parceiro?: ModelsOrgaoSnapshot
   regime_contratacao?: EmpregabilidadeRegimeContratacao
   requisitos?: string
   responsabilidades?: string
@@ -38,6 +42,5 @@ export interface EmpregabilidadeVaga {
   tipos_pcd?: EmpregabilidadeTipoPCD[]
   titulo?: string
   updated_at?: string
-  vaga_pcd?: boolean
   valor_vaga?: number
 }
