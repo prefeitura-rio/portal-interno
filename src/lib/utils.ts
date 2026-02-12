@@ -321,6 +321,7 @@ export function transformApiCourseToCourse(apiCourse: any): any {
     institutionalLogo: courseData.institutional_logo || '',
     cover_image: courseData.cover_image || '',
     is_visible: courseData.is_visible ?? true,
+    auto_approve_enrollments: courseData.auto_approve_enrollments ?? false,
     coverImage: courseData.cover_image || '',
     custom_fields: normalizeCustomFields(courseData.custom_fields),
     customFields: normalizeCustomFields(courseData.custom_fields),

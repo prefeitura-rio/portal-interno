@@ -53,6 +53,7 @@ import {
 } from '@/components/ui/datetime-picker'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Switch } from '@/components/ui/switch'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
@@ -264,6 +265,7 @@ const fullFormSchema = z
       is_visible: z.boolean({
         required_error: 'Visibilidade do curso é obrigatória.',
       }),
+      auto_approve_enrollments: z.boolean().optional(),
       // Optional fields
       pre_requisitos: z.string().optional(),
       has_certificate: z.boolean().optional(),
@@ -356,6 +358,7 @@ const fullFormSchema = z
       is_visible: z.boolean({
         required_error: 'Visibilidade do curso é obrigatória.',
       }),
+      auto_approve_enrollments: z.boolean().optional(),
       // Optional fields
       pre_requisitos: z.string().optional(),
       has_certificate: z.boolean().optional(),
@@ -450,6 +453,7 @@ const fullFormSchema = z
       is_visible: z.boolean({
         required_error: 'Visibilidade do curso é obrigatória.',
       }),
+      auto_approve_enrollments: z.boolean().optional(),
       // Link para formação - obrigatório para LIVRE_FORMACAO_ONLINE
       formacao_link: z
         .string()
@@ -645,6 +649,7 @@ const draftFormSchema = z.object({
   material_used: z.string().optional(),
   teaching_material: z.string().optional(),
   is_visible: z.boolean().optional(),
+  auto_approve_enrollments: z.boolean().optional(),
   formacao_link: z.string().url().optional().or(z.literal('')),
   custom_fields: customFieldsSchema,
   locations: z
@@ -725,6 +730,7 @@ type PartialFormData = Omit<
   institutional_logo?: string | null
   cover_image?: string | null
   is_visible?: boolean
+  auto_approve_enrollments?: boolean
   custom_fields?: CustomField[]
   status?: 'canceled' | 'draft' | 'opened' | 'closed'
   originalStatus?: 'canceled' | 'draft' | 'opened' | 'closed'
@@ -745,6 +751,7 @@ type BackendCourseData = {
   institutional_logo: string | null
   cover_image: string | null
   is_visible?: boolean
+  auto_approve_enrollments?: boolean
   pre_requisitos?: string
   has_certificate?: boolean
 
@@ -917,6 +924,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             institutional_logo: '',
             cover_image: '',
             is_visible: true,
+            auto_approve_enrollments: false,
             formacao_link: '',
             custom_fields: [],
           }
@@ -968,6 +976,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           institutional_logo: data.institutional_logo || '',
           cover_image: data.cover_image || '',
           is_visible: data?.is_visible ?? true,
+          auto_approve_enrollments: data?.auto_approve_enrollments ?? false,
           formacao_link: data.formacao_link || '',
           custom_fields: data.custom_fields || [],
           locations: (data.locations || []).map((location: any) => {
@@ -1315,6 +1324,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         institutional_logo: data.institutional_logo,
         cover_image: data.cover_image,
         is_visible: data.is_visible,
+        auto_approve_enrollments: data.auto_approve_enrollments ?? false,
         pre_requisitos: data.pre_requisitos,
         has_certificate: data.has_certificate || false,
 
@@ -1392,6 +1402,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         institutional_logo: data.institutional_logo || '',
         cover_image: data.cover_image || '',
         is_visible: data.is_visible,
+        auto_approve_enrollments: data.auto_approve_enrollments ?? false,
         pre_requisitos: data.pre_requisitos,
         has_certificate: data.has_certificate || false,
 
@@ -2165,6 +2176,33 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   )}
                 />
               </div>
+
+              {/* Aprovação Automática */}
+              <FormField
+                control={form.control}
+                name="auto_approve_enrollments"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">
+                        Aprovação automática
+                      </FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        {field.value
+                          ? 'Aprovação automática habilitada - inscrições serão aprovadas automaticamente'
+                          : 'Sem aprovação automática - inscrições aguardarão aprovação manual'}
+                      </p>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value ?? false}
+                        onCheckedChange={field.onChange}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
