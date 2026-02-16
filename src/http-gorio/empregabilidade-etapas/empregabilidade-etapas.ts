@@ -6,21 +6,21 @@
  * OpenAPI spec version: 1.0
  */
 import type {
-  DeleteApiV1EmpregabilidadeVagasVagaIdEtapasId200,
-  DeleteApiV1EmpregabilidadeVagasVagaIdEtapasId400,
-  DeleteApiV1EmpregabilidadeVagasVagaIdEtapasId500,
+  DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId200,
+  DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId400,
+  DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId500,
   EmpregabilidadeEtapa,
   EmpregabilidadeEtapaBody,
-  GetApiV1EmpregabilidadeVagasVagaIdEtapas200,
-  GetApiV1EmpregabilidadeVagasVagaIdEtapas400,
-  GetApiV1EmpregabilidadeVagasVagaIdEtapas500,
-  GetApiV1EmpregabilidadeVagasVagaIdEtapasId400,
-  GetApiV1EmpregabilidadeVagasVagaIdEtapasId404,
-  GetApiV1EmpregabilidadeVagasVagaIdEtapasId500,
-  PostApiV1EmpregabilidadeVagasVagaIdEtapas400,
-  PostApiV1EmpregabilidadeVagasVagaIdEtapas500,
-  PutApiV1EmpregabilidadeVagasVagaIdEtapasId400,
-  PutApiV1EmpregabilidadeVagasVagaIdEtapasId500,
+  GetApiV1EmpregabilidadeVagasIdEtapas200,
+  GetApiV1EmpregabilidadeVagasIdEtapas400,
+  GetApiV1EmpregabilidadeVagasIdEtapas500,
+  GetApiV1EmpregabilidadeVagasIdEtapasEtapaId400,
+  GetApiV1EmpregabilidadeVagasIdEtapasEtapaId404,
+  GetApiV1EmpregabilidadeVagasIdEtapasEtapaId500,
+  PostApiV1EmpregabilidadeVagasIdEtapas400,
+  PostApiV1EmpregabilidadeVagasIdEtapas500,
+  PutApiV1EmpregabilidadeVagasIdEtapasEtapaId400,
+  PutApiV1EmpregabilidadeVagasIdEtapasEtapaId500,
 } from '.././models'
 
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
@@ -29,43 +29,41 @@ import { customFetchGoRio } from '../../../custom-fetch-gorio'
  * Retorna todas as etapas de uma vaga
  * @summary Listar etapas da vaga
  */
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasResponse200 = {
-  data: GetApiV1EmpregabilidadeVagasVagaIdEtapas200
+export type getApiV1EmpregabilidadeVagasIdEtapasResponse200 = {
+  data: GetApiV1EmpregabilidadeVagasIdEtapas200
   status: 200
 }
 
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasResponse400 = {
-  data: GetApiV1EmpregabilidadeVagasVagaIdEtapas400
+export type getApiV1EmpregabilidadeVagasIdEtapasResponse400 = {
+  data: GetApiV1EmpregabilidadeVagasIdEtapas400
   status: 400
 }
 
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasResponse500 = {
-  data: GetApiV1EmpregabilidadeVagasVagaIdEtapas500
+export type getApiV1EmpregabilidadeVagasIdEtapasResponse500 = {
+  data: GetApiV1EmpregabilidadeVagasIdEtapas500
   status: 500
 }
 
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasResponseComposite =
-  | getApiV1EmpregabilidadeVagasVagaIdEtapasResponse200
-  | getApiV1EmpregabilidadeVagasVagaIdEtapasResponse400
-  | getApiV1EmpregabilidadeVagasVagaIdEtapasResponse500
+export type getApiV1EmpregabilidadeVagasIdEtapasResponseComposite =
+  | getApiV1EmpregabilidadeVagasIdEtapasResponse200
+  | getApiV1EmpregabilidadeVagasIdEtapasResponse400
+  | getApiV1EmpregabilidadeVagasIdEtapasResponse500
 
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasResponse =
-  getApiV1EmpregabilidadeVagasVagaIdEtapasResponseComposite & {
+export type getApiV1EmpregabilidadeVagasIdEtapasResponse =
+  getApiV1EmpregabilidadeVagasIdEtapasResponseComposite & {
     headers: Headers
   }
 
-export const getGetApiV1EmpregabilidadeVagasVagaIdEtapasUrl = (
-  vagaId: string
-) => {
-  return `/api/v1/empregabilidade/vagas/${vagaId}/etapas`
+export const getGetApiV1EmpregabilidadeVagasIdEtapasUrl = (id: string) => {
+  return `/api/v1/empregabilidade/vagas/${id}/etapas`
 }
 
-export const getApiV1EmpregabilidadeVagasVagaIdEtapas = async (
-  vagaId: string,
+export const getApiV1EmpregabilidadeVagasIdEtapas = async (
+  id: string,
   options?: RequestInit
-): Promise<getApiV1EmpregabilidadeVagasVagaIdEtapasResponse> => {
-  return customFetchGoRio<getApiV1EmpregabilidadeVagasVagaIdEtapasResponse>(
-    getGetApiV1EmpregabilidadeVagasVagaIdEtapasUrl(vagaId),
+): Promise<getApiV1EmpregabilidadeVagasIdEtapasResponse> => {
+  return customFetchGoRio<getApiV1EmpregabilidadeVagasIdEtapasResponse>(
+    getGetApiV1EmpregabilidadeVagasIdEtapasUrl(id),
     {
       ...options,
       method: 'GET',
@@ -77,44 +75,42 @@ export const getApiV1EmpregabilidadeVagasVagaIdEtapas = async (
  * Cria uma nova etapa para uma vaga
  * @summary Criar etapa
  */
-export type postApiV1EmpregabilidadeVagasVagaIdEtapasResponse201 = {
+export type postApiV1EmpregabilidadeVagasIdEtapasResponse201 = {
   data: EmpregabilidadeEtapa
   status: 201
 }
 
-export type postApiV1EmpregabilidadeVagasVagaIdEtapasResponse400 = {
-  data: PostApiV1EmpregabilidadeVagasVagaIdEtapas400
+export type postApiV1EmpregabilidadeVagasIdEtapasResponse400 = {
+  data: PostApiV1EmpregabilidadeVagasIdEtapas400
   status: 400
 }
 
-export type postApiV1EmpregabilidadeVagasVagaIdEtapasResponse500 = {
-  data: PostApiV1EmpregabilidadeVagasVagaIdEtapas500
+export type postApiV1EmpregabilidadeVagasIdEtapasResponse500 = {
+  data: PostApiV1EmpregabilidadeVagasIdEtapas500
   status: 500
 }
 
-export type postApiV1EmpregabilidadeVagasVagaIdEtapasResponseComposite =
-  | postApiV1EmpregabilidadeVagasVagaIdEtapasResponse201
-  | postApiV1EmpregabilidadeVagasVagaIdEtapasResponse400
-  | postApiV1EmpregabilidadeVagasVagaIdEtapasResponse500
+export type postApiV1EmpregabilidadeVagasIdEtapasResponseComposite =
+  | postApiV1EmpregabilidadeVagasIdEtapasResponse201
+  | postApiV1EmpregabilidadeVagasIdEtapasResponse400
+  | postApiV1EmpregabilidadeVagasIdEtapasResponse500
 
-export type postApiV1EmpregabilidadeVagasVagaIdEtapasResponse =
-  postApiV1EmpregabilidadeVagasVagaIdEtapasResponseComposite & {
+export type postApiV1EmpregabilidadeVagasIdEtapasResponse =
+  postApiV1EmpregabilidadeVagasIdEtapasResponseComposite & {
     headers: Headers
   }
 
-export const getPostApiV1EmpregabilidadeVagasVagaIdEtapasUrl = (
-  vagaId: string
-) => {
-  return `/api/v1/empregabilidade/vagas/${vagaId}/etapas`
+export const getPostApiV1EmpregabilidadeVagasIdEtapasUrl = (id: string) => {
+  return `/api/v1/empregabilidade/vagas/${id}/etapas`
 }
 
-export const postApiV1EmpregabilidadeVagasVagaIdEtapas = async (
-  vagaId: string,
+export const postApiV1EmpregabilidadeVagasIdEtapas = async (
+  id: string,
   empregabilidadeEtapaBody: EmpregabilidadeEtapaBody,
   options?: RequestInit
-): Promise<postApiV1EmpregabilidadeVagasVagaIdEtapasResponse> => {
-  return customFetchGoRio<postApiV1EmpregabilidadeVagasVagaIdEtapasResponse>(
-    getPostApiV1EmpregabilidadeVagasVagaIdEtapasUrl(vagaId),
+): Promise<postApiV1EmpregabilidadeVagasIdEtapasResponse> => {
+  return customFetchGoRio<postApiV1EmpregabilidadeVagasIdEtapasResponse>(
+    getPostApiV1EmpregabilidadeVagasIdEtapasUrl(id),
     {
       ...options,
       method: 'POST',
@@ -128,51 +124,51 @@ export const postApiV1EmpregabilidadeVagasVagaIdEtapas = async (
  * Retorna uma etapa pelo ID
  * @summary Buscar etapa
  */
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse200 = {
+export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse200 = {
   data: EmpregabilidadeEtapa
   status: 200
 }
 
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse400 = {
-  data: GetApiV1EmpregabilidadeVagasVagaIdEtapasId400
+export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400 = {
+  data: GetApiV1EmpregabilidadeVagasIdEtapasEtapaId400
   status: 400
 }
 
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse404 = {
-  data: GetApiV1EmpregabilidadeVagasVagaIdEtapasId404
+export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse404 = {
+  data: GetApiV1EmpregabilidadeVagasIdEtapasEtapaId404
   status: 404
 }
 
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse500 = {
-  data: GetApiV1EmpregabilidadeVagasVagaIdEtapasId500
+export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500 = {
+  data: GetApiV1EmpregabilidadeVagasIdEtapasEtapaId500
   status: 500
 }
 
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponseComposite =
-  | getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse200
-  | getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse400
-  | getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse404
-  | getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse500
+export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseComposite =
+  | getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse200
+  | getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400
+  | getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse404
+  | getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500
 
-export type getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse =
-  getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponseComposite & {
+export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse =
+  getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseComposite & {
     headers: Headers
   }
 
-export const getGetApiV1EmpregabilidadeVagasVagaIdEtapasIdUrl = (
-  vagaId: string,
-  id: string
+export const getGetApiV1EmpregabilidadeVagasIdEtapasEtapaIdUrl = (
+  id: string,
+  etapaId: string
 ) => {
-  return `/api/v1/empregabilidade/vagas/${vagaId}/etapas/${id}`
+  return `/api/v1/empregabilidade/vagas/${id}/etapas/${etapaId}`
 }
 
-export const getApiV1EmpregabilidadeVagasVagaIdEtapasId = async (
-  vagaId: string,
+export const getApiV1EmpregabilidadeVagasIdEtapasEtapaId = async (
   id: string,
+  etapaId: string,
   options?: RequestInit
-): Promise<getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse> => {
-  return customFetchGoRio<getApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse>(
-    getGetApiV1EmpregabilidadeVagasVagaIdEtapasIdUrl(vagaId, id),
+): Promise<getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse> => {
+  return customFetchGoRio<getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse>(
+    getGetApiV1EmpregabilidadeVagasIdEtapasEtapaIdUrl(id, etapaId),
     {
       ...options,
       method: 'GET',
@@ -184,46 +180,46 @@ export const getApiV1EmpregabilidadeVagasVagaIdEtapasId = async (
  * Atualiza uma etapa existente
  * @summary Atualizar etapa
  */
-export type putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse200 = {
+export type putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse200 = {
   data: EmpregabilidadeEtapa
   status: 200
 }
 
-export type putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse400 = {
-  data: PutApiV1EmpregabilidadeVagasVagaIdEtapasId400
+export type putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400 = {
+  data: PutApiV1EmpregabilidadeVagasIdEtapasEtapaId400
   status: 400
 }
 
-export type putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse500 = {
-  data: PutApiV1EmpregabilidadeVagasVagaIdEtapasId500
+export type putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500 = {
+  data: PutApiV1EmpregabilidadeVagasIdEtapasEtapaId500
   status: 500
 }
 
-export type putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponseComposite =
-  | putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse200
-  | putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse400
-  | putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse500
+export type putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseComposite =
+  | putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse200
+  | putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400
+  | putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500
 
-export type putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse =
-  putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponseComposite & {
+export type putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse =
+  putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseComposite & {
     headers: Headers
   }
 
-export const getPutApiV1EmpregabilidadeVagasVagaIdEtapasIdUrl = (
-  vagaId: string,
-  id: string
+export const getPutApiV1EmpregabilidadeVagasIdEtapasEtapaIdUrl = (
+  id: string,
+  etapaId: string
 ) => {
-  return `/api/v1/empregabilidade/vagas/${vagaId}/etapas/${id}`
+  return `/api/v1/empregabilidade/vagas/${id}/etapas/${etapaId}`
 }
 
-export const putApiV1EmpregabilidadeVagasVagaIdEtapasId = async (
-  vagaId: string,
+export const putApiV1EmpregabilidadeVagasIdEtapasEtapaId = async (
   id: string,
+  etapaId: string,
   empregabilidadeEtapaBody: EmpregabilidadeEtapaBody,
   options?: RequestInit
-): Promise<putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse> => {
-  return customFetchGoRio<putApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse>(
-    getPutApiV1EmpregabilidadeVagasVagaIdEtapasIdUrl(vagaId, id),
+): Promise<putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse> => {
+  return customFetchGoRio<putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse>(
+    getPutApiV1EmpregabilidadeVagasIdEtapasEtapaIdUrl(id, etapaId),
     {
       ...options,
       method: 'PUT',
@@ -237,45 +233,45 @@ export const putApiV1EmpregabilidadeVagasVagaIdEtapasId = async (
  * Remove uma etapa pelo ID
  * @summary Excluir etapa
  */
-export type deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse200 = {
-  data: DeleteApiV1EmpregabilidadeVagasVagaIdEtapasId200
+export type deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse200 = {
+  data: DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId200
   status: 200
 }
 
-export type deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse400 = {
-  data: DeleteApiV1EmpregabilidadeVagasVagaIdEtapasId400
+export type deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400 = {
+  data: DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId400
   status: 400
 }
 
-export type deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse500 = {
-  data: DeleteApiV1EmpregabilidadeVagasVagaIdEtapasId500
+export type deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500 = {
+  data: DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId500
   status: 500
 }
 
-export type deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponseComposite =
-  | deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse200
-  | deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse400
-  | deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse500
+export type deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseComposite =
+  | deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse200
+  | deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400
+  | deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500
 
-export type deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse =
-  deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponseComposite & {
+export type deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse =
+  deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseComposite & {
     headers: Headers
   }
 
-export const getDeleteApiV1EmpregabilidadeVagasVagaIdEtapasIdUrl = (
-  vagaId: string,
-  id: string
+export const getDeleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdUrl = (
+  id: string,
+  etapaId: string
 ) => {
-  return `/api/v1/empregabilidade/vagas/${vagaId}/etapas/${id}`
+  return `/api/v1/empregabilidade/vagas/${id}/etapas/${etapaId}`
 }
 
-export const deleteApiV1EmpregabilidadeVagasVagaIdEtapasId = async (
-  vagaId: string,
+export const deleteApiV1EmpregabilidadeVagasIdEtapasEtapaId = async (
   id: string,
+  etapaId: string,
   options?: RequestInit
-): Promise<deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse> => {
-  return customFetchGoRio<deleteApiV1EmpregabilidadeVagasVagaIdEtapasIdResponse>(
-    getDeleteApiV1EmpregabilidadeVagasVagaIdEtapasIdUrl(vagaId, id),
+): Promise<deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse> => {
+  return customFetchGoRio<deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse>(
+    getDeleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdUrl(id, etapaId),
     {
       ...options,
       method: 'DELETE',

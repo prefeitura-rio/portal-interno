@@ -39,12 +39,14 @@ export interface NewCandidateFormRef {
 
 // Create dynamic Zod schema based on complementary fields
 function createFormSchema(informacoesComplementares: InformacaoComplementar[]) {
-  // Base schema with CPF
+  // Base schema with CPF, nome and email
   const baseSchema = {
     cpf: z
       .string()
       .min(1, 'CPF é obrigatório')
       .refine(validateCPF, 'CPF inválido. Verifique os dígitos.'),
+    nome: z.string().min(1, 'Nome é obrigatório'),
+    email: z.string().email('Email inválido').optional().or(z.literal('')),
   }
 
   // Add dynamic fields
@@ -77,6 +79,8 @@ export const NewCandidateForm = forwardRef<
   // Initialize form with default values
   const defaultValues: Record<string, string> = {
     cpf: '',
+    nome: '',
+    email: '',
   }
 
   // Add default values for dynamic fields
@@ -119,6 +123,8 @@ export const NewCandidateForm = forwardRef<
 
       console.log('Submitting candidatura:', {
         cpf: cleanCPF(data.cpf),
+        nome: data.nome,
+        email: data.email || undefined,
         id_vaga: vagaId,
         respostas_info_complementares: respostasFiltradas,
       })
@@ -131,6 +137,8 @@ export const NewCandidateForm = forwardRef<
         },
         body: JSON.stringify({
           cpf: cleanCPF(data.cpf),
+          nome: data.nome,
+          email: data.email || undefined,
           id_vaga: vagaId,
           respostas_info_complementares: respostasFiltradas,
         }),
@@ -282,23 +290,73 @@ export const NewCandidateForm = forwardRef<
           )}
         />
 
+        {/* Nome Field */}
+        <FormField
+          control={form.control}
+          name="nome"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome *</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  placeholder="Nome do candidato"
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Email Field */}
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* Dynamic Complementary Fields */}
-        {informacoesComplementares.map(info => (
-          <FormField
-            key={info.id}
-            control={form.control}
-            name={`resposta_${info.id}` as any}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  {info.title || 'Campo adicional'} {info.required && '*'}
-                </FormLabel>
-                <FormControl>{renderFieldByType(info, field)}</FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        ))}
+        {informacoesComplementares.length > 0 && (
+          <div className="pt-4 border-t">
+            <h4 className="text-sm font-medium text-muted-foreground mb-4">
+              Informações complementares
+            </h4>
+            <div className="space-y-4">
+              {informacoesComplementares.map(info => (
+                <FormField
+                  key={info.id}
+                  control={form.control}
+                  name={`resposta_${info.id}` as any}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {info.title || 'Campo adicional'} {info.required && '*'}
+                      </FormLabel>
+                      <FormControl>
+                        {renderFieldByType(info, field)}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </form>
     </Form>
   )
