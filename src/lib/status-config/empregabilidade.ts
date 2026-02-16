@@ -1,6 +1,13 @@
-import { FileText, ClipboardList, Clock, XCircle, CheckCircle, Ban } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
 import type { CandidatoStatus } from '@/hooks/use-candidatos'
+import {
+  Ban,
+  CheckCircle,
+  ClipboardList,
+  Clock,
+  FileText,
+  XCircle,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 export type VagaStatus =
   | 'em_edicao'
@@ -57,7 +64,10 @@ interface CandidaturaStatusConfig {
   className: string
 }
 
-export const candidaturaStatusConfig: Record<CandidaturaStatus, CandidaturaStatusConfig> = {
+export const candidaturaStatusConfig: Record<
+  CandidaturaStatus,
+  CandidaturaStatusConfig
+> = {
   candidatura_enviada: {
     icon: Clock,
     label: 'Candidatura Enviada',
@@ -91,23 +101,27 @@ export const candidaturaStatusConfig: Record<CandidaturaStatus, CandidaturaStatu
 }
 
 // Status Mapping Helpers (Backend ↔ Frontend)
-export function mapBackendStatusToFrontend(backendStatus: string): CandidatoStatus {
+export function mapBackendStatusToFrontend(
+  backendStatus: string
+): CandidatoStatus {
   const mapping: Record<string, CandidatoStatus> = {
-    'candidatura_enviada': 'pending',
-    'aprovada': 'approved',
-    'reprovada': 'rejected',
-    'vaga_congelada': 'cancelled',
-    'vaga_descontinuada': 'cancelled',
+    candidatura_enviada: 'pending',
+    aprovada: 'approved',
+    reprovada: 'rejected',
+    vaga_congelada: 'cancelled',
+    vaga_descontinuada: 'cancelled',
   }
   return mapping[backendStatus] || 'pending'
 }
 
-export function mapFrontendStatusToBackend(frontendStatus: CandidatoStatus): string {
+export function mapFrontendStatusToBackend(
+  frontendStatus: CandidatoStatus
+): string {
   const mapping: Record<CandidatoStatus, string> = {
-    'pending': 'candidatura_enviada',
-    'approved': 'aprovada',
-    'rejected': 'reprovada',
-    'cancelled': 'vaga_congelada',
+    pending: 'candidatura_enviada',
+    approved: 'aprovada',
+    rejected: 'reprovada',
+    cancelled: 'vaga_congelada',
   }
   return mapping[frontendStatus] || 'candidatura_enviada'
 }

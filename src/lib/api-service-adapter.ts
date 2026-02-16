@@ -143,17 +143,16 @@ export async function fetchServices(params?: {
 
   // Convert API models to frontend models
   const services = data.services.map((apiService: ModelsPrefRioService) => {
-      const converted = convertApiToFrontend(apiService)
-      return {
-        id: converted.id,
-        title: converted.title,
-        managingOrgan: converted.managingOrgan,
-        published_at: converted.published_at,
-        last_update: converted.last_update,
-        status: converted.status,
-      } as ServiceListItem
-    }
-  )
+    const converted = convertApiToFrontend(apiService)
+    return {
+      id: converted.id,
+      title: converted.title,
+      managingOrgan: converted.managingOrgan,
+      published_at: converted.published_at,
+      last_update: converted.last_update,
+      status: converted.status,
+    } as ServiceListItem
+  })
 
   return {
     services,

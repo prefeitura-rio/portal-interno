@@ -115,8 +115,12 @@ const draftValidationSchema = z.object({
   titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
   descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
   contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
-  regime_contratacao: z.string().min(1, { message: 'Regime de contratação é obrigatório.' }),
-  modelo_trabalho: z.string().min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+  regime_contratacao: z
+    .string()
+    .min(1, { message: 'Regime de contratação é obrigatório.' }),
+  modelo_trabalho: z
+    .string()
+    .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
 })
 
 // Schema para validação de publicação (5 campos obrigatórios)
@@ -124,8 +128,12 @@ const publishValidationSchema = z.object({
   titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
   descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
   contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
-  regime_contratacao: z.string().min(1, { message: 'Regime de contratação é obrigatório.' }),
-  modelo_trabalho: z.string().min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+  regime_contratacao: z
+    .string()
+    .min(1, { message: 'Regime de contratação é obrigatório.' }),
+  modelo_trabalho: z
+    .string()
+    .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
 })
 
 // ============================================
@@ -393,8 +401,10 @@ export const NewEmpregabilidadeForm = forwardRef<
           {/* Nota explicativa sobre campos obrigatórios */}
           <div className="mb-6 p-4 border border-muted rounded-md bg-muted/50">
             <p className="text-sm text-muted-foreground">
-              <strong>Nota:</strong> Campos marcados com <span className="text-destructive">*</span> são obrigatórios para salvar a vaga (rascunho ou publicação).
-              A diferença é que rascunhos não aparecem publicamente até serem publicados.
+              <strong>Nota:</strong> Campos marcados com{' '}
+              <span className="text-destructive">*</span> são obrigatórios para
+              salvar a vaga (rascunho ou publicação). A diferença é que
+              rascunhos não aparecem publicamente até serem publicados.
             </p>
           </div>
 

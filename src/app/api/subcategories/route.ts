@@ -1,5 +1,5 @@
-import { getApiV1CategoriesCategorySubcategories } from '@/http-busca-search/subcategories/subcategories'
 import type { GetApiV1CategoriesCategorySubcategoriesSortBy } from '@/http-busca-search/models'
+import { getApiV1CategoriesCategorySubcategories } from '@/http-busca-search/subcategories/subcategories'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -16,21 +16,19 @@ export async function GET(request: Request) {
       )
     }
 
-    const sortBy = (searchParams.get('sort_by') || 'popularity') as GetApiV1CategoriesCategorySubcategoriesSortBy
+    const sortBy = (searchParams.get('sort_by') ||
+      'popularity') as GetApiV1CategoriesCategorySubcategoriesSortBy
     const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
     const includeEmpty = searchParams.get('include_empty') === 'true'
     const includeInactive = searchParams.get('include_inactive') === 'true'
 
     // Call the Busca Search API
-    const response = await getApiV1CategoriesCategorySubcategories(
-      category,
-      {
-        sort_by: sortBy,
-        order: order,
-        include_empty: includeEmpty,
-        include_inactive: includeInactive,
-      }
-    )
+    const response = await getApiV1CategoriesCategorySubcategories(category, {
+      sort_by: sortBy,
+      order: order,
+      include_empty: includeEmpty,
+      include_inactive: includeInactive,
+    })
 
     if (response.status === 200) {
       return NextResponse.json({

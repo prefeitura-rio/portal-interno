@@ -1,5 +1,5 @@
-import { customFetchGoRio } from '../../../../../custom-fetch-gorio'
 import { NextResponse } from 'next/server'
+import { customFetchGoRio } from '../../../../../custom-fetch-gorio'
 
 /**
  * GET /api/empregabilidade/modelos-trabalho

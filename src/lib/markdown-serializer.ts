@@ -122,14 +122,18 @@ function jsonToMarkdown(
 
     case 'paragraph':
       result = content
-        .map((child: any) => jsonToMarkdown(child, listLevel, parentListType, orderedListIndex))
+        .map((child: any) =>
+          jsonToMarkdown(child, listLevel, parentListType, orderedListIndex)
+        )
         .join('')
       break
 
     case 'heading': {
       const level = node.attrs?.level || 1
       const headingText = content
-        .map((child: any) => jsonToMarkdown(child, listLevel, parentListType, orderedListIndex))
+        .map((child: any) =>
+          jsonToMarkdown(child, listLevel, parentListType, orderedListIndex)
+        )
         .join('')
         .trim()
       // Skip empty headings (headings with no content or only whitespace)
@@ -156,7 +160,9 @@ function jsonToMarkdown(
       const items: string[] = []
       let currentIndex = 1
       content.forEach((child: any) => {
-        items.push(jsonToMarkdown(child, listLevel, 'orderedList', currentIndex))
+        items.push(
+          jsonToMarkdown(child, listLevel, 'orderedList', currentIndex)
+        )
         currentIndex++
       })
       result = items.join('\n')
@@ -176,18 +182,26 @@ function jsonToMarkdown(
       // Process item content
       const paragraphTexts: string[] = []
       const nestedLists: string[] = []
-      
+
       content.forEach((child: any) => {
         if (child.type === 'paragraph') {
-          const text = child.content
-            ?.map((c: any) => jsonToMarkdown(c, listLevel, parentListType, orderedListIndex))
-            .join('') || ''
+          const text =
+            child.content
+              ?.map((c: any) =>
+                jsonToMarkdown(c, listLevel, parentListType, orderedListIndex)
+              )
+              .join('') || ''
           if (text.trim()) {
             paragraphTexts.push(text)
           }
         } else if (child.type === 'bulletList') {
           // Nested bullet list - indent each line by 2 spaces
-          const nestedList = jsonToMarkdown(child, listLevel + 1, 'bulletList', 1)
+          const nestedList = jsonToMarkdown(
+            child,
+            listLevel + 1,
+            'bulletList',
+            1
+          )
           if (nestedList.trim()) {
             // Indent each line of the nested list
             const indentedNested = nestedList
@@ -198,7 +212,12 @@ function jsonToMarkdown(
           }
         } else if (child.type === 'orderedList') {
           // Nested ordered list - indent each line by 2 spaces
-          const nestedList = jsonToMarkdown(child, listLevel + 1, 'orderedList', 1)
+          const nestedList = jsonToMarkdown(
+            child,
+            listLevel + 1,
+            'orderedList',
+            1
+          )
           if (nestedList.trim()) {
             // Indent each line of the nested list
             const indentedNested = nestedList
@@ -219,7 +238,12 @@ function jsonToMarkdown(
             nestedLists.push(indentedNested)
           }
         } else {
-          const childText = jsonToMarkdown(child, listLevel, parentListType, orderedListIndex)
+          const childText = jsonToMarkdown(
+            child,
+            listLevel,
+            parentListType,
+            orderedListIndex
+          )
           if (childText.trim()) {
             paragraphTexts.push(childText)
           }
@@ -228,7 +252,7 @@ function jsonToMarkdown(
 
       // Combine paragraph text
       const itemText = paragraphTexts.join(' ')
-      
+
       // Build result: marker + text + nested lists (each on new line, indented)
       if (nestedLists.length > 0) {
         const nestedContent = nestedLists.join('\n')
@@ -251,22 +275,30 @@ function jsonToMarkdown(
 
     case 'taskItem': {
       const checked = node.attrs?.checked ? 'x' : ' '
-      
+
       // Process item content
       const paragraphTexts: string[] = []
       const nestedLists: string[] = []
-      
+
       content.forEach((child: any) => {
         if (child.type === 'paragraph') {
-          const text = child.content
-            ?.map((c: any) => jsonToMarkdown(c, listLevel, parentListType, orderedListIndex))
-            .join('') || ''
+          const text =
+            child.content
+              ?.map((c: any) =>
+                jsonToMarkdown(c, listLevel, parentListType, orderedListIndex)
+              )
+              .join('') || ''
           if (text.trim()) {
             paragraphTexts.push(text)
           }
         } else if (child.type === 'bulletList') {
           // Nested bullet list - indent each line by 2 spaces
-          const nestedList = jsonToMarkdown(child, listLevel + 1, 'bulletList', 1)
+          const nestedList = jsonToMarkdown(
+            child,
+            listLevel + 1,
+            'bulletList',
+            1
+          )
           if (nestedList.trim()) {
             const indentedNested = nestedList
               .split('\n')
@@ -276,7 +308,12 @@ function jsonToMarkdown(
           }
         } else if (child.type === 'orderedList') {
           // Nested ordered list - indent each line by 2 spaces
-          const nestedList = jsonToMarkdown(child, listLevel + 1, 'orderedList', 1)
+          const nestedList = jsonToMarkdown(
+            child,
+            listLevel + 1,
+            'orderedList',
+            1
+          )
           if (nestedList.trim()) {
             const indentedNested = nestedList
               .split('\n')
@@ -295,7 +332,12 @@ function jsonToMarkdown(
             nestedLists.push(indentedNested)
           }
         } else {
-          const childText = jsonToMarkdown(child, listLevel, parentListType, orderedListIndex)
+          const childText = jsonToMarkdown(
+            child,
+            listLevel,
+            parentListType,
+            orderedListIndex
+          )
           if (childText.trim()) {
             paragraphTexts.push(childText)
           }
@@ -304,7 +346,7 @@ function jsonToMarkdown(
 
       // Combine paragraph text
       const taskText = paragraphTexts.join(' ')
-      
+
       // Build result: checkbox + text + nested lists (each on new line, indented)
       if (nestedLists.length > 0) {
         const nestedContent = nestedLists.join('\n')
@@ -317,7 +359,9 @@ function jsonToMarkdown(
 
     case 'codeBlock': {
       const code = content
-        .map((child: any) => jsonToMarkdown(child, listLevel, parentListType, orderedListIndex))
+        .map((child: any) =>
+          jsonToMarkdown(child, listLevel, parentListType, orderedListIndex)
+        )
         .join('')
       result = `\`\`\`\n${code}\n\`\`\``
       break
@@ -325,7 +369,9 @@ function jsonToMarkdown(
 
     case 'blockquote': {
       const quote = content
-        .map((child: any) => jsonToMarkdown(child, listLevel, parentListType, orderedListIndex))
+        .map((child: any) =>
+          jsonToMarkdown(child, listLevel, parentListType, orderedListIndex)
+        )
         .join('\n')
       result = quote
         .split('\n')
@@ -344,7 +390,9 @@ function jsonToMarkdown(
 
     default:
       result = content
-        .map((child: any) => jsonToMarkdown(child, listLevel, parentListType, orderedListIndex))
+        .map((child: any) =>
+          jsonToMarkdown(child, listLevel, parentListType, orderedListIndex)
+        )
         .join('')
   }
 
@@ -367,23 +415,24 @@ function removeEmptyHeadings(markdown: string): string {
     // Check if this is an empty heading (only # and optional spaces, no text after)
     // Match patterns like: ##, ## , ###, etc. (but not ## texto)
     const headingMatch = trimmed.match(/^#{1,6}\s*$/)
-    
+
     // Also check explicitly: if it starts with #, remove all # and spaces, and see if anything remains
     const isHeading = trimmed.match(/^#{1,6}\s/)
-    const isEmptyHeading = isHeading && trimmed.replace(/^#+\s*/, '').trim() === ''
-    
+    const isEmptyHeading =
+      isHeading && trimmed.replace(/^#+\s*/, '').trim() === ''
+
     if (headingMatch || isEmptyHeading) {
       // This is an empty heading - remove it and empty lines after it
       // DO NOT remove empty lines before it - those are valid spacing
-      
+
       // Skip the empty heading itself
       i++
-      
+
       // Skip all empty lines immediately after the empty heading
       while (i < lines.length && lines[i].trim() === '') {
         i++
       }
-      
+
       continue
     }
 
@@ -404,13 +453,13 @@ export function parseMarkdownToHtml(markdown: string): string {
 
   // Normalize line endings and multiple newlines
   const normalized = markdown.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  
+
   // Note: We don't pre-process to remove empty headings here because it can affect spacing.
   // Instead, we handle empty headings during parsing to preserve spacing structure.
-  
+
   // Split into lines for processing
   const lines = normalized.split('\n')
-  
+
   // Process lines to build HTML
   const blocks: string[] = []
   let i = 0
@@ -432,7 +481,7 @@ export function parseMarkdownToHtml(markdown: string): string {
       // Check if next content is a heading (with or without space after #)
       const nextLine = j < lines.length ? lines[j].trim() : ''
       const nextIsHeading = nextLine.match(/^#{1,6}(\s|$)/)
-      
+
       // Check if the heading is empty (only # with optional spaces, no text)
       let nextIsEmptyHeading = false
       if (nextIsHeading) {
@@ -440,7 +489,7 @@ export function parseMarkdownToHtml(markdown: string): string {
         const headingText = nextLine.replace(/^#+\s*/, '').trim()
         nextIsEmptyHeading = headingText === ''
       }
-      
+
       // If next is an empty heading, skip it completely (don't add any spacing)
       if (nextIsEmptyHeading) {
         // Skip the empty heading
@@ -560,12 +609,18 @@ export function parseMarkdownToHtml(markdown: string): string {
         i++
       }
       const text = quoteLines.join('\n')
-      blocks.push(`<blockquote><p>${parseInlineMarkdown(text, true)}</p></blockquote>`)
+      blocks.push(
+        `<blockquote><p>${parseInlineMarkdown(text, true)}</p></blockquote>`
+      )
       continue
     }
 
     // Lists (including nested)
-    if (trimmed.match(/^[-*]\s/) || trimmed.match(/^\d+\.\s/) || trimmed.match(/^- \[[ x]\]/)) {
+    if (
+      trimmed.match(/^[-*]\s/) ||
+      trimmed.match(/^\d+\.\s/) ||
+      trimmed.match(/^- \[[ x]\]/)
+    ) {
       const listHtml = parseList(lines, i)
       blocks.push(listHtml.html)
       i = listHtml.nextIndex
@@ -576,20 +631,22 @@ export function parseMarkdownToHtml(markdown: string): string {
     const paragraphLines: string[] = []
     while (i < lines.length) {
       const currentLine = lines[i].trim()
-      if (currentLine === '' || 
-          currentLine.match(/^#{1,6}\s/) ||
-          currentLine.startsWith('```') ||
-          currentLine === '---' ||
-          currentLine.startsWith('>') ||
-          currentLine.match(/^[-*]\s/) ||
-          currentLine.match(/^\d+\.\s/) ||
-          currentLine.match(/^- \[[ x]\]/)) {
+      if (
+        currentLine === '' ||
+        currentLine.match(/^#{1,6}\s/) ||
+        currentLine.startsWith('```') ||
+        currentLine === '---' ||
+        currentLine.startsWith('>') ||
+        currentLine.match(/^[-*]\s/) ||
+        currentLine.match(/^\d+\.\s/) ||
+        currentLine.match(/^- \[[ x]\]/)
+      ) {
         break
       }
       paragraphLines.push(lines[i])
       i++
     }
-    
+
     if (paragraphLines.length > 0) {
       const paragraphText = paragraphLines.join('\n')
       blocks.push(`<p>${parseInlineMarkdown(paragraphText, true)}</p>`)
@@ -602,8 +659,16 @@ export function parseMarkdownToHtml(markdown: string): string {
 /**
  * Parse a list (bullet, ordered, or task) with support for nested lists
  */
-function parseList(lines: string[], startIndex: number, baseIndent = 0): { html: string; nextIndex: number } {
-  const items: Array<{ content: string; children?: string; checked?: boolean }> = []
+function parseList(
+  lines: string[],
+  startIndex: number,
+  baseIndent = 0
+): { html: string; nextIndex: number } {
+  const items: Array<{
+    content: string
+    children?: string
+    checked?: boolean
+  }> = []
   let i = startIndex
   let listType: 'bullet' | 'ordered' | 'task' | null = null
   let currentIndent = baseIndent
@@ -611,40 +676,41 @@ function parseList(lines: string[], startIndex: number, baseIndent = 0): { html:
   while (i < lines.length) {
     const line = lines[i]
     const trimmed = line.trim()
-    
+
     if (trimmed === '') {
       // Empty line - check if list continues
       let nextNonEmpty = i + 1
       while (nextNonEmpty < lines.length && lines[nextNonEmpty].trim() === '') {
         nextNonEmpty++
       }
-      
+
       if (nextNonEmpty >= lines.length) break
-      
+
       const nextLine = lines[nextNonEmpty]
       const nextIndent = nextLine.length - nextLine.trimStart().length
       const nextTrimmed = nextLine.trim()
-      
+
       // Check if next line is a list item at same or deeper level
-      const isListItem = nextTrimmed.match(/^[-*]\s/) || 
-                        nextTrimmed.match(/^\d+\.\s/) || 
-                        nextTrimmed.match(/^- \[[ x]\]/)
-      
+      const isListItem =
+        nextTrimmed.match(/^[-*]\s/) ||
+        nextTrimmed.match(/^\d+\.\s/) ||
+        nextTrimmed.match(/^- \[[ x]\]/)
+
       if (!isListItem || nextIndent < baseIndent) {
         break
       }
-      
+
       i++
       continue
     }
 
     const indent = line.length - line.trimStart().length
-    
+
     // If indent is less than base, we're done with this list
     if (indent < baseIndent) {
       break
     }
-    
+
     // If indent is greater than base, it's a nested list (handled below)
     // If indent equals base, it's a new item at this level
 
@@ -695,7 +761,7 @@ function parseList(lines: string[], startIndex: number, baseIndent = 0): { html:
     // Extract item content
     let itemContent = ''
     let checked = false
-    
+
     if (taskMatch) {
       itemContent = trimmed.replace(/^- \[[ x]\]\s*/, '')
       checked = taskMatch[1] === 'x'
@@ -708,7 +774,7 @@ function parseList(lines: string[], startIndex: number, baseIndent = 0): { html:
     // Look ahead for nested lists or continuation text
     let nestedContent = ''
     let j = i + 1
-    
+
     while (j < lines.length) {
       const nextLine = lines[j]
       const nextTrimmed = nextLine.trim()
@@ -717,24 +783,29 @@ function parseList(lines: string[], startIndex: number, baseIndent = 0): { html:
       if (nextTrimmed === '') {
         // Empty line found - check what comes after
         let nextNonEmpty = j + 1
-        while (nextNonEmpty < lines.length && lines[nextNonEmpty].trim() === '') {
+        while (
+          nextNonEmpty < lines.length &&
+          lines[nextNonEmpty].trim() === ''
+        ) {
           nextNonEmpty++
         }
-        
+
         if (nextNonEmpty >= lines.length) {
           // End of file, stop processing this item
           break
         }
-        
+
         const afterEmptyLine = lines[nextNonEmpty]
         const afterEmptyTrimmed = afterEmptyLine.trim()
-        const afterEmptyIndent = afterEmptyLine.length - afterEmptyLine.trimStart().length
-        
+        const afterEmptyIndent =
+          afterEmptyLine.length - afterEmptyLine.trimStart().length
+
         // Check if what comes after the empty line is a list item
-        const isListItemAfterEmpty = afterEmptyTrimmed.match(/^[-*]\s/) || 
-                                     afterEmptyTrimmed.match(/^\d+\.\s/) || 
-                                     afterEmptyTrimmed.match(/^- \[[ x]\]/)
-        
+        const isListItemAfterEmpty =
+          afterEmptyTrimmed.match(/^[-*]\s/) ||
+          afterEmptyTrimmed.match(/^\d+\.\s/) ||
+          afterEmptyTrimmed.match(/^- \[[ x]\]/)
+
         // An empty line in markdown typically ends a list item
         // Only continue if the next line is a list item at the same indent level
         // (which would be a continuation of the same list, but a new item)
@@ -745,10 +816,11 @@ function parseList(lines: string[], startIndex: number, baseIndent = 0): { html:
       }
 
       // Check if it's a nested list (more indent)
-      const isNestedListItem = (nextTrimmed.match(/^[-*]\s/) || 
-                                nextTrimmed.match(/^\d+\.\s/) || 
-                                nextTrimmed.match(/^- \[[ x]\]/)) && 
-                                nextIndent > indent
+      const isNestedListItem =
+        (nextTrimmed.match(/^[-*]\s/) ||
+          nextTrimmed.match(/^\d+\.\s/) ||
+          nextTrimmed.match(/^- \[[ x]\]/)) &&
+        nextIndent > indent
 
       if (isNestedListItem) {
         const nestedList = parseList(lines, j, nextIndent)
@@ -759,10 +831,12 @@ function parseList(lines: string[], startIndex: number, baseIndent = 0): { html:
 
       // Check if it's continuation text (same indent, not a list marker)
       // Continuation text should come immediately after the item, not after empty lines
-      if (nextIndent === indent && 
-          !nextTrimmed.match(/^[-*]\s/) && 
-          !nextTrimmed.match(/^\d+\.\s/) && 
-          !nextTrimmed.match(/^- \[[ x]\]/)) {
+      if (
+        nextIndent === indent &&
+        !nextTrimmed.match(/^[-*]\s/) &&
+        !nextTrimmed.match(/^\d+\.\s/) &&
+        !nextTrimmed.match(/^- \[[ x]\]/)
+      ) {
         itemContent += ` ${parseInlineMarkdown(nextTrimmed, false)}`
         j++
         continue
@@ -782,19 +856,22 @@ function parseList(lines: string[], startIndex: number, baseIndent = 0): { html:
   }
 
   // Build HTML
-  const tag = listType === 'task' ? 'ul' : (listType === 'ordered' ? 'ol' : 'ul')
+  const tag = listType === 'task' ? 'ul' : listType === 'ordered' ? 'ol' : 'ul'
   const attributes = listType === 'task' ? ' data-type="taskList"' : ''
-  
-  const itemsHtml = items.map(item => {
-    const itemAttrs = listType === 'task' 
-      ? ` data-type="taskItem" data-checked="${item.checked ? 'true' : 'false'}"` 
-      : ''
-    
-    const itemContentHtml = parseInlineMarkdown(item.content, false)
-    const childrenHtml = item.children || ''
-    
-    return `<li${itemAttrs}><p>${itemContentHtml}</p>${childrenHtml}</li>`
-  }).join('')
+
+  const itemsHtml = items
+    .map(item => {
+      const itemAttrs =
+        listType === 'task'
+          ? ` data-type="taskItem" data-checked="${item.checked ? 'true' : 'false'}"`
+          : ''
+
+      const itemContentHtml = parseInlineMarkdown(item.content, false)
+      const childrenHtml = item.children || ''
+
+      return `<li${itemAttrs}><p>${itemContentHtml}</p>${childrenHtml}</li>`
+    })
+    .join('')
 
   return {
     html: `<${tag}${attributes}>${itemsHtml}</${tag}>`,

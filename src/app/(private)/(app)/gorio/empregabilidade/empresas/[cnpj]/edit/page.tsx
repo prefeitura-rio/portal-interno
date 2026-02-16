@@ -1,5 +1,6 @@
 'use client'
 
+import { NewEmpresaForm } from '@/app/(private)/(app)/gorio/empregabilidade/new/empresa/components/new-empresa-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import {
   Breadcrumb,
@@ -10,7 +11,6 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Skeleton } from '@/components/ui/skeleton'
-import { NewEmpresaForm } from '@/app/(private)/(app)/gorio/empregabilidade/new/empresa/components/new-empresa-form'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEmpresa } from '@/hooks/use-empresa'
 import Link from 'next/link'

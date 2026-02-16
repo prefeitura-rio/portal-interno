@@ -232,7 +232,7 @@ export default function ViewEmpresaPage({
                     src={empresa.url_logo}
                     alt={`Logo de ${empresa.razao_social || empresa.nome_fantasia}`}
                     className="max-h-[200px] max-w-full object-contain"
-                    onError={(e) => {
+                    onError={e => {
                       e.currentTarget.style.display = 'none'
                     }}
                   />
@@ -251,9 +251,9 @@ export default function ViewEmpresaPage({
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">
+                <div className="text-sm font-medium text-muted-foreground">
                   Razão Social
-                </label>
+                </div>
                 <p className="text-base">
                   {empresa.razao_social || (
                     <span className="text-muted-foreground">Não informado</span>
@@ -261,9 +261,9 @@ export default function ViewEmpresaPage({
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">
+                <div className="text-sm font-medium text-muted-foreground">
                   Nome Fantasia
-                </label>
+                </div>
                 <p className="text-base">
                   {empresa.nome_fantasia || (
                     <span className="text-muted-foreground">Não informado</span>
@@ -271,9 +271,9 @@ export default function ViewEmpresaPage({
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">
+                <div className="text-sm font-medium text-muted-foreground">
                   CNPJ
-                </label>
+                </div>
                 <p className="text-base font-mono">
                   {formatCNPJ(empresa.cnpj || '')}
                 </p>
@@ -291,9 +291,9 @@ export default function ViewEmpresaPage({
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">
+                <div className="text-sm font-medium text-muted-foreground">
                   Setor
-                </label>
+                </div>
                 <p className="text-base">
                   {empresa.setor || (
                     <span className="text-muted-foreground">Não informado</span>
@@ -301,9 +301,9 @@ export default function ViewEmpresaPage({
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">
+                <div className="text-sm font-medium text-muted-foreground">
                   Porte
-                </label>
+                </div>
                 <p className="text-base">
                   {empresa.porte || (
                     <span className="text-muted-foreground">Não informado</span>
@@ -311,9 +311,9 @@ export default function ViewEmpresaPage({
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">
+                <div className="text-sm font-medium text-muted-foreground">
                   Website
-                </label>
+                </div>
                 <p className="text-base">
                   {empresa.website ? (
                     <a
@@ -358,15 +358,15 @@ export default function ViewEmpresaPage({
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">
+                <div className="text-sm font-medium text-muted-foreground">
                   Data de Criação
-                </label>
+                </div>
                 <p className="text-base">{formatDate(empresa.created_at)}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">
+                <div className="text-sm font-medium text-muted-foreground">
                   Última Atualização
-                </label>
+                </div>
                 <p className="text-base">{formatDate(empresa.updated_at)}</p>
               </div>
             </CardContent>

@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Sortable,
   SortableContent,
@@ -11,14 +10,8 @@ import {
   SortableItemHandle,
   SortableOverlay,
 } from '@/components/ui/sortable'
-import {
-  Check,
-  GripVertical,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-} from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { Check, GripVertical, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -124,7 +117,10 @@ export function EtapasProcessoSeletivo({
     onEtapasChange(updatedEtapas)
   }
 
-  const renderEtapaPreview = (etapa: EtapaProcessoSeletivo, showDragHandle = true) => {
+  const renderEtapaPreview = (
+    etapa: EtapaProcessoSeletivo,
+    showDragHandle = true
+  ) => {
     const isEditing = editingEtapaId === etapa.id
 
     // Modo de edição da etapa

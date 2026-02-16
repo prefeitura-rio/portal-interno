@@ -11,7 +11,7 @@ import {
   isBuscaServicesAdmin,
   isGoRioAdmin,
 } from '@/types/heimdall-roles'
-import { createContext, useContext, type ReactNode } from 'react'
+import { type ReactNode, createContext, useContext } from 'react'
 
 interface HeimdallUserContextType {
   user: HeimdallUser | null
@@ -60,7 +60,9 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
 export function useHeimdallUserContext() {
   const context = useContext(HeimdallUserContext)
   if (!context) {
-    throw new Error('useHeimdallUserContext must be used within a HeimdallUserProvider')
+    throw new Error(
+      'useHeimdallUserContext must be used within a HeimdallUserProvider'
+    )
   }
   return context
 }

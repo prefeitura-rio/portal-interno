@@ -50,6 +50,27 @@ import { toast } from 'sonner'
 
 /**
  * ============================================================================
+ * UTILITY FUNCTIONS
+ * ============================================================================
+ */
+
+/**
+ * Format CNPJ for display
+ * Input: "12345678000190"
+ * Output: "12.345.678/0001-90"
+ */
+function formatCNPJ(cnpj: string): string {
+  if (!cnpj) return ''
+  const numbers = cnpj.replace(/\D/g, '')
+  if (numbers.length !== 14) return cnpj
+  return numbers.replace(
+    /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
+    '$1.$2.$3/$4-$5'
+  )
+}
+
+/**
+ * ============================================================================
  * PAGE: Empresas List
  * ============================================================================
  * Displays a paginated table of all empresas with:
@@ -157,21 +178,6 @@ export default function EmpresasPage() {
     },
     [refetch, router]
   )
-
-  /**
-   * Format CNPJ for display
-   * Input: "12345678000190"
-   * Output: "12.345.678/0001-90"
-   */
-  const formatCNPJ = (cnpj: string): string => {
-    if (!cnpj) return ''
-    const numbers = cnpj.replace(/\D/g, '')
-    if (numbers.length !== 14) return cnpj
-    return numbers.replace(
-      /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
-      '$1.$2.$3/$4-$5'
-    )
-  }
 
   /**
    * Define table columns

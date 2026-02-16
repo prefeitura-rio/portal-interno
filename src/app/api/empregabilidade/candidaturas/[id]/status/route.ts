@@ -13,15 +13,16 @@ export async function PUT(
     const body = await request.json()
 
     if (!body.status) {
-      return NextResponse.json(
-        { error: 'Status is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Status is required' }, { status: 400 })
     }
 
     const backendStatus = mapFrontendStatusToBackend(body.status)
 
-    console.log('Updating candidatura status:', { id, frontendStatus: body.status, backendStatus })
+    console.log('Updating candidatura status:', {
+      id,
+      frontendStatus: body.status,
+      backendStatus,
+    })
 
     const response = await putApiV1EmpregabilidadeCandidaturasIdStatus(id, {
       status: backendStatus as EmpregabilidadeStatusCandidatura,

@@ -105,11 +105,17 @@ export const customFetchGoRio = async <T>(
 
   console.log('🟢 [customFetchGoRio] Response status:', response.status)
   console.log('🟢 [customFetchGoRio] Response ok:', response.ok)
-  console.log('🟢 [customFetchGoRio] Response headers:', Object.fromEntries(response.headers.entries()))
+  console.log(
+    '🟢 [customFetchGoRio] Response headers:',
+    Object.fromEntries(response.headers.entries())
+  )
 
   const data = await getBody<T>(response)
 
-  console.log('🟢 [customFetchGoRio] Response data:', typeof data === 'object' ? JSON.stringify(data).substring(0, 500) : data)
+  console.log(
+    '🟢 [customFetchGoRio] Response data:',
+    typeof data === 'object' ? JSON.stringify(data).substring(0, 500) : data
+  )
 
   return { status: response.status, data, headers: response.headers } as T
 }

@@ -25,9 +25,8 @@ export async function GET(
 
     // Call the external API using the existing client function
     // This endpoint queries the RMI (Registro Mercantil Integrado) for official company data
-    const response = await getApiV1EmpregabilidadeEmpresasConsultaCnpjCnpj(
-      cnpjNumbers
-    )
+    const response =
+      await getApiV1EmpregabilidadeEmpresasConsultaCnpjCnpj(cnpjNumbers)
 
     console.log('RMI API Response:', {
       status: response.status,

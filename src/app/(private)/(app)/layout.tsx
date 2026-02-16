@@ -16,14 +16,14 @@ export default async function Layout({
   return (
     //add shadcn sonner
     <>
-    <UserProvider userInfo={userInfo}>
-      <HeimdallUserProvider>
-        <Toaster />
-        <AdminPanelLayout>
-          <NuqsAdapter>{children}</NuqsAdapter>
-        </AdminPanelLayout>
-      </HeimdallUserProvider>
-    </UserProvider>
+      <UserProvider userInfo={userInfo}>
+        <HeimdallUserProvider>
+          <Toaster />
+          <AdminPanelLayout>
+            <NuqsAdapter>{children}</NuqsAdapter>
+          </AdminPanelLayout>
+        </HeimdallUserProvider>
+      </UserProvider>
     </>
   )
 }

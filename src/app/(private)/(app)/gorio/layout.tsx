@@ -7,9 +7,9 @@ export default function GorioLayout({
 }) {
   return (
     <>
-    <ProtectedRoute requiredRoles={['admin', 'superadmin', 'go:admin']}>
-      {children}
-    </ProtectedRoute>
+      <ProtectedRoute requiredRoles={['admin', 'superadmin', 'go:admin']}>
+        {children}
+      </ProtectedRoute>
     </>
   )
 }

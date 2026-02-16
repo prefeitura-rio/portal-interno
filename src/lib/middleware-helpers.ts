@@ -3,11 +3,11 @@ import {
   REDIRECT_WHEN_SESSION_EXPIRED_ROUTE,
   REDIRECT_WHEN_UNAUTHORIZED_ROUTE,
 } from '../constants/url'
-import { refreshAccessToken } from './token-refresh'
 import {
   getAccessTokenCookieConfig,
   getRefreshTokenCookieConfig,
 } from './auth-cookie-config'
+import { refreshAccessToken } from './token-refresh'
 
 export async function handleExpiredToken(
   request: NextRequest,

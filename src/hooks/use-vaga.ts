@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import type { EmpregabilidadeVaga } from '@/http-gorio/models'
+import { useCallback, useEffect, useState } from 'react'
 
 interface UseVagaReturn {
   vaga: EmpregabilidadeVaga | null
@@ -24,7 +24,7 @@ export function useVaga(id: string | null): UseVagaReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchVaga = async () => {
+  const fetchVaga = useCallback(async () => {
     if (!id) {
       setLoading(false)
       return
@@ -56,11 +56,11 @@ export function useVaga(id: string | null): UseVagaReturn {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
     fetchVaga()
-  }, [id])
+  }, [fetchVaga])
 
   return {
     vaga,

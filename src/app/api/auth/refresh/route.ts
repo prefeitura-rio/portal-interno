@@ -1,10 +1,10 @@
-import { refreshAccessToken } from '@/lib/token-refresh'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
 import {
   getAccessTokenCookieConfig,
   getRefreshTokenCookieConfig,
 } from '@/lib/auth-cookie-config'
+import { refreshAccessToken } from '@/lib/token-refresh'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
 // Desabilitar cache completamente nesta rota
 export const dynamic = 'force-dynamic'

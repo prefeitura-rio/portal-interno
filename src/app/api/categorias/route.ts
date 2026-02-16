@@ -1,8 +1,5 @@
 import { getApiV1Categorias } from '@/http-gorio/categorias/categorias'
-import {
-  type Categoria,
-  filterValidCategorias,
-} from '@/lib/categoria-utils'
+import { type Categoria, filterValidCategorias } from '@/lib/categoria-utils'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {

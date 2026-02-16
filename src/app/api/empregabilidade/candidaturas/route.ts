@@ -41,7 +41,6 @@ export async function GET(request: Request) {
     // Call Orval client
     const response = await getApiV1EmpregabilidadeCandidaturas(params)
 
-
     if (response.status === 200) {
       const data = response.data as any
 

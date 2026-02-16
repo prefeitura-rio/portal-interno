@@ -44,10 +44,7 @@ export async function GET(
 
     // Step 2: Validate CNPJ presence
     if (!cnpj) {
-      return NextResponse.json(
-        { error: 'CNPJ é obrigatório' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'CNPJ é obrigatório' }, { status: 400 })
     }
 
     // Step 3: Strip mask and extract only digits
@@ -163,10 +160,7 @@ export async function PUT(
 
     // Step 2: Validate CNPJ presence
     if (!cnpj) {
-      return NextResponse.json(
-        { error: 'CNPJ é obrigatório' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'CNPJ é obrigatório' }, { status: 400 })
     }
 
     // Step 3: Strip mask from param CNPJ
@@ -323,10 +317,7 @@ export async function DELETE(
 
     // Step 2: Validate CNPJ presence
     if (!cnpj) {
-      return NextResponse.json(
-        { error: 'CNPJ é obrigatório' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'CNPJ é obrigatório' }, { status: 400 })
     }
 
     // Step 3: Strip mask from CNPJ
@@ -378,10 +369,7 @@ export async function DELETE(
       { status: response.status }
     )
   } catch (error) {
-    console.error(
-      '[DELETE /api/empregabilidade/empresas/[cnpj]] Error:',
-      error
-    )
+    console.error('[DELETE /api/empregabilidade/empresas/[cnpj]] Error:', error)
     return NextResponse.json(
       {
         error: 'Erro interno do servidor',

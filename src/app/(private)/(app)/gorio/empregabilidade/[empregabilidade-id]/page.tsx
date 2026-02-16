@@ -492,7 +492,10 @@ export default function EmpregabilidadeDetailPage({
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="about" disabled={isEditing && hasUnsavedChanges}>
+            <TabsTrigger
+              value="about"
+              disabled={isEditing && hasUnsavedChanges}
+            >
               Sobre a vaga
             </TabsTrigger>
             <TabsTrigger value="candidates" disabled={isEditing}>

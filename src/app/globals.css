@@ -130,8 +130,6 @@
   /* No margin between elements - spacing controlled by individual elements */
 }
 
-
-
 /* Headings - Only apply bold, no font size changes, no spacing above */
 .ProseMirror h1,
 .ProseMirror h2,

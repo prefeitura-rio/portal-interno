@@ -1,7 +1,6 @@
 'use client'
 import { NewCourseForm } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'

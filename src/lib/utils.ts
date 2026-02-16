@@ -221,7 +221,10 @@ export function transformApiCourseToCourse(apiCourse: any): any {
       if (modalidade === 'Presencial' || modalidade === 'PRESENCIAL')
         return 'PRESENCIAL'
       if (modalidade === 'Remoto' || modalidade === 'ONLINE') return 'ONLINE'
-      if (modalidade === 'Livre formação (online)' || modalidade === 'LIVRE_FORMACAO_ONLINE')
+      if (
+        modalidade === 'Livre formação (online)' ||
+        modalidade === 'LIVRE_FORMACAO_ONLINE'
+      )
         return 'LIVRE_FORMACAO_ONLINE'
       return modalidade
     })(),

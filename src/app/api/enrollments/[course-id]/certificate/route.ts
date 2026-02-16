@@ -93,7 +93,11 @@ function convertApiEnrollmentToFrontend(
             let value = ''
             let required = false
 
-            if (fieldData && typeof fieldData === 'object' && !Array.isArray(fieldData)) {
+            if (
+              fieldData &&
+              typeof fieldData === 'object' &&
+              !Array.isArray(fieldData)
+            ) {
               const fieldObj = fieldData as {
                 id?: string
                 title?: string

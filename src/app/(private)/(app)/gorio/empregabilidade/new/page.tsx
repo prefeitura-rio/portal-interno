@@ -156,8 +156,12 @@ export default function NewEmpregabilidadePage() {
         // Check if error is about UUID (missing required fields)
         if (errorData.message && typeof errorData.message === 'object') {
           const backendError = errorData.message.error || ''
-          if (backendError.includes('UUID') || backendError.includes('not null')) {
-            errorDescription = 'Preencha todos os campos obrigatórios: Título, Descrição, Empresa, Regime de Contratação e Modelo de Trabalho'
+          if (
+            backendError.includes('UUID') ||
+            backendError.includes('not null')
+          ) {
+            errorDescription =
+              'Preencha todos os campos obrigatórios: Título, Descrição, Empresa, Regime de Contratação e Modelo de Trabalho'
           }
         }
 

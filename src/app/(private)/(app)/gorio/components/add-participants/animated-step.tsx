@@ -18,4 +18,3 @@ export function AnimatedStep({ children, stepKey }: AnimatedStepProps) {
     </motion.div>
   )
 }
-
