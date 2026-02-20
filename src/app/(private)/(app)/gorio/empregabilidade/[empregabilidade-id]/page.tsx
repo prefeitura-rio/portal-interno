@@ -462,7 +462,7 @@ export default function EmpregabilidadeDetailPage({
     contratante: vaga.id_contratante,
     regime_contratacao: vaga.id_regime_contratacao,
     modelo_trabalho: vaga.id_modelo_trabalho,
-    vaga_pcd: vaga.vaga_pcd,
+    vaga_pcd: !!(vaga.acessibilidade_pcd || (vaga.tipos_pcd && vaga.tipos_pcd.length > 0)),
     tipo_pcd: vaga.tipos_pcd?.map(t => t.id || '') || [],
     valor_vaga: vaga.valor_vaga,
     bairro: vaga.bairro,
