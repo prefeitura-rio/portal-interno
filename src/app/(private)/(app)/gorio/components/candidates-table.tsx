@@ -41,6 +41,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
   Select,
   SelectContent,
@@ -48,7 +49,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
   Sheet,
   SheetContent,
@@ -185,8 +185,7 @@ export function CandidatesTable({
       } catch (err) {
         console.error('Erro ao alterar etapa:', err)
         toast.error('Erro ao alterar etapa', {
-          description:
-            err instanceof Error ? err.message : 'Erro inesperado',
+          description: err instanceof Error ? err.message : 'Erro inesperado',
         })
       }
     },
@@ -727,7 +726,10 @@ export function CandidatesTable({
                                     {etapa.titulo ?? `Etapa ${etapa.ordem}`}
                                   </span>
                                   {isCurrent && (
-                                    <Badge variant="secondary" className="shrink-0">
+                                    <Badge
+                                      variant="secondary"
+                                      className="shrink-0"
+                                    >
                                       Atual
                                     </Badge>
                                   )}
@@ -741,7 +743,8 @@ export function CandidatesTable({
                             </Label>
                             <Select
                               value={
-                                selectedCandidato.currentEtapaId ?? '__nenhuma__'
+                                selectedCandidato.currentEtapaId ??
+                                '__nenhuma__'
                               }
                               onValueChange={value => {
                                 const idEtapa =
@@ -757,11 +760,9 @@ export function CandidatesTable({
                                   Nenhuma etapa definida
                                 </SelectItem>
                                 {selectedCandidato.vaga.etapas.map(etapa => (
-                                  <SelectItem
-                                    key={etapa.id}
-                                    value={etapa.id}
-                                  >
-                                    {etapa.ordem}. {etapa.titulo ?? `Etapa ${etapa.ordem}`}
+                                  <SelectItem key={etapa.id} value={etapa.id}>
+                                    {etapa.ordem}.{' '}
+                                    {etapa.titulo ?? `Etapa ${etapa.ordem}`}
                                   </SelectItem>
                                 ))}
                               </SelectContent>

@@ -72,7 +72,10 @@ export async function GET(request: Request) {
               titulo: c.vaga.titulo,
               etapas: (c.vaga.etapas || [])
                 .slice()
-                .sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem)
+                .sort(
+                  (a: { ordem: number }, b: { ordem: number }) =>
+                    a.ordem - b.ordem
+                )
                 .map((e: any) => ({
                   id: e.id,
                   titulo: e.titulo,

@@ -1,6 +1,4 @@
-import {
-  putApiV1EmpregabilidadeCandidaturasIdEtapa,
-} from '@/http-gorio/empregabilidade-candidaturas/empregabilidade-candidaturas'
+import { putApiV1EmpregabilidadeCandidaturasIdEtapa } from '@/http-gorio/empregabilidade-candidaturas/empregabilidade-candidaturas'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 

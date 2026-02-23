@@ -40,7 +40,7 @@ import type {
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
- * Retorna lista paginada de vagas
+ * Retorna lista paginada de vagas com filtros opcionais
  * @summary Listar vagas
  */
 export type getApiV1EmpregabilidadeVagasResponse200 = {
