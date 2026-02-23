@@ -6,4 +6,6 @@
  * OpenAPI spec version: 1.0
  */
 
-export type PostApiV1EmpregabilidadeVagasDraft400 = { [key: string]: string }
+export type DeleteApiV1EmpregabilidadeCurriculoExperienciasId404 = {
+  [key: string]: string
+}

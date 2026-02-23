@@ -1,4 +1,4 @@
-import { postApiV1EmpregabilidadeVagasDraft } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
+import { postApiV1EmpregabilidadeVagas } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
 import type { EmpregabilidadeVagaBody } from '@/http-gorio/models/empregabilidadeVagaBody'
 import { toApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
 import { revalidateTag } from 'next/cache'
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     )
 
     // Call the external API using the existing client function
-    const response = await postApiV1EmpregabilidadeVagasDraft(body)
+    const response = await postApiV1EmpregabilidadeVagas(body)
 
     console.log('Draft API Response:', {
       status: response.status,
