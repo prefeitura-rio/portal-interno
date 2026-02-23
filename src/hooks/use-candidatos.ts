@@ -2,6 +2,19 @@ import { useCallback, useEffect, useState } from 'react'
 
 export type CandidatoStatus = 'pending' | 'approved' | 'rejected' | 'cancelled'
 
+export interface EtapaVaga {
+  id: string
+  titulo?: string
+  descricao?: string
+  ordem: number
+}
+
+export interface VagaCandidato {
+  id: string
+  titulo?: string
+  etapas?: EtapaVaga[]
+}
+
 export interface Candidato {
   id: string
   candidateName: string
@@ -14,6 +27,10 @@ export interface Candidato {
   neighborhood?: string
   city?: string
   state?: string
+  /** ID da etapa atual do processo seletivo (null = ainda não definida) */
+  currentEtapaId?: string | null
+  /** Dados da vaga vinculada (com etapas quando a vaga possui processo por etapas) */
+  vaga?: VagaCandidato
   customFields?: Array<{
     id: string
     title: string
@@ -62,6 +79,10 @@ interface UseCandidatosReturn {
   updateCandidatoStatus: (
     candidatoId: string,
     status: CandidatoStatus
+  ) => Promise<Candidato | null>
+  updateCandidatoEtapa: (
+    candidatoId: string,
+    idEtapa: string | null
   ) => Promise<Candidato | null>
   updateMultipleCandidatoStatuses: (
     candidatoIds: string[],
@@ -201,6 +222,39 @@ export function useCandidatos({
     [fetchCandidatos]
   )
 
+  const updateCandidatoEtapa = useCallback(
+    async (
+      candidatoId: string,
+      idEtapa: string | null
+    ): Promise<Candidato | null> => {
+      try {
+        const response = await fetch(
+          `/api/empregabilidade/candidaturas/${candidatoId}/etapa`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_etapa_atual: idEtapa }),
+          }
+        )
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(
+            errorData.error || 'Falha ao atualizar etapa da candidatura'
+          )
+        }
+
+        await fetchCandidatos()
+        const data = await response.json()
+        return data.candidatura || null
+      } catch (err) {
+        console.error('Error updating candidato etapa:', err)
+        throw err
+      }
+    },
+    [fetchCandidatos]
+  )
+
   const updateMultipleCandidatoStatuses = useCallback(
     async (
       candidatoIds: string[],
@@ -237,6 +291,7 @@ export function useCandidatos({
     error,
     refetch: fetchCandidatos,
     updateCandidatoStatus,
+    updateCandidatoEtapa,
     updateMultipleCandidatoStatuses,
   }
 }

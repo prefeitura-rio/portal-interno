@@ -41,6 +41,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
   Sheet,
@@ -115,6 +122,7 @@ export function CandidatesTable({
     loading,
     error,
     updateCandidatoStatus,
+    updateCandidatoEtapa,
     updateMultipleCandidatoStatuses,
     refetch,
   } = useCandidatos({
@@ -164,6 +172,25 @@ export function CandidatesTable({
       }
     },
     [updateCandidatoStatus]
+  )
+
+  const handleSetEtapa = React.useCallback(
+    async (candidato: Candidato, idEtapa: string | null) => {
+      try {
+        await updateCandidatoEtapa(candidato.id, idEtapa)
+        setSelectedCandidato(prev =>
+          prev ? { ...prev, currentEtapaId: idEtapa ?? undefined } : prev
+        )
+        toast.success('Etapa atualizada com sucesso!')
+      } catch (err) {
+        console.error('Erro ao alterar etapa:', err)
+        toast.error('Erro ao alterar etapa', {
+          description:
+            err instanceof Error ? err.message : 'Erro inesperado',
+        })
+      }
+    },
+    [updateCandidatoEtapa]
   )
 
   const handlePaginationChange = React.useCallback((updater: any) => {
@@ -674,6 +701,78 @@ export function CandidatesTable({
                       </div>
                     </div>
                   </div>
+
+                  {/* Etapas do processo (quando a vaga tem etapas e candidato está pendente) */}
+                  {selectedCandidato.status === 'pending' &&
+                    selectedCandidato.vaga?.etapas &&
+                    selectedCandidato.vaga.etapas.length > 0 && (
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                          Etapa no processo
+                        </h4>
+                        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
+                          <ul className="space-y-2">
+                            {selectedCandidato.vaga.etapas.map(etapa => {
+                              const isCurrent =
+                                selectedCandidato.currentEtapaId === etapa.id
+                              return (
+                                <li
+                                  key={etapa.id}
+                                  className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-md bg-background/60"
+                                >
+                                  <span className="text-sm">
+                                    <span className="text-muted-foreground font-mono mr-2">
+                                      {etapa.ordem}.
+                                    </span>
+                                    {etapa.titulo ?? `Etapa ${etapa.ordem}`}
+                                  </span>
+                                  {isCurrent && (
+                                    <Badge variant="secondary" className="shrink-0">
+                                      Atual
+                                    </Badge>
+                                  )}
+                                </li>
+                              )
+                            })}
+                          </ul>
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">
+                              Definir etapa
+                            </Label>
+                            <Select
+                              value={
+                                selectedCandidato.currentEtapaId ?? '__nenhuma__'
+                              }
+                              onValueChange={value => {
+                                const idEtapa =
+                                  value === '__nenhuma__' ? null : value
+                                handleSetEtapa(selectedCandidato, idEtapa)
+                              }}
+                            >
+                              <SelectTrigger size="sm" className="w-full">
+                                <SelectValue placeholder="Selecione a etapa" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__nenhuma__">
+                                  Nenhuma etapa definida
+                                </SelectItem>
+                                {selectedCandidato.vaga.etapas.map(etapa => (
+                                  <SelectItem
+                                    key={etapa.id}
+                                    value={etapa.id}
+                                  >
+                                    {etapa.ordem}. {etapa.titulo ?? `Etapa ${etapa.ordem}`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              Avançar ou voltar para qualquer etapa do processo.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                   {/* Custom Fields */}
                   {selectedCandidato.customFields &&

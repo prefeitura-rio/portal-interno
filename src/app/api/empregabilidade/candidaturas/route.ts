@@ -65,6 +65,22 @@ export async function GET(request: Request) {
         neighborhood: c.curriculo_snapshot?.bairro || '',
         city: c.curriculo_snapshot?.cidade || '',
         state: c.curriculo_snapshot?.estado || '',
+        currentEtapaId: c.id_etapa_atual ?? null,
+        vaga: c.vaga
+          ? {
+              id: c.vaga.id,
+              titulo: c.vaga.titulo,
+              etapas: (c.vaga.etapas || [])
+                .slice()
+                .sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem)
+                .map((e: any) => ({
+                  id: e.id,
+                  titulo: e.titulo,
+                  descricao: e.descricao,
+                  ordem: e.ordem,
+                })),
+            }
+          : undefined,
         customFields: (c.respostas_info_complementares || []).map((r: any) => ({
           id: r.id_info,
           title: r.titulo || `Campo ${r.id_info}`,
