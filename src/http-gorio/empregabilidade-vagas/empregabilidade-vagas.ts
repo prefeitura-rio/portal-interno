@@ -32,6 +32,11 @@ import type {
   PutApiV1EmpregabilidadeVagasIdSendToApproval404,
   PutApiV1EmpregabilidadeVagasIdSendToApproval409,
   PutApiV1EmpregabilidadeVagasIdSendToApproval500,
+  PutApiV1EmpregabilidadeVagasIdSendToDraft200,
+  PutApiV1EmpregabilidadeVagasIdSendToDraft400,
+  PutApiV1EmpregabilidadeVagasIdSendToDraft404,
+  PutApiV1EmpregabilidadeVagasIdSendToDraft409,
+  PutApiV1EmpregabilidadeVagasIdSendToDraft500,
   PutApiV1EmpregabilidadeVagasIdTiposPcd200,
   PutApiV1EmpregabilidadeVagasIdTiposPcd400,
   PutApiV1EmpregabilidadeVagasIdTiposPcd500,
@@ -399,6 +404,64 @@ export const putApiV1EmpregabilidadeVagasIdSendToApproval = async (
 ): Promise<putApiV1EmpregabilidadeVagasIdSendToApprovalResponse> => {
   return customFetchGoRio<putApiV1EmpregabilidadeVagasIdSendToApprovalResponse>(
     getPutApiV1EmpregabilidadeVagasIdSendToApprovalUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+    }
+  )
+}
+
+/**
+ * Retorna uma vaga em aprovação para o estado de edição (rascunho)
+ * @summary Retornar vaga para rascunho
+ */
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse200 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToDraft200
+  status: 200
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse400 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToDraft400
+  status: 400
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse404 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToDraft404
+  status: 404
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse409 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToDraft409
+  status: 409
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse500 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToDraft500
+  status: 500
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponseComposite =
+  | putApiV1EmpregabilidadeVagasIdSendToDraftResponse200
+  | putApiV1EmpregabilidadeVagasIdSendToDraftResponse400
+  | putApiV1EmpregabilidadeVagasIdSendToDraftResponse404
+  | putApiV1EmpregabilidadeVagasIdSendToDraftResponse409
+  | putApiV1EmpregabilidadeVagasIdSendToDraftResponse500
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse =
+  putApiV1EmpregabilidadeVagasIdSendToDraftResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1EmpregabilidadeVagasIdSendToDraftUrl = (id: string) => {
+  return `/api/v1/empregabilidade/vagas/${id}/send-to-draft`
+}
+
+export const putApiV1EmpregabilidadeVagasIdSendToDraft = async (
+  id: string,
+  options?: RequestInit
+): Promise<putApiV1EmpregabilidadeVagasIdSendToDraftResponse> => {
+  return customFetchGoRio<putApiV1EmpregabilidadeVagasIdSendToDraftResponse>(
+    getPutApiV1EmpregabilidadeVagasIdSendToDraftUrl(id),
     {
       ...options,
       method: 'PUT',
