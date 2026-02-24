@@ -225,13 +225,7 @@ export function EmpresaCombobox({
     if (!selectedEmpresaLoaded) return 'Carregando...'
 
     return placeholder
-  }, [
-    value,
-    empresas,
-    selectedEmpresa,
-    selectedEmpresaLoaded,
-    placeholder,
-  ])
+  }, [value, empresas, selectedEmpresa, selectedEmpresaLoaded, placeholder])
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -294,7 +288,9 @@ export function EmpresaCombobox({
                     <Check
                       className={cn(
                         'mr-2 h-4 w-4',
-                        value === (empresa.cnpj ?? '') ? 'opacity-100' : 'opacity-0'
+                        value === (empresa.cnpj ?? '')
+                          ? 'opacity-100'
+                          : 'opacity-0'
                       )}
                     />
                     <div className="flex flex-col">
@@ -334,7 +330,9 @@ export function EmpresaCombobox({
                         Carregando...
                       </>
                     ) : (
-                      <>Carregar mais ({page} de {totalPages})</>
+                      <>
+                        Carregar mais ({page} de {totalPages})
+                      </>
                     )}
                   </Button>
                 </div>
