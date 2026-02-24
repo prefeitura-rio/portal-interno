@@ -12,7 +12,8 @@ export interface UseEmpregabilidadeVagasParams {
   pageSize?: number
   status?: VagaStatus
   companyId?: string
-  titulo?: string
+  /** Busca parcial no título da vaga */
+  search?: string
 }
 
 export interface UseEmpregabilidadeVagasResult {
@@ -38,7 +39,7 @@ export function useEmpregabilidadeVagas(
     pageSize = 10,
     status = 'publicado_ativo',
     companyId,
-    titulo,
+    search,
   } = params
 
   const fetchVagas = useCallback(async () => {
@@ -56,8 +57,8 @@ export function useEmpregabilidadeVagas(
         url.searchParams.set('company_id', companyId.trim())
       }
 
-      if (titulo?.trim()) {
-        url.searchParams.set('titulo', titulo.trim())
+      if (search?.trim()) {
+        url.searchParams.set('search', search.trim())
       }
 
       const response = await fetch(url.toString())
@@ -77,7 +78,7 @@ export function useEmpregabilidadeVagas(
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, status, companyId, titulo])
+  }, [page, pageSize, status, companyId, search])
 
   useEffect(() => {
     fetchVagas()

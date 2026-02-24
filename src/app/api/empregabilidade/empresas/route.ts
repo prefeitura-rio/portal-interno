@@ -10,6 +10,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
 
+    const search = searchParams.get('search')?.trim() || undefined
+    const cnpj = searchParams.get('cnpj')?.trim() || undefined
+
     const params = {
       page: searchParams.get('page')
         ? Number(searchParams.get('page'))
@@ -17,8 +20,8 @@ export async function GET(request: Request) {
       pageSize: searchParams.get('page_size')
         ? Number(searchParams.get('page_size'))
         : undefined,
-      // NOTE: 'nome' parameter removed - backend doesn't support it yet
-      // Client-side filtering is implemented in use-empresas.ts hook
+      search,
+      cnpj,
     }
 
     console.log('Fetching empresas with params:', params)

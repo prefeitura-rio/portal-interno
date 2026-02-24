@@ -8,25 +8,21 @@ export async function GET(request: Request) {
     const pageSize = searchParams.get('page_size') || '10'
     const status = searchParams.get('status') || 'publicado_ativo'
     const companyId = searchParams.get('company_id')
-    const titulo = searchParams.get('titulo')
+    const search = searchParams.get('search') ?? searchParams.get('titulo')
 
     // Build query parameters for the API (matching Orval client interface)
-    const apiParams: any = {
+    const apiParams: Record<string, number | string> = {
       page: Number(page),
       pageSize: Number(pageSize),
-      status: status,
+      status,
     }
 
-    // Add optional filters (using correct param names from Orval)
     if (companyId?.trim()) {
       apiParams.contratante = companyId.trim()
     }
 
-    // Note: titulo filter is not supported by backend yet
-    // Backend swagger only has: page, pageSize, status, contratante
-    if (titulo?.trim()) {
-      // TODO: Backend needs to add titulo filter support
-      console.warn('titulo filter is not yet supported by backend')
+    if (search?.trim()) {
+      apiParams.search = search.trim()
     }
 
     // Log parameters being sent to backend API
