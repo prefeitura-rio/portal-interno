@@ -11,6 +11,8 @@ declare module '@tanstack/react-table' {
     range?: [number, number]
     unit?: string
     icon?: React.FC<React.SVGProps<SVGSVGElement>>
+    cellClassName?: string
+    headerClassName?: string
   }
 }
 
@@ -19,6 +21,8 @@ export interface Option {
   value: string
   count?: number
   icon?: React.FC<React.SVGProps<SVGSVGElement>>
+  /** When true, option is shown but cannot be selected */
+  disabled?: boolean
 }
 
 export type FilterOperator = DataTableConfig['operators'][number]

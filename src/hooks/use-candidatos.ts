@@ -54,6 +54,7 @@ export interface CandidatoSummary {
 export interface CandidatoFilters {
   status?: CandidatoStatus[]
   search?: string
+  etapa_id?: string
 }
 
 interface UseCandidatosOptions {
@@ -85,7 +86,7 @@ interface UseCandidatosReturn {
     idEtapa: string | null
   ) => Promise<Candidato | null>
   updateMultipleCandidatoStatuses: (
-    candidatoIds: string[],
+    cpfs: string[],
     status: CandidatoStatus
   ) => Promise<boolean>
 }
@@ -122,14 +123,19 @@ export function useCandidatos({
         id_vaga: empregabilidadeId,
       })
 
-      // Add status filter if present (single status only for now)
-      if (filters?.status && filters.status.length === 1) {
+      // Add status filter if present (API accepts single status; send first selected)
+      if (filters?.status && filters.status.length > 0) {
         params.append('status', filters.status[0])
       }
 
       // Add search filter if present
       if (filters?.search) {
         params.append('search', filters.search)
+      }
+
+      // Add etapa filter if present (single UUID)
+      if (filters?.etapa_id) {
+        params.append('etapa_id', filters.etapa_id)
       }
 
       console.log('Fetching candidatos with params:', params.toString())
@@ -256,31 +262,36 @@ export function useCandidatos({
   )
 
   const updateMultipleCandidatoStatuses = useCallback(
-    async (
-      candidatoIds: string[],
-      status: CandidatoStatus
-    ): Promise<boolean> => {
+    async (cpfs: string[], status: CandidatoStatus): Promise<boolean> => {
       try {
-        console.log('Updating multiple candidatos:', {
-          count: candidatoIds.length,
-          status,
-        })
+        if (cpfs.length === 0) return true
 
-        // Execute all updates in parallel
-        const promises = candidatoIds.map(id =>
-          updateCandidatoStatus(id, status)
+        const response = await fetch(
+          '/api/empregabilidade/candidaturas/bulk-status',
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cpfs,
+              status,
+              id_vaga: empregabilidadeId,
+            }),
+          }
         )
-        await Promise.all(promises)
 
-        // Refetch to get updated data
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}))
+          throw new Error(data.error || 'Falha ao atualizar status em lote')
+        }
+
         await fetchCandidatos()
         return true
       } catch (err) {
         console.error('Error updating multiple candidato statuses:', err)
-        return false
+        throw err
       }
     },
-    [updateCandidatoStatus, fetchCandidatos]
+    [empregabilidadeId, fetchCandidatos]
   )
 
   return {

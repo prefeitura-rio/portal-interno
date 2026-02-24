@@ -3,7 +3,11 @@ import {
   postApiV1EmpregabilidadeCandidaturas,
 } from '@/http-gorio/empregabilidade-candidaturas/empregabilidade-candidaturas'
 import { cleanCPF } from '@/lib/cpf-validator'
-import { mapBackendStatusToFrontend } from '@/lib/status-config/empregabilidade'
+import {
+  mapBackendStatusToFrontend,
+  mapFrontendStatusToBackend,
+} from '@/lib/status-config/empregabilidade'
+import type { CandidatoStatus } from '@/hooks/use-candidatos'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -20,6 +24,7 @@ export async function GET(request: Request) {
       searchParams.get('empregabilidadeId') ||
       undefined
     const search = searchParams.get('search') || undefined
+    const etapaId = searchParams.get('etapa_id') || undefined
 
     const params: any = {
       page,
@@ -27,7 +32,7 @@ export async function GET(request: Request) {
     }
 
     if (status) {
-      params.status = status
+      params.status = mapFrontendStatusToBackend(status as CandidatoStatus)
     }
 
     if (idVaga) {
@@ -35,7 +40,11 @@ export async function GET(request: Request) {
     }
 
     if (search) {
-      params.cpf = search
+      params.search = search
+    }
+
+    if (etapaId) {
+      params.etapa_id = etapaId
     }
 
     // Call Orval client
@@ -47,64 +56,103 @@ export async function GET(request: Request) {
       // Backend returns { data: [...], meta: {...} } structure
       const candidaturas = data.data || data.candidaturas || []
 
-      // Map backend candidaturas to frontend format
-      const candidatos = candidaturas.map((c: any) => ({
-        id: c.id,
-        candidateName:
-          c.nome ||
-          c.curriculo_snapshot?.nome ||
-          c.curriculo_snapshot?.nome_completo ||
-          'Nome não disponível',
-        cpf: c.cpf,
-        email: c.email || c.curriculo_snapshot?.email || '',
-        phone:
-          c.curriculo_snapshot?.telefone || c.curriculo_snapshot?.celular || '',
-        enrollmentDate: c.created_at,
-        status: mapBackendStatusToFrontend(c.status),
-        address: c.curriculo_snapshot?.endereco || '',
-        neighborhood: c.curriculo_snapshot?.bairro || '',
-        city: c.curriculo_snapshot?.cidade || '',
-        state: c.curriculo_snapshot?.estado || '',
-        currentEtapaId: c.id_etapa_atual ?? null,
-        vaga: c.vaga
-          ? {
-              id: c.vaga.id,
-              titulo: c.vaga.titulo,
-              etapas: (c.vaga.etapas || [])
-                .slice()
-                .sort(
-                  (a: { ordem: number }, b: { ordem: number }) =>
-                    a.ordem - b.ordem
-                )
-                .map((e: any) => ({
-                  id: e.id,
-                  titulo: e.titulo,
-                  descricao: e.descricao,
-                  ordem: e.ordem,
-                })),
+      const mapCandidatura = (c: any) => {
+        const vagaInfos =
+          (c.vaga?.informacoes_complementares as any[] | undefined) || []
+
+        return {
+          id: c.id,
+          candidateName:
+            c.nome ||
+            c.curriculo_snapshot?.nome ||
+            c.curriculo_snapshot?.nome_completo ||
+            'Nome não disponível',
+          cpf: c.cpf,
+          email: c.email || c.curriculo_snapshot?.email || '',
+          phone:
+            c.curriculo_snapshot?.telefone ||
+            c.curriculo_snapshot?.celular ||
+            '',
+          enrollmentDate: c.created_at,
+          status: mapBackendStatusToFrontend(c.status),
+          address: c.curriculo_snapshot?.endereco || '',
+          neighborhood: c.curriculo_snapshot?.bairro || '',
+          city: c.curriculo_snapshot?.cidade || '',
+          state: c.curriculo_snapshot?.estado || '',
+          currentEtapaId: c.id_etapa_atual ?? null,
+          vaga: c.vaga
+            ? {
+                id: c.vaga.id,
+                titulo: c.vaga.titulo,
+                etapas: (c.vaga.etapas || [])
+                  .slice()
+                  .sort(
+                    (a: { ordem: number }, b: { ordem: number }) =>
+                      a.ordem - b.ordem
+                  )
+                  .map((e: any) => ({
+                    id: e.id,
+                    titulo: e.titulo,
+                    descricao: e.descricao,
+                    ordem: e.ordem,
+                  })),
+              }
+            : undefined,
+          customFields: (c.respostas_info_complementares || []).map(
+            (r: any) => {
+              const info =
+                vagaInfos.find(inf => inf.id === r.id_info) || undefined
+
+              return {
+                id: r.id_info,
+                title: info?.titulo || r.titulo || `Campo ${r.id_info}`,
+                field_type: 'text',
+                value: r.resposta,
+              }
             }
-          : undefined,
-        customFields: (c.respostas_info_complementares || []).map((r: any) => ({
-          id: r.id_info,
-          title: r.titulo || `Campo ${r.id_info}`,
-          field_type: 'text',
-          value: r.resposta,
-        })),
-      }))
+          ),
+        }
+      }
+
+      const candidatos = candidaturas.map(mapCandidatura)
 
       console.log(`Mapped ${candidatos.length} candidatos`)
 
-      // Calculate summary
-      const summary = {
-        total: candidatos.length,
-        pendingCount: candidatos.filter((c: any) => c.status === 'pending')
-          .length,
-        approvedCount: candidatos.filter((c: any) => c.status === 'approved')
-          .length,
-        rejectedCount: candidatos.filter((c: any) => c.status === 'rejected')
-          .length,
-        cancelledCount: candidatos.filter((c: any) => c.status === 'cancelled')
-          .length,
+      // Summary: always from full dataset (no search, no status) so cards don't change when filtering
+      let summary = {
+        total: 0,
+        pendingCount: 0,
+        approvedCount: 0,
+        rejectedCount: 0,
+        cancelledCount: 0,
+      }
+      if (idVaga) {
+        const summaryResponse = await getApiV1EmpregabilidadeCandidaturas({
+          page: 1,
+          pageSize: 10000,
+          vagaId: idVaga,
+        })
+        if (summaryResponse.status === 200) {
+          const summaryData = summaryResponse.data as any
+          const allCandidaturas =
+            summaryData.data || summaryData.candidaturas || []
+          const allMapped = allCandidaturas.map(mapCandidatura)
+          summary = {
+            total: allMapped.length,
+            pendingCount: allMapped.filter(
+              (c: any) => c.status === 'pending'
+            ).length,
+            approvedCount: allMapped.filter(
+              (c: any) => c.status === 'approved'
+            ).length,
+            rejectedCount: allMapped.filter(
+              (c: any) => c.status === 'rejected'
+            ).length,
+            cancelledCount: allMapped.filter(
+              (c: any) => c.status === 'cancelled'
+            ).length,
+          }
+        }
       }
 
       return NextResponse.json({

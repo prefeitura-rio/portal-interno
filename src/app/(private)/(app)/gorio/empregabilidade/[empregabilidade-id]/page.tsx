@@ -30,7 +30,7 @@ import {
 } from '@/lib/status-config/empregabilidade'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Ban, Edit, Play, Save, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { Ban, Edit, Play, Save, Trash2, Users, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -541,15 +541,6 @@ export default function EmpregabilidadeDetailPage({
               <div className="flex gap-2">
                 {!isEditing && (
                   <>
-                    {activeTab === 'candidates' && (
-                      <Button
-                        onClick={() => setShowNewCandidateDialog(true)}
-                        variant="default"
-                      >
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Adicionar candidato
-                      </Button>
-                    )}
                     {vaga.status === 'em_edicao' && (
                       <Button
                         onClick={handlePublish}
@@ -671,6 +662,10 @@ export default function EmpregabilidadeDetailPage({
               informacoesComplementares={fromApiInformacaoComplementar(
                 vaga.informacoes_complementares
               )}
+              headerTitle="Candidaturas na vaga"
+              onAddCandidateClick={
+                canEditGoRio ? () => setShowNewCandidateDialog(true) : undefined
+              }
             />
           </TabsContent>
         </Tabs>

@@ -1,7 +1,7 @@
 'use client'
 
 import type { Column } from '@tanstack/react-table'
-import { Check, PlusCircle, XCircle } from 'lucide-react'
+import { Check, Circle, CircleDot, PlusCircle, XCircle } from 'lucide-react'
 import * as React from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -46,7 +46,7 @@ export function DataTableFacetedFilter<TData, TValue>({
 
   const onItemSelect = React.useCallback(
     (option: Option, isSelected: boolean) => {
-      if (!column) return
+      if (!column || option.disabled) return
 
       if (multiple) {
         const newSelectedValues = new Set(selectedValues)
@@ -129,29 +129,45 @@ export function DataTableFacetedFilter<TData, TValue>({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[12.5rem] p-0" align="start">
+      <PopoverContent className="w-50 p-0" align="start">
         <Command>
           <CommandInput placeholder={title} />
           <CommandList className="max-h-full">
             <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup className="max-h-[18.75rem] overflow-y-auto overflow-x-hidden">
+            <CommandGroup className="max-h-75 overflow-y-auto overflow-x-hidden">
               {options.map(option => {
                 const isSelected = selectedValues.has(option.value)
 
                 return (
                   <CommandItem
                     key={option.value}
+                    disabled={option.disabled}
                     onSelect={() => onItemSelect(option, isSelected)}
                   >
                     <div
                       className={cn(
-                        'flex size-4 items-center justify-center rounded-sm border border-primary',
-                        isSelected
-                          ? 'bg-primary'
-                          : 'opacity-50 [&_svg]:invisible'
+                        'flex size-4 items-center justify-center rounded-full',
+                        !multiple && 'border-0'
                       )}
                     >
-                      <Check />
+                      {multiple ? (
+                        <div
+                          className={cn(
+                            'flex size-4 items-center justify-center rounded-sm border border-primary',
+                            isSelected
+                              ? 'bg-primary'
+                              : 'opacity-50 [&_svg]:invisible'
+                          )}
+                        >
+                          <Check />
+                        </div>
+                      ) : (
+                        isSelected ? (
+                          <CircleDot className="size-4 text-primary" />
+                        ) : (
+                          <Circle className="size-4 text-muted-foreground" />
+                        )
+                      )}
                     </div>
                     {option.icon && <option.icon />}
                     <span className="truncate">{option.label}</span>
