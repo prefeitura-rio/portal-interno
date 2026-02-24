@@ -1,6 +1,6 @@
+import type { CandidatoStatus } from '@/hooks/use-candidatos'
 import { putApiV1EmpregabilidadeCandidaturasBulkStatus } from '@/http-gorio/empregabilidade-candidaturas/empregabilidade-candidaturas'
 import type { EmpregabilidadeStatusCandidatura } from '@/http-gorio/models'
-import type { CandidatoStatus } from '@/hooks/use-candidatos'
 import { cleanCPF } from '@/lib/cpf-validator'
 import { mapFrontendStatusToBackend } from '@/lib/status-config/empregabilidade'
 import { NextResponse } from 'next/server'
@@ -25,7 +25,9 @@ export async function PUT(request: Request) {
       )
     }
 
-    const cpfs = rawCpfs.map((cpf: string) => cleanCPF(String(cpf))).filter(Boolean)
+    const cpfs = rawCpfs
+      .map((cpf: string) => cleanCPF(String(cpf)))
+      .filter(Boolean)
 
     if (cpfs.length === 0) {
       return NextResponse.json(

@@ -161,12 +161,10 @@ export function DataTableFacetedFilter<TData, TValue>({
                         >
                           <Check />
                         </div>
+                      ) : isSelected ? (
+                        <CircleDot className="size-4 text-primary" />
                       ) : (
-                        isSelected ? (
-                          <CircleDot className="size-4 text-primary" />
-                        ) : (
-                          <Circle className="size-4 text-muted-foreground" />
-                        )
+                        <Circle className="size-4 text-muted-foreground" />
                       )}
                     </div>
                     {option.icon && <option.icon />}

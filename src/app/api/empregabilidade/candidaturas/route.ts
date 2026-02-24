@@ -1,3 +1,4 @@
+import type { CandidatoStatus } from '@/hooks/use-candidatos'
 import {
   getApiV1EmpregabilidadeCandidaturas,
   postApiV1EmpregabilidadeCandidaturas,
@@ -7,7 +8,6 @@ import {
   mapBackendStatusToFrontend,
   mapFrontendStatusToBackend,
 } from '@/lib/status-config/empregabilidade'
-import type { CandidatoStatus } from '@/hooks/use-candidatos'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -139,15 +139,12 @@ export async function GET(request: Request) {
           const allMapped = allCandidaturas.map(mapCandidatura)
           summary = {
             total: allMapped.length,
-            pendingCount: allMapped.filter(
-              (c: any) => c.status === 'pending'
-            ).length,
-            approvedCount: allMapped.filter(
-              (c: any) => c.status === 'approved'
-            ).length,
-            rejectedCount: allMapped.filter(
-              (c: any) => c.status === 'rejected'
-            ).length,
+            pendingCount: allMapped.filter((c: any) => c.status === 'pending')
+              .length,
+            approvedCount: allMapped.filter((c: any) => c.status === 'approved')
+              .length,
+            rejectedCount: allMapped.filter((c: any) => c.status === 'rejected')
+              .length,
             cancelledCount: allMapped.filter(
               (c: any) => c.status === 'cancelled'
             ).length,

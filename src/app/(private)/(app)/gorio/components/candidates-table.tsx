@@ -59,12 +59,12 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
-import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import {
   type Candidato,
   type CandidatoStatus,
   useCandidatos,
 } from '@/hooks/use-candidatos'
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 
@@ -751,7 +751,12 @@ export function CandidatesTable({
         description: err instanceof Error ? err.message : 'Erro inesperado',
       })
     }
-  }, [table, empregabilidadeId, empregabilidadeTitle, buildCandidaturasWorkbook])
+  }, [
+    table,
+    empregabilidadeId,
+    empregabilidadeTitle,
+    buildCandidaturasWorkbook,
+  ])
 
   if (loading && candidatos.length === 0) {
     return (
