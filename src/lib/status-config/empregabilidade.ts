@@ -44,7 +44,7 @@ export const vagaStatusConfig: Record<VagaStatus, VagaStatusConfig> = {
   publicado_expirado: {
     icon: XCircle,
     label: 'Expirada',
-    variant: 'destructive',
+    variant: 'outline',
     className: 'text-red-600 border-red-200 bg-red-50',
   },
 }
