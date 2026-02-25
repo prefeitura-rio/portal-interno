@@ -14,13 +14,17 @@ import {
 } from '@tanstack/react-table'
 import {
   ArrowRight,
+  Briefcase,
   Calendar,
   CheckCircle,
   Clock,
   FileDown,
+  GraduationCap,
   Hash,
+  Languages,
   Mail,
   MapPin,
+  Award,
   Phone,
   Text,
   User,
@@ -39,6 +43,12 @@ import {
 } from '@/components/data-table/data-table-action-bar'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -63,6 +73,7 @@ import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import {
   type Candidato,
   type CandidatoStatus,
+  type CurriculoSnapshot,
   useCandidatos,
 } from '@/hooks/use-candidatos'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
@@ -84,6 +95,80 @@ const STATUS_LABELS: Record<CandidatoStatus, string> = {
   pending: 'Pendente',
   rejected: 'Recusado',
   cancelled: 'Cancelado',
+}
+
+/** Formata o currículo em strings para exportação XLSX (uma coluna por seção). */
+function formatCurriculoForExport(curriculo: CurriculoSnapshot | undefined): {
+  formacoes: string
+  idiomas: string
+  cursosComplementares: string
+  experiencias: string
+  conquistas: string
+  situacaoInteresses: string
+} {
+  const empty = ''
+  if (!curriculo) {
+    return {
+      formacoes: empty,
+      idiomas: empty,
+      cursosComplementares: empty,
+      experiencias: empty,
+      conquistas: empty,
+      situacaoInteresses: empty,
+    }
+  }
+  const formacoes =
+    curriculo.formacoes
+      ?.map(
+        f =>
+          `${f.nome_curso ?? '—'} | ${f.nome_instituicao ?? '—'} (${f.escolaridade?.descricao ?? ''}${f.status ? `, ${f.status}` : ''}${f.ano_conclusao ? `, ${f.ano_conclusao}` : ''})`
+      )
+      .join('; ') ?? empty
+  const idiomas =
+    curriculo.idiomas
+      ?.map(
+        id => `${id.idioma?.descricao ?? '—'}: ${id.nivel?.descricao ?? '—'}`
+      )
+      .join('; ') ?? empty
+  const cursosComplementares =
+    curriculo.cursos_complementares
+      ?.map(
+        c =>
+          `${c.nome_curso ?? '—'}${c.nome_instituicao ? ` · ${c.nome_instituicao}` : ''}${c.ano_conclusao ? ` (${c.ano_conclusao})` : ''}`
+      )
+      .join('; ') ?? empty
+  const experiencias =
+    curriculo.experiencias
+      ?.map(
+        e =>
+          `${e.cargo ?? '—'} na ${e.empresa ?? '—'}${e.eh_trabalho_atual ? ' (atual)' : ''}${e.tempo_experiencia_meses != null ? ` - ${e.tempo_experiencia_meses} meses` : ''}`
+      )
+      .join('; ') ?? empty
+  const conquistas =
+    curriculo.conquistas
+      ?.map(
+        q =>
+          `${q.titulo ?? '—'}${q.tipo_conquista?.descricao ? ` (${q.tipo_conquista.descricao})` : ''}`
+      )
+      .join('; ') ?? empty
+  const si = curriculo.situacao_interesses
+  const situacaoInteresses = si
+    ? [
+        si.situacao?.descricao && `Situação: ${si.situacao.descricao}`,
+        si.disponibilidade?.descricao &&
+          `Disponibilidade: ${si.disponibilidade.descricao}`,
+      ]
+        .filter(Boolean)
+        .join('; ') || empty
+    : empty
+  return {
+    formacoes,
+    idiomas,
+    cursosComplementares,
+    experiencias,
+    conquistas,
+    situacaoInteresses,
+  }
 }
 
 export function CandidatesTable({
@@ -111,6 +196,7 @@ export function CandidatesTable({
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [showNewCandidateDialog, setShowNewCandidateDialog] =
     React.useState(false)
+  const [isAdvancingEtapa, setIsAdvancingEtapa] = React.useState(false)
 
   // Debounced search for API (filter while user types without hitting API every keystroke)
   const [searchForApi, setSearchForApi] = React.useState('')
@@ -716,6 +802,15 @@ export function CandidatesTable({
         )
       ).filter(Boolean)
 
+      const curriculumHeaders = [
+        'Formações (currículo)',
+        'Idiomas (currículo)',
+        'Cursos complementares (currículo)',
+        'Experiências (currículo)',
+        'Conquistas (currículo)',
+        'Situação e interesses (currículo)',
+      ]
+
       const headers = [
         'Nome',
         'CPF',
@@ -728,9 +823,11 @@ export function CandidatesTable({
         'Cidade',
         'Estado',
         ...customTitles,
+        ...curriculumHeaders,
       ]
 
       const worksheetData = candidatosToExport.map(c => {
+        const curriculo = formatCurriculoForExport(c.curriculo_snapshot)
         const row: Record<string, string | number> = {
           Nome: c.candidateName ?? '',
           CPF: c.cpf ?? '',
@@ -749,6 +846,13 @@ export function CandidatesTable({
           const field = c.customFields?.find(f => f.title === title)
           row[title] = field?.value ?? ''
         })
+        row['Formações (currículo)'] = curriculo.formacoes
+        row['Idiomas (currículo)'] = curriculo.idiomas
+        row['Cursos complementares (currículo)'] =
+          curriculo.cursosComplementares
+        row['Experiências (currículo)'] = curriculo.experiencias
+        row['Conquistas (currículo)'] = curriculo.conquistas
+        row['Situação e interesses (currículo)'] = curriculo.situacaoInteresses
         return row
       })
 
@@ -946,297 +1050,548 @@ export function CandidatesTable({
           {selectedCandidato && (
             <>
               <div className="flex-1 overflow-y-auto py-6 pt-0 px-4">
-                <div className="space-y-6">
-                  {/* Candidate Info */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-12 h-12 bg-card border border-border rounded-lg">
-                        <User className="w-6 h-6 bg-background-light" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold">
-                          {selectedCandidato.candidateName}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Candidato
-                        </p>
-                      </div>
+                <div className="space-y-4">
+                  {/* Candidate header */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-12 h-12 bg-card border border-border rounded-lg">
+                      <User className="w-6 h-6 bg-background-light" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        {selectedCandidato.candidateName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Candidato
+                      </p>
                     </div>
                   </div>
 
-                  {/* Personal Information */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      Informações Pessoais
-                    </h4>
-                    <div className="grid gap-4">
-                      <div className="flex items-center gap-3">
-                        <Hash className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <Label className="text-xs text-muted-foreground">
-                            CPF
-                          </Label>
-                          <p className="font-mono text-sm">
-                            {selectedCandidato.cpf}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Mail className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <Label className="text-xs text-muted-foreground">
-                            E-mail
-                          </Label>
-                          <p className="text-sm">{selectedCandidato.email}</p>
-                        </div>
-                      </div>
-                      {selectedCandidato.phone && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <Label className="text-xs text-muted-foreground">
-                              Telefone
-                            </Label>
-                            <p className="text-sm">{selectedCandidato.phone}</p>
+                  <Accordion
+                    type="multiple"
+                    defaultValue={['pessoais', 'candidatura']}
+                    className="w-full"
+                  >
+                    {/* Informações Pessoais */}
+                    <AccordionItem value="pessoais">
+                      <AccordionTrigger className="text-sm font-medium">
+                        Informações Pessoais
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid gap-4">
+                          <div className="flex items-center gap-3">
+                            <Hash className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                CPF
+                              </Label>
+                              <p className="font-mono text-sm">
+                                {selectedCandidato.cpf}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {(selectedCandidato.address ||
-                        selectedCandidato.neighborhood) && (
-                        <>
-                          {selectedCandidato.address && (
+                          <div className="flex items-center gap-3">
+                            <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                E-mail
+                              </Label>
+                              <p className="text-sm">
+                                {selectedCandidato.email}
+                              </p>
+                            </div>
+                          </div>
+                          {selectedCandidato.phone && (
                             <div className="flex items-center gap-3">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
                               <div>
                                 <Label className="text-xs text-muted-foreground">
-                                  Endereço
+                                  Telefone
                                 </Label>
                                 <p className="text-sm">
-                                  {selectedCandidato.address}
+                                  {selectedCandidato.phone}
                                 </p>
                               </div>
                             </div>
                           )}
-                          {selectedCandidato.neighborhood && (
-                            <div className="flex items-center gap-3">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <div>
-                                <Label className="text-xs text-muted-foreground">
-                                  Bairro
-                                </Label>
-                                <p className="text-sm">
-                                  {selectedCandidato.neighborhood}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Application Information */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      Informações da Candidatura
-                    </h4>
-                    <div className="grid gap-4">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <Label className="text-xs text-muted-foreground">
-                            Data de Inscrição
-                          </Label>
-                          <p>
-                            {new Date(
-                              selectedCandidato.enrollmentDate
-                            ).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                            Status
-                          </Label>
-                          <div className="mt-1">
-                            {(() => {
-                              const statusConfig = {
-                                approved: {
-                                  label: 'Aprovado',
-                                  className: 'bg-green-100 text-green-800',
-                                },
-                                pending: {
-                                  label: 'Pendente',
-                                  className: 'bg-yellow-100 text-yellow-800',
-                                },
-                                cancelled: {
-                                  label: 'Cancelado',
-                                  className:
-                                    'text-red-600 border-red-200 bg-red-50',
-                                },
-                                rejected: {
-                                  label: 'Recusado',
-                                  className:
-                                    'text-red-600 border-red-200 bg-red-50',
-                                },
-                              }
-                              const config =
-                                statusConfig[selectedCandidato.status]
-                              return (
-                                <Badge className={config.className}>
-                                  {config.label}
-                                </Badge>
-                              )
-                            })()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Etapas do processo (quando a vaga tem etapas) */}
-                  {selectedCandidato.vaga?.etapas &&
-                    selectedCandidato.vaga.etapas.length > 0 && (
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                          Etapa no processo
-                        </h4>
-                        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
-                          <ul className="space-y-2">
-                            {/* Etapa default: candidatura recebida (id_etapa_atual null) */}
-                            <li className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-md bg-background/60">
-                              <span className="text-sm">
-                                <span className="text-muted-foreground font-mono mr-2">
-                                  1.
-                                </span>
-                                Candidatura recebida (Default do sistema)
-                              </span>
-                              {selectedCandidato.currentEtapaId == null && (
-                                <Badge variant="secondary" className="shrink-0">
-                                  Atual
-                                </Badge>
+                          {(selectedCandidato.address ||
+                            selectedCandidato.neighborhood) && (
+                            <>
+                              {selectedCandidato.address && (
+                                <div className="flex items-center gap-3">
+                                  <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Endereço
+                                    </Label>
+                                    <p className="text-sm">
+                                      {selectedCandidato.address}
+                                    </p>
+                                  </div>
+                                </div>
                               )}
-                            </li>
-                            {selectedCandidato.vaga.etapas.map(
-                              (etapa, index) => {
-                                const numeroEtapa = index + 2
-                                const isCurrent =
-                                  selectedCandidato.currentEtapaId === etapa.id
-                                return (
-                                  <li
-                                    key={etapa.id}
-                                    className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-md bg-background/60"
-                                  >
-                                    <span className="text-sm">
-                                      <span className="text-muted-foreground font-mono mr-2">
-                                        {numeroEtapa}.
-                                      </span>
-                                      {etapa.titulo ?? `Etapa ${numeroEtapa}`}
+                              {selectedCandidato.neighborhood && (
+                                <div className="flex items-center gap-3">
+                                  <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Bairro
+                                    </Label>
+                                    <p className="text-sm">
+                                      {selectedCandidato.neighborhood}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Informações da Candidatura */}
+                    <AccordionItem value="candidatura">
+                      <AccordionTrigger className="text-sm font-medium">
+                        Informações da Candidatura
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid gap-4">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Data de Inscrição
+                              </Label>
+                              <p>
+                                {new Date(
+                                  selectedCandidato.enrollmentDate
+                                ).toLocaleDateString('pt-BR')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Status
+                              </Label>
+                              <div className="mt-1">
+                                {(() => {
+                                  const statusConfig = {
+                                    approved: {
+                                      label: 'Aprovado',
+                                      className: 'bg-green-100 text-green-800',
+                                    },
+                                    pending: {
+                                      label: 'Pendente',
+                                      className:
+                                        'bg-yellow-100 text-yellow-800',
+                                    },
+                                    cancelled: {
+                                      label: 'Cancelado',
+                                      className:
+                                        'text-red-600 border-red-200 bg-red-50',
+                                    },
+                                    rejected: {
+                                      label: 'Recusado',
+                                      className:
+                                        'text-red-600 border-red-200 bg-red-50',
+                                    },
+                                  }
+                                  const config =
+                                    statusConfig[selectedCandidato.status]
+                                  return (
+                                    <Badge className={config.className}>
+                                      {config.label}
+                                    </Badge>
+                                  )
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Etapa no processo */}
+                    {selectedCandidato.vaga?.etapas &&
+                      selectedCandidato.vaga.etapas.length > 0 && (
+                        <AccordionItem value="etapa">
+                          <AccordionTrigger className="text-sm font-medium">
+                            Etapa no processo
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
+                              <ul className="space-y-2">
+                                <li className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-md bg-background/60">
+                                  <span className="text-sm">
+                                    <span className="text-muted-foreground font-mono mr-2">
+                                      1.
                                     </span>
-                                    {isCurrent && (
-                                      <Badge
-                                        variant="secondary"
-                                        className="shrink-0"
-                                      >
-                                        Atual
-                                      </Badge>
-                                    )}
-                                  </li>
-                                )
-                              }
-                            )}
-                          </ul>
-                          <div className="space-y-2">
-                            <Label className="text-xs text-muted-foreground">
-                              Definir etapa
-                            </Label>
-                            <Select
-                              value={
-                                selectedCandidato.currentEtapaId ??
-                                '__candidatura_recebida__'
-                              }
-                              onValueChange={value => {
-                                const idEtapa =
-                                  value === '__candidatura_recebida__'
-                                    ? null
-                                    : value
-                                handleSetEtapa(selectedCandidato, idEtapa)
-                              }}
-                            >
-                              <SelectTrigger size="sm" className="w-full">
-                                <SelectValue placeholder="Selecione a etapa" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem
-                                  value="__candidatura_recebida__"
-                                  disabled
-                                >
-                                  1. Candidatura recebida
-                                </SelectItem>
+                                    Candidatura recebida (Default do sistema)
+                                  </span>
+                                  {selectedCandidato.currentEtapaId ==
+                                    null && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="shrink-0"
+                                    >
+                                      Atual
+                                    </Badge>
+                                  )}
+                                </li>
                                 {selectedCandidato.vaga.etapas.map(
                                   (etapa, index) => {
                                     const numeroEtapa = index + 2
+                                    const isCurrent =
+                                      selectedCandidato.currentEtapaId ===
+                                      etapa.id
                                     return (
-                                      <SelectItem
+                                      <li
                                         key={etapa.id}
-                                        value={etapa.id}
+                                        className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-md bg-background/60"
                                       >
-                                        {numeroEtapa}.{' '}
-                                        {etapa.titulo ?? `Etapa ${numeroEtapa}`}
-                                      </SelectItem>
+                                        <span className="text-sm">
+                                          <span className="text-muted-foreground font-mono mr-2">
+                                            {numeroEtapa}.
+                                          </span>
+                                          {etapa.titulo ??
+                                            `Etapa ${numeroEtapa}`}
+                                        </span>
+                                        {isCurrent && (
+                                          <Badge
+                                            variant="secondary"
+                                            className="shrink-0"
+                                          >
+                                            Atual
+                                          </Badge>
+                                        )}
+                                      </li>
                                     )
                                   }
                                 )}
-                              </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground">
-                              Avançar ou voltar para qualquer etapa do processo.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                              </ul>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">
+                                  Definir etapa
+                                </Label>
+                                <Select
+                                  value={
+                                    selectedCandidato.currentEtapaId ??
+                                    '__candidatura_recebida__'
+                                  }
+                                  onValueChange={value => {
+                                    const idEtapa =
+                                      value === '__candidatura_recebida__'
+                                        ? null
+                                        : value
+                                    handleSetEtapa(
+                                      selectedCandidato,
+                                      idEtapa
+                                    )
+                                  }}
+                                >
+                                  <SelectTrigger size="sm" className="w-full">
+                                    <SelectValue placeholder="Selecione a etapa" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem
+                                      value="__candidatura_recebida__"
+                                      disabled
+                                    >
+                                      1. Candidatura recebida
+                                    </SelectItem>
+                                    {selectedCandidato.vaga.etapas.map(
+                                      (etapa, index) => {
+                                        const numeroEtapa = index + 2
+                                        return (
+                                          <SelectItem
+                                            key={etapa.id}
+                                            value={etapa.id}
+                                          >
+                                            {numeroEtapa}.{' '}
+                                            {etapa.titulo ??
+                                              `Etapa ${numeroEtapa}`}
+                                          </SelectItem>
+                                        )
+                                      }
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                  Avançar ou voltar para qualquer etapa do
+                                  processo.
+                                </p>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
 
-                  {/* Custom Fields */}
-                  {selectedCandidato.customFields &&
-                    selectedCandidato.customFields.length > 0 && (
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                          Informações Complementares
-                        </h4>
-                        <div className="space-y-3">
-                          {selectedCandidato.customFields.map(field => {
-                            const info =
-                              informacoesComplementares.find(
-                                info => info.id === field.id
-                              ) || null
-
-                            return (
-                              <div
-                                key={field.id}
-                                className="flex items-start gap-3"
-                              >
-                                <div className="flex-1">
-                                  <Label className="text-sm text-muted-foreground">
-                                    {info?.title || field.title}
-                                  </Label>
-                                  <div className="text-sm mt-1">
-                                    <span className="font-medium">
-                                      {field.value || (
-                                        <span className="text-muted-foreground italic">
-                                          (sem valor)
+                    {/* Informações Complementares */}
+                    {selectedCandidato.customFields &&
+                      selectedCandidato.customFields.length > 0 && (
+                        <AccordionItem value="complementares">
+                          <AccordionTrigger className="text-sm font-medium">
+                            Informações Complementares
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="space-y-3">
+                              {selectedCandidato.customFields.map(field => {
+                                const info =
+                                  informacoesComplementares.find(
+                                    info => info.id === field.id
+                                  ) || null
+                                return (
+                                  <div
+                                    key={field.id}
+                                    className="flex items-start gap-3"
+                                  >
+                                    <div className="flex-1">
+                                      <Label className="text-sm text-muted-foreground">
+                                        {info?.title || field.title}
+                                      </Label>
+                                      <div className="text-sm mt-1">
+                                        <span className="font-medium">
+                                          {field.value || (
+                                            <span className="text-muted-foreground italic">
+                                              (sem valor)
+                                            </span>
+                                          )}
                                         </span>
-                                      )}
-                                    </span>
+                                      </div>
+                                    </div>
                                   </div>
+                                )
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                    {/* Currículo */}
+                    {selectedCandidato.curriculo_snapshot &&
+                      ((selectedCandidato.curriculo_snapshot.formacoes?.length ?? 0) > 0 ||
+                        (selectedCandidato.curriculo_snapshot.idiomas?.length ?? 0) > 0 ||
+                        (selectedCandidato.curriculo_snapshot.experiencias?.length ?? 0) > 0 ||
+                        (selectedCandidato.curriculo_snapshot.conquistas?.length ?? 0) > 0 ||
+                        (selectedCandidato.curriculo_snapshot.cursos_complementares?.length ?? 0) > 0 ||
+                        !!selectedCandidato.curriculo_snapshot.situacao_interesses) && (
+                      <AccordionItem value="curriculo">
+                        <AccordionTrigger className="text-sm font-medium">
+                          Currículo
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-5">
+                            {/* Formações */}
+                            {(selectedCandidato.curriculo_snapshot.formacoes
+                              ?.length ?? 0) > 0 && (
+                              <div>
+                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                  <GraduationCap className="w-3.5 h-3.5" />
+                                  Formações
+                                </h5>
+                                <ul className="space-y-3">
+                                  {(selectedCandidato.curriculo_snapshot.formacoes ?? []).map(
+                                    (f, i) => (
+                                      <li
+                                        key={f.nome_instituicao ?? i}
+                                        className="rounded-md border border-border bg-muted/20 p-3 text-sm"
+                                      >
+                                        <p className="font-medium">
+                                          {f.nome_curso ?? '—'} ·{' '}
+                                          {f.nome_instituicao ?? '—'}
+                                        </p>
+                                        <p className="text-muted-foreground text-xs mt-1">
+                                          {f.escolaridade?.descricao ?? ''}
+                                          {f.status ? ` · ${f.status}` : ''}
+                                          {f.ano_conclusao
+                                            ? ` · ${f.ano_conclusao}`
+                                            : ''}
+                                        </p>
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Idiomas */}
+                            {(selectedCandidato.curriculo_snapshot.idiomas
+                              ?.length ?? 0) > 0 && (
+                              <div>
+                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                  <Languages className="w-3.5 h-3.5" />
+                                  Idiomas
+                                </h5>
+                                <ul className="space-y-3">
+                                  {(selectedCandidato.curriculo_snapshot.idiomas ?? []).map(
+                                    (id, i) => (
+                                      <li
+                                        key={id.idioma?.descricao ?? i}
+                                        className="rounded-md border border-border bg-muted/20 p-3 text-sm"
+                                      >
+                                        {id.idioma?.descricao ?? '—'}:{' '}
+                                        <span className="text-muted-foreground">
+                                          {id.nivel?.descricao ?? '—'}
+                                        </span>
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Cursos complementares */}
+                            {(selectedCandidato.curriculo_snapshot
+                              .cursos_complementares?.length ?? 0) > 0 && (
+                              <div>
+                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                  <GraduationCap className="w-3.5 h-3.5" />
+                                  Cursos complementares
+                                </h5>
+                                <ul className="space-y-2">
+                                  {(selectedCandidato.curriculo_snapshot?.cursos_complementares ?? []).map(
+                                    (c, i) => (
+                                      <li
+                                        key={c.nome_curso ?? i}
+                                        className="text-sm"
+                                      >
+                                        {c.nome_curso ?? '—'}
+                                        {c.nome_instituicao
+                                          ? ` · ${c.nome_instituicao}`
+                                          : ''}
+                                        {c.ano_conclusao
+                                          ? ` (${c.ano_conclusao})`
+                                          : ''}
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Experiências */}
+                            {(selectedCandidato.curriculo_snapshot.experiencias
+                              ?.length ?? 0) > 0 && (
+                              <div>
+                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                  <Briefcase className="w-3.5 h-3.5" />
+                                  Experiências
+                                </h5>
+                                <ul className="space-y-3">
+                                  {(selectedCandidato.curriculo_snapshot?.experiencias ?? []).map(
+                                    (e, i) => (
+                                      <li
+                                        key={e.empresa ?? i}
+                                        className="rounded-md border border-border bg-muted/20 p-3 text-sm"
+                                      >
+                                        <p className="font-medium">
+                                          {e.cargo ?? '—'} · {e.empresa ?? '—'}
+                                          {e.eh_trabalho_atual && (
+                                            <Badge
+                                              variant="secondary"
+                                              className="ml-2 text-xs"
+                                            >
+                                              Atual
+                                            </Badge>
+                                          )}
+                                        </p>
+                                        {e.tempo_experiencia_meses != null && (
+                                          <p className="text-muted-foreground text-xs mt-1">
+                                            {e.tempo_experiencia_meses} meses
+                                            {e.experiencia_comprovada_ct
+                                              ? ' · Comprovada (CT)'
+                                              : ''}
+                                          </p>
+                                        )}
+                                        {e.descricao_atividades && (
+                                          <p className="text-muted-foreground text-xs mt-1 line-clamp-3">
+                                            {e.descricao_atividades}
+                                          </p>
+                                        )}
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Conquistas */}
+                            {(selectedCandidato.curriculo_snapshot.conquistas
+                              ?.length ?? 0) > 0 && (
+                              <div>
+                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                  <Award className="w-3.5 h-3.5" />
+                                  Conquistas
+                                </h5>
+                                <ul className="space-y-3">
+                                  {(selectedCandidato.curriculo_snapshot?.conquistas ?? []).map(
+                                    (q, i) => (
+                                      <li
+                                        key={q.titulo ?? i}
+                                        className="rounded-md border border-border bg-muted/20 p-3 text-sm"
+                                      >
+                                        <span className="font-medium">
+                                          {q.titulo ?? '—'}
+                                        </span>
+                                        {q.tipo_conquista?.descricao && (
+                                          <span className="text-muted-foreground">
+                                            {' '}
+                                            · {q.tipo_conquista.descricao}
+                                          </span>
+                                        )}
+                                        {q.descricao && (
+                                          <p className="text-muted-foreground text-xs mt-0.5">
+                                            {q.descricao}
+                                          </p>
+                                        )}
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Situação e interesses */}
+                            {selectedCandidato.curriculo_snapshot
+                              .situacao_interesses && (
+                              <div>
+                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                  <User className="w-3.5 h-3.5" />
+                                  Situação e interesses
+                                </h5>
+                                <div className="rounded-md border border-border bg-muted/20 p-3 text-sm space-y-1">
+                                  {selectedCandidato.curriculo_snapshot
+                                    .situacao_interesses.situacao
+                                    ?.descricao && (
+                                    <p>
+                                      Situação:{' '}
+                                      {
+                                        selectedCandidato.curriculo_snapshot
+                                          .situacao_interesses.situacao
+                                          .descricao
+                                      }
+                                    </p>
+                                  )}
+                                  {selectedCandidato.curriculo_snapshot
+                                    .situacao_interesses.disponibilidade
+                                    ?.descricao && (
+                                    <p>
+                                      Disponibilidade:{' '}
+                                      {
+                                        selectedCandidato.curriculo_snapshot
+                                          .situacao_interesses.disponibilidade
+                                          .descricao
+                                      }
+                                    </p>
+                                  )}
                                 </div>
                               </div>
-                            )
-                          })}
-                        </div>
-                      </div>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
                     )}
+                  </Accordion>
                 </div>
               </div>
 
@@ -1261,11 +1616,55 @@ export function CandidatesTable({
                   <Button
                     onClick={() => handleRejectCandidato(selectedCandidato)}
                     variant="destructive"
-                    className="w-full sm:col-span-2"
+                    className="w-full"
                     disabled={selectedCandidato.status === 'rejected'}
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Recusar candidato
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const etapas = selectedCandidato.vaga?.etapas ?? []
+                      if (etapas.length === 0 || isAdvancingEtapa) return
+                      const nextId =
+                        selectedCandidato.currentEtapaId == null
+                          ? etapas[0]?.id
+                          : (() => {
+                              const idx = etapas.findIndex(
+                                e => e.id === selectedCandidato.currentEtapaId
+                              )
+                              return idx >= 0 ? etapas[idx + 1]?.id : undefined
+                            })()
+                      if (nextId) {
+                        setIsAdvancingEtapa(true)
+                        handleSetEtapa(selectedCandidato, nextId).finally(() =>
+                          setIsAdvancingEtapa(false)
+                        )
+                      }
+                    }}
+                    variant="outline"
+                    className="w-full"
+                    disabled={
+                      isAdvancingEtapa ||
+                      !selectedCandidato.vaga?.etapas?.length ||
+                      (() => {
+                        const etapas = selectedCandidato.vaga.etapas ?? []
+                        if (etapas.length === 0) return true
+                        if (selectedCandidato.currentEtapaId == null)
+                          return false
+                        const idx = etapas.findIndex(
+                          e => e.id === selectedCandidato.currentEtapaId
+                        )
+                        return idx < 0 || idx >= etapas.length - 1
+                      })()
+                    }
+                  >
+                    {isAdvancingEtapa ? (
+                      <LoadingSpinner size="sm" className="mr-2 shrink-0" />
+                    ) : (
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                    )}
+                    Avançar etapa
                   </Button>
                 </div>
               </SheetFooter>

@@ -15,6 +15,44 @@ export interface VagaCandidato {
   etapas?: EtapaVaga[]
 }
 
+/** Snapshot do currículo do candidato no momento da candidatura (estrutura do backend). */
+export interface CurriculoSnapshot {
+  formacoes?: Array<{
+    nome_instituicao?: string
+    nome_curso?: string
+    status?: string
+    ano_conclusao?: string
+    escolaridade?: { descricao?: string }
+  }>
+  idiomas?: Array<{
+    idioma?: { descricao?: string }
+    nivel?: { descricao?: string }
+  }>
+  cursos_complementares?: Array<{
+    nome_instituicao?: string
+    nome_curso?: string
+    ano_conclusao?: string
+  }>
+  experiencias?: Array<{
+    cargo?: string
+    empresa?: string
+    eh_trabalho_atual?: boolean
+    descricao_atividades?: string
+    tempo_experiencia_meses?: number
+    experiencia_comprovada_ct?: boolean
+  }>
+  conquistas?: Array<{
+    titulo?: string
+    descricao?: string
+    tipo_conquista?: { descricao?: string }
+  }>
+  situacao_interesses?: {
+    situacao?: { descricao?: string }
+    disponibilidade?: { descricao?: string }
+    tempo_procurando_emprego?: string
+  }
+}
+
 export interface Candidato {
   id: string
   candidateName: string
@@ -31,6 +69,8 @@ export interface Candidato {
   currentEtapaId?: string | null
   /** Dados da vaga vinculada (com etapas quando a vaga possui processo por etapas) */
   vaga?: VagaCandidato
+  /** Snapshot do currículo no momento da candidatura */
+  curriculo_snapshot?: CurriculoSnapshot
   customFields?: Array<{
     id: string
     title: string

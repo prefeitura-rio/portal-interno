@@ -111,6 +111,7 @@ export async function GET(request: Request) {
               }
             }
           ),
+          curriculo_snapshot: c.curriculo_snapshot ?? undefined,
         }
       }
 
