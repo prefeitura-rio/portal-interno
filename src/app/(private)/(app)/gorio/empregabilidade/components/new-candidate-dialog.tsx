@@ -87,6 +87,7 @@ export function NewCandidateDialog({
             informacoesComplementares={informacoesComplementares}
             onSuccess={handleSuccess}
             onCancel={handleCancel}
+            onError={() => setIsLoading(false)}
           />
         </div>
 

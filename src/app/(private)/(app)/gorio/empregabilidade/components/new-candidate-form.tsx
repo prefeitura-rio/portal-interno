@@ -9,14 +9,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  RadioGroup,
+  RadioGroupItem,
+} from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { cleanCPF, formatCPF, validateCPF } from '@/lib/cpf-validator'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -31,13 +30,15 @@ interface NewCandidateFormProps {
   informacoesComplementares: InformacaoComplementar[]
   onSuccess: () => void
   onCancel: () => void
+  /** Chamado quando há erro de validação ou da API (para o dialog resetar o loading) */
+  onError?: () => void
 }
 
 export interface NewCandidateFormRef {
   submit: () => void
 }
 
-// Create dynamic Zod schema based on complementary fields
+// Create dynamic Zod schema based on complementary fields and validation rules
 function createFormSchema(informacoesComplementares: InformacaoComplementar[]) {
   // Base schema with CPF, nome and email
   const baseSchema = {
@@ -49,16 +50,77 @@ function createFormSchema(informacoesComplementares: InformacaoComplementar[]) {
     email: z.string().email('Email inválido').optional().or(z.literal('')),
   }
 
-  // Add dynamic fields
-  const dynamicSchema: Record<string, any> = {}
+  const dynamicSchema: Record<string, z.ZodTypeAny> = {}
 
   informacoesComplementares.forEach(info => {
     const fieldKey = `resposta_${info.id}`
 
-    if (info.required) {
-      dynamicSchema[fieldKey] = z.string().min(1, 'Campo obrigatório')
-    } else {
-      dynamicSchema[fieldKey] = z.string().optional()
+    switch (info.field_type) {
+      case 'number': {
+        const numSchema = (info.required
+          ? z.string().min(1, 'Campo obrigatório')
+          : z.string().optional().or(z.literal(''))
+        ).refine(
+          v => {
+            if (v === undefined || v === '') return true
+            const n = Number.parseFloat(String(v))
+            if (Number.isNaN(n)) return false
+            if (info.valor_min != null && n < info.valor_min) return false
+            if (info.valor_max != null && n > info.valor_max) return false
+            return true
+          },
+          v => {
+            if (v === undefined || v === '') return { message: '' }
+            const n = Number.parseFloat(String(v))
+            if (Number.isNaN(n)) return { message: 'Informe um número válido' }
+            if (info.valor_min != null && n < info.valor_min)
+              return { message: `Valor mínimo: ${info.valor_min}` }
+            if (info.valor_max != null && n > info.valor_max)
+              return { message: `Valor máximo: ${info.valor_max}` }
+            return { message: '' }
+          }
+        )
+        dynamicSchema[fieldKey] = numSchema
+        break
+      }
+      case 'select': {
+        const optionValues = (info.options ?? []).map(o => o.value)
+        const selectSchema =
+          optionValues.length > 0
+            ? (info.required
+                ? z.string().min(1, 'Selecione uma opção')
+                : z.string().optional()
+              ).refine(
+                v => !v || optionValues.includes(v),
+                'Selecione uma opção válida'
+              )
+            : info.required
+              ? z.string().min(1, 'Selecione uma opção')
+              : z.string().optional()
+        dynamicSchema[fieldKey] = selectSchema
+        break
+      }
+      case 'multiselect': {
+        let multiSchema: z.ZodTypeAny = z.string()
+        if (info.required) {
+          multiSchema = multiSchema.refine(
+            (v: string) => typeof v === 'string' && v.trim().length > 0,
+            'Selecione ao menos uma opção'
+          )
+        } else {
+          multiSchema = multiSchema.optional()
+        }
+        dynamicSchema[fieldKey] = multiSchema
+        break
+      }
+      default: {
+        if (info.required) {
+          dynamicSchema[fieldKey] = z.string().min(1, 'Campo obrigatório')
+        } else {
+          dynamicSchema[fieldKey] = z.string().optional()
+        }
+        break
+      }
     }
   })
 
@@ -70,7 +132,7 @@ type FormData = z.infer<ReturnType<typeof createFormSchema>>
 export const NewCandidateForm = forwardRef<
   NewCandidateFormRef,
   NewCandidateFormProps
->(({ vagaId, informacoesComplementares, onSuccess, onCancel }, ref) => {
+>(({ vagaId, informacoesComplementares, onSuccess, onCancel, onError }, ref) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Create schema with dynamic fields
@@ -94,10 +156,10 @@ export const NewCandidateForm = forwardRef<
     defaultValues,
   })
 
-  // Expose submit method via ref for parent control
+  // Expose submit method via ref for parent control (onError = falha de validação)
   useImperativeHandle(ref, () => ({
-    submit: () => form.handleSubmit(handleSubmit)(),
-  }))
+    submit: () => form.handleSubmit(handleSubmit, onError)(),
+  }), [form.handleSubmit, onError])
 
   const handleSubmit = async (data: FormData) => {
     setIsSubmitting(true)
@@ -191,8 +253,11 @@ export const NewCandidateForm = forwardRef<
         description: 'Verifique sua conexão e tente novamente.',
       })
       setIsSubmitting(false)
+      onError?.()
     }
   }
+
+  const MULTISELECT_SEPARATOR = '\u200B' // Unicode character to avoid collision with option text
 
   // Render field based on tipo_campo
   const renderFieldByType = (
@@ -203,6 +268,7 @@ export const NewCandidateForm = forwardRef<
     const placeholder = info.title
       ? `Digite ${info.title.toLowerCase()}`
       : 'Digite aqui'
+    const opcoes = info.options ?? []
 
     switch (tipo) {
       case 'text':
@@ -225,38 +291,88 @@ export const NewCandidateForm = forwardRef<
           <Input
             {...field}
             type="number"
+            min={info.valor_min}
+            max={info.valor_max}
             disabled={isSubmitting}
             placeholder={placeholder}
           />
         )
 
-      case 'select':
-      case 'multiselect': {
-        const selectPlaceholder = info.title
-          ? `Selecione ${info.title.toLowerCase()}`
-          : 'Selecione uma opção'
+      case 'select': {
         return (
-          <Select
-            onValueChange={field.onChange}
-            value={field.value}
-            disabled={isSubmitting}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={selectPlaceholder} />
-            </SelectTrigger>
-            <SelectContent>
-              {info.options?.map(option => (
-                <SelectItem key={option.id} value={option.value}>
-                  {option.value}
-                </SelectItem>
+          <div className="rounded-md bg-muted/50 p-3">
+            <RadioGroup
+              value={field.value ?? ''}
+              onValueChange={field.onChange}
+              disabled={isSubmitting}
+              className="flex flex-col gap-2"
+            >
+              {opcoes.map(option => (
+                <div
+                  key={option.id}
+                  className="flex items-center space-x-2"
+                >
+                  <RadioGroupItem
+                    value={option.value}
+                    id={`${info.id}-${option.id}`}
+                  />
+                  <Label
+                    htmlFor={`${info.id}-${option.id}`}
+                    className="font-normal cursor-pointer"
+                  >
+                    {option.value}
+                  </Label>
+                </div>
               ))}
-            </SelectContent>
-          </Select>
+            </RadioGroup>
+          </div>
+        )
+      }
+
+      case 'multiselect': {
+        const selectedSet = new Set(
+          (field.value ?? '')
+            .split(MULTISELECT_SEPARATOR)
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+        )
+        const handleToggle = (optionValue: string, checked: boolean) => {
+          const next = new Set(selectedSet)
+          if (checked) next.add(optionValue)
+          else next.delete(optionValue)
+          field.onChange(Array.from(next).join(MULTISELECT_SEPARATOR))
+        }
+        return (
+          <div
+            className="rounded-md bg-muted/50 p-3 flex flex-col gap-2"
+            role="group"
+          >
+            {opcoes.map(option => (
+              <div
+                key={option.id}
+                className="flex items-center space-x-2"
+              >
+                <Checkbox
+                  id={`${info.id}-${option.id}`}
+                  checked={selectedSet.has(option.value)}
+                  onCheckedChange={checked =>
+                    handleToggle(option.value, checked === true)
+                  }
+                  disabled={isSubmitting}
+                />
+                <Label
+                  htmlFor={`${info.id}-${option.id}`}
+                  className="font-normal cursor-pointer"
+                >
+                  {option.value}
+                </Label>
+              </div>
+            ))}
+          </div>
         )
       }
 
       default:
-        // Default to text input
         return (
           <Input {...field} disabled={isSubmitting} placeholder={placeholder} />
         )
