@@ -14,6 +14,7 @@ import {
 } from '@tanstack/react-table'
 import {
   ArrowRight,
+  Award,
   Briefcase,
   Calendar,
   CheckCircle,
@@ -24,7 +25,6 @@ import {
   Languages,
   Mail,
   MapPin,
-  Award,
   Phone,
   Text,
   User,
@@ -1060,9 +1060,7 @@ export function CandidatesTable({
                       <h3 className="text-lg font-semibold">
                         {selectedCandidato.candidateName}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Candidato
-                      </p>
+                      <p className="text-sm text-muted-foreground">Candidato</p>
                     </div>
                   </div>
 
@@ -1228,8 +1226,7 @@ export function CandidatesTable({
                                     </span>
                                     Candidatura recebida (Default do sistema)
                                   </span>
-                                  {selectedCandidato.currentEtapaId ==
-                                    null && (
+                                  {selectedCandidato.currentEtapaId == null && (
                                     <Badge
                                       variant="secondary"
                                       className="shrink-0"
@@ -1283,10 +1280,7 @@ export function CandidatesTable({
                                       value === '__candidatura_recebida__'
                                         ? null
                                         : value
-                                    handleSetEtapa(
-                                      selectedCandidato,
-                                      idEtapa
-                                    )
+                                    handleSetEtapa(selectedCandidato, idEtapa)
                                   }}
                                 >
                                   <SelectTrigger size="sm" className="w-full">
@@ -1369,29 +1363,37 @@ export function CandidatesTable({
 
                     {/* Currículo */}
                     {selectedCandidato.curriculo_snapshot &&
-                      ((selectedCandidato.curriculo_snapshot.formacoes?.length ?? 0) > 0 ||
-                        (selectedCandidato.curriculo_snapshot.idiomas?.length ?? 0) > 0 ||
-                        (selectedCandidato.curriculo_snapshot.experiencias?.length ?? 0) > 0 ||
-                        (selectedCandidato.curriculo_snapshot.conquistas?.length ?? 0) > 0 ||
-                        (selectedCandidato.curriculo_snapshot.cursos_complementares?.length ?? 0) > 0 ||
-                        !!selectedCandidato.curriculo_snapshot.situacao_interesses) && (
-                      <AccordionItem value="curriculo">
-                        <AccordionTrigger className="text-sm font-medium">
-                          Currículo
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="space-y-5">
-                            {/* Formações */}
-                            {(selectedCandidato.curriculo_snapshot.formacoes
-                              ?.length ?? 0) > 0 && (
-                              <div>
-                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
-                                  <GraduationCap className="w-3.5 h-3.5" />
-                                  Formações
-                                </h5>
-                                <ul className="space-y-3">
-                                  {(selectedCandidato.curriculo_snapshot.formacoes ?? []).map(
-                                    (f, i) => (
+                      ((selectedCandidato.curriculo_snapshot.formacoes
+                        ?.length ?? 0) > 0 ||
+                        (selectedCandidato.curriculo_snapshot.idiomas?.length ??
+                          0) > 0 ||
+                        (selectedCandidato.curriculo_snapshot.experiencias
+                          ?.length ?? 0) > 0 ||
+                        (selectedCandidato.curriculo_snapshot.conquistas
+                          ?.length ?? 0) > 0 ||
+                        (selectedCandidato.curriculo_snapshot
+                          .cursos_complementares?.length ?? 0) > 0 ||
+                        !!selectedCandidato.curriculo_snapshot
+                          .situacao_interesses) && (
+                        <AccordionItem value="curriculo">
+                          <AccordionTrigger className="text-sm font-medium">
+                            Currículo
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="space-y-5">
+                              {/* Formações */}
+                              {(selectedCandidato.curriculo_snapshot.formacoes
+                                ?.length ?? 0) > 0 && (
+                                <div>
+                                  <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                    <GraduationCap className="w-3.5 h-3.5" />
+                                    Formações
+                                  </h5>
+                                  <ul className="space-y-3">
+                                    {(
+                                      selectedCandidato.curriculo_snapshot
+                                        .formacoes ?? []
+                                    ).map((f, i) => (
                                       <li
                                         key={f.nome_instituicao ?? i}
                                         className="rounded-md border border-border bg-muted/20 p-3 text-sm"
@@ -1408,23 +1410,24 @@ export function CandidatesTable({
                                             : ''}
                                         </p>
                                       </li>
-                                    )
-                                  )}
-                                </ul>
-                              </div>
-                            )}
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
 
-                            {/* Idiomas */}
-                            {(selectedCandidato.curriculo_snapshot.idiomas
-                              ?.length ?? 0) > 0 && (
-                              <div>
-                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
-                                  <Languages className="w-3.5 h-3.5" />
-                                  Idiomas
-                                </h5>
-                                <ul className="space-y-3">
-                                  {(selectedCandidato.curriculo_snapshot.idiomas ?? []).map(
-                                    (id, i) => (
+                              {/* Idiomas */}
+                              {(selectedCandidato.curriculo_snapshot.idiomas
+                                ?.length ?? 0) > 0 && (
+                                <div>
+                                  <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                    <Languages className="w-3.5 h-3.5" />
+                                    Idiomas
+                                  </h5>
+                                  <ul className="space-y-3">
+                                    {(
+                                      selectedCandidato.curriculo_snapshot
+                                        .idiomas ?? []
+                                    ).map((id, i) => (
                                       <li
                                         key={id.idioma?.descricao ?? i}
                                         className="rounded-md border border-border bg-muted/20 p-3 text-sm"
@@ -1434,23 +1437,24 @@ export function CandidatesTable({
                                           {id.nivel?.descricao ?? '—'}
                                         </span>
                                       </li>
-                                    )
-                                  )}
-                                </ul>
-                              </div>
-                            )}
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
 
-                            {/* Cursos complementares */}
-                            {(selectedCandidato.curriculo_snapshot
-                              .cursos_complementares?.length ?? 0) > 0 && (
-                              <div>
-                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
-                                  <GraduationCap className="w-3.5 h-3.5" />
-                                  Cursos complementares
-                                </h5>
-                                <ul className="space-y-2">
-                                  {(selectedCandidato.curriculo_snapshot?.cursos_complementares ?? []).map(
-                                    (c, i) => (
+                              {/* Cursos complementares */}
+                              {(selectedCandidato.curriculo_snapshot
+                                .cursos_complementares?.length ?? 0) > 0 && (
+                                <div>
+                                  <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                    <GraduationCap className="w-3.5 h-3.5" />
+                                    Cursos complementares
+                                  </h5>
+                                  <ul className="space-y-2">
+                                    {(
+                                      selectedCandidato.curriculo_snapshot
+                                        ?.cursos_complementares ?? []
+                                    ).map((c, i) => (
                                       <li
                                         key={c.nome_curso ?? i}
                                         className="text-sm"
@@ -1463,23 +1467,24 @@ export function CandidatesTable({
                                           ? ` (${c.ano_conclusao})`
                                           : ''}
                                       </li>
-                                    )
-                                  )}
-                                </ul>
-                              </div>
-                            )}
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
 
-                            {/* Experiências */}
-                            {(selectedCandidato.curriculo_snapshot.experiencias
-                              ?.length ?? 0) > 0 && (
-                              <div>
-                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
-                                  <Briefcase className="w-3.5 h-3.5" />
-                                  Experiências
-                                </h5>
-                                <ul className="space-y-3">
-                                  {(selectedCandidato.curriculo_snapshot?.experiencias ?? []).map(
-                                    (e, i) => (
+                              {/* Experiências */}
+                              {(selectedCandidato.curriculo_snapshot
+                                .experiencias?.length ?? 0) > 0 && (
+                                <div>
+                                  <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                    <Briefcase className="w-3.5 h-3.5" />
+                                    Experiências
+                                  </h5>
+                                  <ul className="space-y-3">
+                                    {(
+                                      selectedCandidato.curriculo_snapshot
+                                        ?.experiencias ?? []
+                                    ).map((e, i) => (
                                       <li
                                         key={e.empresa ?? i}
                                         className="rounded-md border border-border bg-muted/20 p-3 text-sm"
@@ -1509,23 +1514,24 @@ export function CandidatesTable({
                                           </p>
                                         )}
                                       </li>
-                                    )
-                                  )}
-                                </ul>
-                              </div>
-                            )}
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
 
-                            {/* Conquistas */}
-                            {(selectedCandidato.curriculo_snapshot.conquistas
-                              ?.length ?? 0) > 0 && (
-                              <div>
-                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
-                                  <Award className="w-3.5 h-3.5" />
-                                  Conquistas
-                                </h5>
-                                <ul className="space-y-3">
-                                  {(selectedCandidato.curriculo_snapshot?.conquistas ?? []).map(
-                                    (q, i) => (
+                              {/* Conquistas */}
+                              {(selectedCandidato.curriculo_snapshot.conquistas
+                                ?.length ?? 0) > 0 && (
+                                <div>
+                                  <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                    <Award className="w-3.5 h-3.5" />
+                                    Conquistas
+                                  </h5>
+                                  <ul className="space-y-3">
+                                    {(
+                                      selectedCandidato.curriculo_snapshot
+                                        ?.conquistas ?? []
+                                    ).map((q, i) => (
                                       <li
                                         key={q.titulo ?? i}
                                         className="rounded-md border border-border bg-muted/20 p-3 text-sm"
@@ -1545,52 +1551,51 @@ export function CandidatesTable({
                                           </p>
                                         )}
                                       </li>
-                                    )
-                                  )}
-                                </ul>
-                              </div>
-                            )}
-
-                            {/* Situação e interesses */}
-                            {selectedCandidato.curriculo_snapshot
-                              .situacao_interesses && (
-                              <div>
-                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
-                                  <User className="w-3.5 h-3.5" />
-                                  Situação e interesses
-                                </h5>
-                                <div className="rounded-md border border-border bg-muted/20 p-3 text-sm space-y-1">
-                                  {selectedCandidato.curriculo_snapshot
-                                    .situacao_interesses.situacao
-                                    ?.descricao && (
-                                    <p>
-                                      Situação:{' '}
-                                      {
-                                        selectedCandidato.curriculo_snapshot
-                                          .situacao_interesses.situacao
-                                          .descricao
-                                      }
-                                    </p>
-                                  )}
-                                  {selectedCandidato.curriculo_snapshot
-                                    .situacao_interesses.disponibilidade
-                                    ?.descricao && (
-                                    <p>
-                                      Disponibilidade:{' '}
-                                      {
-                                        selectedCandidato.curriculo_snapshot
-                                          .situacao_interesses.disponibilidade
-                                          .descricao
-                                      }
-                                    </p>
-                                  )}
+                                    ))}
+                                  </ul>
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    )}
+                              )}
+
+                              {/* Situação e interesses */}
+                              {selectedCandidato.curriculo_snapshot
+                                .situacao_interesses && (
+                                <div>
+                                  <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-2">
+                                    <User className="w-3.5 h-3.5" />
+                                    Situação e interesses
+                                  </h5>
+                                  <div className="rounded-md border border-border bg-muted/20 p-3 text-sm space-y-1">
+                                    {selectedCandidato.curriculo_snapshot
+                                      .situacao_interesses.situacao
+                                      ?.descricao && (
+                                      <p>
+                                        Situação:{' '}
+                                        {
+                                          selectedCandidato.curriculo_snapshot
+                                            .situacao_interesses.situacao
+                                            .descricao
+                                        }
+                                      </p>
+                                    )}
+                                    {selectedCandidato.curriculo_snapshot
+                                      .situacao_interesses.disponibilidade
+                                      ?.descricao && (
+                                      <p>
+                                        Disponibilidade:{' '}
+                                        {
+                                          selectedCandidato.curriculo_snapshot
+                                            .situacao_interesses.disponibilidade
+                                            .descricao
+                                        }
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
                   </Accordion>
                 </div>
               </div>
