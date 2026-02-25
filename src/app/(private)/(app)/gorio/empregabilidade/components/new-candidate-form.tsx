@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -9,13 +10,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from '@/components/ui/radio-group'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { cleanCPF, formatCPF, validateCPF } from '@/lib/cpf-validator'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -57,9 +54,10 @@ function createFormSchema(informacoesComplementares: InformacaoComplementar[]) {
 
     switch (info.field_type) {
       case 'number': {
-        const numSchema = (info.required
-          ? z.string().min(1, 'Campo obrigatório')
-          : z.string().optional().or(z.literal(''))
+        const numSchema = (
+          info.required
+            ? z.string().min(1, 'Campo obrigatório')
+            : z.string().optional().or(z.literal(''))
         ).refine(
           v => {
             if (v === undefined || v === '') return true
@@ -132,189 +130,240 @@ type FormData = z.infer<ReturnType<typeof createFormSchema>>
 export const NewCandidateForm = forwardRef<
   NewCandidateFormRef,
   NewCandidateFormProps
->(({ vagaId, informacoesComplementares, onSuccess, onCancel, onError }, ref) => {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+>(
+  (
+    { vagaId, informacoesComplementares, onSuccess, onCancel, onError },
+    ref
+  ) => {
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Create schema with dynamic fields
-  const formSchema = createFormSchema(informacoesComplementares)
+    // Create schema with dynamic fields
+    const formSchema = createFormSchema(informacoesComplementares)
 
-  // Initialize form with default values
-  const defaultValues: Record<string, string> = {
-    cpf: '',
-    nome: '',
-    email: '',
-  }
+    // Initialize form with default values
+    const defaultValues: Record<string, string> = {
+      cpf: '',
+      nome: '',
+      email: '',
+    }
 
-  // Add default values for dynamic fields
-  informacoesComplementares.forEach(info => {
-    defaultValues[`resposta_${info.id}`] = ''
-  })
+    // Add default values for dynamic fields
+    informacoesComplementares.forEach(info => {
+      defaultValues[`resposta_${info.id}`] = ''
+    })
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    mode: 'onChange',
-    defaultValues,
-  })
+    const form = useForm<FormData>({
+      resolver: zodResolver(formSchema),
+      mode: 'onChange',
+      defaultValues,
+    })
 
-  // Expose submit method via ref for parent control (onError = falha de validação)
-  useImperativeHandle(ref, () => ({
-    submit: () => form.handleSubmit(handleSubmit, onError)(),
-  }), [form.handleSubmit, onError])
+    // Expose submit method via ref for parent control (onError = falha de validação)
+    useImperativeHandle(
+      ref,
+      () => ({
+        submit: () => form.handleSubmit(handleSubmit, onError)(),
+      }),
+      [form.handleSubmit, onError]
+    )
 
-  const handleSubmit = async (data: FormData) => {
-    setIsSubmitting(true)
+    const handleSubmit = async (data: FormData) => {
+      setIsSubmitting(true)
 
-    try {
-      // Map form data to API format
-      const respostasInfoComplementares = informacoesComplementares.map(
-        info => ({
-          id_info: info.id,
-          resposta: data[`resposta_${info.id}` as keyof FormData] || '',
-        })
-      )
+      try {
+        // Map form data to API format
+        const respostasInfoComplementares = informacoesComplementares.map(
+          info => ({
+            id_info: info.id,
+            resposta: data[`resposta_${info.id}` as keyof FormData] || '',
+          })
+        )
 
-      // Filter out empty optional responses
-      const respostasFiltradas = respostasInfoComplementares.filter(
-        resposta => {
-          const info = informacoesComplementares.find(
-            i => i.id === resposta.id_info
-          )
-          return info?.required || resposta.resposta.trim() !== ''
-        }
-      )
+        // Filter out empty optional responses
+        const respostasFiltradas = respostasInfoComplementares.filter(
+          resposta => {
+            const info = informacoesComplementares.find(
+              i => i.id === resposta.id_info
+            )
+            return info?.required || resposta.resposta.trim() !== ''
+          }
+        )
 
-      console.log('Submitting candidatura:', {
-        cpf: cleanCPF(data.cpf),
-        nome: data.nome,
-        email: data.email || undefined,
-        id_vaga: vagaId,
-        respostas_info_complementares: respostasFiltradas,
-      })
-
-      // Call API to create candidatura
-      const response = await fetch('/api/empregabilidade/candidaturas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        console.log('Submitting candidatura:', {
           cpf: cleanCPF(data.cpf),
           nome: data.nome,
           email: data.email || undefined,
           id_vaga: vagaId,
           respostas_info_complementares: respostasFiltradas,
-        }),
-      })
+        })
 
-      if (!response.ok) {
-        const error = await response.json()
+        // Call API to create candidatura
+        const response = await fetch('/api/empregabilidade/candidaturas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cpf: cleanCPF(data.cpf),
+            nome: data.nome,
+            email: data.email || undefined,
+            id_vaga: vagaId,
+            respostas_info_complementares: respostasFiltradas,
+          }),
+        })
 
-        // Handle specific error cases with user-friendly messages
-        if (response.status === 409) {
-          toast.error('CPF já inscrito', {
-            description: 'Este candidato já está inscrito nesta vaga.',
-          })
-        } else if (response.status === 400) {
-          toast.error('Dados inválidos', {
-            description:
-              error.error || 'Verifique os campos e tente novamente.',
-          })
-        } else if (response.status === 404) {
-          toast.error('Vaga não encontrada', {
-            description: 'Esta vaga não foi encontrada no sistema.',
-          })
-        } else {
-          toast.error('Erro ao criar candidatura', {
-            description: error.error || 'Tente novamente em alguns instantes.',
-          })
+        if (!response.ok) {
+          const error = await response.json()
+
+          // Handle specific error cases with user-friendly messages
+          if (response.status === 409) {
+            toast.error('CPF já inscrito', {
+              description: 'Este candidato já está inscrito nesta vaga.',
+            })
+          } else if (response.status === 400) {
+            toast.error('Dados inválidos', {
+              description:
+                error.error || 'Verifique os campos e tente novamente.',
+            })
+          } else if (response.status === 404) {
+            toast.error('Vaga não encontrada', {
+              description: 'Esta vaga não foi encontrada no sistema.',
+            })
+          } else {
+            toast.error('Erro ao criar candidatura', {
+              description:
+                error.error || 'Tente novamente em alguns instantes.',
+            })
+          }
+
+          setIsSubmitting(false)
+          return
         }
 
+        const result = await response.json()
+        console.log('Candidatura created successfully:', result)
+
+        // Show success message
+        toast.success('Candidato inscrito com sucesso!', {
+          description: 'O candidato foi adicionado à vaga.',
+        })
+
+        // Reset form
+        form.reset()
+
+        // Call success callback
+        console.log('Calling onSuccess to refetch candidates...')
+        onSuccess()
+      } catch (error) {
+        console.error('Error submitting form:', error)
+        toast.error('Erro de conexão', {
+          description: 'Verifique sua conexão e tente novamente.',
+        })
         setIsSubmitting(false)
-        return
+        onError?.()
       }
-
-      const result = await response.json()
-      console.log('Candidatura created successfully:', result)
-
-      // Show success message
-      toast.success('Candidato inscrito com sucesso!', {
-        description: 'O candidato foi adicionado à vaga.',
-      })
-
-      // Reset form
-      form.reset()
-
-      // Call success callback
-      console.log('Calling onSuccess to refetch candidates...')
-      onSuccess()
-    } catch (error) {
-      console.error('Error submitting form:', error)
-      toast.error('Erro de conexão', {
-        description: 'Verifique sua conexão e tente novamente.',
-      })
-      setIsSubmitting(false)
-      onError?.()
     }
-  }
 
-  const MULTISELECT_SEPARATOR = '\u200B' // Unicode character to avoid collision with option text
+    const MULTISELECT_SEPARATOR = '\u200B' // Unicode character to avoid collision with option text
 
-  // Render field based on tipo_campo
-  const renderFieldByType = (
-    info: InformacaoComplementar,
-    field: any
-  ): React.ReactNode => {
-    const tipo = info.field_type?.toLowerCase() || 'text'
-    const placeholder = info.title
-      ? `Digite ${info.title.toLowerCase()}`
-      : 'Digite aqui'
-    const opcoes = info.options ?? []
+    // Render field based on tipo_campo
+    const renderFieldByType = (
+      info: InformacaoComplementar,
+      field: any
+    ): React.ReactNode => {
+      const tipo = info.field_type?.toLowerCase() || 'text'
+      const placeholder = info.title
+        ? `Digite ${info.title.toLowerCase()}`
+        : 'Digite aqui'
+      const opcoes = info.options ?? []
 
-    switch (tipo) {
-      case 'text':
-        return (
-          <Input {...field} disabled={isSubmitting} placeholder={placeholder} />
-        )
-
-      case 'textarea':
-        return (
-          <Textarea
-            {...field}
-            disabled={isSubmitting}
-            placeholder={placeholder}
-            className="min-h-24"
-          />
-        )
-
-      case 'number':
-        return (
-          <Input
-            {...field}
-            type="number"
-            min={info.valor_min}
-            max={info.valor_max}
-            disabled={isSubmitting}
-            placeholder={placeholder}
-          />
-        )
-
-      case 'select': {
-        return (
-          <div className="rounded-md bg-muted/50 p-3">
-            <RadioGroup
-              value={field.value ?? ''}
-              onValueChange={field.onChange}
+      switch (tipo) {
+        case 'text':
+          return (
+            <Input
+              {...field}
               disabled={isSubmitting}
-              className="flex flex-col gap-2"
+              placeholder={placeholder}
+            />
+          )
+
+        case 'textarea':
+          return (
+            <Textarea
+              {...field}
+              disabled={isSubmitting}
+              placeholder={placeholder}
+              className="min-h-24"
+            />
+          )
+
+        case 'number':
+          return (
+            <Input
+              {...field}
+              type="number"
+              min={info.valor_min}
+              max={info.valor_max}
+              disabled={isSubmitting}
+              placeholder={placeholder}
+            />
+          )
+
+        case 'select': {
+          return (
+            <div className="rounded-md bg-muted/50 p-3">
+              <RadioGroup
+                value={field.value ?? ''}
+                onValueChange={field.onChange}
+                disabled={isSubmitting}
+                className="flex flex-col gap-2"
+              >
+                {opcoes.map(option => (
+                  <div key={option.id} className="flex items-center space-x-2">
+                    <RadioGroupItem
+                      value={option.value}
+                      id={`${info.id}-${option.id}`}
+                    />
+                    <Label
+                      htmlFor={`${info.id}-${option.id}`}
+                      className="font-normal cursor-pointer"
+                    >
+                      {option.value}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+          )
+        }
+
+        case 'multiselect': {
+          const selectedSet = new Set(
+            (field.value ?? '')
+              .split(MULTISELECT_SEPARATOR)
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          )
+          const handleToggle = (optionValue: string, checked: boolean) => {
+            const next = new Set(selectedSet)
+            if (checked) next.add(optionValue)
+            else next.delete(optionValue)
+            field.onChange(Array.from(next).join(MULTISELECT_SEPARATOR))
+          }
+          return (
+            <div
+              className="rounded-md bg-muted/50 p-3 flex flex-col gap-2"
+              role="group"
             >
               {opcoes.map(option => (
-                <div
-                  key={option.id}
-                  className="flex items-center space-x-2"
-                >
-                  <RadioGroupItem
-                    value={option.value}
+                <div key={option.id} className="flex items-center space-x-2">
+                  <Checkbox
                     id={`${info.id}-${option.id}`}
+                    checked={selectedSet.has(option.value)}
+                    onCheckedChange={checked =>
+                      handleToggle(option.value, checked === true)
+                    }
+                    disabled={isSubmitting}
                   />
                   <Label
                     htmlFor={`${info.id}-${option.id}`}
@@ -324,158 +373,120 @@ export const NewCandidateForm = forwardRef<
                   </Label>
                 </div>
               ))}
-            </RadioGroup>
-          </div>
-        )
-      }
-
-      case 'multiselect': {
-        const selectedSet = new Set(
-          (field.value ?? '')
-            .split(MULTISELECT_SEPARATOR)
-            .map((s: string) => s.trim())
-            .filter(Boolean)
-        )
-        const handleToggle = (optionValue: string, checked: boolean) => {
-          const next = new Set(selectedSet)
-          if (checked) next.add(optionValue)
-          else next.delete(optionValue)
-          field.onChange(Array.from(next).join(MULTISELECT_SEPARATOR))
-        }
-        return (
-          <div
-            className="rounded-md bg-muted/50 p-3 flex flex-col gap-2"
-            role="group"
-          >
-            {opcoes.map(option => (
-              <div
-                key={option.id}
-                className="flex items-center space-x-2"
-              >
-                <Checkbox
-                  id={`${info.id}-${option.id}`}
-                  checked={selectedSet.has(option.value)}
-                  onCheckedChange={checked =>
-                    handleToggle(option.value, checked === true)
-                  }
-                  disabled={isSubmitting}
-                />
-                <Label
-                  htmlFor={`${info.id}-${option.id}`}
-                  className="font-normal cursor-pointer"
-                >
-                  {option.value}
-                </Label>
-              </div>
-            ))}
-          </div>
-        )
-      }
-
-      default:
-        return (
-          <Input {...field} disabled={isSubmitting} placeholder={placeholder} />
-        )
-    }
-  }
-
-  return (
-    <Form {...form}>
-      <form className="space-y-4">
-        {/* CPF Field */}
-        <FormField
-          control={form.control}
-          name="cpf"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>CPF *</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  placeholder="000.000.000-00"
-                  onChange={e => {
-                    const formatted = formatCPF(e.target.value)
-                    field.onChange(formatted)
-                  }}
-                  maxLength={14}
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Nome Field */}
-        <FormField
-          control={form.control}
-          name="nome"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome *</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  placeholder="Nome do candidato"
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Email Field */}
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  type="email"
-                  placeholder="email@exemplo.com"
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Dynamic Complementary Fields */}
-        {informacoesComplementares.length > 0 && (
-          <div className="pt-4 border-t">
-            <h4 className="text-sm font-medium text-muted-foreground mb-4">
-              Informações complementares
-            </h4>
-            <div className="space-y-4">
-              {informacoesComplementares.map(info => (
-                <FormField
-                  key={info.id}
-                  control={form.control}
-                  name={`resposta_${info.id}` as any}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {info.title || 'Campo adicional'} {info.required && '*'}
-                      </FormLabel>
-                      <FormControl>
-                        {renderFieldByType(info, field)}
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ))}
             </div>
-          </div>
-        )}
-      </form>
-    </Form>
-  )
-})
+          )
+        }
+
+        default:
+          return (
+            <Input
+              {...field}
+              disabled={isSubmitting}
+              placeholder={placeholder}
+            />
+          )
+      }
+    }
+
+    return (
+      <Form {...form}>
+        <form className="space-y-4">
+          {/* CPF Field */}
+          <FormField
+            control={form.control}
+            name="cpf"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CPF *</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="000.000.000-00"
+                    onChange={e => {
+                      const formatted = formatCPF(e.target.value)
+                      field.onChange(formatted)
+                    }}
+                    maxLength={14}
+                    disabled={isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Nome Field */}
+          <FormField
+            control={form.control}
+            name="nome"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome *</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="Nome do candidato"
+                    disabled={isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Email Field */}
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    type="email"
+                    placeholder="email@exemplo.com"
+                    disabled={isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Dynamic Complementary Fields */}
+          {informacoesComplementares.length > 0 && (
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-medium text-muted-foreground mb-4">
+                Informações complementares
+              </h4>
+              <div className="space-y-4">
+                {informacoesComplementares.map(info => (
+                  <FormField
+                    key={info.id}
+                    control={form.control}
+                    name={`resposta_${info.id}` as any}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {info.title || 'Campo adicional'}{' '}
+                          {info.required && '*'}
+                        </FormLabel>
+                        <FormControl>
+                          {renderFieldByType(info, field)}
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </form>
+      </Form>
+    )
+  }
+)
 
 NewCandidateForm.displayName = 'NewCandidateForm'
