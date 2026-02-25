@@ -63,9 +63,8 @@ export default function EmpregabilidadeDetailPage({
   })
   const [showReactivateExpiredDialog, setShowReactivateExpiredDialog] =
     useState(false)
-  const [pendingExpiredFormData, setPendingExpiredFormData] = useState<any>(
-    null
-  )
+  const [pendingExpiredFormData, setPendingExpiredFormData] =
+    useState<any>(null)
 
   // Ref to trigger form submission
   const formRef = useRef<NewEmpregabilidadeFormRef>(null)

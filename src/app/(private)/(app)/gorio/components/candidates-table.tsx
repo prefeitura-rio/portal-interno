@@ -695,7 +695,9 @@ export function CandidatesTable({
       await updateMultipleCandidatoEtapas(cpfs, nextEtapaId)
 
       table.resetRowSelection()
-      toast.success('Etapa avançada com sucesso para os candidatos selecionados.')
+      toast.success(
+        'Etapa avançada com sucesso para os candidatos selecionados.'
+      )
     } catch (error) {
       console.error('Erro ao avançar etapa em lote:', error)
       toast.error('Erro ao avançar etapa dos candidatos', {
