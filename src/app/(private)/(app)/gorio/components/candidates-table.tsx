@@ -13,6 +13,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
+  ArrowRight,
   Calendar,
   CheckCircle,
   Clock,
@@ -167,6 +168,7 @@ export function CandidatesTable({
     updateCandidatoStatus,
     updateCandidatoEtapa,
     updateMultipleCandidatoStatuses,
+    updateMultipleCandidatoEtapas,
     refetch,
   } = useCandidatos({
     empregabilidadeId,
@@ -622,6 +624,85 @@ export function CandidatesTable({
       })
     }
   }, [table, updateMultipleCandidatoStatuses])
+
+  const handleBulkAdvanceEtapa = React.useCallback(async () => {
+    try {
+      const selectedRows = table.getFilteredSelectedRowModel().rows
+      const selectedCandidatos = selectedRows.map(row => row.original)
+
+      if (selectedCandidatos.length === 0) {
+        return
+      }
+
+      const first = selectedCandidatos[0]
+
+      const getStageKey = (candidato: Candidato) =>
+        `${candidato.vaga?.id ?? ''}::${
+          candidato.currentEtapaId ?? '__candidatura_recebida__'
+        }`
+
+      const allSameStage = selectedCandidatos.every(
+        candidato => getStageKey(candidato) === getStageKey(first)
+      )
+
+      if (!allSameStage) {
+        toast.error(
+          'Só é possível avançar etapa em massa para candidatos na mesma etapa.'
+        )
+        return
+      }
+
+      const etapas = first.vaga?.etapas ?? []
+
+      if (etapas.length === 0) {
+        toast.error('Esta vaga não possui etapas configuradas.')
+        return
+      }
+
+      let nextEtapaId: string | null = null
+
+      if (first.currentEtapaId == null) {
+        nextEtapaId = etapas[0]?.id ?? null
+      } else {
+        const currentIndex = etapas.findIndex(
+          etapa => etapa.id === first.currentEtapaId
+        )
+
+        if (currentIndex < 0) {
+          toast.error('Etapa atual não encontrada na vaga.')
+          return
+        }
+
+        const nextEtapa = etapas[currentIndex + 1] ?? null
+
+        if (!nextEtapa) {
+          toast.info(
+            'Os candidatos selecionados já estão na última etapa do processo.'
+          )
+          return
+        }
+
+        nextEtapaId = nextEtapa.id
+      }
+
+      if (!nextEtapaId) {
+        toast.error('Não foi possível determinar a próxima etapa.')
+        return
+      }
+
+      const cpfs = selectedCandidatos.map(c => c.cpf)
+
+      await updateMultipleCandidatoEtapas(cpfs, nextEtapaId)
+
+      table.resetRowSelection()
+      toast.success('Etapa avançada com sucesso para os candidatos selecionados.')
+    } catch (error) {
+      console.error('Erro ao avançar etapa em lote:', error)
+      toast.error('Erro ao avançar etapa dos candidatos', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
+    }
+  }, [table, updateMultipleCandidatoEtapas])
 
   const buildCandidaturasWorkbook = React.useCallback(
     (candidatosToExport: Candidato[]) => {
@@ -1216,6 +1297,13 @@ export function CandidatesTable({
           >
             <Clock className="mr-2 h-4 w-4" />
             Definir como pendente
+          </DataTableActionBarAction>
+          <DataTableActionBarAction
+            tooltip="Só é possível avançar etapa em massa para candidatos na mesma etapa."
+            onClick={handleBulkAdvanceEtapa}
+          >
+            <ArrowRight className="mr-2 h-4 w-4" />
+            Avançar etapa
           </DataTableActionBarAction>
           <DataTableActionBarAction
             tooltip="Exportar candidaturas selecionadas para XLSX"

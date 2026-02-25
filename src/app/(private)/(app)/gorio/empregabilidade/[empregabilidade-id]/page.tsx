@@ -61,6 +61,11 @@ export default function EmpregabilidadeDetailPage({
     open: false,
     type: null,
   })
+  const [showReactivateExpiredDialog, setShowReactivateExpiredDialog] =
+    useState(false)
+  const [pendingExpiredFormData, setPendingExpiredFormData] = useState<any>(
+    null
+  )
 
   // Ref to trigger form submission
   const formRef = useRef<NewEmpregabilidadeFormRef>(null)
@@ -245,6 +250,76 @@ export default function EmpregabilidadeDetailPage({
     }
   }, [vaga, refetch])
 
+  // Handle send to approval (status -> em_aprovacao)
+  const handleSendToApproval = useCallback(async () => {
+    if (!vaga?.id) return
+
+    setIsLoading(true)
+
+    try {
+      const response = await fetch(
+        `/api/empregabilidade/vagas/${vaga.id}/send-to-approval`,
+        {
+          method: 'PUT',
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        throw new Error(
+          errorData?.error || 'Erro ao enviar vaga para aprovação'
+        )
+      }
+
+      toast.success('Vaga enviada para aprovação com sucesso!')
+      await refetch()
+    } catch (error) {
+      console.error('Error sending vaga to approval:', error)
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Erro ao enviar vaga para aprovação'
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [vaga, refetch])
+
+  // Handle send to draft/edition (status -> em_edicao)
+  const handleSendToDraft = useCallback(async () => {
+    if (!vaga?.id) return
+
+    setIsLoading(true)
+
+    try {
+      const response = await fetch(
+        `/api/empregabilidade/vagas/${vaga.id}/send-to-draft`,
+        {
+          method: 'PUT',
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        throw new Error(
+          errorData?.error || 'Erro ao enviar vaga para edição (rascunho)'
+        )
+      }
+
+      toast.success('Vaga enviada para edição (rascunho) com sucesso!')
+      await refetch()
+    } catch (error) {
+      console.error('Error sending vaga to draft:', error)
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Erro ao enviar vaga para edição'
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [vaga, refetch])
+
   // Helper function to map form data to API format
   const mapFormToApiData = useCallback(
     (data: any) => {
@@ -268,8 +343,8 @@ export default function EmpregabilidadeDetailPage({
     [vaga]
   )
 
-  // Handle form submission (for published vagas - validates 11 fields)
-  const handleFormSubmit = useCallback(
+  // Helper to persist form data (for published vagas - validação já feita no form)
+  const saveVagaData = useCallback(
     async (data: any) => {
       if (!vaga?.id) return
 
@@ -304,6 +379,40 @@ export default function EmpregabilidadeDetailPage({
     },
     [vaga, refetch, mapFormToApiData]
   )
+
+  // Handle form submission (for published vagas - valida 11 campos)
+  const handleFormSubmit = useCallback(
+    async (data: any) => {
+      if (!vaga?.id) return
+
+      // Regra especial para vaga expirada:
+      // se status atual for publicado_expirado e nova data_limite for futura,
+      // exibir modal avisando que a vaga voltará a ficar ativa para o cidadão.
+      if (
+        vaga.status === 'publicado_expirado' &&
+        data?.data_limite instanceof Date &&
+        data.data_limite.getTime() > new Date().getTime()
+      ) {
+        setPendingExpiredFormData(data)
+        setShowReactivateExpiredDialog(true)
+        return
+      }
+
+      await saveVagaData(data)
+    },
+    [vaga, saveVagaData]
+  )
+
+  const handleConfirmReactivateExpired = useCallback(async () => {
+    if (!pendingExpiredFormData) {
+      setShowReactivateExpiredDialog(false)
+      return
+    }
+
+    await saveVagaData(pendingExpiredFormData)
+    setPendingExpiredFormData(null)
+    setShowReactivateExpiredDialog(false)
+  }, [pendingExpiredFormData, saveVagaData])
 
   // Handle save as draft (for em_edicao - validates 5 fields only)
   const handleFormSaveDraft = useCallback(
@@ -542,14 +651,44 @@ export default function EmpregabilidadeDetailPage({
                 {!isEditing && (
                   <>
                     {vaga.status === 'em_edicao' && (
-                      <Button
-                        onClick={handlePublish}
-                        disabled={isLoading}
-                        variant="default"
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Publicar
-                      </Button>
+                      <>
+                        <Button
+                          onClick={handleSendToApproval}
+                          disabled={isLoading}
+                          variant="default"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Enviar para aprovação
+                        </Button>
+                        <Button
+                          onClick={handlePublish}
+                          disabled={isLoading}
+                          variant="outline"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Publicar vaga
+                        </Button>
+                      </>
+                    )}
+                    {vaga.status === 'em_aprovacao' && (
+                      <>
+                        <Button
+                          onClick={handlePublish}
+                          disabled={isLoading}
+                          variant="default"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Publicar vaga
+                        </Button>
+                        <Button
+                          onClick={handleSendToDraft}
+                          disabled={isLoading}
+                          variant="outline"
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Enviar para edição
+                        </Button>
+                      </>
                     )}
                     <Button
                       onClick={() => setIsEditing(true)}
@@ -695,6 +834,17 @@ export default function EmpregabilidadeDetailPage({
         confirmText="Publicar"
         cancelText="Cancelar"
         onConfirm={confirmPublish}
+        variant="default"
+      />
+
+      <ConfirmDialog
+        open={showReactivateExpiredDialog}
+        onOpenChange={setShowReactivateExpiredDialog}
+        title="Vaga voltará a ficar ativa"
+        description="Ao salvar com uma data limite futura, esta vaga deixará de estar expirada e voltará a aparecer como ativa para o cidadão. Deseja continuar?"
+        confirmText="Sim, continuar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmReactivateExpired}
         variant="default"
       />
 

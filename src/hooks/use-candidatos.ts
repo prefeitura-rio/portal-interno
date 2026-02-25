@@ -89,6 +89,10 @@ interface UseCandidatosReturn {
     cpfs: string[],
     status: CandidatoStatus
   ) => Promise<boolean>
+  updateMultipleCandidatoEtapas: (
+    cpfs: string[],
+    idEtapa: string
+  ) => Promise<boolean>
 }
 
 export function useCandidatos({
@@ -294,6 +298,39 @@ export function useCandidatos({
     [empregabilidadeId, fetchCandidatos]
   )
 
+  const updateMultipleCandidatoEtapas = useCallback(
+    async (cpfs: string[], idEtapa: string): Promise<boolean> => {
+      try {
+        if (cpfs.length === 0) return true
+
+        const response = await fetch(
+          '/api/empregabilidade/candidaturas/bulk-etapa',
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cpfs,
+              id_etapa: idEtapa,
+              id_vaga: empregabilidadeId,
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}))
+          throw new Error(data.error || 'Falha ao atualizar etapa em lote')
+        }
+
+        await fetchCandidatos()
+        return true
+      } catch (err) {
+        console.error('Error updating multiple candidato etapas:', err)
+        throw err
+      }
+    },
+    [empregabilidadeId, fetchCandidatos]
+  )
+
   return {
     candidatos,
     summary,
@@ -304,5 +341,6 @@ export function useCandidatos({
     updateCandidatoStatus,
     updateCandidatoEtapa,
     updateMultipleCandidatoStatuses,
+    updateMultipleCandidatoEtapas,
   }
 }
