@@ -727,7 +727,11 @@ export default function EmpregabilidadeDetailPage({
 
   return (
     <ContentLayout title="Detalhes da Vaga">
-      <UnsavedChangesGuard hasUnsavedChanges={hasUnsavedChanges && isEditing} />
+      <UnsavedChangesGuard
+        hasUnsavedChanges={hasUnsavedChanges && isEditing}
+        allowNavigation={isLoading}
+        message="Você tem alterações não salvas. Tem certeza que deseja sair? As alterações serão perdidas."
+      />
 
       <div className="space-y-6">
         {/* Breadcrumb */}

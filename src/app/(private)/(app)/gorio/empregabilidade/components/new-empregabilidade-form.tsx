@@ -3,9 +3,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import React, {
   forwardRef,
+  useEffect,
   useImperativeHandle,
-  useState,
   useMemo,
+  useState,
 } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -407,6 +408,31 @@ export const NewEmpregabilidadeForm = forwardRef<
           },
       mode: 'onChange',
     })
+
+    // Track form changes for unsaved changes guard
+    const isDirty = form.formState.isDirty
+    const watchedValues = form.watch()
+
+    useEffect(() => {
+      if (onFormChangesDetected) {
+        // When creating (no initialData), consider any field filled as "has changes"
+        const hasAnyValue =
+          !initialData &&
+          !!(
+            watchedValues.titulo?.trim() ||
+            watchedValues.descricao?.trim() ||
+            watchedValues.contratante ||
+            watchedValues.regime_contratacao ||
+            watchedValues.modelo_trabalho ||
+            watchedValues.bairro?.trim() ||
+            watchedValues.valor_vaga != null ||
+            watchedValues.data_limite ||
+            (watchedValues.etapas && watchedValues.etapas.length > 0)
+          )
+        const hasChanges = isDirty || hasAnyValue
+        onFormChangesDetected(hasChanges)
+      }
+    }, [isDirty, watchedValues, initialData, onFormChangesDetected])
 
     // Expose methods to parent component via ref
     useImperativeHandle(ref, () => ({
