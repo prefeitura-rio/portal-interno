@@ -17,6 +17,12 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -33,6 +39,7 @@ import { ptBR } from 'date-fns/locale'
 import {
   Ban,
   Edit,
+  EllipsisVertical,
   Pause,
   Play,
   RefreshCw,
@@ -446,8 +453,16 @@ export default function EmpregabilidadeDetailPage({
         regime_contratacao,
         modelo_trabalho,
         tipo_pcd,
+        vaga_pcd,
+        acessibilidade_pcd,
         ...rest
       } = data
+
+      const tipoPcdIds = tipo_pcd ?? []
+      const tiposPcdForApi =
+        tipoPcdIds.length > 0
+          ? tipoPcdIds.map((id: string) => ({ id }))
+          : undefined
 
       return {
         ...rest,
@@ -455,7 +470,8 @@ export default function EmpregabilidadeDetailPage({
         id_regime_contratacao:
           regime_contratacao || vaga?.id_regime_contratacao,
         id_modelo_trabalho: modelo_trabalho || vaga?.id_modelo_trabalho,
-        tipos_pcd: tipo_pcd || vaga?.tipos_pcd,
+        acessibilidade_pcd: vaga_pcd ? acessibilidade_pcd : undefined,
+        tipos_pcd: tiposPcdForApi,
       }
     },
     [vaga]
@@ -693,6 +709,7 @@ export default function EmpregabilidadeDetailPage({
       vaga.acessibilidade_pcd ||
       (vaga.tipos_pcd && vaga.tipos_pcd.length > 0)
     ),
+    acessibilidade_pcd: vaga.acessibilidade_pcd ?? undefined,
     tipo_pcd: vaga.tipos_pcd?.map(t => t.id || '') || [],
     valor_vaga: vaga.valor_vaga,
     bairro: vaga.bairro,
@@ -768,46 +785,52 @@ export default function EmpregabilidadeDetailPage({
               <div className="flex gap-2">
                 {!isEditing && (
                   <>
+                    {/* Primary (always visible) buttons by status */}
                     {vaga.status === 'em_edicao' && (
-                      <>
-                        <Button
-                          onClick={handleSendToApproval}
-                          disabled={isLoading}
-                          variant="default"
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          Enviar para aprovação
-                        </Button>
-                        <Button
-                          onClick={handlePublish}
-                          disabled={isLoading}
-                          variant="outline"
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          Publicar vaga
-                        </Button>
-                      </>
+                      <Button
+                        onClick={handleSendToApproval}
+                        disabled={isLoading}
+                        variant="default"
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Enviar para aprovação
+                      </Button>
                     )}
+
                     {vaga.status === 'em_aprovacao' && (
-                      <>
-                        <Button
-                          onClick={handlePublish}
-                          disabled={isLoading}
-                          variant="default"
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          Publicar vaga
-                        </Button>
-                        <Button
-                          onClick={handleSendToDraft}
-                          disabled={isLoading}
-                          variant="outline"
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Enviar para edição
-                        </Button>
-                      </>
+                      <Button
+                        onClick={handlePublish}
+                        disabled={isLoading}
+                        variant="default"
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Publicar vaga
+                      </Button>
                     )}
+
+                    {vaga.status === 'vaga_congelada' && (
+                      <Button
+                        onClick={handleUnfreeze}
+                        disabled={isLoading}
+                        variant="default"
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Descongelar vaga
+                      </Button>
+                    )}
+
+                    {vaga.status === 'vaga_descontinuada' && (
+                      <Button
+                        onClick={handleReactivate}
+                        disabled={isLoading}
+                        variant="default"
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Reativar vaga
+                      </Button>
+                    )}
+
+                    {/* Edit button is always visible */}
                     <Button
                       onClick={() => setIsEditing(true)}
                       disabled={isLoading || activeTab === 'candidates'}
@@ -816,54 +839,169 @@ export default function EmpregabilidadeDetailPage({
                       <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </Button>
-                    {vaga.status === 'publicado_ativo' && (
-                      <>
+
+                    {/* Secondary actions in dropdown, similar to serviços municipais */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
                         <Button
-                          onClick={handleFreeze}
-                          disabled={isLoading}
                           variant="outline"
-                        >
-                          <Pause className="mr-2 h-4 w-4" />
-                          Pausar vaga
-                        </Button>
-                        <Button
-                          onClick={handleDiscontinue}
+                          size="icon"
                           disabled={isLoading}
-                          variant="outline"
                         >
-                          <Square className="mr-2 h-4 w-4" />
-                          Encerrar vaga
+                          <EllipsisVertical className="h-4 w-4" />
+                          <span className="sr-only">Mais opções</span>
                         </Button>
-                      </>
-                    )}
-                    {vaga.status === 'vaga_congelada' && (
-                      <Button
-                        onClick={handleUnfreeze}
-                        disabled={isLoading}
-                        variant="outline"
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Descongelar vaga
-                      </Button>
-                    )}
-                    {vaga.status === 'vaga_descontinuada' && (
-                      <Button
-                        onClick={handleReactivate}
-                        disabled={isLoading}
-                        variant="outline"
-                      >
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Reativar vaga
-                      </Button>
-                    )}
-                    <Button
-                      variant="destructive"
-                      onClick={handleDelete}
-                      disabled={isLoading}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Excluir
-                    </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {/* Vaga rascunho (em_edicao):
+                            - visíveis: Enviar para aprovação, Editar
+                            - dropdown: Publicar vaga, Excluir */}
+                        {vaga.status === 'em_edicao' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={handlePublish}
+                              disabled={isLoading}
+                              className="cursor-pointer"
+                            >
+                              <Play className="mr-2 h-4 w-4" />
+                              Publicar vaga
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={handleDelete}
+                              disabled={isLoading}
+                              variant="destructive"
+                              className="cursor-pointer"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
+
+                        {/* Vaga aguardando aprovação (em_aprovacao):
+                            - visíveis: Publicar vaga, Editar
+                            - dropdown: Enviar para edição, Excluir */}
+                        {vaga.status === 'em_aprovacao' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={handleSendToDraft}
+                              disabled={isLoading}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Enviar para edição
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={handleDelete}
+                              disabled={isLoading}
+                              variant="destructive"
+                              className="cursor-pointer"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
+
+                        {/* Vaga ativa (publicado_ativo):
+                            - visível: Editar
+                            - dropdown: Pausar vaga, Encerrar vaga, Excluir */}
+                        {vaga.status === 'publicado_ativo' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={handleFreeze}
+                              disabled={isLoading}
+                              className="cursor-pointer"
+                            >
+                              <Pause className="mr-2 h-4 w-4" />
+                              Pausar vaga
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={handleDiscontinue}
+                              disabled={isLoading}
+                              className="cursor-pointer"
+                            >
+                              <Square className="mr-2 h-4 w-4" />
+                              Encerrar vaga
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={handleDelete}
+                              disabled={isLoading}
+                              variant="destructive"
+                              className="cursor-pointer"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
+
+                        {/* Vaga expirada (publicado_expirado):
+                            - visível: Editar
+                            - dropdown: Encerrar vaga, Excluir */}
+                        {vaga.status === 'publicado_expirado' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={handleDiscontinue}
+                              disabled={isLoading}
+                              className="cursor-pointer"
+                            >
+                              <Square className="mr-2 h-4 w-4" />
+                              Encerrar vaga
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={handleDelete}
+                              disabled={isLoading}
+                              variant="destructive"
+                              className="cursor-pointer"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
+
+                        {/* Vaga pausada (vaga_congelada):
+                            - visíveis: Editar, Descongelar vaga
+                            - dropdown: Encerrar vaga, Excluir */}
+                        {vaga.status === 'vaga_congelada' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={handleDiscontinue}
+                              disabled={isLoading}
+                              className="cursor-pointer"
+                            >
+                              <Square className="mr-2 h-4 w-4" />
+                              Encerrar vaga
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={handleDelete}
+                              disabled={isLoading}
+                              variant="destructive"
+                              className="cursor-pointer"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
+
+                        {/* Vaga encerrada (vaga_descontinuada):
+                            - visíveis: Editar, Reativar vaga
+                            - dropdown: Excluir */}
+                        {vaga.status === 'vaga_descontinuada' && (
+                          <DropdownMenuItem
+                            onClick={handleDelete}
+                            disabled={isLoading}
+                            variant="destructive"
+                            className="cursor-pointer"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </>
                 )}
 

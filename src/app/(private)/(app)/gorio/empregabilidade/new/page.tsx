@@ -35,15 +35,23 @@ export default function NewEmpregabilidadePage() {
         regime_contratacao,
         modelo_trabalho,
         tipo_pcd,
+        vaga_pcd,
+        acessibilidade_pcd,
         ...rest
       } = data
+
+      const tiposPcdForApi =
+        (tipo_pcd?.length ?? 0) > 0
+          ? (tipo_pcd ?? []).map((id: string) => ({ id }))
+          : undefined
 
       const apiData = {
         ...rest,
         id_contratante: contratante,
         id_regime_contratacao: regime_contratacao,
         id_modelo_trabalho: modelo_trabalho,
-        tipos_pcd: tipo_pcd,
+        acessibilidade_pcd: vaga_pcd ? acessibilidade_pcd : undefined,
+        tipos_pcd: tiposPcdForApi,
       }
 
       console.log('🔵 [handleCreateVaga] Mapped API data:', apiData)
@@ -121,15 +129,23 @@ export default function NewEmpregabilidadePage() {
         regime_contratacao,
         modelo_trabalho,
         tipo_pcd,
+        vaga_pcd,
+        acessibilidade_pcd,
         ...rest
       } = data
+
+      const tiposPcdForApi =
+        (tipo_pcd?.length ?? 0) > 0
+          ? (tipo_pcd ?? []).map((id: string) => ({ id }))
+          : undefined
 
       const apiData = {
         ...rest,
         id_contratante: contratante,
         id_regime_contratacao: regime_contratacao,
         id_modelo_trabalho: modelo_trabalho,
-        tipos_pcd: tipo_pcd,
+        acessibilidade_pcd: vaga_pcd ? acessibilidade_pcd : undefined,
+        tipos_pcd: tiposPcdForApi,
       }
 
       console.log('🟢 [handleCreateDraft] Mapped draft API data:', apiData)

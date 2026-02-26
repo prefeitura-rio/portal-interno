@@ -44,6 +44,7 @@ import { DataTableColumnHeader } from '@/components/data-table/data-table-column
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DepartmentName } from '@/components/ui/department-name'
 import {
   DropdownMenu,
@@ -80,7 +81,11 @@ import {
   Eye,
   FileText,
   MoreHorizontal,
+  Pause,
   Pencil,
+  Play,
+  RefreshCw,
+  Square,
   Text,
   Trash2,
 } from 'lucide-react'
@@ -289,20 +294,23 @@ export function EmpregabilidadeDataTable() {
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
   }, [])
 
-  // Row click handler removed - now inline in DataTable components below
+  // Confirm dialog for delete / freeze / discontinue (from table dropdown)
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    open: boolean
+    type: 'delete' | 'freeze' | 'discontinue' | null
+    vagaId: string | null
+  }>({ open: false, type: null, vagaId: null })
 
-  // Handle delete action
+  const openConfirmDialog = React.useCallback(
+    (type: 'delete' | 'freeze' | 'discontinue', vagaId: string) => {
+      setConfirmDialog({ open: true, type, vagaId })
+    },
+    []
+  )
+
+  // Perform delete (called after modal confirm)
   const handleDelete = React.useCallback(
     async (vagaId: string) => {
-      // Confirm dialog
-      if (
-        !confirm(
-          'Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita.'
-        )
-      ) {
-        return
-      }
-
       try {
         const response = await fetch(`/api/empregabilidade/vagas/${vagaId}`, {
           method: 'DELETE',
@@ -313,8 +321,6 @@ export function EmpregabilidadeDataTable() {
         }
 
         toast.success('Vaga excluída com sucesso!')
-
-        // Refetch data to update table
         refetch()
       } catch (error) {
         console.error('Error deleting vaga:', error)
@@ -322,6 +328,112 @@ export function EmpregabilidadeDataTable() {
       }
     },
     [refetch]
+  )
+
+  // Status-dependent actions (same as detail page)
+  const callVagaAction = React.useCallback(
+    async (
+      vagaId: string,
+      endpoint: string,
+      successMessage: string,
+      errorMessage: string,
+      method: 'PUT' | 'DELETE' = 'PUT'
+    ) => {
+      try {
+        const response = await fetch(`/api/empregabilidade/vagas/${vagaId}${endpoint}`, {
+          method,
+        })
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null)
+          throw new Error(errorData?.error || errorMessage)
+        }
+        toast.success(successMessage)
+        refetch()
+      } catch (error) {
+        console.error(error)
+        toast.error(
+          error instanceof Error ? error.message : errorMessage
+        )
+      }
+    },
+    [refetch]
+  )
+
+  const handlePublish = React.useCallback(
+    (vagaId: string) =>
+      callVagaAction(
+        vagaId,
+        '/publish',
+        'Vaga publicada com sucesso!',
+        'Erro ao publicar vaga'
+      ),
+    [callVagaAction]
+  )
+
+  const handleSendToApproval = React.useCallback(
+    (vagaId: string) =>
+      callVagaAction(
+        vagaId,
+        '/send-to-approval',
+        'Vaga enviada para aprovação com sucesso!',
+        'Erro ao enviar vaga para aprovação'
+      ),
+    [callVagaAction]
+  )
+
+  const handleSendToDraft = React.useCallback(
+    (vagaId: string) =>
+      callVagaAction(
+        vagaId,
+        '/send-to-draft',
+        'Vaga enviada para edição com sucesso!',
+        'Erro ao enviar vaga para edição'
+      ),
+    [callVagaAction]
+  )
+
+  const handleFreeze = React.useCallback(
+    (vagaId: string) =>
+      callVagaAction(
+        vagaId,
+        '/freeze',
+        'Vaga pausada com sucesso!',
+        'Erro ao pausar vaga'
+      ),
+    [callVagaAction]
+  )
+
+  const handleUnfreeze = React.useCallback(
+    (vagaId: string) =>
+      callVagaAction(
+        vagaId,
+        '/unfreeze',
+        'Vaga descongelada com sucesso!',
+        'Erro ao descongelar vaga'
+      ),
+    [callVagaAction]
+  )
+
+  const handleDiscontinue = React.useCallback(
+    (vagaId: string) =>
+      callVagaAction(
+        vagaId,
+        '/discontinue',
+        'Vaga encerrada com sucesso!',
+        'Erro ao encerrar vaga'
+      ),
+    [callVagaAction]
+  )
+
+  const handleReactivate = React.useCallback(
+    (vagaId: string) =>
+      callVagaAction(
+        vagaId,
+        '/reactivate',
+        'Vaga reativada com sucesso!',
+        'Erro ao reativar vaga'
+      ),
+    [callVagaAction]
   )
 
   // Define table columns
@@ -530,6 +642,8 @@ export function EmpregabilidadeDataTable() {
         id: 'actions',
         cell: function Cell({ row }) {
           const vaga = row.original
+          const vagaId = vaga.id || ''
+          const status = (vaga.status || 'em_edicao') as VagaStatus
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -540,7 +654,7 @@ export function EmpregabilidadeDataTable() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link href={`/gorio/empregabilidade/${vaga.id}`}>
+                  <Link href={`/gorio/empregabilidade/${vagaId}`}>
                     <Eye className="mr-2 h-4 w-4" />
                     Visualizar
                   </Link>
@@ -548,19 +662,154 @@ export function EmpregabilidadeDataTable() {
                 {canEditGoRio && (
                   <>
                     <DropdownMenuItem asChild>
-                      <Link href={`/gorio/empregabilidade/${vaga.id}/edit`}>
+                      <Link href={`/gorio/empregabilidade/${vagaId}?edit=true`}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Editar
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => handleDelete(vaga.id || '')}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Excluir
-                    </DropdownMenuItem>
+                    {/* em_edicao: Enviar para aprovação, Publicar vaga, Excluir */}
+                    {status === 'em_edicao' && (
+                      <>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleSendToApproval(vagaId)}
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Enviar para aprovação
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handlePublish(vagaId)}
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Publicar vaga
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer text-destructive"
+                          onClick={() => openConfirmDialog('delete', vagaId)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {/* em_aprovacao: Publicar vaga, Enviar para edição, Excluir */}
+                    {status === 'em_aprovacao' && (
+                      <>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handlePublish(vagaId)}
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Publicar vaga
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleSendToDraft(vagaId)}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Enviar para edição
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer text-destructive"
+                          onClick={() => openConfirmDialog('delete', vagaId)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {/* publicado_ativo: Pausar vaga, Encerrar vaga, Excluir */}
+                    {status === 'publicado_ativo' && (
+                      <>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => openConfirmDialog('freeze', vagaId)}
+                        >
+                          <Pause className="mr-2 h-4 w-4" />
+                          Pausar vaga
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => openConfirmDialog('discontinue', vagaId)}
+                        >
+                          <Square className="mr-2 h-4 w-4" />
+                          Encerrar vaga
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer text-destructive"
+                          onClick={() => openConfirmDialog('delete', vagaId)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {/* publicado_expirado: Encerrar vaga, Excluir */}
+                    {status === 'publicado_expirado' && (
+                      <>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => openConfirmDialog('discontinue', vagaId)}
+                        >
+                          <Square className="mr-2 h-4 w-4" />
+                          Encerrar vaga
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer text-destructive"
+                          onClick={() => openConfirmDialog('delete', vagaId)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {/* vaga_congelada: Descongelar vaga, Encerrar vaga, Excluir */}
+                    {status === 'vaga_congelada' && (
+                      <>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleUnfreeze(vagaId)}
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Descongelar vaga
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => openConfirmDialog('discontinue', vagaId)}
+                        >
+                          <Square className="mr-2 h-4 w-4" />
+                          Encerrar vaga
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer text-destructive"
+                          onClick={() => openConfirmDialog('delete', vagaId)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {/* vaga_descontinuada: Reativar vaga, Excluir */}
+                    {status === 'vaga_descontinuada' && (
+                      <>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleReactivate(vagaId)}
+                        >
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Reativar vaga
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer text-destructive"
+                          onClick={() => openConfirmDialog('delete', vagaId)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </>
                 )}
               </DropdownMenuContent>
@@ -570,7 +819,16 @@ export function EmpregabilidadeDataTable() {
         size: 32,
       },
     ]
-  }, [activeTab, canEditGoRio, handleDelete])
+  }, [
+    activeTab,
+    canEditGoRio,
+    handlePublish,
+    handleReactivate,
+    handleSendToApproval,
+    handleSendToDraft,
+    handleUnfreeze,
+    openConfirmDialog,
+  ])
 
   const table = useReactTable({
     data: vagas,
@@ -721,6 +979,68 @@ export function EmpregabilidadeDataTable() {
           </DataTable>
         </TabsContent>
       </Tabs>
+
+      {/* Confirm dialogs for Excluir / Pausar / Encerrar from table dropdown */}
+      <ConfirmDialog
+        open={confirmDialog.open && confirmDialog.type === 'delete'}
+        onOpenChange={open =>
+          setConfirmDialog(prev => ({
+            ...prev,
+            open,
+            type: open ? prev.type : null,
+            vagaId: open ? prev.vagaId : null,
+          }))
+        }
+        title="Excluir vaga"
+        description="Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={() => {
+          const vagaId = confirmDialog.vagaId
+          if (vagaId) handleDelete(vagaId)
+        }}
+      />
+      <ConfirmDialog
+        open={confirmDialog.open && confirmDialog.type === 'freeze'}
+        onOpenChange={open =>
+          setConfirmDialog(prev => ({
+            ...prev,
+            open,
+            type: open ? prev.type : null,
+            vagaId: open ? prev.vagaId : null,
+          }))
+        }
+        title="Pausar vaga"
+        description="A vaga deixará de aceitar novas candidaturas e o status das candidaturas será atualizado para vaga congelada. Você pode descongelar depois."
+        confirmText="Pausar"
+        cancelText="Cancelar"
+        variant="default"
+        onConfirm={() => {
+          const vagaId = confirmDialog.vagaId
+          if (vagaId) handleFreeze(vagaId)
+        }}
+      />
+      <ConfirmDialog
+        open={confirmDialog.open && confirmDialog.type === 'discontinue'}
+        onOpenChange={open =>
+          setConfirmDialog(prev => ({
+            ...prev,
+            open,
+            type: open ? prev.type : null,
+            vagaId: open ? prev.vagaId : null,
+          }))
+        }
+        title="Encerrar vaga"
+        description="A vaga será descontinuada e o status das candidaturas será atualizado para vaga descontinuada. Você pode reativar depois."
+        confirmText="Encerrar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={() => {
+          const vagaId = confirmDialog.vagaId
+          if (vagaId) handleDiscontinue(vagaId)
+        }}
+      />
     </div>
   )
 }

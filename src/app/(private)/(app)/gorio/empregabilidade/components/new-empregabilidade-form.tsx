@@ -37,6 +37,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { useEmpresas } from '@/hooks/use-empresas'
 import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
 import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
+import { useTiposPcd } from '@/hooks/use-tipos-pcd'
+import { EmpregabilidadeAcessibilidadePCD } from '@/http-gorio/models/empregabilidadeAcessibilidadePCD'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -91,6 +93,13 @@ const formSchema = z.object({
   regime_contratacao: z.string().optional(),
   modelo_trabalho: z.string().optional(),
   vaga_pcd: z.boolean().optional(),
+  acessibilidade_pcd: z
+    .enum([
+      EmpregabilidadeAcessibilidadePCD.AcessibilidadeParaPCD,
+      EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD,
+      EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD,
+    ])
+    .optional(),
   tipo_pcd: z.array(z.string()).optional(),
   valor_vaga: z.number().optional(),
   bairro: z.string().optional(),
@@ -304,12 +313,29 @@ export const NewEmpregabilidadeForm = forwardRef<
       }))
     }, [modelos])
 
-    const tipoPcdOptions = [
-      { value: 'fisica', label: 'Deficiência Física' },
-      { value: 'visual', label: 'Deficiência Visual' },
-      { value: 'auditiva', label: 'Deficiência Auditiva' },
-      { value: 'intelectual', label: 'Deficiência Intelectual' },
-      { value: 'psicossocial', label: 'Deficiência Psicossocial' },
+    const { tiposPcd } = useTiposPcd()
+    const tipoPcdOptions = useMemo(
+      () =>
+        tiposPcd.map(t => ({
+          value: t.id ?? '',
+          label: t.descricao ?? '',
+        })),
+      [tiposPcd]
+    )
+
+    const acessibilidadePcdOptions = [
+      {
+        value: EmpregabilidadeAcessibilidadePCD.AcessibilidadeParaPCD,
+        label: 'Para PCD',
+      },
+      {
+        value: EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD,
+        label: 'Preferencial PCD',
+      },
+      {
+        value: EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD,
+        label: 'Exclusivo PCD',
+      },
     ]
 
     // Transform empresas API data to select options (CNPJ as value)
@@ -366,6 +392,7 @@ export const NewEmpregabilidadeForm = forwardRef<
             regime_contratacao: '',
             modelo_trabalho: '',
             vaga_pcd: false,
+            acessibilidade_pcd: undefined,
             tipo_pcd: [],
             valor_vaga: undefined,
             bairro: '',
@@ -645,20 +672,59 @@ export const NewEmpregabilidadeForm = forwardRef<
                     <FormControl>
                       <Checkbox
                         checked={field.value}
-                        onCheckedChange={field.onChange}
+                        onCheckedChange={checked => {
+                          field.onChange(checked)
+                          if (!checked) {
+                            form.setValue('acessibilidade_pcd', undefined)
+                            form.setValue('tipo_pcd', [])
+                          }
+                        }}
                         disabled={isReadOnly}
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>Vaga PCD</FormLabel>
                       <p className="text-sm text-muted-foreground">
-                        Marque se esta vaga é exclusiva para pessoas com
-                        deficiência
+                        Marque se esta vaga é para pessoas com deficiência
                       </p>
                     </div>
                   </FormItem>
                 )}
               />
+
+              {form.watch('vaga_pcd') && (
+                <FormField
+                  control={form.control}
+                  name="acessibilidade_pcd"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Acessibilidade PCD</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || undefined}
+                        disabled={isReadOnly}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo de acessibilidade" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {acessibilidadePcdOptions.map(opt => (
+                            <SelectItem
+                              key={opt.value}
+                              value={opt.value}
+                            >
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
