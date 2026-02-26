@@ -101,6 +101,8 @@ type VagaEmpregabilidadeStatus =
   | 'expired'
   | 'awaiting_approval'
   | 'draft'
+  | 'discontinued'
+  | 'frozen'
 
 // Helper function to map tab to API status
 const mapTabToStatus = (tab: VagaEmpregabilidadeStatus): VagaStatus => {
@@ -109,6 +111,8 @@ const mapTabToStatus = (tab: VagaEmpregabilidadeStatus): VagaStatus => {
     expired: 'publicado_expirado',
     awaiting_approval: 'em_aprovacao',
     draft: 'em_edicao',
+    discontinued: 'vaga_descontinuada',
+    frozen: 'vaga_congelada',
   }
   return statusMap[tab] || 'publicado_ativo'
 }
@@ -350,7 +354,10 @@ export function EmpregabilidadeDataTable() {
       {
         id: 'company',
         accessorFn: row =>
-          row.contratante?.nome_fantasia || row.id_contratante || '',
+          row.contratante?.razao_social?.trim() ||
+          row.contratante?.cnpj ||
+          row.id_contratante ||
+          '',
         header: ({
           column,
         }: { column: Column<EmpregabilidadeVaga, unknown> }) => (
@@ -358,7 +365,8 @@ export function EmpregabilidadeDataTable() {
         ),
         cell: ({ row }) => {
           const company =
-            row.original.contratante?.nome_fantasia ||
+            row.original.contratante?.razao_social?.trim() ||
+            row.original.contratante?.cnpj ||
             row.original.id_contratante
           return (
             <div className="flex items-center gap-2">
@@ -618,13 +626,15 @@ export function EmpregabilidadeDataTable() {
         onValueChange={handleTabChange}
         className="space-y-4"
       >
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="active">Vagas ativas</TabsTrigger>
           <TabsTrigger value="expired">Vagas expiradas</TabsTrigger>
           <TabsTrigger value="awaiting_approval">
-            Prontas para aprovação
+            Prontas p/ aprovação
           </TabsTrigger>
           <TabsTrigger value="draft">Rascunhos</TabsTrigger>
+          <TabsTrigger value="frozen">Vagas congeladas</TabsTrigger>
+          <TabsTrigger value="discontinued">Vagas encerradas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
@@ -670,6 +680,34 @@ export function EmpregabilidadeDataTable() {
         </TabsContent>
 
         <TabsContent value="draft" className="space-y-4">
+          <DataTable
+            table={table}
+            loading={loading}
+            onRowClick={(vaga: EmpregabilidadeVaga) => {
+              if (vaga.id) {
+                window.open(`/gorio/empregabilidade/${vaga.id}`, '_blank')
+              }
+            }}
+          >
+            <DataTableToolbar table={table} />
+          </DataTable>
+        </TabsContent>
+
+        <TabsContent value="frozen" className="space-y-4">
+          <DataTable
+            table={table}
+            loading={loading}
+            onRowClick={(vaga: EmpregabilidadeVaga) => {
+              if (vaga.id) {
+                window.open(`/gorio/empregabilidade/${vaga.id}`, '_blank')
+              }
+            }}
+          >
+            <DataTableToolbar table={table} />
+          </DataTable>
+        </TabsContent>
+
+        <TabsContent value="discontinued" className="space-y-4">
           <DataTable
             table={table}
             loading={loading}

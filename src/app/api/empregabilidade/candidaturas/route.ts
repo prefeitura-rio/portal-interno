@@ -75,6 +75,8 @@ export async function GET(request: Request) {
             '',
           enrollmentDate: c.created_at,
           status: mapBackendStatusToFrontend(c.status),
+          /** Raw backend status for display (e.g. "Vaga congelada" vs "Vaga encerrada" when status is cancelled) */
+          statusBackend: c.status,
           address: c.curriculo_snapshot?.endereco || '',
           neighborhood: c.curriculo_snapshot?.bairro || '',
           city: c.curriculo_snapshot?.cidade || '',

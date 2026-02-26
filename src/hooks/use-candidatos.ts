@@ -61,6 +61,8 @@ export interface Candidato {
   phone?: string
   enrollmentDate: string
   status: CandidatoStatus
+  /** Raw backend status (e.g. vaga_congelada, vaga_descontinuada) for display when status is cancelled */
+  statusBackend?: string
   address?: string
   neighborhood?: string
   city?: string

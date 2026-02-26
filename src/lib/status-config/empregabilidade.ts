@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Clock,
   FileText,
+  Pause,
   XCircle,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -14,6 +15,8 @@ export type VagaStatus =
   | 'em_aprovacao'
   | 'publicado_ativo'
   | 'publicado_expirado'
+  | 'vaga_congelada'
+  | 'vaga_descontinuada'
 
 interface VagaStatusConfig {
   icon: LucideIcon
@@ -46,6 +49,18 @@ export const vagaStatusConfig: Record<VagaStatus, VagaStatusConfig> = {
     label: 'Expirada',
     variant: 'outline',
     className: 'text-red-600 border-red-200 bg-red-50',
+  },
+  vaga_congelada: {
+    icon: Pause,
+    label: 'Pausada',
+    variant: 'secondary',
+    className: 'text-gray-600 border-gray-200 bg-gray-50',
+  },
+  vaga_descontinuada: {
+    icon: Ban,
+    label: 'Encerrada',
+    variant: 'secondary',
+    className: 'text-gray-600 border-gray-200 bg-gray-50',
   },
 }
 

@@ -30,7 +30,18 @@ import {
 } from '@/lib/status-config/empregabilidade'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Ban, Edit, Play, Save, Trash2, Users, X } from 'lucide-react'
+import {
+  Ban,
+  Edit,
+  Pause,
+  Play,
+  RefreshCw,
+  Save,
+  Square,
+  Trash2,
+  Users,
+  X,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -56,7 +67,7 @@ export default function EmpregabilidadeDetailPage({
   const [candidatesRefreshKey, setCandidatesRefreshKey] = useState(0)
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean
-    type: 'delete' | 'publish' | null
+    type: 'delete' | 'publish' | 'freeze' | 'discontinue' | null
   }>({
     open: false,
     type: null,
@@ -195,6 +206,16 @@ export default function EmpregabilidadeDetailPage({
     setConfirmDialog({ open: true, type: 'publish' })
   }, [])
 
+  // Handle freeze (pausar vaga)
+  const handleFreeze = useCallback(() => {
+    setConfirmDialog({ open: true, type: 'freeze' })
+  }, [])
+
+  // Handle discontinue (encerrar vaga)
+  const handleDiscontinue = useCallback(() => {
+    setConfirmDialog({ open: true, type: 'discontinue' })
+  }, [])
+
   const confirmPublish = useCallback(async () => {
     if (!vaga?.id) return
 
@@ -243,6 +264,104 @@ export default function EmpregabilidadeDetailPage({
       console.error('Error publishing vaga:', error)
       toast.error(
         error instanceof Error ? error.message : 'Erro ao publicar vaga'
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [vaga, refetch])
+
+  const confirmFreeze = useCallback(async () => {
+    if (!vaga?.id) return
+    setIsLoading(true)
+    setConfirmDialog({ open: false, type: null })
+    try {
+      const response = await fetch(
+        `/api/empregabilidade/vagas/${vaga.id}/freeze`,
+        { method: 'PUT' }
+      )
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao pausar vaga')
+      }
+      toast.success('Vaga pausada com sucesso!')
+      await refetch()
+    } catch (error) {
+      console.error('Error freezing vaga:', error)
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao pausar vaga'
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [vaga, refetch])
+
+  const confirmDiscontinue = useCallback(async () => {
+    if (!vaga?.id) return
+    setIsLoading(true)
+    setConfirmDialog({ open: false, type: null })
+    try {
+      const response = await fetch(
+        `/api/empregabilidade/vagas/${vaga.id}/discontinue`,
+        { method: 'PUT' }
+      )
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao encerrar vaga')
+      }
+      toast.success('Vaga encerrada com sucesso!')
+      await refetch()
+    } catch (error) {
+      console.error('Error discontinuing vaga:', error)
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao encerrar vaga'
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [vaga, refetch])
+
+  const handleReactivate = useCallback(async () => {
+    if (!vaga?.id) return
+    setIsLoading(true)
+    try {
+      const response = await fetch(
+        `/api/empregabilidade/vagas/${vaga.id}/reactivate`,
+        { method: 'PUT' }
+      )
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao reativar vaga')
+      }
+      toast.success('Vaga reativada com sucesso!')
+      await refetch()
+    } catch (error) {
+      console.error('Error reactivating vaga:', error)
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao reativar vaga'
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [vaga, refetch])
+
+  const handleUnfreeze = useCallback(async () => {
+    if (!vaga?.id) return
+    setIsLoading(true)
+    try {
+      const response = await fetch(
+        `/api/empregabilidade/vagas/${vaga.id}/unfreeze`,
+        { method: 'PUT' }
+      )
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao descongelar vaga')
+      }
+      toast.success('Vaga descongelada com sucesso!')
+      await refetch()
+    } catch (error) {
+      console.error('Error unfreezing vaga:', error)
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao descongelar vaga'
       )
     } finally {
       setIsLoading(false)
@@ -697,6 +816,46 @@ export default function EmpregabilidadeDetailPage({
                       <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </Button>
+                    {vaga.status === 'publicado_ativo' && (
+                      <>
+                        <Button
+                          onClick={handleFreeze}
+                          disabled={isLoading}
+                          variant="outline"
+                        >
+                          <Pause className="mr-2 h-4 w-4" />
+                          Pausar vaga
+                        </Button>
+                        <Button
+                          onClick={handleDiscontinue}
+                          disabled={isLoading}
+                          variant="outline"
+                        >
+                          <Square className="mr-2 h-4 w-4" />
+                          Encerrar vaga
+                        </Button>
+                      </>
+                    )}
+                    {vaga.status === 'vaga_congelada' && (
+                      <Button
+                        onClick={handleUnfreeze}
+                        disabled={isLoading}
+                        variant="outline"
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Descongelar vaga
+                      </Button>
+                    )}
+                    {vaga.status === 'vaga_descontinuada' && (
+                      <Button
+                        onClick={handleReactivate}
+                        disabled={isLoading}
+                        variant="outline"
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Reativar vaga
+                      </Button>
+                    )}
                     <Button
                       variant="destructive"
                       onClick={handleDelete}
@@ -782,6 +941,8 @@ export default function EmpregabilidadeDetailPage({
                     | 'em_edicao'
                     | 'publicado_ativo'
                     | 'publicado_expirado'
+                    | 'vaga_congelada'
+                    | 'vaga_descontinuada'
                     | null
                 }
                 onFormChangesDetected={handleFormChanges}
@@ -834,6 +995,32 @@ export default function EmpregabilidadeDetailPage({
         cancelText="Cancelar"
         onConfirm={confirmPublish}
         variant="default"
+      />
+
+      <ConfirmDialog
+        open={confirmDialog.open && confirmDialog.type === 'freeze'}
+        onOpenChange={open =>
+          setConfirmDialog({ open, type: open ? 'freeze' : null })
+        }
+        title="Pausar vaga"
+        description="A vaga deixará de aceitar novas candidaturas e o status das candidaturas será atualizado para vaga congelada. Você pode descongelar depois."
+        confirmText="Pausar"
+        cancelText="Cancelar"
+        onConfirm={confirmFreeze}
+        variant="default"
+      />
+
+      <ConfirmDialog
+        open={confirmDialog.open && confirmDialog.type === 'discontinue'}
+        onOpenChange={open =>
+          setConfirmDialog({ open, type: open ? 'discontinue' : null })
+        }
+        title="Encerrar vaga"
+        description="A vaga será descontinuada e o status das candidaturas será atualizado para vaga descontinuada. Você pode reativar depois."
+        confirmText="Encerrar"
+        cancelText="Cancelar"
+        onConfirm={confirmDiscontinue}
+        variant="destructive"
       />
 
       <ConfirmDialog

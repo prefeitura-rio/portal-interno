@@ -6,6 +6,8 @@ export type VagaStatus =
   | 'em_aprovacao'
   | 'publicado_ativo'
   | 'publicado_expirado'
+  | 'vaga_congelada'
+  | 'vaga_descontinuada'
 
 export interface UseEmpregabilidadeVagasParams {
   page?: number

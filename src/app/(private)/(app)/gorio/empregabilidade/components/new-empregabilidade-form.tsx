@@ -220,7 +220,13 @@ interface NewEmpregabilidadeFormProps {
   /** Show action buttons at the end of form (for /new page). Default: false */
   showActionButtons?: boolean
   /** Current vaga status - used for edit mode to determine validation rules */
-  vagaStatus?: 'em_edicao' | 'publicado_ativo' | 'publicado_expirado' | null
+  vagaStatus?:
+    | 'em_edicao'
+    | 'publicado_ativo'
+    | 'publicado_expirado'
+    | 'vaga_congelada'
+    | 'vaga_descontinuada'
+    | null
   onSubmit?: (data: FormData) => void
   onSaveDraft?: (data: FormData) => void
   /** Called when saving draft in edit mode and then publishing */
@@ -396,7 +402,10 @@ export const NewEmpregabilidadeForm = forwardRef<
       // Se está editando rascunho, onSubmit não deve ser chamado diretamente
       // (deve usar onSaveDraft ou onSaveAndPublish)
       const isPublished =
-        vagaStatus === 'publicado_ativo' || vagaStatus === 'publicado_expirado'
+        vagaStatus === 'publicado_ativo' ||
+        vagaStatus === 'publicado_expirado' ||
+        vagaStatus === 'vaga_congelada' ||
+        vagaStatus === 'vaga_descontinuada'
 
       if (isPublished || !vagaStatus) {
         // Validar para publicação (11 campos)

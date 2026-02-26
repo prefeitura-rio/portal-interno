@@ -97,6 +97,18 @@ const STATUS_LABELS: Record<CandidatoStatus, string> = {
   cancelled: 'Cancelado',
 }
 
+/** Label for display: when status is cancelled, show "Vaga congelada" or "Vaga encerrada" based on statusBackend */
+function getStatusDisplayLabel(candidato: {
+  status: CandidatoStatus
+  statusBackend?: string
+}): string {
+  if (candidato.status === 'cancelled' && candidato.statusBackend) {
+    if (candidato.statusBackend === 'vaga_congelada') return 'Vaga congelada'
+    if (candidato.statusBackend === 'vaga_descontinuada') return 'Vaga encerrada'
+  }
+  return STATUS_LABELS[candidato.status] ?? candidato.status
+}
+
 /** Formata o currículo em strings para exportação XLSX (uma coluna por seção). */
 function formatCurriculoForExport(curriculo: CurriculoSnapshot | undefined): {
   formacoes: string
@@ -528,8 +540,9 @@ export function CandidatesTable({
         header: ({ column }: { column: Column<Candidato, unknown> }) => (
           <DataTableColumnHeader column={column} title="Status" />
         ),
-        cell: ({ cell }) => {
+        cell: ({ cell, row }) => {
           const status = cell.getValue<Candidato['status']>()
+          const candidato = row.original
           const statusConfig = {
             approved: {
               label: 'Aprovado',
@@ -544,9 +557,13 @@ export function CandidatesTable({
               icon: Clock,
             },
             cancelled: {
-              label: 'Cancelado',
+              label: getStatusDisplayLabel(candidato),
               variant: 'secondary' as const,
-              className: 'text-red-600 border-red-200 bg-red-50',
+              className:
+                candidato.statusBackend === 'vaga_congelada' ||
+                candidato.statusBackend === 'vaga_descontinuada'
+                  ? 'bg-gray-100 text-gray-800'
+                  : 'text-red-600 border-red-200 bg-red-50',
               icon: XCircle,
             },
             rejected: {
@@ -836,7 +853,7 @@ export function CandidatesTable({
           'Data de Inscrição': c.enrollmentDate
             ? new Date(c.enrollmentDate).toLocaleDateString('pt-BR')
             : '',
-          Status: STATUS_LABELS[c.status] ?? c.status,
+          Status: getStatusDisplayLabel(c),
           Endereço: c.address ?? '',
           Bairro: c.neighborhood ?? '',
           Cidade: c.city ?? '',
@@ -1184,9 +1201,16 @@ export function CandidatesTable({
                                         'bg-yellow-100 text-yellow-800',
                                     },
                                     cancelled: {
-                                      label: 'Cancelado',
+                                      label: getStatusDisplayLabel(
+                                        selectedCandidato
+                                      ),
                                       className:
-                                        'text-red-600 border-red-200 bg-red-50',
+                                        selectedCandidato.statusBackend ===
+                                          'vaga_congelada' ||
+                                        selectedCandidato.statusBackend ===
+                                          'vaga_descontinuada'
+                                          ? 'bg-gray-100 text-gray-800'
+                                          : 'text-red-600 border-red-200 bg-red-50',
                                     },
                                     rejected: {
                                       label: 'Recusado',
