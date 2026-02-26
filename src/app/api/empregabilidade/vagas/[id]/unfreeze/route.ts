@@ -44,7 +44,10 @@ export async function PUT(
       )
     }
     if (response.status === 404) {
-      return NextResponse.json({ error: 'Vaga não encontrada.' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Vaga não encontrada.' },
+        { status: 404 }
+      )
     }
     if (response.status === 409) {
       return NextResponse.json(

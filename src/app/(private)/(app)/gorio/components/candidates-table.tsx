@@ -104,7 +104,8 @@ function getStatusDisplayLabel(candidato: {
 }): string {
   if (candidato.status === 'cancelled' && candidato.statusBackend) {
     if (candidato.statusBackend === 'vaga_congelada') return 'Vaga congelada'
-    if (candidato.statusBackend === 'vaga_descontinuada') return 'Vaga encerrada'
+    if (candidato.statusBackend === 'vaga_descontinuada')
+      return 'Vaga encerrada'
   }
   return STATUS_LABELS[candidato.status] ?? candidato.status
 }
@@ -1201,9 +1202,10 @@ export function CandidatesTable({
                                         'bg-yellow-100 text-yellow-800',
                                     },
                                     cancelled: {
-                                      label: getStatusDisplayLabel(
-                                        selectedCandidato
-                                      ),
+                                      label:
+                                        getStatusDisplayLabel(
+                                          selectedCandidato
+                                        ),
                                       className:
                                         selectedCandidato.statusBackend ===
                                           'vaga_congelada' ||
