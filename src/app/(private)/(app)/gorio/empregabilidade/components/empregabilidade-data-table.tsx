@@ -32,7 +32,7 @@
  * - useEmpregabilidadeVagas: API calls with server-side filtering
  * - useSearchParams: Next.js URL state management
  * - useDebouncedCallback: Custom debounce hook
- * - useHeimdallUserContext: RBAC (canEditGoRio permission)
+ * - useHeimdallUserContext: RBAC (hasEmpregoTrabalhoAccess + empregabilidade permissions)
  *
  * REFERENCE IMPLEMENTATION:
  * - src/app/(private)/(app)/servicos-municipais/components/services-data-table.tsx
@@ -64,6 +64,7 @@ import {
   type VagaStatus,
   vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
+import { canDeleteVagaWithStatus } from '@/types/heimdall-roles'
 import {
   type Column,
   type ColumnDef,
@@ -126,10 +127,15 @@ export function EmpregabilidadeDataTable() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const {
+    user,
     loading: userRoleLoading,
     isAdmin,
-    canEditGoRio,
+    hasEmpregoTrabalhoAccess,
+    canPublishVagaAsAtivo,
+    canFreezeOrDiscontinueVaga,
   } = useHeimdallUserContext()
+
+  const canEditVagas = hasEmpregoTrabalhoAccess
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'expiresAt', desc: true },
@@ -660,7 +666,7 @@ export function EmpregabilidadeDataTable() {
                     Visualizar
                   </Link>
                 </DropdownMenuItem>
-                {canEditGoRio && (
+                {canEditVagas && (
                   <>
                     <DropdownMenuItem asChild>
                       <Link href={`/gorio/empregabilidade/${vagaId}?edit=true`}>
@@ -679,32 +685,38 @@ export function EmpregabilidadeDataTable() {
                           <Play className="mr-2 h-4 w-4" />
                           Enviar para aprovação
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => handlePublish(vagaId)}
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          Publicar vaga
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer text-destructive"
-                          onClick={() => openConfirmDialog('delete', vagaId)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {canPublishVagaAsAtivo && (
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => handlePublish(vagaId)}
+                          >
+                            <Play className="mr-2 h-4 w-4" />
+                            Publicar vaga
+                          </DropdownMenuItem>
+                        )}
+                        {canDeleteVagaWithStatus(user?.roles, status) && (
+                          <DropdownMenuItem
+                            className="cursor-pointer text-destructive"
+                            onClick={() => openConfirmDialog('delete', vagaId)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
                       </>
                     )}
                     {/* em_aprovacao: Publicar vaga, Enviar para edição, Excluir */}
                     {status === 'em_aprovacao' && (
                       <>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => handlePublish(vagaId)}
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          Publicar vaga
-                        </DropdownMenuItem>
+                        {canPublishVagaAsAtivo && (
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => handlePublish(vagaId)}
+                          >
+                            <Play className="mr-2 h-4 w-4" />
+                            Publicar vaga
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           className="cursor-pointer"
                           onClick={() => handleSendToDraft(vagaId)}
@@ -712,109 +724,133 @@ export function EmpregabilidadeDataTable() {
                           <Pencil className="mr-2 h-4 w-4" />
                           Enviar para edição
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer text-destructive"
-                          onClick={() => openConfirmDialog('delete', vagaId)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {canDeleteVagaWithStatus(user?.roles, status) && (
+                          <DropdownMenuItem
+                            className="cursor-pointer text-destructive"
+                            onClick={() => openConfirmDialog('delete', vagaId)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
                       </>
                     )}
                     {/* publicado_ativo: Pausar vaga, Encerrar vaga, Excluir */}
                     {status === 'publicado_ativo' && (
                       <>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => openConfirmDialog('freeze', vagaId)}
-                        >
-                          <Pause className="mr-2 h-4 w-4" />
-                          Pausar vaga
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() =>
-                            openConfirmDialog('discontinue', vagaId)
-                          }
-                        >
-                          <Square className="mr-2 h-4 w-4" />
-                          Encerrar vaga
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer text-destructive"
-                          onClick={() => openConfirmDialog('delete', vagaId)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {canFreezeOrDiscontinueVaga && (
+                          <>
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() =>
+                                openConfirmDialog('freeze', vagaId)
+                              }
+                            >
+                              <Pause className="mr-2 h-4 w-4" />
+                              Pausar vaga
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() =>
+                                openConfirmDialog('discontinue', vagaId)
+                              }
+                            >
+                              <Square className="mr-2 h-4 w-4" />
+                              Encerrar vaga
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {canDeleteVagaWithStatus(user?.roles, status) && (
+                          <DropdownMenuItem
+                            className="cursor-pointer text-destructive"
+                            onClick={() => openConfirmDialog('delete', vagaId)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
                       </>
                     )}
                     {/* publicado_expirado: Encerrar vaga, Excluir */}
                     {status === 'publicado_expirado' && (
                       <>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() =>
-                            openConfirmDialog('discontinue', vagaId)
-                          }
-                        >
-                          <Square className="mr-2 h-4 w-4" />
-                          Encerrar vaga
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer text-destructive"
-                          onClick={() => openConfirmDialog('delete', vagaId)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {canFreezeOrDiscontinueVaga && (
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() =>
+                              openConfirmDialog('discontinue', vagaId)
+                            }
+                          >
+                            <Square className="mr-2 h-4 w-4" />
+                            Encerrar vaga
+                          </DropdownMenuItem>
+                        )}
+                        {canDeleteVagaWithStatus(user?.roles, status) && (
+                          <DropdownMenuItem
+                            className="cursor-pointer text-destructive"
+                            onClick={() => openConfirmDialog('delete', vagaId)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
                       </>
                     )}
                     {/* vaga_congelada: Descongelar vaga, Encerrar vaga, Excluir */}
                     {status === 'vaga_congelada' && (
                       <>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => handleUnfreeze(vagaId)}
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          Descongelar vaga
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() =>
-                            openConfirmDialog('discontinue', vagaId)
-                          }
-                        >
-                          <Square className="mr-2 h-4 w-4" />
-                          Encerrar vaga
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer text-destructive"
-                          onClick={() => openConfirmDialog('delete', vagaId)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {canFreezeOrDiscontinueVaga && (
+                          <>
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() => handleUnfreeze(vagaId)}
+                            >
+                              <Play className="mr-2 h-4 w-4" />
+                              Descongelar vaga
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() =>
+                                openConfirmDialog('discontinue', vagaId)
+                              }
+                            >
+                              <Square className="mr-2 h-4 w-4" />
+                              Encerrar vaga
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {canDeleteVagaWithStatus(user?.roles, status) && (
+                          <DropdownMenuItem
+                            className="cursor-pointer text-destructive"
+                            onClick={() => openConfirmDialog('delete', vagaId)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
                       </>
                     )}
                     {/* vaga_descontinuada: Reativar vaga, Excluir */}
                     {status === 'vaga_descontinuada' && (
                       <>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => handleReactivate(vagaId)}
-                        >
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Reativar vaga
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer text-destructive"
-                          onClick={() => openConfirmDialog('delete', vagaId)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {canFreezeOrDiscontinueVaga && (
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => handleReactivate(vagaId)}
+                          >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Reativar vaga
+                          </DropdownMenuItem>
+                        )}
+                        {canDeleteVagaWithStatus(user?.roles, status) && (
+                          <DropdownMenuItem
+                            className="cursor-pointer text-destructive"
+                            onClick={() => openConfirmDialog('delete', vagaId)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
                       </>
                     )}
                   </>
@@ -828,7 +864,10 @@ export function EmpregabilidadeDataTable() {
     ]
   }, [
     activeTab,
-    canEditGoRio,
+    canEditVagas,
+    canPublishVagaAsAtivo,
+    canFreezeOrDiscontinueVaga,
+    user?.roles,
     handlePublish,
     handleReactivate,
     handleSendToApproval,

@@ -21,7 +21,17 @@ import Link from 'next/link'
 import { EmpregabilidadeDataTable } from './components/empregabilidade-data-table'
 
 export default function EmpregabilidadePage() {
-  const { canEditGoRio } = useHeimdallUserContext()
+  const {
+    canEditGoRio,
+    hasEmpregoTrabalhoAccess,
+    canManageEmpresasInEmpregabilidade,
+  } = useHeimdallUserContext()
+
+  const showActions = canEditGoRio || hasEmpregoTrabalhoAccess
+  const showEmpresasDropdown =
+    canEditGoRio ||
+    (hasEmpregoTrabalhoAccess && canManageEmpresasInEmpregabilidade)
+
   return (
     <ContentLayout title="Gestão de Vagas de Empregos">
       <div className="space-y-4">
@@ -46,31 +56,33 @@ export default function EmpregabilidadePage() {
               plataforma.
             </p>
           </div>
-          {canEditGoRio && (
+          {showActions && (
             <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="cursor-pointer">
-                    <Building2 className="mr-2 h-4 w-4" />
-                    Empresas
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href="/gorio/empregabilidade/new/empresa">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Criar nova Empresa
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/gorio/empregabilidade/empresas">
-                      <Eye className="mr-2 h-4 w-4" />
-                      Ver empresas
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {showEmpresasDropdown && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="cursor-pointer">
+                      <Building2 className="mr-2 h-4 w-4" />
+                      Empresas
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link href="/gorio/empregabilidade/new/empresa">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Criar nova Empresa
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/gorio/empregabilidade/empresas">
+                        <Eye className="mr-2 h-4 w-4" />
+                        Ver empresas
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
 
               <Link href="/gorio/empregabilidade/new">
                 <Button className="cursor-pointer">

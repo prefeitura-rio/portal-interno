@@ -5,6 +5,9 @@ import type { HeimdallUser } from '@/types/heimdall-roles'
 import {
   canEditBuscaServices,
   canEditGoRio,
+  canFreezeOrDiscontinueVaga,
+  canManageEmpresasInEmpregabilidade,
+  canPublishVagaAsAtivo,
   hasAdminPrivileges,
   hasBuscaServicesAccess,
   hasEmpregoTrabalhoAccess,
@@ -22,6 +25,12 @@ interface HeimdallUserContextType {
   hasEmpregoTrabalhoAccess: boolean
   canEditGoRio: boolean
   isGoRioAdmin: boolean
+  /** Can publish vaga as publicado_ativo (false for editor_com_curadoria) */
+  canPublishVagaAsAtivo: boolean
+  /** Can freeze/discontinue vaga (false for editor_com_curadoria) */
+  canFreezeOrDiscontinueVaga: boolean
+  /** Can create/edit empresas in empregabilidade (false for editor_com_curadoria) */
+  canManageEmpresasInEmpregabilidade: boolean
   hasBuscaServicesAccess: boolean
   canEditBuscaServices: boolean
   isBuscaServicesAdmin: boolean
@@ -37,6 +46,9 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
   const empregoTrabalhoAccess = hasEmpregoTrabalhoAccess(user?.roles)
   const canEditGoRioPermission = canEditGoRio(user?.roles)
   const isGoRioAdminPermission = isGoRioAdmin(user?.roles)
+  const canPublishVaga = canPublishVagaAsAtivo(user?.roles)
+  const canFreezeDiscontinue = canFreezeOrDiscontinueVaga(user?.roles)
+  const canManageEmpresas = canManageEmpresasInEmpregabilidade(user?.roles)
   const buscaServicesAccess = hasBuscaServicesAccess(user?.roles)
   const canEdit = canEditBuscaServices(user?.roles)
   const isBuscaAdmin = isBuscaServicesAdmin(user?.roles)
@@ -51,6 +63,9 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
         hasEmpregoTrabalhoAccess: empregoTrabalhoAccess,
         canEditGoRio: canEditGoRioPermission,
         isGoRioAdmin: isGoRioAdminPermission,
+        canPublishVagaAsAtivo: canPublishVaga,
+        canFreezeOrDiscontinueVaga: canFreezeDiscontinue,
+        canManageEmpresasInEmpregabilidade: canManageEmpresas,
         hasBuscaServicesAccess: buscaServicesAccess,
         canEditBuscaServices: canEdit,
         isBuscaServicesAdmin: isBuscaAdmin,

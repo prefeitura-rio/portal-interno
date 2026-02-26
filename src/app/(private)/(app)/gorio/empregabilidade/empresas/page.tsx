@@ -80,13 +80,14 @@ function formatCNPJ(cnpj: string): string {
  * - Create new empresa button
  *
  * PERMISSIONS:
- * - View: All authenticated users
- * - Edit/Delete: Only users with canEditGoRio permission
+ * - Route: admin, superadmin, go:admin, go:empregabilidade:admin, go:empregabilidade:editor_sem_curadoria (editor_com_curadoria blocked by middleware)
+ * - Edit/Delete/Create: canManageEmpresasInEmpregabilidade (same as route access)
  */
 
 export default function EmpresasPage() {
   const router = useRouter()
-  const { loading: userRoleLoading, canEditGoRio } = useHeimdallUserContext()
+  const { loading: userRoleLoading, canManageEmpresasInEmpregabilidade } =
+    useHeimdallUserContext()
 
   // Table state
   const [sorting, setSorting] = React.useState<SortingState>([
@@ -302,7 +303,7 @@ export default function EmpresasPage() {
                     Visualizar
                   </Link>
                 </DropdownMenuItem>
-                {canEditGoRio && (
+                {canManageEmpresasInEmpregabilidade && (
                   <>
                     <DropdownMenuItem asChild>
                       <Link
@@ -329,7 +330,7 @@ export default function EmpresasPage() {
         size: 32,
       },
     ]
-  }, [canEditGoRio, handleDelete])
+  }, [canManageEmpresasInEmpregabilidade, handleDelete])
 
   // Initialize table
   const table = useReactTable({
@@ -398,7 +399,7 @@ export default function EmpresasPage() {
                 Gerencie as empresas cadastradas no sistema
               </p>
             </div>
-            {canEditGoRio && (
+            {canManageEmpresasInEmpregabilidade && (
               <Button asChild>
                 <Link href="/gorio/empregabilidade/new/empresa">
                   <Plus className="mr-2 h-4 w-4" />

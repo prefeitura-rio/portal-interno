@@ -46,7 +46,9 @@ export default function ViewEmpresaPage({
   params: Promise<{ cnpj: string }>
 }) {
   const { cnpj } = use(params)
-  const { canEditGoRio } = useHeimdallUserContext()
+  const { canEditGoRio, canManageEmpresasInEmpregabilidade } =
+    useHeimdallUserContext()
+  const canEditEmpresa = canEditGoRio || canManageEmpresasInEmpregabilidade
 
   // Fetch empresa using custom hook
   const { empresa, loading, error } = useEmpresa(cnpj)
@@ -207,7 +209,7 @@ export default function ViewEmpresaPage({
                 CNPJ: {formatCNPJ(empresa.cnpj || '')}
               </p>
             </div>
-            {canEditGoRio && (
+            {canEditEmpresa && (
               <Button asChild>
                 <Link href={`/gorio/empregabilidade/empresas/${cnpj}/edit`}>
                   <Pencil className="mr-2 h-4 w-4" />
@@ -378,7 +380,7 @@ export default function ViewEmpresaPage({
           <Button variant="outline" asChild>
             <Link href="/gorio/empregabilidade/empresas">Voltar</Link>
           </Button>
-          {canEditGoRio && (
+          {canEditEmpresa && (
             <Button asChild>
               <Link href={`/gorio/empregabilidade/empresas/${cnpj}/edit`}>
                 <Pencil className="mr-2 h-4 w-4" />

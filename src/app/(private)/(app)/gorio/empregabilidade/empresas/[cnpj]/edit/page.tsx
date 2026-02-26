@@ -44,7 +44,7 @@ import { toast } from 'sonner'
  * 7. Redirect to view page
  *
  * VALIDATION:
- * - User must have canEditGoRio permission
+ * - User must have canManageEmpresasInEmpregabilidade (or canEditGoRio)
  * - CNPJ validation (14 digits)
  * - All form validations from NewEmpresaForm apply
  * - API route validates field consistency
@@ -57,7 +57,9 @@ export default function EditEmpresaPage({
 }) {
   const { cnpj } = use(params)
   const router = useRouter()
-  const { canEditGoRio } = useHeimdallUserContext()
+  const { canEditGoRio, canManageEmpresasInEmpregabilidade } =
+    useHeimdallUserContext()
+  const canEditEmpresa = canEditGoRio || canManageEmpresasInEmpregabilidade
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Fetch empresa using custom hook
@@ -175,7 +177,7 @@ export default function EditEmpresaPage({
   }
 
   // Redirect if user doesn't have permission
-  if (!canEditGoRio) {
+  if (!canEditEmpresa) {
     return (
       <ContentLayout title="Empresas">
         <div className="space-y-4">

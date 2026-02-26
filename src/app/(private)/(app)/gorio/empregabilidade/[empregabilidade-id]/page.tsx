@@ -34,6 +34,7 @@ import {
   type VagaStatus,
   vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
+import { canDeleteVagaWithStatus } from '@/types/heimdall-roles'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -60,7 +61,14 @@ export default function EmpregabilidadeDetailPage({
   // Router and search params (must be at the top)
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { canEditGoRio } = useHeimdallUserContext()
+  const {
+    user,
+    hasEmpregoTrabalhoAccess,
+    canPublishVagaAsAtivo,
+    canFreezeOrDiscontinueVaga,
+  } = useHeimdallUserContext()
+
+  const canEditVagas = hasEmpregoTrabalhoAccess
 
   // All state hooks (must be in consistent order)
   const [vagaId, setVagaId] = useState<string | null>(null)
@@ -642,7 +650,7 @@ export default function EmpregabilidadeDetailPage({
   // Auto-enable edit mode if edit=true query parameter is present
   useEffect(() => {
     const editParam = searchParams.get('edit')
-    if (editParam === 'true' && canEditGoRio) {
+    if (editParam === 'true' && canEditVagas) {
       setIsEditing(true)
     }
 
@@ -654,7 +662,7 @@ export default function EmpregabilidadeDetailPage({
       // Set default tab if no tab param exists
       updateTabInUrl('about')
     }
-  }, [searchParams, updateTabInUrl, canEditGoRio])
+  }, [searchParams, updateTabInUrl, canEditVagas])
 
   // Show loading state
   if (loading || !vagaId) {
@@ -785,7 +793,7 @@ export default function EmpregabilidadeDetailPage({
             </div>
 
             {/* Action Buttons */}
-            {canEditGoRio && (
+            {canEditVagas && (
               <div className="flex gap-2">
                 {!isEditing && (
                   <>
@@ -801,38 +809,41 @@ export default function EmpregabilidadeDetailPage({
                       </Button>
                     )}
 
-                    {vaga.status === 'em_aprovacao' && (
-                      <Button
-                        onClick={handlePublish}
-                        disabled={isLoading}
-                        variant="default"
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Publicar vaga
-                      </Button>
-                    )}
+                    {vaga.status === 'em_aprovacao' &&
+                      canPublishVagaAsAtivo && (
+                        <Button
+                          onClick={handlePublish}
+                          disabled={isLoading}
+                          variant="default"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Publicar vaga
+                        </Button>
+                      )}
 
-                    {vaga.status === 'vaga_congelada' && (
-                      <Button
-                        onClick={handleUnfreeze}
-                        disabled={isLoading}
-                        variant="default"
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Descongelar vaga
-                      </Button>
-                    )}
+                    {vaga.status === 'vaga_congelada' &&
+                      canFreezeOrDiscontinueVaga && (
+                        <Button
+                          onClick={handleUnfreeze}
+                          disabled={isLoading}
+                          variant="default"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Descongelar vaga
+                        </Button>
+                      )}
 
-                    {vaga.status === 'vaga_descontinuada' && (
-                      <Button
-                        onClick={handleReactivate}
-                        disabled={isLoading}
-                        variant="default"
-                      >
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Reativar vaga
-                      </Button>
-                    )}
+                    {vaga.status === 'vaga_descontinuada' &&
+                      canFreezeOrDiscontinueVaga && (
+                        <Button
+                          onClick={handleReactivate}
+                          disabled={isLoading}
+                          variant="default"
+                        >
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Reativar vaga
+                        </Button>
+                      )}
 
                     {/* Edit button is always visible */}
                     <Button
@@ -862,23 +873,30 @@ export default function EmpregabilidadeDetailPage({
                             - dropdown: Publicar vaga, Excluir */}
                         {vaga.status === 'em_edicao' && (
                           <>
-                            <DropdownMenuItem
-                              onClick={handlePublish}
-                              disabled={isLoading}
-                              className="cursor-pointer"
-                            >
-                              <Play className="mr-2 h-4 w-4" />
-                              Publicar vaga
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={handleDelete}
-                              disabled={isLoading}
-                              variant="destructive"
-                              className="cursor-pointer"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
+                            {canPublishVagaAsAtivo && (
+                              <DropdownMenuItem
+                                onClick={handlePublish}
+                                disabled={isLoading}
+                                className="cursor-pointer"
+                              >
+                                <Play className="mr-2 h-4 w-4" />
+                                Publicar vaga
+                              </DropdownMenuItem>
+                            )}
+                            {canDeleteVagaWithStatus(
+                              user?.roles,
+                              vaga.status ?? ''
+                            ) && (
+                              <DropdownMenuItem
+                                onClick={handleDelete}
+                                disabled={isLoading}
+                                variant="destructive"
+                                className="cursor-pointer"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
 
@@ -895,15 +913,20 @@ export default function EmpregabilidadeDetailPage({
                               <Edit className="mr-2 h-4 w-4" />
                               Enviar para edição
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={handleDelete}
-                              disabled={isLoading}
-                              variant="destructive"
-                              className="cursor-pointer"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
+                            {canDeleteVagaWithStatus(
+                              user?.roles,
+                              vaga.status ?? ''
+                            ) && (
+                              <DropdownMenuItem
+                                onClick={handleDelete}
+                                disabled={isLoading}
+                                variant="destructive"
+                                className="cursor-pointer"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
 
@@ -912,31 +935,40 @@ export default function EmpregabilidadeDetailPage({
                             - dropdown: Pausar vaga, Encerrar vaga, Excluir */}
                         {vaga.status === 'publicado_ativo' && (
                           <>
-                            <DropdownMenuItem
-                              onClick={handleFreeze}
-                              disabled={isLoading}
-                              className="cursor-pointer"
-                            >
-                              <Pause className="mr-2 h-4 w-4" />
-                              Pausar vaga
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={handleDiscontinue}
-                              disabled={isLoading}
-                              className="cursor-pointer"
-                            >
-                              <Square className="mr-2 h-4 w-4" />
-                              Encerrar vaga
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={handleDelete}
-                              disabled={isLoading}
-                              variant="destructive"
-                              className="cursor-pointer"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
+                            {canFreezeOrDiscontinueVaga && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={handleFreeze}
+                                  disabled={isLoading}
+                                  className="cursor-pointer"
+                                >
+                                  <Pause className="mr-2 h-4 w-4" />
+                                  Pausar vaga
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={handleDiscontinue}
+                                  disabled={isLoading}
+                                  className="cursor-pointer"
+                                >
+                                  <Square className="mr-2 h-4 w-4" />
+                                  Encerrar vaga
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {canDeleteVagaWithStatus(
+                              user?.roles,
+                              vaga.status ?? ''
+                            ) && (
+                              <DropdownMenuItem
+                                onClick={handleDelete}
+                                disabled={isLoading}
+                                variant="destructive"
+                                className="cursor-pointer"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
 
@@ -945,23 +977,30 @@ export default function EmpregabilidadeDetailPage({
                             - dropdown: Encerrar vaga, Excluir */}
                         {vaga.status === 'publicado_expirado' && (
                           <>
-                            <DropdownMenuItem
-                              onClick={handleDiscontinue}
-                              disabled={isLoading}
-                              className="cursor-pointer"
-                            >
-                              <Square className="mr-2 h-4 w-4" />
-                              Encerrar vaga
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={handleDelete}
-                              disabled={isLoading}
-                              variant="destructive"
-                              className="cursor-pointer"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
+                            {canFreezeOrDiscontinueVaga && (
+                              <DropdownMenuItem
+                                onClick={handleDiscontinue}
+                                disabled={isLoading}
+                                className="cursor-pointer"
+                              >
+                                <Square className="mr-2 h-4 w-4" />
+                                Encerrar vaga
+                              </DropdownMenuItem>
+                            )}
+                            {canDeleteVagaWithStatus(
+                              user?.roles,
+                              vaga.status ?? ''
+                            ) && (
+                              <DropdownMenuItem
+                                onClick={handleDelete}
+                                disabled={isLoading}
+                                variant="destructive"
+                                className="cursor-pointer"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
 
@@ -970,14 +1009,38 @@ export default function EmpregabilidadeDetailPage({
                             - dropdown: Encerrar vaga, Excluir */}
                         {vaga.status === 'vaga_congelada' && (
                           <>
-                            <DropdownMenuItem
-                              onClick={handleDiscontinue}
-                              disabled={isLoading}
-                              className="cursor-pointer"
-                            >
-                              <Square className="mr-2 h-4 w-4" />
-                              Encerrar vaga
-                            </DropdownMenuItem>
+                            {canFreezeOrDiscontinueVaga && (
+                              <DropdownMenuItem
+                                onClick={handleDiscontinue}
+                                disabled={isLoading}
+                                className="cursor-pointer"
+                              >
+                                <Square className="mr-2 h-4 w-4" />
+                                Encerrar vaga
+                              </DropdownMenuItem>
+                            )}
+                            {canDeleteVagaWithStatus(
+                              user?.roles,
+                              vaga.status ?? ''
+                            ) && (
+                              <DropdownMenuItem
+                                onClick={handleDelete}
+                                disabled={isLoading}
+                                variant="destructive"
+                                className="cursor-pointer"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            )}
+                          </>
+                        )}
+
+                        {/* Vaga encerrada (vaga_descontinuada):
+                            - visíveis: Editar, Reativar vaga
+                            - dropdown: Excluir */}
+                        {vaga.status === 'vaga_descontinuada' &&
+                          canDeleteVagaWithStatus(user?.roles, vaga.status) && (
                             <DropdownMenuItem
                               onClick={handleDelete}
                               disabled={isLoading}
@@ -987,23 +1050,7 @@ export default function EmpregabilidadeDetailPage({
                               <Trash2 className="mr-2 h-4 w-4" />
                               Excluir
                             </DropdownMenuItem>
-                          </>
-                        )}
-
-                        {/* Vaga encerrada (vaga_descontinuada):
-                            - visíveis: Editar, Reativar vaga
-                            - dropdown: Excluir */}
-                        {vaga.status === 'vaga_descontinuada' && (
-                          <DropdownMenuItem
-                            onClick={handleDelete}
-                            disabled={isLoading}
-                            variant="destructive"
-                            className="cursor-pointer"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        )}
+                          )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </>
@@ -1013,7 +1060,7 @@ export default function EmpregabilidadeDetailPage({
                   <>
                     {vaga.status === 'em_edicao' ? (
                       <>
-                        {/* Draft: Show "Salvar Rascunho" and "Salvar e Publicar" */}
+                        {/* Draft: Show "Salvar Rascunho" and "Salvar e Publicar" (editor_com_curadoria cannot publish) */}
                         <Button
                           variant="outline"
                           onClick={handleSaveDraft}
@@ -1022,13 +1069,15 @@ export default function EmpregabilidadeDetailPage({
                           <Save className="mr-2 h-4 w-4" />
                           {isLoading ? 'Salvando...' : 'Salvar Rascunho'}
                         </Button>
-                        <Button
-                          onClick={handleSaveAndPublish}
-                          disabled={isLoading}
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          {isLoading ? 'Publicando...' : 'Salvar e Publicar'}
-                        </Button>
+                        {canPublishVagaAsAtivo && (
+                          <Button
+                            onClick={handleSaveAndPublish}
+                            disabled={isLoading}
+                          >
+                            <Play className="mr-2 h-4 w-4" />
+                            {isLoading ? 'Publicando...' : 'Salvar e Publicar'}
+                          </Button>
+                        )}
                       </>
                     ) : (
                       /* Published: Show only "Salvar" */
@@ -1105,7 +1154,7 @@ export default function EmpregabilidadeDetailPage({
               )}
               headerTitle="Candidaturas na vaga"
               onAddCandidateClick={
-                canEditGoRio ? () => setShowNewCandidateDialog(true) : undefined
+                canEditVagas ? () => setShowNewCandidateDialog(true) : undefined
               }
             />
           </TabsContent>
