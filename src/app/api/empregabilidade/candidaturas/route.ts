@@ -121,7 +121,7 @@ export async function GET(request: Request) {
 
       console.log(`Mapped ${candidatos.length} candidatos`)
 
-      // Summary: always from full dataset (no search, no status) so cards don't change when filtering
+      // Summary: use resumo from API when present (backend returns resumo with counts per status)
       let summary = {
         total: 0,
         pendingCount: 0,
@@ -129,7 +129,35 @@ export async function GET(request: Request) {
         rejectedCount: 0,
         cancelledCount: 0,
       }
-      if (idVaga) {
+      const resumo = data.resumo as
+        | {
+            aprovada?: number
+            candidatura_enviada?: number
+            reprovada?: number
+            vaga_congelada?: number
+            vaga_descontinuada?: number
+          }
+        | undefined
+      if (resumo) {
+        const aprovada = resumo.aprovada ?? 0
+        const candidaturaEnviada = resumo.candidatura_enviada ?? 0
+        const reprovada = resumo.reprovada ?? 0
+        const vagaCongelada = resumo.vaga_congelada ?? 0
+        const vagaDescontinuada = resumo.vaga_descontinuada ?? 0
+        summary = {
+          total:
+            aprovada +
+            candidaturaEnviada +
+            reprovada +
+            vagaCongelada +
+            vagaDescontinuada,
+          pendingCount: candidaturaEnviada,
+          approvedCount: aprovada,
+          rejectedCount: reprovada,
+          cancelledCount: vagaCongelada + vagaDescontinuada,
+        }
+      } else if (idVaga) {
+        // Fallback: when API does not return resumo, fetch full list and compute (legacy)
         const summaryResponse = await getApiV1EmpregabilidadeCandidaturas({
           page: 1,
           pageSize: 10000,

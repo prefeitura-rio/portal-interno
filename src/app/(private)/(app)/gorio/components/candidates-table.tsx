@@ -1004,7 +1004,7 @@ export function CandidatesTable({
         </div>
       )}
 
-      {/* Summary Cards */}
+      {/* Summary Cards (resumo from API: aprovada, candidatura_enviada, reprovada) */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
