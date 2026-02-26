@@ -1,3 +1,5 @@
+import { EMPREGO_TRABALHO_ROLES } from '@/types/heimdall-roles'
+
 /**
  * Route permission configuration using Heimdall roles
  * Maps routes to their required roles from the Heimdall API
@@ -10,14 +12,17 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:admin',
     'busca:services:admin',
     'busca:services:editor',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
   ],
 
-  // GO Rio - Capacitação (only admin, superadmin, and go:admin)
+  // GO Rio - Capacitação (only admin, superadmin, go:admin - NOT empregabilidade roles)
   '/gorio/courses': ['admin', 'superadmin', 'go:admin'],
   '/gorio/courses/new': ['admin', 'superadmin', 'go:admin'],
   '/gorio/courses/course/*': ['admin', 'superadmin', 'go:admin'],
 
-  // GO Rio - Emprego e Trabalho (only admin, superadmin, and go:admin)
+  // GO Rio - MEI (only admin, superadmin, go:admin - NOT empregabilidade roles)
   '/gorio/oportunidades-mei': ['admin', 'superadmin', 'go:admin'],
   '/gorio/oportunidades-mei/new': ['admin', 'superadmin', 'go:admin'],
   '/gorio/oportunidades-mei/oportunidade-mei/*': [
@@ -26,12 +31,12 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:admin',
   ],
 
-  // GO Rio - Empregabilidade (only admin, superadmin, and go:admin)
-  '/gorio/empregabilidade': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/empregabilidade/new': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/empregabilidade/*': ['admin', 'superadmin', 'go:admin'],
+  // GO Rio - Empregabilidade (admin, superadmin, go:admin + 3 empregabilidade roles)
+  '/gorio/empregabilidade': [...EMPREGO_TRABALHO_ROLES],
+  '/gorio/empregabilidade/new': [...EMPREGO_TRABALHO_ROLES],
+  '/gorio/empregabilidade/*': [...EMPREGO_TRABALHO_ROLES],
 
-  // Serviços Municipais (admin, superadmin, busca:services roles)
+  // Serviços Municipais (admin, superadmin, busca:services roles - NOT empregabilidade)
   '/servicos-municipais/servicos': [
     'admin',
     'superadmin',
@@ -58,6 +63,9 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:admin',
     'busca:services:admin',
     'busca:services:editor',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
   ],
 } as const
 

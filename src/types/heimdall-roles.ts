@@ -5,6 +5,20 @@
  */
 
 /**
+ * Roles that grant access to the "Emprego e trabalho" module (oportunidades-mei, empregabilidade)
+ */
+export const EMPREGO_TRABALHO_ROLES = [
+  'admin',
+  'superadmin',
+  'go:admin',
+  'go:empregabilidade:admin',
+  'go:empregabilidade:editor_sem_curadoria',
+  'go:empregabilidade:editor_com_curadoria',
+] as const
+
+export type EmpregoTrabalhoRole = (typeof EMPREGO_TRABALHO_ROLES)[number]
+
+/**
  * Available roles in the Heimdall system
  */
 export type HeimdallRole =
@@ -13,6 +27,9 @@ export type HeimdallRole =
   | 'busca:services:admin' // Admin for Busca services module
   | 'busca:services:editor' // Editor for Busca services module
   | 'go:admin' // Admin for GO Rio module only
+  | 'go:empregabilidade:admin' // Admin for Emprego e trabalho only
+  | 'go:empregabilidade:editor_sem_curadoria' // Editor (sem curadoria) - Emprego e trabalho only
+  | 'go:empregabilidade:editor_com_curadoria' // Editor (com curadoria) - Emprego e trabalho only
 
 /**
  * User information from Heimdall API
@@ -36,6 +53,9 @@ export function isHeimdallRole(role: string): role is HeimdallRole {
     'busca:services:admin',
     'busca:services:editor',
     'go:admin',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
   ].includes(role)
 }
 
@@ -56,11 +76,41 @@ export function hasAdminPrivileges(roles: string[] | undefined): boolean {
 }
 
 /**
- * Check if user has access to GO Rio module
+ * Check if user has access to GO Rio module (Capacitação + Emprego e trabalho)
+ * Admin, superadmin, go:admin only (not the empregabilidade-only roles)
  */
 export function hasGoRioAccess(roles: string[] | undefined): boolean {
   if (!roles) return false
   return hasAdminPrivileges(roles) || roles.includes('go:admin')
+}
+
+/**
+ * Check if user has access to the "Emprego e trabalho" module
+ * (oportunidades-mei, empregabilidade). Includes admin, superadmin, go:admin and the 3 empregabilidade roles.
+ */
+export function hasEmpregoTrabalhoAccess(roles: string[] | undefined): boolean {
+  if (!roles) return false
+  return EMPREGO_TRABALHO_ROLES.some(role => roles.includes(role))
+}
+
+/**
+ * Check if user has ONLY access to Emprego e trabalho (one of the 3 empregabilidade roles)
+ * and not admin/superadmin/go:admin. Used to hide other modules (Capacitação, Serviços) from menu.
+ */
+export function isOnlyEmpregoTrabalhoUser(
+  roles: string[] | undefined
+): boolean {
+  if (!roles) return false
+  const empregabilidadeOnlyRoles = [
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
+  ] as const
+  const hasEmpregabilidadeRole = empregabilidadeOnlyRoles.some(role =>
+    roles.includes(role)
+  )
+  const hasFullAccess = hasAdminPrivileges(roles) || roles.includes('go:admin')
+  return hasEmpregabilidadeRole && !hasFullAccess
 }
 
 /**

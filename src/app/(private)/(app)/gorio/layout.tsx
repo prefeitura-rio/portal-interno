@@ -1,4 +1,5 @@
 import { ProtectedRoute } from '@/components/auth/protected-route'
+import { EMPREGO_TRABALHO_ROLES } from '@/types/heimdall-roles'
 
 export default function GorioLayout({
   children,
@@ -7,7 +8,7 @@ export default function GorioLayout({
 }) {
   return (
     <>
-      <ProtectedRoute requiredRoles={['admin', 'superadmin', 'go:admin']}>
+      <ProtectedRoute requiredRoles={[...EMPREGO_TRABALHO_ROLES]}>
         {children}
       </ProtectedRoute>
     </>

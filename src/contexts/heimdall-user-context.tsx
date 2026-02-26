@@ -7,6 +7,7 @@ import {
   canEditGoRio,
   hasAdminPrivileges,
   hasBuscaServicesAccess,
+  hasEmpregoTrabalhoAccess,
   hasGoRioAccess,
   isBuscaServicesAdmin,
   isGoRioAdmin,
@@ -18,6 +19,7 @@ interface HeimdallUserContextType {
   loading: boolean
   isAdmin: boolean
   hasGoRioAccess: boolean
+  hasEmpregoTrabalhoAccess: boolean
   canEditGoRio: boolean
   isGoRioAdmin: boolean
   hasBuscaServicesAccess: boolean
@@ -32,6 +34,7 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = hasAdminPrivileges(user?.roles)
   const goRioAccess = hasGoRioAccess(user?.roles)
+  const empregoTrabalhoAccess = hasEmpregoTrabalhoAccess(user?.roles)
   const canEditGoRioPermission = canEditGoRio(user?.roles)
   const isGoRioAdminPermission = isGoRioAdmin(user?.roles)
   const buscaServicesAccess = hasBuscaServicesAccess(user?.roles)
@@ -45,6 +48,7 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
         loading,
         isAdmin,
         hasGoRioAccess: goRioAccess,
+        hasEmpregoTrabalhoAccess: empregoTrabalhoAccess,
         canEditGoRio: canEditGoRioPermission,
         isGoRioAdmin: isGoRioAdminPermission,
         hasBuscaServicesAccess: buscaServicesAccess,
