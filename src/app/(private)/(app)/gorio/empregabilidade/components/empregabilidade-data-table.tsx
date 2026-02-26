@@ -340,9 +340,12 @@ export function EmpregabilidadeDataTable() {
       method: 'PUT' | 'DELETE' = 'PUT'
     ) => {
       try {
-        const response = await fetch(`/api/empregabilidade/vagas/${vagaId}${endpoint}`, {
-          method,
-        })
+        const response = await fetch(
+          `/api/empregabilidade/vagas/${vagaId}${endpoint}`,
+          {
+            method,
+          }
+        )
         if (!response.ok) {
           const errorData = await response.json().catch(() => null)
           throw new Error(errorData?.error || errorMessage)
@@ -351,9 +354,7 @@ export function EmpregabilidadeDataTable() {
         refetch()
       } catch (error) {
         console.error(error)
-        toast.error(
-          error instanceof Error ? error.message : errorMessage
-        )
+        toast.error(error instanceof Error ? error.message : errorMessage)
       }
     },
     [refetch]
@@ -732,7 +733,9 @@ export function EmpregabilidadeDataTable() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="cursor-pointer"
-                          onClick={() => openConfirmDialog('discontinue', vagaId)}
+                          onClick={() =>
+                            openConfirmDialog('discontinue', vagaId)
+                          }
                         >
                           <Square className="mr-2 h-4 w-4" />
                           Encerrar vaga
@@ -751,7 +754,9 @@ export function EmpregabilidadeDataTable() {
                       <>
                         <DropdownMenuItem
                           className="cursor-pointer"
-                          onClick={() => openConfirmDialog('discontinue', vagaId)}
+                          onClick={() =>
+                            openConfirmDialog('discontinue', vagaId)
+                          }
                         >
                           <Square className="mr-2 h-4 w-4" />
                           Encerrar vaga
@@ -777,7 +782,9 @@ export function EmpregabilidadeDataTable() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="cursor-pointer"
-                          onClick={() => openConfirmDialog('discontinue', vagaId)}
+                          onClick={() =>
+                            openConfirmDialog('discontinue', vagaId)
+                          }
                         >
                           <Square className="mr-2 h-4 w-4" />
                           Encerrar vaga

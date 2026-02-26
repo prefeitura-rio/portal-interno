@@ -711,10 +711,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                         </FormControl>
                         <SelectContent>
                           {acessibilidadePcdOptions.map(opt => (
-                            <SelectItem
-                              key={opt.value}
-                              value={opt.value}
-                            >
+                            <SelectItem key={opt.value} value={opt.value}>
                               {opt.label}
                             </SelectItem>
                           ))}
