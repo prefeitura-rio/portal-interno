@@ -33,6 +33,7 @@ import { EmpregabilidadeAcessibilidadePCD } from '@/http-gorio/models/empregabil
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { hasEditorComCuradoriaRestrictions } from '@/types/heimdall-roles'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useRouter } from 'next/navigation'
 import React, {
   forwardRef,
   useEffect,
@@ -41,9 +42,8 @@ import React, {
   useState,
 } from 'react'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { z } from 'zod'
 import {
   type EtapaProcessoSeletivo,
   EtapasProcessoSeletivo,
