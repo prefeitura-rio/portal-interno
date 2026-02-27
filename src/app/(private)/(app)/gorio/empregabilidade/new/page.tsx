@@ -115,6 +115,83 @@ export default function NewEmpregabilidadePage() {
     }
   }
 
+  const handleCreateAndSendToApproval = async (data: any) => {
+    try {
+      console.log('🟡 [handleCreateAndSendToApproval] Form data received:', data)
+
+      setIsSubmitting(true)
+      setHasUnsavedChanges(false)
+
+      const {
+        contratante,
+        regime_contratacao,
+        modelo_trabalho,
+        tipo_pcd,
+        vaga_pcd,
+        acessibilidade_pcd,
+        ...rest
+      } = data
+
+      const tiposPcdForApi =
+        (tipo_pcd?.length ?? 0) > 0
+          ? (tipo_pcd ?? []).map((id: string) => ({ id }))
+          : undefined
+
+      const apiData = {
+        ...rest,
+        id_contratante: contratante,
+        id_regime_contratacao: regime_contratacao,
+        id_modelo_trabalho: modelo_trabalho,
+        acessibilidade_pcd: vaga_pcd ? acessibilidade_pcd : undefined,
+        tipos_pcd: tiposPcdForApi,
+      }
+
+      console.log(
+        '🟡 [handleCreateAndSendToApproval] Mapped API data:',
+        apiData
+      )
+
+      const response = await fetch(
+        '/api/empregabilidade/vagas/new/send-to-approval',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(apiData),
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+
+        const errorMessage =
+          errorData?.error || 'Falha ao enviar vaga para aprovação'
+
+        toast.error(errorMessage)
+
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+      console.log(
+        'Vaga created and sent to approval successfully:',
+        result
+      )
+
+      toast.success('Vaga enviada para aprovação com sucesso!')
+      router.push('/gorio/empregabilidade?tab=awaiting_approval')
+      router.refresh()
+    } catch (error) {
+      console.error('Error creating vaga and sending to approval:', error)
+      toast.error('Erro ao enviar vaga para aprovação', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
+      setIsSubmitting(false)
+      setHasUnsavedChanges(true)
+    }
+  }
+
   const handleCreateDraft = async (data: any) => {
     try {
       console.log('🟢 [handleCreateDraft] Form data received:', data)
@@ -245,6 +322,7 @@ export default function NewEmpregabilidadePage() {
           showActionButtons={true}
           onSubmit={handleCreateVaga}
           onSaveDraft={handleCreateDraft}
+          onSendForApproval={handleCreateAndSendToApproval}
           onFormChangesDetected={setHasUnsavedChanges}
         />
       </div>

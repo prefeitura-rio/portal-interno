@@ -53,7 +53,17 @@ const formSchema = z.object({
   logo_url: z
     .string()
     .min(1, { message: 'URL da imagem é obrigatória.' })
-    .url({ message: 'Deve ser uma URL válida.' }),
+    .url({ message: 'Deve ser uma URL válida.' })
+    .refine(
+      value =>
+        value.startsWith(
+          'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/'
+        ),
+      {
+        message:
+          'A URL deve começar com https://storage.googleapis.com/rj-escritorio-dev-public/superapp/',
+      }
+    ),
   // Campos opcionais adicionais
   website: z
     .string()
@@ -388,12 +398,12 @@ export function NewEmpresaForm({
 
                 return (
                   <FormItem>
-                    <FormLabel>URL do Logo*</FormLabel>
+                    <FormLabel>URL da Logo*</FormLabel>
                     <FormControl>
                       <div className="space-y-3">
                         <Input
                           type="url"
-                          placeholder="https://exemplo.com.br/logo.png"
+                          placeholder="https://storage.googleapis.com/rj-escritorio-dev-public/superapp/..."
                           {...field}
                           onChange={e => {
                             field.onChange(e)

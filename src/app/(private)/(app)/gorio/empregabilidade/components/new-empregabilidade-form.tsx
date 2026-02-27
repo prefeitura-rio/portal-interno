@@ -242,6 +242,8 @@ interface NewEmpregabilidadeFormProps {
   onSaveDraft?: (data: FormData) => void
   /** Called when saving draft in edit mode and then publishing */
   onSaveAndPublish?: (data: FormData) => void
+  /** Called when sending vaga for approval on /new page */
+  onSendForApproval?: (data: FormData) => void
   onFormChangesDetected?: (hasChanges: boolean) => void
 }
 
@@ -249,6 +251,7 @@ export interface NewEmpregabilidadeFormRef {
   triggerSubmit: () => void
   triggerSaveDraft: () => void
   triggerSaveAndPublish: () => void
+  triggerSendForApproval: () => void
 }
 
 export const NewEmpregabilidadeForm = forwardRef<
@@ -264,6 +267,7 @@ export const NewEmpregabilidadeForm = forwardRef<
       onSubmit,
       onSaveDraft,
       onSaveAndPublish,
+      onSendForApproval,
       onFormChangesDetected,
     },
     ref
@@ -446,6 +450,9 @@ export const NewEmpregabilidadeForm = forwardRef<
       triggerSaveAndPublish: () => {
         handleSaveAndPublish()
       },
+      triggerSendForApproval: () => {
+        handleSendForApproval()
+      },
     }))
 
     const handleSubmit = (data: FormData) => {
@@ -501,6 +508,20 @@ export const NewEmpregabilidadeForm = forwardRef<
       // Se passou validação, enviar
       if (onSaveAndPublish) {
         onSaveAndPublish(currentValues)
+      }
+    }
+
+    const handleSendForApproval = () => {
+      const currentValues = form.getValues()
+      console.log('Save and send to approval:', currentValues)
+
+      // Validar 11 campos obrigatórios (mesmo conjunto de publicação)
+      if (!validateForPublish(currentValues, form)) {
+        return
+      }
+
+      if (onSendForApproval) {
+        onSendForApproval(currentValues)
       }
     }
 
@@ -987,6 +1008,14 @@ export const NewEmpregabilidadeForm = forwardRef<
                 disabled={isReadOnly}
               >
                 Salvar Rascunho
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSendForApproval}
+                disabled={isReadOnly}
+              >
+                Enviar p/ aprovação
               </Button>
               <Button type="submit" disabled={isReadOnly}>
                 Publicar Vaga
