@@ -117,7 +117,10 @@ export default function NewEmpregabilidadePage() {
 
   const handleCreateAndSendToApproval = async (data: any) => {
     try {
-      console.log('🟡 [handleCreateAndSendToApproval] Form data received:', data)
+      console.log(
+        '🟡 [handleCreateAndSendToApproval] Form data received:',
+        data
+      )
 
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
@@ -174,10 +177,7 @@ export default function NewEmpregabilidadePage() {
       }
 
       const result = await response.json()
-      console.log(
-        'Vaga created and sent to approval successfully:',
-        result
-      )
+      console.log('Vaga created and sent to approval successfully:', result)
 
       toast.success('Vaga enviada para aprovação com sucesso!')
       router.push('/gorio/empregabilidade?tab=awaiting_approval')
