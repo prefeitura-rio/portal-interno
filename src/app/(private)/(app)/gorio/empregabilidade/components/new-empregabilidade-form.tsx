@@ -1,16 +1,5 @@
 'use client'
 
-import { zodResolver } from '@hookform/resolvers/zod'
-import React, {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useState,
-} from 'react'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-
 import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -35,12 +24,24 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEmpresas } from '@/hooks/use-empresas'
 import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
 import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
 import { useTiposPcd } from '@/hooks/use-tipos-pcd'
 import { EmpregabilidadeAcessibilidadePCD } from '@/http-gorio/models/empregabilidadeAcessibilidadePCD'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
+import { hasEditorComCuradoriaRestrictions } from '@/types/heimdall-roles'
+import { zodResolver } from '@hookform/resolvers/zod'
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -273,6 +274,8 @@ export const NewEmpregabilidadeForm = forwardRef<
     ref
   ) => {
     const router = useRouter()
+    const { user, canPublishVagaAsAtivo } = useHeimdallUserContext()
+    const hasEditorRestrictions = hasEditorComCuradoriaRestrictions(user?.roles)
 
     // Memoize neighborhood options for the combobox
     const neighborhoodOptions = useMemo(() => {
@@ -1011,15 +1014,17 @@ export const NewEmpregabilidadeForm = forwardRef<
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant={hasEditorRestrictions ? 'default' : 'outline'}
                 onClick={handleSendForApproval}
                 disabled={isReadOnly}
               >
                 Enviar p/ aprovação
               </Button>
-              <Button type="submit" disabled={isReadOnly}>
-                Publicar Vaga
-              </Button>
+              {canPublishVagaAsAtivo && (
+                <Button type="submit" disabled={isReadOnly}>
+                  Publicar Vaga
+                </Button>
+              )}
             </div>
           )}
         </form>

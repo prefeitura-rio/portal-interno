@@ -28,9 +28,7 @@ export default function EmpregabilidadePage() {
   } = useHeimdallUserContext()
 
   const showActions = canEditGoRio || hasEmpregoTrabalhoAccess
-  const showEmpresasDropdown =
-    canEditGoRio ||
-    (hasEmpregoTrabalhoAccess && canManageEmpresasInEmpregabilidade)
+  const showEmpresasDropdown = canEditGoRio || hasEmpregoTrabalhoAccess
 
   return (
     <ContentLayout title="Gestão de Vagas de Empregos">
@@ -68,12 +66,14 @@ export default function EmpregabilidadePage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href="/gorio/empregabilidade/new/empresa">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Criar nova Empresa
-                      </Link>
-                    </DropdownMenuItem>
+                    {canManageEmpresasInEmpregabilidade && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/gorio/empregabilidade/new/empresa">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Criar nova Empresa
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link href="/gorio/empregabilidade/empresas">
                         <Eye className="mr-2 h-4 w-4" />

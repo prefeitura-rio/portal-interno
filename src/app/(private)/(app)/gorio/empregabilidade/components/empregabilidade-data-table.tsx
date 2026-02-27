@@ -64,7 +64,10 @@ import {
   type VagaStatus,
   vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
-import { canDeleteVagaWithStatus } from '@/types/heimdall-roles'
+import {
+  canDeleteVagaWithStatus,
+  hasEditorComCuradoriaRestrictions,
+} from '@/types/heimdall-roles'
 import {
   type Column,
   type ColumnDef,
@@ -136,6 +139,7 @@ export function EmpregabilidadeDataTable() {
   } = useHeimdallUserContext()
 
   const canEditVagas = hasEmpregoTrabalhoAccess
+  const hasEditorRestrictions = hasEditorComCuradoriaRestrictions(user?.roles)
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'expiresAt', desc: true },
@@ -651,6 +655,12 @@ export function EmpregabilidadeDataTable() {
           const vaga = row.original
           const vagaId = vaga.id || ''
           const status = (vaga.status || 'em_edicao') as VagaStatus
+          const isReadOnlyForEditor =
+            hasEditorRestrictions &&
+            (status === 'publicado_ativo' ||
+              status === 'publicado_expirado' ||
+              status === 'vaga_congelada' ||
+              status === 'vaga_descontinuada')
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -666,7 +676,7 @@ export function EmpregabilidadeDataTable() {
                     Visualizar
                   </Link>
                 </DropdownMenuItem>
-                {canEditVagas && (
+                {canEditVagas && !isReadOnlyForEditor && (
                   <>
                     <DropdownMenuItem asChild>
                       <Link href={`/gorio/empregabilidade/${vagaId}?edit=true`}>
@@ -865,6 +875,7 @@ export function EmpregabilidadeDataTable() {
   }, [
     activeTab,
     canEditVagas,
+    hasEditorRestrictions,
     canPublishVagaAsAtivo,
     canFreezeOrDiscontinueVaga,
     user?.roles,

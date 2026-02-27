@@ -34,7 +34,10 @@ import {
   type VagaStatus,
   vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
-import { canDeleteVagaWithStatus } from '@/types/heimdall-roles'
+import {
+  canDeleteVagaWithStatus,
+  hasEditorComCuradoriaRestrictions,
+} from '@/types/heimdall-roles'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -69,6 +72,7 @@ export default function EmpregabilidadeDetailPage({
   } = useHeimdallUserContext()
 
   const canEditVagas = hasEmpregoTrabalhoAccess
+  const hasEditorRestrictions = hasEditorComCuradoriaRestrictions(user?.roles)
 
   // All state hooks (must be in consistent order)
   const [vagaId, setVagaId] = useState<string | null>(null)
@@ -522,6 +526,19 @@ export default function EmpregabilidadeDetailPage({
     [vaga, refetch, mapFormToApiData]
   )
 
+  // Get status config and read-only flag for editor_com_curadoria
+  const statusData = vaga?.status
+    ? vagaStatusConfig[vaga.status as VagaStatus]
+    : null
+  const StatusIcon = statusData?.icon
+
+  const isReadOnlyForEditor =
+    hasEditorRestrictions &&
+    (vaga?.status === 'publicado_ativo' ||
+      vaga?.status === 'publicado_expirado' ||
+      vaga?.status === 'vaga_congelada' ||
+      vaga?.status === 'vaga_descontinuada')
+
   // Handle form submission (for published vagas - valida 11 campos)
   const handleFormSubmit = useCallback(
     async (data: any) => {
@@ -650,8 +667,13 @@ export default function EmpregabilidadeDetailPage({
   // Auto-enable edit mode if edit=true query parameter is present
   useEffect(() => {
     const editParam = searchParams.get('edit')
-    if (editParam === 'true' && canEditVagas) {
+
+    if (editParam === 'true' && canEditVagas && !isReadOnlyForEditor) {
       setIsEditing(true)
+    }
+
+    if (isReadOnlyForEditor) {
+      setIsEditing(false)
     }
 
     // Set active tab from URL parameter
@@ -662,7 +684,7 @@ export default function EmpregabilidadeDetailPage({
       // Set default tab if no tab param exists
       updateTabInUrl('about')
     }
-  }, [searchParams, updateTabInUrl, canEditVagas])
+  }, [searchParams, updateTabInUrl, canEditVagas, isReadOnlyForEditor])
 
   // Show loading state
   if (loading || !vagaId) {
@@ -699,12 +721,6 @@ export default function EmpregabilidadeDetailPage({
       </ContentLayout>
     )
   }
-
-  // Get status config
-  const statusData = vaga.status
-    ? vagaStatusConfig[vaga.status as VagaStatus]
-    : null
-  const StatusIcon = statusData?.icon
 
   // Map vaga data to form format
   const formData = {
@@ -793,7 +809,7 @@ export default function EmpregabilidadeDetailPage({
             </div>
 
             {/* Action Buttons */}
-            {canEditVagas && (
+            {canEditVagas && !isReadOnlyForEditor && (
               <div className="flex gap-2">
                 {!isEditing && (
                   <>
@@ -1122,11 +1138,17 @@ export default function EmpregabilidadeDetailPage({
 
           <TabsContent value="about" className="mt-6">
             {/* Empregabilidade Form */}
-            <div className={!isEditing ? 'pointer-events-none opacity-90' : ''}>
+            <div
+              className={
+                !isEditing || isReadOnlyForEditor
+                  ? 'pointer-events-none opacity-90'
+                  : ''
+              }
+            >
               <NewEmpregabilidadeForm
                 ref={formRef}
                 initialData={formData}
-                isReadOnly={!isEditing}
+                isReadOnly={!isEditing || isReadOnlyForEditor}
                 vagaStatus={
                   vaga.status as
                     | 'em_edicao'

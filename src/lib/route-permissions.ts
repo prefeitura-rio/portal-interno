@@ -41,6 +41,7 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:admin',
     'go:empregabilidade:admin',
     'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
   ],
   '/gorio/empregabilidade/new/empresa': [
     'admin',
@@ -55,6 +56,7 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:admin',
     'go:empregabilidade:admin',
     'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
   ],
   '/gorio/empregabilidade/*': [...EMPREGO_TRABALHO_ROLES],
 
