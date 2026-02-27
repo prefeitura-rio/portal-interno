@@ -145,8 +145,9 @@ const publishValidationSchema = z.object({
     .string()
     .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
   valor_vaga: z
-    .number({ required_error: 'Valor da vaga é obrigatório.' })
-    .min(0, { message: 'Valor da vaga deve ser maior ou igual a zero.' }),
+    .number()
+    .min(0, { message: 'Valor da vaga deve ser maior ou igual a zero.' })
+    .optional(),
   bairro: z.string().min(1, { message: 'Bairro é obrigatório.' }),
   data_limite: z.date({ required_error: 'Data limite é obrigatória.' }),
   id_orgao_parceiro: z
@@ -776,7 +777,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                 name="valor_vaga"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor da Vaga (R$)*</FormLabel>
+                    <FormLabel>Valor da Vaga (R$)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
