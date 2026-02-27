@@ -77,9 +77,9 @@ import {
   useCandidatos,
 } from '@/hooks/use-candidatos'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import type { VagaStatus } from '@/lib/status-config/empregabilidade'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
-import type { VagaStatus } from '@/lib/status-config/empregabilidade'
 
 interface CandidatesTableProps {
   empregabilidadeId: string
