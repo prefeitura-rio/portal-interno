@@ -79,6 +79,7 @@ import {
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
+import type { VagaStatus } from '@/lib/status-config/empregabilidade'
 
 interface CandidatesTableProps {
   empregabilidadeId: string
@@ -88,6 +89,8 @@ interface CandidatesTableProps {
   headerTitle?: string
   /** Chamado ao clicar em "Adicionar candidato" (ex: abre o dialog na página). Só mostra o botão se este callback for passado. */
   onAddCandidateClick?: () => void
+  /** Status atual da vaga para controlar disponibilidade do botão de adicionar candidato. */
+  vagaStatus?: VagaStatus
 }
 
 const STATUS_LABELS: Record<CandidatoStatus, string> = {
@@ -190,6 +193,7 @@ export function CandidatesTable({
   informacoesComplementares = [],
   headerTitle,
   onAddCandidateClick,
+  vagaStatus,
 }: CandidatesTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'enrollmentDate', desc: true },
@@ -225,6 +229,11 @@ export function CandidatesTable({
 
   // Get user permissions
   const { canEditGoRio } = useHeimdallUserContext()
+
+  const isAddCandidateDisabled =
+    vagaStatus === 'publicado_expirado' ||
+    vagaStatus === 'vaga_congelada' ||
+    vagaStatus === 'vaga_descontinuada'
 
   // Convert column filters to candidato filters (status = backend is mapped in API route; search = debounced)
   const filters = React.useMemo(() => {
@@ -991,7 +1000,11 @@ export function CandidatesTable({
           </h2>
           <div className="flex items-center gap-2">
             {onAddCandidateClick && (
-              <Button variant="outline" onClick={onAddCandidateClick}>
+              <Button
+                variant="outline"
+                onClick={onAddCandidateClick}
+                disabled={isAddCandidateDisabled}
+              >
                 <UserPlus className="mr-2 h-4 w-4" />
                 Adicionar candidato
               </Button>

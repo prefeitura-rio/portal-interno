@@ -1149,6 +1149,15 @@ export default function EmpregabilidadeDetailPage({
               key={candidatesRefreshKey}
               empregabilidadeId={vagaId}
               empregabilidadeTitle={vaga.titulo}
+              vagaStatus={
+                vaga.status as
+                  | 'em_edicao'
+                  | 'em_aprovacao'
+                  | 'publicado_ativo'
+                  | 'publicado_expirado'
+                  | 'vaga_congelada'
+                  | 'vaga_descontinuada'
+              }
               informacoesComplementares={fromApiInformacaoComplementar(
                 vaga.informacoes_complementares
               )}
