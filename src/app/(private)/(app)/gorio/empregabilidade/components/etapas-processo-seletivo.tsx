@@ -210,7 +210,7 @@ export function EtapasProcessoSeletivo({
             )}
             <div className="flex-1 space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
+                <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded shrink-0 whitespace-nowrap">
                   Etapa {etapa.ordem}
                 </span>
                 <span className="font-medium">{etapa.titulo}</span>
