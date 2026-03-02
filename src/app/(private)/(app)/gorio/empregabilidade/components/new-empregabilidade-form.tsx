@@ -812,10 +812,12 @@ export const NewEmpregabilidadeForm = forwardRef<
                         onChange={e => {
                           const value = e.target.value
                           field.onChange(
-                            value === '' ? undefined : Number.parseFloat(value)
+                            value === ''
+                              ? null
+                              : Number.parseFloat(value)
                           )
                         }}
-                        value={field.value || ''}
+                        value={field.value ?? ''}
                         disabled={isReadOnly}
                       />
                     </FormControl>
