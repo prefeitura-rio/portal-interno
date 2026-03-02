@@ -812,9 +812,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                         onChange={e => {
                           const value = e.target.value
                           field.onChange(
-                            value === ''
-                              ? null
-                              : Number.parseFloat(value)
+                            value === '' ? null : Number.parseFloat(value)
                           )
                         }}
                         value={field.value ?? ''}
