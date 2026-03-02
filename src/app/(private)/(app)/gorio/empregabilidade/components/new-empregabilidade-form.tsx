@@ -103,7 +103,7 @@ const formSchema = z.object({
     ])
     .optional(),
   tipo_pcd: z.array(z.string()).optional(),
-  valor_vaga: z.number().optional(),
+  valor_vaga: z.number().nullish(),
   bairro: z.string().optional(),
   data_limite: z.date().optional(),
   requisitos: z.string().optional(),
@@ -134,7 +134,7 @@ const draftValidationSchema = z.object({
     .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
 })
 
-// Schema para validação de publicação (11 campos obrigatórios)
+// Schema para validação de publicação (10 campos obrigatórios; valor_vaga opcional)
 const publishValidationSchema = z.object({
   titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
   descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
@@ -148,7 +148,7 @@ const publishValidationSchema = z.object({
   valor_vaga: z
     .number()
     .min(0, { message: 'Valor da vaga deve ser maior ou igual a zero.' })
-    .optional(),
+    .nullish(),
   bairro: z.string().min(1, { message: 'Bairro é obrigatório.' }),
   data_limite: z.date({ required_error: 'Data limite é obrigatória.' }),
   id_orgao_parceiro: z

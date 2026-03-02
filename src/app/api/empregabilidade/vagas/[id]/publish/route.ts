@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server'
 
 /**
  * PUT - Publicar vaga (mudar status de em_edicao para publicado)
- * Valida que todos os 11 campos obrigatórios estão preenchidos antes de publicar
+ * Valida que todos os 10 campos obrigatórios estão preenchidos antes de publicar (valor_vaga opcional)
  */
 export async function PUT(
   request: Request,
@@ -35,7 +35,7 @@ export async function PUT(
 
     const vaga = currentVagaResponse.data
 
-    // Validate all 11 required fields for publication
+    // Validate all 10 required fields for publication
     const missingFields = []
 
     // Base 5 fields
@@ -47,8 +47,7 @@ export async function PUT(
     if (isMissing(vaga.id_modelo_trabalho))
       missingFields.push('Modelo de Trabalho')
 
-    // Additional 6 fields for publication
-    if (isMissing(vaga.valor_vaga)) missingFields.push('Valor da Vaga')
+    // Additional 5 fields for publication (valor_vaga is optional)
     if (isMissing(vaga.bairro)) missingFields.push('Bairro')
     if (isMissing(vaga.data_limite)) missingFields.push('Data Limite')
     if (isMissing(vaga.id_orgao_parceiro)) missingFields.push('Órgão Parceiro')

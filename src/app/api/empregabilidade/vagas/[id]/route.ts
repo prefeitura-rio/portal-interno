@@ -54,7 +54,7 @@ export async function GET(
  * PUT - Atualizar vaga
  * Validação depende do status atual da vaga:
  * - em_edicao (rascunho): valida 5 campos obrigatórios
- * - publicado_ativo/publicado_expirado: valida 11 campos obrigatórios
+ * - publicado_ativo/publicado_expirado: valida 10 campos obrigatórios (valor_vaga opcional)
  */
 export async function PUT(
   request: Request,
@@ -76,6 +76,8 @@ export async function PUT(
     const body: EmpregabilidadeVagaBody = {
       ...bodyWithoutFlag,
       informacoes_complementares: convertedInfos,
+      // valor_vaga is optional; send undefined instead of null for the API
+      valor_vaga: bodyWithoutFlag.valor_vaga ?? undefined,
     }
 
     // Helper function to check missing values
@@ -98,7 +100,7 @@ export async function PUT(
 
     // Validate based on status and save mode
     // If saving as draft (em_edicao and _saveAsDraft), validate only 5 fields
-    // Otherwise (published or saving draft as published), validate 11 fields
+    // Otherwise (published or saving draft as published), validate 10 fields
     const shouldValidateAsDraft = isDraft && saveAsDraft
 
     // Always validate 5 base fields
@@ -124,7 +126,6 @@ export async function PUT(
     // If not saving as draft, validate additional 6 fields for publication
     if (!shouldValidateAsDraft) {
       const publishMissingFields = []
-      if (isMissing(body.valor_vaga)) publishMissingFields.push('Valor da Vaga')
       if (isMissing(body.bairro)) publishMissingFields.push('Bairro')
       if (isMissing(body.data_limite)) publishMissingFields.push('Data Limite')
       if (isMissing(body.id_orgao_parceiro))
