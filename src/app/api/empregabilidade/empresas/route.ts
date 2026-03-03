@@ -100,9 +100,27 @@ export async function POST(request: Request) {
       })
     }
 
+    // CNPJ already exists
+    const errorMessage =
+      typeof response.data === 'object' && response.data?.error
+        ? response.data.error
+        : ''
+    if (
+      errorMessage.includes('duplicate key') ||
+      errorMessage.includes('23505')
+    ) {
+      return NextResponse.json(
+        {
+          error: 'Já existe uma empresa cadastrada com este CNPJ.',
+          code: 'CNPJ_ALREADY_EXISTS',
+        },
+        { status: 409 } // Conflict
+      )
+    }
+
     return NextResponse.json(
       {
-        error: 'Failed to create empresa',
+        error: 'Falha ao criar empresa',
         details: response.data,
       },
       { status: response.status }

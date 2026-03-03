@@ -361,6 +361,26 @@ export async function DELETE(
 
     // Step 7: Handle server error (500)
     // Backend may return 500 for not found, dependencies, or other errors
+
+    // Foreign key error
+    const errorMessage =
+      typeof response.data === 'object' && response.data?.error
+        ? response.data.error
+        : ''
+    if (
+      errorMessage.includes('foreign key constraint') ||
+      errorMessage.includes('23503')
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Esta empresa não pode ser excluída pois possui vagas associadas.',
+          code: 'EMPRESA_HAS_VAGAS',
+        },
+        { status: 409 } // Conflict
+      )
+    }
+
     return NextResponse.json(
       {
         error: 'Falha ao excluir empresa',
