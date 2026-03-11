@@ -73,9 +73,9 @@ function convertApiEnrollmentToFrontend(
   const converted = {
     id: (apiEnrollment.id as string) || '',
     courseId: (apiEnrollment.course_id as number)?.toString() || '',
-    candidateName: (apiEnrollment.name as string) || '',
+    candidateName: (apiEnrollment.personal_info as any)?.nome || (apiEnrollment.name as string) || '',
     cpf: (apiEnrollment.cpf as string) || '',
-    email: (apiEnrollment.email as string) || undefined,
+    email: (apiEnrollment.personal_info as any)?.email || (apiEnrollment.email as string) || undefined,
     phone: (apiEnrollment.phone as string) || '',
     address: (apiEnrollment.address as string) || undefined,
     neighborhood: (apiEnrollment.neighborhood as string) || undefined,
