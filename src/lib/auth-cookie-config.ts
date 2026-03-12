@@ -12,6 +12,23 @@ export const AUTH_COOKIE_CONFIG = {
 } as const
 
 /**
+ * Nome e configuração do cookie de cache de usuário do Heimdall.
+ * Mantém um snapshot leve do HeimdallUser (id, cpf, display_name, groups, roles)
+ * para reduzir chamadas ao endpoint /me.
+ *
+ * TTL curto por segurança e para evitar dados muito defasados.
+ */
+export const HEIMDALL_USER_COOKIE_NAME = 'heimdall_user'
+
+// 1 hora em segundos — balanceia frescor e redução de chamadas
+export const HEIMDALL_USER_COOKIE_TTL_SECONDS = 60 * 60 // 1 hora
+
+export const HEIMDALL_USER_COOKIE_CONFIG = {
+  ...AUTH_COOKIE_CONFIG,
+  maxAge: HEIMDALL_USER_COOKIE_TTL_SECONDS,
+} as const
+
+/**
  * Retorna configuração completa para o cookie de access_token,
  * incluindo maxAge calculado a partir da expiração do JWT.
  *
