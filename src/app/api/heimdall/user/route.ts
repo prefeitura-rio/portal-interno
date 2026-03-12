@@ -1,4 +1,8 @@
-import { getCurrentUserInfoApiV1UsersMeGet } from '@/http-heimdall/users/users'
+import {
+  HEIMDALL_USER_COOKIE_CONFIG,
+  HEIMDALL_USER_COOKIE_NAME,
+} from '@/lib/auth-cookie-config'
+import { getCurrentUserFromCacheOrHeimdall } from '@/lib/heimdall-user'
 import type { HeimdallUser } from '@/types/heimdall-roles'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -17,37 +21,41 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const cookieStore = await cookies()
-    const accessToken = cookieStore.get('access_token')
+    const cachedUserCookie = cookieStore.get(HEIMDALL_USER_COOKIE_NAME)
 
-    if (!accessToken) {
+    if (cachedUserCookie?.value) {
+      try {
+        const parsed = JSON.parse(cachedUserCookie.value) as HeimdallUser
+        if (parsed && parsed.id && parsed.cpf) {
+          return NextResponse.json(parsed, { status: 200 })
+        }
+      } catch {
+        // fallthrough to refetch
+      }
+    }
+
+    const user = await getCurrentUserFromCacheOrHeimdall()
+
+    if (!user) {
       return NextResponse.json(
-        { error: 'No access token found' },
+        { error: 'Failed to fetch user information' },
         { status: 401 }
       )
     }
 
-    // Call Heimdall API to get current user info
-    const response = await getCurrentUserInfoApiV1UsersMeGet()
+    const response = NextResponse.json(user, { status: 200 })
 
-    // Check if response is successful
-    if (response.status !== 200) {
-      console.error('Failed to fetch user info from Heimdall:', response.status)
-      return NextResponse.json(
-        { error: 'Failed to fetch user information' },
-        { status: response.status }
+    try {
+      response.cookies.set(
+        HEIMDALL_USER_COOKIE_NAME,
+        JSON.stringify(user),
+        HEIMDALL_USER_COOKIE_CONFIG
       )
+    } catch {
+      // ignore cookie write errors in API route
     }
 
-    // Extract user data from response
-    const userData: HeimdallUser = {
-      id: response.data.id,
-      cpf: response.data.cpf,
-      display_name: response.data.display_name || undefined,
-      groups: response.data.groups,
-      roles: response.data.roles,
-    }
-
-    return NextResponse.json(userData, { status: 200 })
+    return response
   } catch (error) {
     console.error('Error fetching user info from Heimdall:', error)
     return NextResponse.json(

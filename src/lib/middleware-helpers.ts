@@ -1,60 +1,16 @@
+import type { HeimdallUser } from '@/types/heimdall-roles'
 import { type NextRequest, NextResponse } from 'next/server'
 import {
   REDIRECT_WHEN_SESSION_EXPIRED_ROUTE,
   REDIRECT_WHEN_UNAUTHORIZED_ROUTE,
 } from '../constants/url'
 import {
+  HEIMDALL_USER_COOKIE_CONFIG,
+  HEIMDALL_USER_COOKIE_NAME,
   getAccessTokenCookieConfig,
   getRefreshTokenCookieConfig,
 } from './auth-cookie-config'
 import { refreshAccessToken } from './token-refresh'
-
-export async function handleExpiredToken(
-  request: NextRequest,
-  refreshToken: string | undefined
-): Promise<NextResponse> {
-  // Try to refresh the token if we have a refresh token
-  if (refreshToken) {
-    const refreshResult = await refreshAccessToken(refreshToken)
-
-    if (refreshResult.success && refreshResult.accessToken) {
-      // Token refresh successful, create response with new tokens
-      const response = NextResponse.next()
-
-      // Set new tokens in cookies
-      response.cookies.set(
-        'access_token',
-        refreshResult.accessToken,
-        getAccessTokenCookieConfig(refreshResult.accessToken)
-      )
-
-      if (refreshResult.newRefreshToken) {
-        response.cookies.set(
-          'refresh_token',
-          refreshResult.newRefreshToken,
-          getRefreshTokenCookieConfig(refreshResult.newRefreshToken)
-        )
-      }
-
-      return response
-    }
-  }
-
-  // Token refresh failed or no refresh token, redirect to session expired
-  const redirectUrl = request.nextUrl.clone()
-  redirectUrl.pathname = REDIRECT_WHEN_SESSION_EXPIRED_ROUTE
-  return NextResponse.redirect(redirectUrl)
-}
-
-export async function handleUnauthorizedUser(
-  request: NextRequest
-): Promise<NextResponse> {
-  // Redirect to unauthorized page
-  const redirectUrl = request.nextUrl.clone()
-  redirectUrl.pathname = REDIRECT_WHEN_UNAUTHORIZED_ROUTE
-  return NextResponse.redirect(redirectUrl)
-}
-
 /**
  * Extracts CPF from JWT token for logging purposes
  * @param accessToken - The user's access token
@@ -71,16 +27,17 @@ function getCpfFromToken(accessToken: string): string {
   }
 }
 
-/**
- * Fetches user roles from Heimdall API in middleware context
- * This is optimized for Edge Runtime
- *
- * @param accessToken - The user's access token
- * @returns Array of user roles or null if failed
- */
-export async function getUserRolesInMiddleware(
+type HeimdallUserFromApi = {
+  id: number
+  cpf: string
+  display_name?: string
+  groups?: string[]
+  roles?: string[]
+}
+
+async function fetchHeimdallUserFromApi(
   accessToken: string
-): Promise<string[] | null> {
+): Promise<HeimdallUser | null> {
   const cpf = getCpfFromToken(accessToken)
   const requestId = Math.random().toString(36).substring(7)
 
@@ -135,13 +92,20 @@ export async function getUserRolesInMiddleware(
         return null
       }
 
-      const data = await response.json()
-      const roles = data.roles || []
+      const data = (await response.json()) as HeimdallUserFromApi
+      const user: HeimdallUser = {
+        id: data.id,
+        cpf: data.cpf,
+        display_name: data.display_name,
+        groups: data.groups,
+        roles: data.roles,
+      }
+
       console.log(
-        `[${cpf}] [${requestId}] Successfully fetched ${roles.length} roles:`,
-        roles
+        `[${cpf}] [${requestId}] Successfully fetched Heimdall user with ${user.roles?.length ?? 0} roles`
       )
-      return roles
+
+      return user
     } catch (fetchError) {
       clearTimeout(timeoutId)
 
@@ -160,10 +124,110 @@ export async function getUserRolesInMiddleware(
     }
   } catch (error) {
     console.error(
-      `[${cpf}] [${requestId}] Error fetching user roles from Heimdall in middleware:`,
+      `[${cpf}] [${requestId}] Error fetching user from Heimdall in middleware:`,
       error instanceof Error ? error.message : String(error),
       error instanceof Error ? error.stack : ''
     )
     return null
   }
+}
+
+export async function getUserFromHeimdallWithCache(
+  request: NextRequest,
+  response: NextResponse,
+  accessToken: string
+): Promise<HeimdallUser | null> {
+  const cpf = getCpfFromToken(accessToken)
+
+  // 1. Tenta ler do cookie de usuário
+  const userCookie = request.cookies.get(HEIMDALL_USER_COOKIE_NAME)
+
+  if (userCookie?.value) {
+    try {
+      const parsed = JSON.parse(userCookie.value) as HeimdallUser
+      if (parsed && parsed.roles && Array.isArray(parsed.roles)) {
+        console.log(
+          `[${cpf}] [MIDDLEWARE_HELPERS] Using Heimdall user from cookie with ${parsed.roles.length} roles`
+        )
+        return parsed
+      }
+    } catch (error) {
+      console.warn(
+        `[${cpf}] [MIDDLEWARE_HELPERS] Failed to parse heimdall_user cookie, will refetch from API`,
+        error
+      )
+    }
+  }
+
+  // 2. Cache miss ou cookie inválido -> chama Heimdall /me
+  const user = await fetchHeimdallUserFromApi(accessToken)
+
+  if (!user) {
+    return null
+  }
+
+  // 3. Grava snapshot do usuário no cookie de resposta
+  try {
+    const serialized = JSON.stringify(user)
+    response.cookies.set(HEIMDALL_USER_COOKIE_NAME, serialized, {
+      ...HEIMDALL_USER_COOKIE_CONFIG,
+    })
+
+    console.log(
+      `[${cpf}] [MIDDLEWARE_HELPERS] heimdall_user cookie set with ${user.roles?.length ?? 0} roles`
+    )
+  } catch (error) {
+    console.error(
+      `[${cpf}] [MIDDLEWARE_HELPERS] Failed to serialize/set heimdall_user cookie`,
+      error
+    )
+  }
+
+  return user
+}
+
+export async function handleExpiredToken(
+  request: NextRequest,
+  refreshToken: string | undefined
+): Promise<NextResponse> {
+  // Try to refresh the token if we have a refresh token
+  if (refreshToken) {
+    const refreshResult = await refreshAccessToken(refreshToken)
+
+    if (refreshResult.success && refreshResult.accessToken) {
+      // Token refresh successful, create response with new tokens
+      const response = NextResponse.next()
+
+      // Set new tokens in cookies
+      response.cookies.set(
+        'access_token',
+        refreshResult.accessToken,
+        getAccessTokenCookieConfig(refreshResult.accessToken)
+      )
+
+      if (refreshResult.newRefreshToken) {
+        response.cookies.set(
+          'refresh_token',
+          refreshResult.newRefreshToken,
+          getRefreshTokenCookieConfig(refreshResult.newRefreshToken)
+        )
+      }
+
+      return response
+    }
+  }
+
+  // Token refresh failed or no refresh token, redirect to session expired
+  const redirectUrl = request.nextUrl.clone()
+  redirectUrl.pathname = REDIRECT_WHEN_SESSION_EXPIRED_ROUTE
+  return NextResponse.redirect(redirectUrl)
+}
+
+export async function handleUnauthorizedUser(
+  request: NextRequest
+): Promise<NextResponse> {
+  // Redirect to unauthorized page
+  const redirectUrl = request.nextUrl.clone()
+  redirectUrl.pathname = REDIRECT_WHEN_UNAUTHORIZED_ROUTE
+  return NextResponse.redirect(redirectUrl)
 }

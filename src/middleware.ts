@@ -5,7 +5,7 @@ import {
 } from 'next/server'
 import { isJwtExpired } from './lib'
 import {
-  getUserRolesInMiddleware,
+  getUserFromHeimdallWithCache,
   handleExpiredToken,
   handleUnauthorizedUser,
 } from './lib/middleware-helpers'
@@ -57,6 +57,7 @@ export async function middleware(request: NextRequest) {
   const publicRoute = publicRoutes.find(route => matchRoute(path, route.path))
   const authToken = request.cookies.get('access_token')
   const refreshToken = request.cookies.get('refresh_token')
+  const response = NextResponse.next()
 
   // Debug: Log cookie status for troubleshooting
   const cpfDebug = authToken ? getCpfFromToken(authToken.value) : 'no-token'
@@ -66,7 +67,6 @@ export async function middleware(request: NextRequest) {
     hasRefreshToken: !!refreshToken,
     accessTokenLength: authToken?.value?.length || 0,
     refreshTokenLength: refreshToken?.value?.length || 0,
-    allCookieNames: request.cookies.getAll().map(c => c.name),
   })
 
   // TEMPORARY: Block access to "oportunidades-mei" and "empregabilidade" routes when feature flag is enabled
@@ -79,7 +79,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!authToken && publicRoute) {
-    return NextResponse.next()
+    return response
   }
 
   if (!authToken && !publicRoute) {
@@ -97,10 +97,16 @@ export async function middleware(request: NextRequest) {
       return await handleExpiredToken(request, refreshToken?.value)
     }
 
-    // Role-based access control (RBAC) using Heimdall API
-    // Fetch user roles and verify route access
+    // Role-based access control (RBAC) using Heimdall user cache (heimdall_user cookie)
+    // Fetch user once (with cache) and verify route access based on roles from /me
     console.log(`[${cpf}] [MIDDLEWARE] Checking access for path: ${path}`)
-    const userRoles = await getUserRolesInMiddleware(authToken.value)
+    const user = await getUserFromHeimdallWithCache(
+      request,
+      response,
+      authToken.value
+    )
+
+    const userRoles = user?.roles ?? null
 
     console.log(`[${cpf}] [MIDDLEWARE] User roles retrieved:`, userRoles)
 
@@ -125,14 +131,14 @@ export async function middleware(request: NextRequest) {
 
     console.log(`[${cpf}] [MIDDLEWARE] Access GRANTED for path: ${path}`)
 
-    return NextResponse.next()
+    return response
   }
 
   // Handle case where user has auth token but is accessing a public route
   if (authToken && publicRoute) {
     // Skip token validation for special error pages to prevent redirect loops
     if (path === '/session-expired' || path === '/unauthorized') {
-      return NextResponse.next()
+      return response
     }
 
     // Check if JWT is expired even for public routes when user is authenticated
@@ -140,7 +146,7 @@ export async function middleware(request: NextRequest) {
       return await handleExpiredToken(request, refreshToken?.value)
     }
 
-    return NextResponse.next()
+    return response
   }
 }
 
