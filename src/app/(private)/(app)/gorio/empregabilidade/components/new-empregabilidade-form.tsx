@@ -7,6 +7,10 @@ import { Combobox } from '@/components/ui/combobox'
 import { DateTimePicker } from '@/components/ui/datetime-picker'
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import {
+  FUTURE_DATE_ERROR_MESSAGE,
+  isDateInFuture,
+} from '@/lib/date-validation'
+import {
   Form,
   FormControl,
   FormField,
@@ -150,7 +154,9 @@ const publishValidationSchema = z.object({
     .min(0, { message: 'Valor da vaga deve ser maior ou igual a zero.' })
     .nullish(),
   bairro: z.string().min(1, { message: 'Bairro é obrigatório.' }),
-  data_limite: z.date({ required_error: 'Data limite é obrigatória.' }),
+  data_limite: z
+    .date({ required_error: 'Data limite é obrigatória.' })
+    .refine(isDateInFuture, { message: FUTURE_DATE_ERROR_MESSAGE }),
   id_orgao_parceiro: z
     .string()
     .min(1, { message: 'Órgão parceiro é obrigatório.' }),
@@ -858,6 +864,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                         onChange={field.onChange}
                         placeholder="Selecione a data e hora limite"
                         disabled={isReadOnly}
+                        disablePastDates={true}
                       />
                     </FormControl>
                     <FormMessage />
