@@ -4,12 +4,9 @@ import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Combobox } from '@/components/ui/combobox'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { DateTimePicker } from '@/components/ui/datetime-picker'
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
-import {
-  FUTURE_DATE_ERROR_MESSAGE,
-  isDateInFuture,
-} from '@/lib/date-validation'
 import {
   Form,
   FormControl,
@@ -34,6 +31,10 @@ import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
 import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
 import { useTiposPcd } from '@/hooks/use-tipos-pcd'
 import { EmpregabilidadeAcessibilidadePCD } from '@/http-gorio/models/empregabilidadeAcessibilidadePCD'
+import {
+  FUTURE_DATE_ERROR_MESSAGE,
+  isDateInFuture,
+} from '@/lib/date-validation'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { hasEditorComCuradoriaRestrictions } from '@/types/heimdall-roles'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -807,22 +808,14 @@ export const NewEmpregabilidadeForm = forwardRef<
                 name="valor_vaga"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor da Vaga (R$)</FormLabel>
+                    <FormLabel>Valor da Vaga</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="Ex: 5000.00"
-                        {...field}
-                        onChange={e => {
-                          const value = e.target.value
-                          field.onChange(
-                            value === '' ? null : Number.parseFloat(value)
-                          )
-                        }}
-                        value={field.value ?? ''}
+                      <CurrencyInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="R$ 0,00"
                         disabled={isReadOnly}
+                        id="valor_vaga"
                       />
                     </FormControl>
                     <FormMessage />
