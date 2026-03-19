@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -38,6 +39,8 @@ export function EtapasProcessoSeletivo({
   const [editingEtapaId, setEditingEtapaId] = useState<string | null>(null)
   const [originalEtapa, setOriginalEtapa] =
     useState<EtapaProcessoSeletivo | null>(null)
+  const [etapaToDelete, setEtapaToDelete] =
+    useState<EtapaProcessoSeletivo | null>(null)
 
   const resetForm = () => {
     setNewEtapaTitulo('')
@@ -66,6 +69,13 @@ export function EtapasProcessoSeletivo({
         ordem: index + 1,
       }))
     onEtapasChange(updatedEtapas)
+  }
+
+  const handleDeleteEtapa = () => {
+    if (etapaToDelete) {
+      removeEtapa(etapaToDelete.id)
+      setEtapaToDelete(null)
+    }
   }
 
   const updateEtapa = (
@@ -240,9 +250,10 @@ export function EtapasProcessoSeletivo({
             )}
             {!disabled && (
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => removeEtapa(etapa.id)}
+                onClick={() => setEtapaToDelete(etapa)}
                 className="text-destructive hover:text-destructive h-8 w-8 p-1 cursor-pointer"
               >
                 <Trash2 className="h-4 w-4" />
@@ -328,6 +339,22 @@ export function EtapasProcessoSeletivo({
           </Sortable>
         </div>
       )}
+
+      {/* Modal de confirmação de exclusão */}
+      <ConfirmDialog
+        open={!!etapaToDelete}
+        onOpenChange={open => !open && setEtapaToDelete(null)}
+        onConfirm={handleDeleteEtapa}
+        title="Excluir etapa"
+        description={
+          etapaToDelete?.titulo?.trim()
+            ? `Tem certeza que deseja excluir a etapa "${etapaToDelete.titulo}"?`
+            : 'Tem certeza que deseja excluir essa etapa?'
+        }
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+      />
     </div>
   )
 }
