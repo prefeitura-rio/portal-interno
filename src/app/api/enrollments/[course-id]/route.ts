@@ -18,6 +18,28 @@ import type {
 } from '@/types/course'
 import { type NextRequest, NextResponse } from 'next/server'
 
+// TEMPORARY: These emails are not valid and should be removed
+// TODO: Remove this once we have a valid email resolver
+const INVALID_PLACEHOLDER_EMAILS = ['naotem@email.com', '0@0.aa']
+
+function resolveEnrollmentEmail(
+  apiEnrollment: ModelsInscricao
+): string | undefined {
+  const personalEmail = (apiEnrollment.personal_info as any)?.email as
+    | string
+    | undefined
+  const enrollmentEmail = apiEnrollment.email as string | undefined
+
+  if (
+    personalEmail &&
+    !INVALID_PLACEHOLDER_EMAILS.includes(personalEmail.toLowerCase())
+  ) {
+    return personalEmail
+  }
+
+  return enrollmentEmail || undefined
+}
+
 // Helper function to convert API status to frontend status
 function convertApiStatusToFrontend(
   status?: ModelsStatusInscricao
@@ -75,7 +97,7 @@ function convertApiEnrollmentToFrontend(
     courseId: (apiEnrollment.course_id as number)?.toString() || '',
     candidateName: (apiEnrollment.personal_info as any)?.nome || (apiEnrollment.name as string) || '',
     cpf: (apiEnrollment.cpf as string) || '',
-    email: (apiEnrollment.personal_info as any)?.email || (apiEnrollment.email as string) || undefined,
+    email: resolveEnrollmentEmail(apiEnrollment),
     phone: (apiEnrollment.phone as string) || '',
     address: (apiEnrollment.address as string) || undefined,
     neighborhood: (apiEnrollment.neighborhood as string) || undefined,
