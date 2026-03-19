@@ -69,18 +69,17 @@ export async function GET(request: Request) {
             'Nome não disponível',
           cpf: c.cpf,
           email: c.email || c.curriculo_snapshot?.email || '',
-          phone:
-            c.curriculo_snapshot?.telefone ||
-            c.curriculo_snapshot?.celular ||
-            '',
+          phone: c.personal_info?.celular || '',
           enrollmentDate: c.created_at,
           status: mapBackendStatusToFrontend(c.status),
           /** Raw backend status for display (e.g. "Vaga congelada" vs "Vaga encerrada" when status is cancelled) */
           statusBackend: c.status,
-          address: c.curriculo_snapshot?.endereco || '',
-          neighborhood: c.curriculo_snapshot?.bairro || '',
-          city: c.curriculo_snapshot?.cidade || '',
-          state: c.curriculo_snapshot?.estado || '',
+          address: c.personal_info?.endereco?.logradouro
+            ? `${c.personal_info.endereco.tipo_logradouro || ''} ${c.personal_info.endereco.logradouro}${c.personal_info.endereco.numero ? `, ${c.personal_info.endereco.numero}` : ''}`.trim()
+            : '',
+          neighborhood: c.personal_info?.endereco?.bairro || '',
+          city: c.personal_info?.endereco?.municipio || '',
+          state: c.personal_info?.endereco?.estado || '',
           currentEtapaId: c.id_etapa_atual ?? null,
           vaga: c.vaga
             ? {
