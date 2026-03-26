@@ -5,6 +5,20 @@
  */
 
 /**
+ * Roles that grant access to the "Emprego e trabalho" module (oportunidades-mei, empregabilidade)
+ */
+export const EMPREGO_TRABALHO_ROLES = [
+  'admin',
+  'superadmin',
+  'go:admin',
+  'go:empregabilidade:admin',
+  'go:empregabilidade:editor_sem_curadoria',
+  'go:empregabilidade:editor_com_curadoria',
+] as const
+
+export type EmpregoTrabalhoRole = (typeof EMPREGO_TRABALHO_ROLES)[number]
+
+/**
  * Available roles in the Heimdall system
  */
 export type HeimdallRole =
@@ -13,6 +27,9 @@ export type HeimdallRole =
   | 'busca:services:admin' // Admin for Busca services module
   | 'busca:services:editor' // Editor for Busca services module
   | 'go:admin' // Admin for GO Rio module only
+  | 'go:empregabilidade:admin' // Admin for Emprego e trabalho only
+  | 'go:empregabilidade:editor_sem_curadoria' // Editor (sem curadoria) - Emprego e trabalho only
+  | 'go:empregabilidade:editor_com_curadoria' // Editor (com curadoria) - Emprego e trabalho only
 
 /**
  * User information from Heimdall API
@@ -36,6 +53,9 @@ export function isHeimdallRole(role: string): role is HeimdallRole {
     'busca:services:admin',
     'busca:services:editor',
     'go:admin',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
   ].includes(role)
 }
 
@@ -56,11 +76,106 @@ export function hasAdminPrivileges(roles: string[] | undefined): boolean {
 }
 
 /**
- * Check if user has access to GO Rio module
+ * Check if user has access to GO Rio module (Capacitação + Emprego e trabalho)
+ * Admin, superadmin, go:admin only (not the empregabilidade-only roles)
  */
 export function hasGoRioAccess(roles: string[] | undefined): boolean {
   if (!roles) return false
   return hasAdminPrivileges(roles) || roles.includes('go:admin')
+}
+
+/**
+ * Check if user has access to the "Emprego e trabalho" module
+ * (oportunidades-mei, empregabilidade). Includes admin, superadmin, go:admin and the 3 empregabilidade roles.
+ */
+export function hasEmpregoTrabalhoAccess(roles: string[] | undefined): boolean {
+  if (!roles) return false
+  return EMPREGO_TRABALHO_ROLES.some(role => roles.includes(role))
+}
+
+/**
+ * Check if user has ONLY access to Emprego e trabalho (one of the 3 empregabilidade roles)
+ * and not admin/superadmin/go:admin. Used to hide other modules (Capacitação, Serviços) from menu.
+ */
+export function isOnlyEmpregoTrabalhoUser(
+  roles: string[] | undefined
+): boolean {
+  if (!roles) return false
+  const empregabilidadeOnlyRoles = [
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
+  ] as const
+  const hasEmpregabilidadeRole = empregabilidadeOnlyRoles.some(role =>
+    roles.includes(role)
+  )
+  const hasFullAccess = hasAdminPrivileges(roles) || roles.includes('go:admin')
+  return hasEmpregabilidadeRole && !hasFullAccess
+}
+
+/** Statuses for which editor_com_curadoria cannot delete (only em_edicao and em_aprovacao can be deleted) */
+const VAGA_STATUSES_NO_DELETE_EDITOR_COM_CURADORIA = [
+  'publicado_ativo',
+  'publicado_expirado',
+  'vaga_congelada',
+  'vaga_descontinuada',
+] as const
+
+/**
+ * True when user has go:empregabilidade:editor_com_curadoria (restrictions apply).
+ * admin, superadmin, go:admin, go:empregabilidade:admin, go:empregabilidade:editor_sem_curadoria have no restrictions.
+ */
+export function hasEditorComCuradoriaRestrictions(
+  roles: string[] | undefined
+): boolean {
+  if (!roles) return false
+  return roles.includes('go:empregabilidade:editor_com_curadoria')
+}
+
+/**
+ * Can publish vaga as "publicado_ativo".
+ * editor_com_curadoria cannot; can only create/edit draft and send to approval.
+ */
+export function canPublishVagaAsAtivo(roles: string[] | undefined): boolean {
+  if (!roles) return false
+  return !hasEditorComCuradoriaRestrictions(roles)
+}
+
+/**
+ * Can freeze (pausar) or discontinue (encerrar) vaga.
+ * editor_com_curadoria cannot.
+ */
+export function canFreezeOrDiscontinueVaga(
+  roles: string[] | undefined
+): boolean {
+  if (!roles) return false
+  return !hasEditorComCuradoriaRestrictions(roles)
+}
+
+/**
+ * Can create/edit empresas within the empregabilidade module.
+ * editor_com_curadoria cannot.
+ */
+export function canManageEmpresasInEmpregabilidade(
+  roles: string[] | undefined
+): boolean {
+  if (!roles) return false
+  return !hasEditorComCuradoriaRestrictions(roles)
+}
+
+/**
+ * Can delete a vaga with the given status.
+ * editor_com_curadoria can only delete when status is em_edicao or em_aprovacao.
+ */
+export function canDeleteVagaWithStatus(
+  roles: string[] | undefined,
+  status: string
+): boolean {
+  if (!roles) return false
+  if (!hasEditorComCuradoriaRestrictions(roles)) return true
+  return !(
+    VAGA_STATUSES_NO_DELETE_EDITOR_COM_CURADORIA as readonly string[]
+  ).includes(status)
 }
 
 /**

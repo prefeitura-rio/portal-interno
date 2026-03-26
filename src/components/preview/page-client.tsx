@@ -91,9 +91,7 @@ export function PageClient({ serviceData, orgaoGestorName }: PageClientProps) {
         {enabledButtons.length > 0 && (
           <div>
             {enabledButtons.length === 1 ? (
-              <div
-                className="w-full rounded-full py-4 h-[52px] bg-primary text-primary-foreground inline-flex items-center justify-center font-medium cursor-not-allowed"
-              >
+              <div className="w-full rounded-full py-4 h-[52px] bg-primary text-primary-foreground inline-flex items-center justify-center font-medium cursor-not-allowed">
                 <span className="text-sm leading-5 font-normal">
                   {formatTitleCase(enabledButtons[0].titulo || '', 'first')}
                 </span>
@@ -113,9 +111,7 @@ export function PageClient({ serviceData, orgaoGestorName }: PageClientProps) {
                       )}
                     </CardHeader>
                     <CardContent className="p-6 py-0 mt-auto">
-                      <div
-                        className="w-full rounded-full h-11 bg-primary text-primary-foreground inline-flex items-center justify-center font-medium cursor-not-allowed"
-                      >
+                      <div className="w-full rounded-full h-11 bg-primary text-primary-foreground inline-flex items-center justify-center font-medium cursor-not-allowed">
                         {button.titulo}
                       </div>
                     </CardContent>

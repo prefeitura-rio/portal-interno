@@ -66,9 +66,7 @@ export function MultiSelect({
     onValueChange?.(value.filter(v => v !== valueToRemove))
   }
 
-  const selectedOptions = options.filter(option =>
-    value.includes(option.value)
-  )
+  const selectedOptions = options.filter(option => value.includes(option.value))
 
   const displayText = () => {
     if (selectedOptions.length === 0) {
@@ -79,11 +77,7 @@ export function MultiSelect({
       return (
         <div className="flex flex-wrap gap-1">
           {selectedOptions.map(option => (
-            <Badge
-              key={option.value}
-              variant="secondary"
-              className="mr-1 mb-1"
-            >
+            <Badge key={option.value} variant="secondary" className="mr-1 mb-1">
               {option.label}
               <span
                 role="button"

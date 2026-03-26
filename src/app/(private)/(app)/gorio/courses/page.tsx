@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { DepartmentName } from '@/components/ui/department-name'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +28,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
-import { DepartmentName } from '@/components/ui/department-name'
 import { useDepartment } from '@/hooks/use-department'
 import type {
   CourseListItem,
@@ -164,12 +164,12 @@ function DepartmentSiglaWithPartnerTooltip({
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="truncate cursor-help">
-        <Badge
-                    variant="secondary"
-                    className="text-xs mr-2 px-2 py-0.5 bg-blue-100 text-blue-500 border-blue-200 shrink-0"
-                  >
-                    Parceria
-                  </Badge>
+          <Badge
+            variant="secondary"
+            className="text-xs mr-2 px-2 py-0.5 bg-blue-100 text-blue-500 border-blue-200 shrink-0"
+          >
+            Parceria
+          </Badge>
           {sigla}
           {externalPartnerName && (
             <>
@@ -430,7 +430,7 @@ export default function Courses() {
 
           // Determine if we should show handshake icon
           // Show handshake for external partnerships
-          const showHandshake = 
+          const showHandshake =
             courseManagementType === 'EXTERNAL_MANAGED_BY_ORG' ||
             courseManagementType === 'EXTERNAL_MANAGED_BY_PARTNER' ||
             (courseManagementType === undefined && isExternalPartner)

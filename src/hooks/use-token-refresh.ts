@@ -125,7 +125,8 @@ export function useTokenRefresh(
       console.log('[useTokenRefresh] Time until expiry:', {
         minutesUntilExpiry,
         refreshBeforeExpiry,
-        shouldRefresh: minutesUntilExpiry <= refreshBeforeExpiry && minutesUntilExpiry > 0,
+        shouldRefresh:
+          minutesUntilExpiry <= refreshBeforeExpiry && minutesUntilExpiry > 0,
       })
 
       // Se o token está próximo da expiração, fazer o refresh

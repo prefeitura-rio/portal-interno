@@ -57,6 +57,7 @@ jobs:
             --build-arg NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT=5 \
             --build-arg NEXT_PUBLIC_FEATURE_FLAG=false \
             --build-arg NEXT_PUBLIC_BASE_URL_APP="https://staging.app.dados.rio" \
+            --build-arg NEXT_PUBLIC_ENVIRONMENT="staging" \
             --tag $IMAGE_NAME:$TAG1 \
             --tag $IMAGE_NAME:$TAG2 \
             --push .
@@ -78,6 +79,7 @@ jobs:
             --build-arg NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT=1 \
             --build-arg NEXT_PUBLIC_FEATURE_FLAG=true \
             --build-arg NEXT_PUBLIC_BASE_URL_APP="https://pref.rio" \
+            --build-arg NEXT_PUBLIC_ENVIRONMENT="production" \
             --tag $IMAGE_NAME:$TAG1 \
             --tag $IMAGE_NAME:$TAG2 \
             --push .

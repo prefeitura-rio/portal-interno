@@ -69,7 +69,10 @@ export function getAccessTokenCookieConfig(token: string) {
       maxAge,
     }
   } catch (error) {
-    console.error('❌ Erro ao decodificar access token para configuração de cookie:', error)
+    console.error(
+      '❌ Erro ao decodificar access token para configuração de cookie:',
+      error
+    )
     // Fallback: 10 minutos (duração padrão do access token)
     return {
       ...AUTH_COOKIE_CONFIG,
@@ -117,7 +120,10 @@ export function getRefreshTokenCookieConfig(token: string) {
       maxAge,
     }
   } catch (error) {
-    console.error('❌ Erro ao decodificar refresh token para configuração de cookie:', error)
+    console.error(
+      '❌ Erro ao decodificar refresh token para configuração de cookie:',
+      error
+    )
     // Fallback: 30 minutos (duração padrão do refresh token)
     return {
       ...AUTH_COOKIE_CONFIG,

@@ -21,6 +21,7 @@ interface DateTimePickerProps {
   disabled?: boolean
   className?: string
   id?: string
+  disablePastDates?: boolean
 }
 
 export function DateTimePicker({
@@ -30,6 +31,7 @@ export function DateTimePicker({
   disabled = false,
   className,
   id,
+  disablePastDates = false,
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
@@ -136,6 +138,17 @@ export function DateTimePicker({
               initialFocus
               fromYear={fromYear}
               toYear={toYear}
+              disabled={date => {
+                if (disablePastDates) {
+                  const today = new Date()
+                  today.setHours(0, 0, 0, 0)
+                  const compareDate = new Date(date)
+                  compareDate.setHours(0, 0, 0, 0)
+                  return compareDate < today
+                }
+                return false
+              }}
+              fromDate={disablePastDates ? new Date() : undefined}
             />
           </PopoverContent>
         </Popover>

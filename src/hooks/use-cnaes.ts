@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
 import type { ModelsCNAE } from '@/http-rmi/models/modelsCNAE'
+import { useEffect, useState } from 'react'
 
 interface CNAE {
   id: number
@@ -126,7 +126,7 @@ export function useCNAEData() {
 /**
  * Normalizes a CNAE subclasse input to the format expected by the API (XXXX-X/XX)
  * Accepts both formatted (8630-5/01) and unformatted (8630501) inputs
- * 
+ *
  * Format: XXXX-X/XX (7 digits total)
  * Example: 8630501 -> 8630-5/01
  */

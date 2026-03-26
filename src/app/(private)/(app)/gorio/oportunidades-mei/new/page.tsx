@@ -1,7 +1,6 @@
 'use client'
 import { NewMEIOpportunityForm } from '@/app/(private)/(app)/gorio/oportunidades-mei/components/new-mei-opportunity-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useCreateMEIOpportunity } from '@/hooks/use-create-mei-opportunity'
 import { useState } from 'react'
 

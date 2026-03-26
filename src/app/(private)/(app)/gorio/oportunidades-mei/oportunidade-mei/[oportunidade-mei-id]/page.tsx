@@ -6,7 +6,6 @@ import {
 } from '@/app/(private)/(app)/gorio/oportunidades-mei/components/new-mei-opportunity-form'
 import { ProposalsTable } from '@/app/(private)/(app)/gorio/oportunidades-mei/components/proposals-table'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { Badge } from '@/components/ui/badge'
 import {
   Breadcrumb,
@@ -20,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useMEIOpportunity } from '@/hooks/use-mei-opportunity'
 import { useMEIOpportunityOperations } from '@/hooks/use-mei-opportunity-operations'
 import { format } from 'date-fns'

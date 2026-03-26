@@ -1,7 +1,6 @@
 'use client'
 
 import { ContentLayout } from '@/components/admin-panel/content-layout'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import Link from 'next/link'
 import { useState } from 'react'
 import { NewServiceForm } from '../../components/new-service-form'

@@ -120,7 +120,5 @@ export function getCategoriaByNome(
   categorias: Categoria[],
   nome: string
 ): Categoria | undefined {
-  return categorias.find(
-    cat => cat.nome.toLowerCase() === nome.toLowerCase()
-  )
+  return categorias.find(cat => cat.nome.toLowerCase() === nome.toLowerCase())
 }

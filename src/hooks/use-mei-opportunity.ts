@@ -61,9 +61,12 @@ function transformAPIData(apiData: any): MEIOpportunity {
     created_at: apiData.created_at || '',
     updated_at: apiData.updated_at || '',
     // Manter orgao_id como string ou number conforme vem da API (formulário converte para string)
-    orgao_id: apiData.orgao_id !== null && apiData.orgao_id !== undefined 
-      ? (typeof apiData.orgao_id === 'string' ? apiData.orgao_id : String(apiData.orgao_id))
-      : undefined,
+    orgao_id:
+      apiData.orgao_id !== null && apiData.orgao_id !== undefined
+        ? typeof apiData.orgao_id === 'string'
+          ? apiData.orgao_id
+          : String(apiData.orgao_id)
+        : undefined,
     orgao: apiData.orgao,
     execution_location: apiData.execution_location || '',
   }

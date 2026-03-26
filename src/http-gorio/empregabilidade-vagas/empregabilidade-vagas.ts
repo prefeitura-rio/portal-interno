@@ -20,24 +20,52 @@ import type {
   GetApiV1EmpregabilidadeVagasParams,
   PostApiV1EmpregabilidadeVagas400,
   PostApiV1EmpregabilidadeVagas500,
-  PostApiV1EmpregabilidadeVagasDraft400,
-  PostApiV1EmpregabilidadeVagasDraft500,
   PutApiV1EmpregabilidadeVagasId400,
   PutApiV1EmpregabilidadeVagasId500,
+  PutApiV1EmpregabilidadeVagasIdDiscontinue200,
+  PutApiV1EmpregabilidadeVagasIdDiscontinue400,
+  PutApiV1EmpregabilidadeVagasIdDiscontinue404,
+  PutApiV1EmpregabilidadeVagasIdDiscontinue409,
+  PutApiV1EmpregabilidadeVagasIdDiscontinue500,
+  PutApiV1EmpregabilidadeVagasIdFreeze200,
+  PutApiV1EmpregabilidadeVagasIdFreeze400,
+  PutApiV1EmpregabilidadeVagasIdFreeze404,
+  PutApiV1EmpregabilidadeVagasIdFreeze409,
+  PutApiV1EmpregabilidadeVagasIdFreeze500,
   PutApiV1EmpregabilidadeVagasIdPublish200,
   PutApiV1EmpregabilidadeVagasIdPublish400,
   PutApiV1EmpregabilidadeVagasIdPublish404,
   PutApiV1EmpregabilidadeVagasIdPublish409,
   PutApiV1EmpregabilidadeVagasIdPublish500,
+  PutApiV1EmpregabilidadeVagasIdReactivate200,
+  PutApiV1EmpregabilidadeVagasIdReactivate400,
+  PutApiV1EmpregabilidadeVagasIdReactivate404,
+  PutApiV1EmpregabilidadeVagasIdReactivate409,
+  PutApiV1EmpregabilidadeVagasIdReactivate500,
+  PutApiV1EmpregabilidadeVagasIdSendToApproval200,
+  PutApiV1EmpregabilidadeVagasIdSendToApproval400,
+  PutApiV1EmpregabilidadeVagasIdSendToApproval404,
+  PutApiV1EmpregabilidadeVagasIdSendToApproval409,
+  PutApiV1EmpregabilidadeVagasIdSendToApproval500,
+  PutApiV1EmpregabilidadeVagasIdSendToDraft200,
+  PutApiV1EmpregabilidadeVagasIdSendToDraft400,
+  PutApiV1EmpregabilidadeVagasIdSendToDraft404,
+  PutApiV1EmpregabilidadeVagasIdSendToDraft409,
+  PutApiV1EmpregabilidadeVagasIdSendToDraft500,
   PutApiV1EmpregabilidadeVagasIdTiposPcd200,
   PutApiV1EmpregabilidadeVagasIdTiposPcd400,
   PutApiV1EmpregabilidadeVagasIdTiposPcd500,
+  PutApiV1EmpregabilidadeVagasIdUnfreeze200,
+  PutApiV1EmpregabilidadeVagasIdUnfreeze400,
+  PutApiV1EmpregabilidadeVagasIdUnfreeze404,
+  PutApiV1EmpregabilidadeVagasIdUnfreeze409,
+  PutApiV1EmpregabilidadeVagasIdUnfreeze500,
 } from '.././models'
 
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
- * Retorna lista paginada de vagas
+ * Retorna lista paginada de vagas com filtros opcionais
  * @summary Listar vagas
  */
 export type getApiV1EmpregabilidadeVagasResponse200 = {
@@ -129,54 +157,6 @@ export const postApiV1EmpregabilidadeVagas = async (
 ): Promise<postApiV1EmpregabilidadeVagasResponse> => {
   return customFetchGoRio<postApiV1EmpregabilidadeVagasResponse>(
     getPostApiV1EmpregabilidadeVagasUrl(),
-    {
-      ...options,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(empregabilidadeVagaBody),
-    }
-  )
-}
-
-/**
- * Cria um rascunho de vaga
- * @summary Criar rascunho de vaga
- */
-export type postApiV1EmpregabilidadeVagasDraftResponse201 = {
-  data: EmpregabilidadeVaga
-  status: 201
-}
-
-export type postApiV1EmpregabilidadeVagasDraftResponse400 = {
-  data: PostApiV1EmpregabilidadeVagasDraft400
-  status: 400
-}
-
-export type postApiV1EmpregabilidadeVagasDraftResponse500 = {
-  data: PostApiV1EmpregabilidadeVagasDraft500
-  status: 500
-}
-
-export type postApiV1EmpregabilidadeVagasDraftResponseComposite =
-  | postApiV1EmpregabilidadeVagasDraftResponse201
-  | postApiV1EmpregabilidadeVagasDraftResponse400
-  | postApiV1EmpregabilidadeVagasDraftResponse500
-
-export type postApiV1EmpregabilidadeVagasDraftResponse =
-  postApiV1EmpregabilidadeVagasDraftResponseComposite & {
-    headers: Headers
-  }
-
-export const getPostApiV1EmpregabilidadeVagasDraftUrl = () => {
-  return `/api/v1/empregabilidade/vagas/draft`
-}
-
-export const postApiV1EmpregabilidadeVagasDraft = async (
-  empregabilidadeVagaBody: EmpregabilidadeVagaBody,
-  options?: RequestInit
-): Promise<postApiV1EmpregabilidadeVagasDraftResponse> => {
-  return customFetchGoRio<postApiV1EmpregabilidadeVagasDraftResponse>(
-    getPostApiV1EmpregabilidadeVagasDraftUrl(),
     {
       ...options,
       method: 'POST',
@@ -334,6 +314,122 @@ export const deleteApiV1EmpregabilidadeVagasId = async (
 }
 
 /**
+ * Descontinua uma vaga publicada ou congelada e atualiza o status de todas as candidaturas para vaga_descontinuada
+ * @summary Descontinuar vaga
+ */
+export type putApiV1EmpregabilidadeVagasIdDiscontinueResponse200 = {
+  data: PutApiV1EmpregabilidadeVagasIdDiscontinue200
+  status: 200
+}
+
+export type putApiV1EmpregabilidadeVagasIdDiscontinueResponse400 = {
+  data: PutApiV1EmpregabilidadeVagasIdDiscontinue400
+  status: 400
+}
+
+export type putApiV1EmpregabilidadeVagasIdDiscontinueResponse404 = {
+  data: PutApiV1EmpregabilidadeVagasIdDiscontinue404
+  status: 404
+}
+
+export type putApiV1EmpregabilidadeVagasIdDiscontinueResponse409 = {
+  data: PutApiV1EmpregabilidadeVagasIdDiscontinue409
+  status: 409
+}
+
+export type putApiV1EmpregabilidadeVagasIdDiscontinueResponse500 = {
+  data: PutApiV1EmpregabilidadeVagasIdDiscontinue500
+  status: 500
+}
+
+export type putApiV1EmpregabilidadeVagasIdDiscontinueResponseComposite =
+  | putApiV1EmpregabilidadeVagasIdDiscontinueResponse200
+  | putApiV1EmpregabilidadeVagasIdDiscontinueResponse400
+  | putApiV1EmpregabilidadeVagasIdDiscontinueResponse404
+  | putApiV1EmpregabilidadeVagasIdDiscontinueResponse409
+  | putApiV1EmpregabilidadeVagasIdDiscontinueResponse500
+
+export type putApiV1EmpregabilidadeVagasIdDiscontinueResponse =
+  putApiV1EmpregabilidadeVagasIdDiscontinueResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1EmpregabilidadeVagasIdDiscontinueUrl = (id: string) => {
+  return `/api/v1/empregabilidade/vagas/${id}/discontinue`
+}
+
+export const putApiV1EmpregabilidadeVagasIdDiscontinue = async (
+  id: string,
+  options?: RequestInit
+): Promise<putApiV1EmpregabilidadeVagasIdDiscontinueResponse> => {
+  return customFetchGoRio<putApiV1EmpregabilidadeVagasIdDiscontinueResponse>(
+    getPutApiV1EmpregabilidadeVagasIdDiscontinueUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+    }
+  )
+}
+
+/**
+ * Congela uma vaga publicada e atualiza o status de todas as candidaturas vinculadas para vaga_congelada
+ * @summary Congelar vaga
+ */
+export type putApiV1EmpregabilidadeVagasIdFreezeResponse200 = {
+  data: PutApiV1EmpregabilidadeVagasIdFreeze200
+  status: 200
+}
+
+export type putApiV1EmpregabilidadeVagasIdFreezeResponse400 = {
+  data: PutApiV1EmpregabilidadeVagasIdFreeze400
+  status: 400
+}
+
+export type putApiV1EmpregabilidadeVagasIdFreezeResponse404 = {
+  data: PutApiV1EmpregabilidadeVagasIdFreeze404
+  status: 404
+}
+
+export type putApiV1EmpregabilidadeVagasIdFreezeResponse409 = {
+  data: PutApiV1EmpregabilidadeVagasIdFreeze409
+  status: 409
+}
+
+export type putApiV1EmpregabilidadeVagasIdFreezeResponse500 = {
+  data: PutApiV1EmpregabilidadeVagasIdFreeze500
+  status: 500
+}
+
+export type putApiV1EmpregabilidadeVagasIdFreezeResponseComposite =
+  | putApiV1EmpregabilidadeVagasIdFreezeResponse200
+  | putApiV1EmpregabilidadeVagasIdFreezeResponse400
+  | putApiV1EmpregabilidadeVagasIdFreezeResponse404
+  | putApiV1EmpregabilidadeVagasIdFreezeResponse409
+  | putApiV1EmpregabilidadeVagasIdFreezeResponse500
+
+export type putApiV1EmpregabilidadeVagasIdFreezeResponse =
+  putApiV1EmpregabilidadeVagasIdFreezeResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1EmpregabilidadeVagasIdFreezeUrl = (id: string) => {
+  return `/api/v1/empregabilidade/vagas/${id}/freeze`
+}
+
+export const putApiV1EmpregabilidadeVagasIdFreeze = async (
+  id: string,
+  options?: RequestInit
+): Promise<putApiV1EmpregabilidadeVagasIdFreezeResponse> => {
+  return customFetchGoRio<putApiV1EmpregabilidadeVagasIdFreezeResponse>(
+    getPutApiV1EmpregabilidadeVagasIdFreezeUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+    }
+  )
+}
+
+/**
  * Publica uma vaga em edição
  * @summary Publicar vaga
  */
@@ -392,6 +488,182 @@ export const putApiV1EmpregabilidadeVagasIdPublish = async (
 }
 
 /**
+ * Reativa uma vaga descontinuada e restaura o status anterior das candidaturas
+ * @summary Reativar vaga
+ */
+export type putApiV1EmpregabilidadeVagasIdReactivateResponse200 = {
+  data: PutApiV1EmpregabilidadeVagasIdReactivate200
+  status: 200
+}
+
+export type putApiV1EmpregabilidadeVagasIdReactivateResponse400 = {
+  data: PutApiV1EmpregabilidadeVagasIdReactivate400
+  status: 400
+}
+
+export type putApiV1EmpregabilidadeVagasIdReactivateResponse404 = {
+  data: PutApiV1EmpregabilidadeVagasIdReactivate404
+  status: 404
+}
+
+export type putApiV1EmpregabilidadeVagasIdReactivateResponse409 = {
+  data: PutApiV1EmpregabilidadeVagasIdReactivate409
+  status: 409
+}
+
+export type putApiV1EmpregabilidadeVagasIdReactivateResponse500 = {
+  data: PutApiV1EmpregabilidadeVagasIdReactivate500
+  status: 500
+}
+
+export type putApiV1EmpregabilidadeVagasIdReactivateResponseComposite =
+  | putApiV1EmpregabilidadeVagasIdReactivateResponse200
+  | putApiV1EmpregabilidadeVagasIdReactivateResponse400
+  | putApiV1EmpregabilidadeVagasIdReactivateResponse404
+  | putApiV1EmpregabilidadeVagasIdReactivateResponse409
+  | putApiV1EmpregabilidadeVagasIdReactivateResponse500
+
+export type putApiV1EmpregabilidadeVagasIdReactivateResponse =
+  putApiV1EmpregabilidadeVagasIdReactivateResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1EmpregabilidadeVagasIdReactivateUrl = (id: string) => {
+  return `/api/v1/empregabilidade/vagas/${id}/reactivate`
+}
+
+export const putApiV1EmpregabilidadeVagasIdReactivate = async (
+  id: string,
+  options?: RequestInit
+): Promise<putApiV1EmpregabilidadeVagasIdReactivateResponse> => {
+  return customFetchGoRio<putApiV1EmpregabilidadeVagasIdReactivateResponse>(
+    getPutApiV1EmpregabilidadeVagasIdReactivateUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+    }
+  )
+}
+
+/**
+ * Envia uma vaga em edição para o fluxo de aprovação
+ * @summary Enviar vaga para aprovação
+ */
+export type putApiV1EmpregabilidadeVagasIdSendToApprovalResponse200 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToApproval200
+  status: 200
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToApprovalResponse400 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToApproval400
+  status: 400
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToApprovalResponse404 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToApproval404
+  status: 404
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToApprovalResponse409 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToApproval409
+  status: 409
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToApprovalResponse500 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToApproval500
+  status: 500
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToApprovalResponseComposite =
+  | putApiV1EmpregabilidadeVagasIdSendToApprovalResponse200
+  | putApiV1EmpregabilidadeVagasIdSendToApprovalResponse400
+  | putApiV1EmpregabilidadeVagasIdSendToApprovalResponse404
+  | putApiV1EmpregabilidadeVagasIdSendToApprovalResponse409
+  | putApiV1EmpregabilidadeVagasIdSendToApprovalResponse500
+
+export type putApiV1EmpregabilidadeVagasIdSendToApprovalResponse =
+  putApiV1EmpregabilidadeVagasIdSendToApprovalResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1EmpregabilidadeVagasIdSendToApprovalUrl = (
+  id: string
+) => {
+  return `/api/v1/empregabilidade/vagas/${id}/send-to-approval`
+}
+
+export const putApiV1EmpregabilidadeVagasIdSendToApproval = async (
+  id: string,
+  options?: RequestInit
+): Promise<putApiV1EmpregabilidadeVagasIdSendToApprovalResponse> => {
+  return customFetchGoRio<putApiV1EmpregabilidadeVagasIdSendToApprovalResponse>(
+    getPutApiV1EmpregabilidadeVagasIdSendToApprovalUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+    }
+  )
+}
+
+/**
+ * Retorna uma vaga em aprovação para o estado de edição (rascunho)
+ * @summary Retornar vaga para rascunho
+ */
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse200 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToDraft200
+  status: 200
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse400 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToDraft400
+  status: 400
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse404 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToDraft404
+  status: 404
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse409 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToDraft409
+  status: 409
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse500 = {
+  data: PutApiV1EmpregabilidadeVagasIdSendToDraft500
+  status: 500
+}
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponseComposite =
+  | putApiV1EmpregabilidadeVagasIdSendToDraftResponse200
+  | putApiV1EmpregabilidadeVagasIdSendToDraftResponse400
+  | putApiV1EmpregabilidadeVagasIdSendToDraftResponse404
+  | putApiV1EmpregabilidadeVagasIdSendToDraftResponse409
+  | putApiV1EmpregabilidadeVagasIdSendToDraftResponse500
+
+export type putApiV1EmpregabilidadeVagasIdSendToDraftResponse =
+  putApiV1EmpregabilidadeVagasIdSendToDraftResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1EmpregabilidadeVagasIdSendToDraftUrl = (id: string) => {
+  return `/api/v1/empregabilidade/vagas/${id}/send-to-draft`
+}
+
+export const putApiV1EmpregabilidadeVagasIdSendToDraft = async (
+  id: string,
+  options?: RequestInit
+): Promise<putApiV1EmpregabilidadeVagasIdSendToDraftResponse> => {
+  return customFetchGoRio<putApiV1EmpregabilidadeVagasIdSendToDraftResponse>(
+    getPutApiV1EmpregabilidadeVagasIdSendToDraftUrl(id),
+    {
+      ...options,
+      method: 'PUT',
+    }
+  )
+}
+
+/**
  * Atualiza os tipos de PCD aceitos na vaga
  * @summary Atualizar tipos PCD da vaga
  */
@@ -436,6 +708,64 @@ export const putApiV1EmpregabilidadeVagasIdTiposPcd = async (
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...options?.headers },
       body: JSON.stringify(empregabilidadeUpdateTiposPCDRequest),
+    }
+  )
+}
+
+/**
+ * Descongela uma vaga congelada e restaura o status anterior das candidaturas
+ * @summary Descongelar vaga
+ */
+export type putApiV1EmpregabilidadeVagasIdUnfreezeResponse200 = {
+  data: PutApiV1EmpregabilidadeVagasIdUnfreeze200
+  status: 200
+}
+
+export type putApiV1EmpregabilidadeVagasIdUnfreezeResponse400 = {
+  data: PutApiV1EmpregabilidadeVagasIdUnfreeze400
+  status: 400
+}
+
+export type putApiV1EmpregabilidadeVagasIdUnfreezeResponse404 = {
+  data: PutApiV1EmpregabilidadeVagasIdUnfreeze404
+  status: 404
+}
+
+export type putApiV1EmpregabilidadeVagasIdUnfreezeResponse409 = {
+  data: PutApiV1EmpregabilidadeVagasIdUnfreeze409
+  status: 409
+}
+
+export type putApiV1EmpregabilidadeVagasIdUnfreezeResponse500 = {
+  data: PutApiV1EmpregabilidadeVagasIdUnfreeze500
+  status: 500
+}
+
+export type putApiV1EmpregabilidadeVagasIdUnfreezeResponseComposite =
+  | putApiV1EmpregabilidadeVagasIdUnfreezeResponse200
+  | putApiV1EmpregabilidadeVagasIdUnfreezeResponse400
+  | putApiV1EmpregabilidadeVagasIdUnfreezeResponse404
+  | putApiV1EmpregabilidadeVagasIdUnfreezeResponse409
+  | putApiV1EmpregabilidadeVagasIdUnfreezeResponse500
+
+export type putApiV1EmpregabilidadeVagasIdUnfreezeResponse =
+  putApiV1EmpregabilidadeVagasIdUnfreezeResponseComposite & {
+    headers: Headers
+  }
+
+export const getPutApiV1EmpregabilidadeVagasIdUnfreezeUrl = (id: string) => {
+  return `/api/v1/empregabilidade/vagas/${id}/unfreeze`
+}
+
+export const putApiV1EmpregabilidadeVagasIdUnfreeze = async (
+  id: string,
+  options?: RequestInit
+): Promise<putApiV1EmpregabilidadeVagasIdUnfreezeResponse> => {
+  return customFetchGoRio<putApiV1EmpregabilidadeVagasIdUnfreezeResponse>(
+    getPutApiV1EmpregabilidadeVagasIdUnfreezeUrl(id),
+    {
+      ...options,
+      method: 'PUT',
     }
   )
 }

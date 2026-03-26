@@ -31,4 +31,3 @@ export interface DepartmentResponse {
   data: Department
   success: boolean
 }
-

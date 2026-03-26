@@ -1,9 +1,9 @@
-// src/app/api/auth/callback/keycloak/route.ts
-import { type NextRequest, NextResponse } from 'next/server'
 import {
   getAccessTokenCookieConfig,
   getRefreshTokenCookieConfig,
 } from '@/lib/auth-cookie-config'
+// src/app/api/auth/callback/keycloak/route.ts
+import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -33,9 +33,15 @@ export async function GET(req: NextRequest) {
   console.log('[KEYCLOAK_CALLBACK] Token response from Keycloak:', {
     expires_in: data.expires_in,
     refresh_expires_in: data.refresh_expires_in,
-    expires_in_minutes: data.expires_in ? Math.floor(data.expires_in / 60) : null,
-    expires_in_hours: data.expires_in ? Math.floor(data.expires_in / 3600) : null,
-    refresh_expires_in_minutes: data.refresh_expires_in ? Math.floor(data.refresh_expires_in / 60) : null,
+    expires_in_minutes: data.expires_in
+      ? Math.floor(data.expires_in / 60)
+      : null,
+    expires_in_hours: data.expires_in
+      ? Math.floor(data.expires_in / 3600)
+      : null,
+    refresh_expires_in_minutes: data.refresh_expires_in
+      ? Math.floor(data.refresh_expires_in / 60)
+      : null,
   })
 
   const redirectUri = process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_REDIRECT_URI!
