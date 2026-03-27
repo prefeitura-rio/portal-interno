@@ -41,7 +41,7 @@ export function DateTimePicker({
     if (value) {
       return format(value, 'HH:mm:ss')
     }
-    return '00:00:00'
+    return '23:59:59'
   })
 
   // Calculate year range: 5 years back and 5 years forward from current year
@@ -56,7 +56,7 @@ export function DateTimePicker({
       setTimeValue(format(value, 'HH:mm:ss'))
     } else {
       setSelectedDate(undefined)
-      setTimeValue('00:00:00')
+      setTimeValue('23:59:59')
     }
   }, [value])
 
@@ -64,7 +64,7 @@ export function DateTimePicker({
     if (!date) {
       // If date is undefined (user clicked on already selected date to unselect)
       setSelectedDate(undefined)
-      setTimeValue('00:00:00')
+      setTimeValue('23:59:59')
       onChange?.(undefined)
       setOpen(false)
       return
