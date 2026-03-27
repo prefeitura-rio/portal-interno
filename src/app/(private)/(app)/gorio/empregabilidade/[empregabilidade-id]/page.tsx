@@ -1,6 +1,7 @@
 'use client'
 
 import { CandidatesTable } from '@/app/(private)/(app)/gorio/components/candidates-table'
+import { DuplicateJobButton } from '@/app/(private)/(app)/gorio/empregabilidade/components/duplicate-job-button'
 import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-candidate-dialog'
 import {
   NewEmpregabilidadeForm,
@@ -860,6 +861,12 @@ export default function EmpregabilidadeDetailPage({
                           Reativar vaga
                         </Button>
                       )}
+
+                    {/* Duplicate button */}
+                    <DuplicateJobButton
+                      vaga={vaga}
+                      disabled={isLoading || activeTab === 'candidates'}
+                    />
 
                     {/* Edit button is always visible */}
                     <Button
