@@ -342,15 +342,15 @@ export const NewEmpregabilidadeForm = forwardRef<
     const acessibilidadePcdOptions = [
       {
         value: EmpregabilidadeAcessibilidadePCD.AcessibilidadeParaPCD,
-        label: 'Para PCD',
+        label: 'Para PcD',
       },
       {
         value: EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD,
-        label: 'Preferencial PCD',
+        label: 'Preferencial PcD',
       },
       {
         value: EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD,
-        label: 'Exclusivo PCD',
+        label: 'Exclusivo PcD',
       },
     ]
 
@@ -741,7 +741,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>Vaga PCD</FormLabel>
+                      <FormLabel>Vaga PcD</FormLabel>
                       <p className="text-sm text-muted-foreground">
                         Marque se esta vaga é para pessoas com deficiência
                       </p>
@@ -756,7 +756,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                   name="acessibilidade_pcd"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Acessibilidade PCD</FormLabel>
+                      <FormLabel>Acessibilidade PcD</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value || undefined}
@@ -786,7 +786,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                 name="tipo_pcd"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo de Deficiência (PCD)</FormLabel>
+                    <FormLabel>Tipo de Deficiência (PcD)</FormLabel>
                     <FormControl>
                       <MultiSelect
                         options={tipoPcdOptions}
