@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
+import { useEmpregabilidadeValidation } from '@/hooks/use-empregabilidade-validation'
 import { useEmpresas } from '@/hooks/use-empresas'
 import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
 import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
@@ -36,6 +37,7 @@ import {
   isDateInFuture,
 } from '@/lib/date-validation'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
+import { cn } from '@/lib/utils'
 import { hasEditorComCuradoriaRestrictions } from '@/types/heimdall-roles'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -53,10 +55,12 @@ import {
   type EtapaProcessoSeletivo,
   EtapasProcessoSeletivo,
 } from './etapas-processo-seletivo'
+import { FieldWarningIndicator } from './field-warning-indicator'
 import {
   type InformacaoComplementar,
   InformacoesComplementaresCreator,
 } from './informacoes-complementares-creator'
+import { InvalidEntriesModal } from './invalid-entries-modal'
 
 // Schema para etapa do processo seletivo
 const etapaSchema = z.object({
@@ -428,6 +432,17 @@ export const NewEmpregabilidadeForm = forwardRef<
     const isDirty = form.formState.isDirty
     const watchedValues = form.watch()
 
+    // Text validation hook for detecting invalid characters
+    const { validationResults, hasAnyIssues, getFieldIssues } =
+      useEmpregabilidadeValidation(watchedValues)
+
+    // Modal state for invalid entries confirmation
+    const [showInvalidEntriesModal, setShowInvalidEntriesModal] =
+      useState(false)
+    const [pendingSubmitAction, setPendingSubmitAction] = useState<
+      null | 'submit' | 'draft' | 'publish' | 'approval'
+    >(null)
+
     useEffect(() => {
       if (onFormChangesDetected) {
         // When creating (no initialData), consider any field filled as "has changes"
@@ -468,6 +483,17 @@ export const NewEmpregabilidadeForm = forwardRef<
     const handleSubmit = (data: FormData) => {
       console.log('Form submitted:', data)
 
+      // Check for invalid characters first
+      if (hasAnyIssues) {
+        setPendingSubmitAction('submit')
+        setShowInvalidEntriesModal(true)
+        return
+      }
+
+      proceedWithSubmit(data)
+    }
+
+    const proceedWithSubmit = (data: FormData) => {
       // Se está editando vaga publicada, usa validação de publicação
       // Se está criando nova vaga (sem vagaStatus), usa validação de publicação
       // Se está editando rascunho, onSubmit não deve ser chamado diretamente
@@ -495,6 +521,19 @@ export const NewEmpregabilidadeForm = forwardRef<
       const currentValues = form.getValues()
       console.log('Saving draft:', currentValues)
 
+      // Check for invalid characters first
+      if (hasAnyIssues) {
+        setPendingSubmitAction('draft')
+        setShowInvalidEntriesModal(true)
+        return
+      }
+
+      proceedWithDraft()
+    }
+
+    const proceedWithDraft = () => {
+      const currentValues = form.getValues()
+
       // Validar 5 campos para rascunho
       if (!validateForDraft(currentValues, form)) {
         return
@@ -510,6 +549,19 @@ export const NewEmpregabilidadeForm = forwardRef<
       const currentValues = form.getValues()
       console.log('Save and publish:', currentValues)
 
+      // Check for invalid characters first
+      if (hasAnyIssues) {
+        setPendingSubmitAction('publish')
+        setShowInvalidEntriesModal(true)
+        return
+      }
+
+      proceedWithPublish()
+    }
+
+    const proceedWithPublish = () => {
+      const currentValues = form.getValues()
+
       // Validar 11 campos para publicação
       if (!validateForPublish(currentValues, form)) {
         return
@@ -524,6 +576,19 @@ export const NewEmpregabilidadeForm = forwardRef<
     const handleSendForApproval = () => {
       const currentValues = form.getValues()
       console.log('Save and send to approval:', currentValues)
+
+      // Check for invalid characters first
+      if (hasAnyIssues) {
+        setPendingSubmitAction('approval')
+        setShowInvalidEntriesModal(true)
+        return
+      }
+
+      proceedWithApproval()
+    }
+
+    const proceedWithApproval = () => {
+      const currentValues = form.getValues()
 
       // Validar 11 campos obrigatórios (mesmo conjunto de publicação)
       if (!validateForPublish(currentValues, form)) {
@@ -555,38 +620,60 @@ export const NewEmpregabilidadeForm = forwardRef<
               <FormField
                 control={form.control}
                 name="titulo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Título*</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ex: Desenvolvedor Full Stack"
-                        {...field}
-                        disabled={isReadOnly}
+                render={({ field }) => {
+                  const issues = getFieldIssues('titulo')
+                  return (
+                    <FormItem>
+                      <FormLabel>Título*</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ex: Desenvolvedor Full Stack"
+                          {...field}
+                          disabled={isReadOnly}
+                          className={cn(
+                            issues?.hasIssues && 'border-orange-400/50'
+                          )}
+                        />
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="descricao"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição*</FormLabel>
-                    <FormControl>
-                      <MarkdownEditor
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        placeholder="Descreva a vaga de forma clara e objetiva..."
-                        disabled={isReadOnly}
+                render={({ field }) => {
+                  const issues = getFieldIssues('descricao')
+                  return (
+                    <FormItem>
+                      <FormLabel>Descrição*</FormLabel>
+                      <FormControl>
+                        <div
+                          className={cn(
+                            issues?.hasIssues &&
+                              'rounded-md border-orange-400/50 border'
+                          )}
+                        >
+                          <MarkdownEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Descreva a vaga de forma clara e objetiva..."
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               <FormField
@@ -890,77 +977,129 @@ export const NewEmpregabilidadeForm = forwardRef<
               <FormField
                 control={form.control}
                 name="requisitos"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Requisitos*</FormLabel>
-                    <FormControl>
-                      <MarkdownEditor
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        placeholder="Liste os requisitos necessários para a vaga..."
-                        disabled={isReadOnly}
+                render={({ field }) => {
+                  const issues = getFieldIssues('requisitos')
+                  return (
+                    <FormItem>
+                      <FormLabel>Requisitos*</FormLabel>
+                      <FormControl>
+                        <div
+                          className={cn(
+                            issues?.hasIssues &&
+                              'rounded-md border-orange-400/50 border'
+                          )}
+                        >
+                          <MarkdownEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Liste os requisitos necessários para a vaga..."
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="diferenciais"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Diferenciais</FormLabel>
-                    <FormControl>
-                      <MarkdownEditor
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        placeholder="Liste os diferenciais que seriam desejáveis..."
-                        disabled={isReadOnly}
+                render={({ field }) => {
+                  const issues = getFieldIssues('diferenciais')
+                  return (
+                    <FormItem>
+                      <FormLabel>Diferenciais</FormLabel>
+                      <FormControl>
+                        <div
+                          className={cn(
+                            issues?.hasIssues &&
+                              'rounded-md border-orange-400/50 border'
+                          )}
+                        >
+                          <MarkdownEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Liste os diferenciais que seriam desejáveis..."
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="responsabilidades"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Responsabilidades*</FormLabel>
-                    <FormControl>
-                      <MarkdownEditor
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        placeholder="Descreva as principais responsabilidades da função..."
-                        disabled={isReadOnly}
+                render={({ field }) => {
+                  const issues = getFieldIssues('responsabilidades')
+                  return (
+                    <FormItem>
+                      <FormLabel>Responsabilidades*</FormLabel>
+                      <FormControl>
+                        <div
+                          className={cn(
+                            issues?.hasIssues &&
+                              'rounded-md border-orange-400/50 border'
+                          )}
+                        >
+                          <MarkdownEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Descreva as principais responsabilidades da função..."
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="beneficios"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Benefícios</FormLabel>
-                    <FormControl>
-                      <MarkdownEditor
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        placeholder="Liste os benefícios oferecidos..."
-                        disabled={isReadOnly}
+                render={({ field }) => {
+                  const issues = getFieldIssues('beneficios')
+                  return (
+                    <FormItem>
+                      <FormLabel>Benefícios</FormLabel>
+                      <FormControl>
+                        <div
+                          className={cn(
+                            issues?.hasIssues &&
+                              'rounded-md border-orange-400/50 border'
+                          )}
+                        >
+                          <MarkdownEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Liste os benefícios oferecidos..."
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               <FormField
@@ -1028,6 +1167,36 @@ export const NewEmpregabilidadeForm = forwardRef<
             </div>
           )}
         </form>
+
+        {/* Invalid Entries Modal */}
+        <InvalidEntriesModal
+          open={showInvalidEntriesModal}
+          onOpenChange={setShowInvalidEntriesModal}
+          validationResults={validationResults.filter(r => r.hasIssues)}
+          onContinue={() => {
+            setShowInvalidEntriesModal(false)
+            // Proceed with pending action
+            switch (pendingSubmitAction) {
+              case 'submit':
+                proceedWithSubmit(form.getValues())
+                break
+              case 'draft':
+                proceedWithDraft()
+                break
+              case 'publish':
+                proceedWithPublish()
+                break
+              case 'approval':
+                proceedWithApproval()
+                break
+            }
+            setPendingSubmitAction(null)
+          }}
+          onGoBack={() => {
+            setShowInvalidEntriesModal(false)
+            setPendingSubmitAction(null)
+          }}
+        />
       </Form>
     )
   }

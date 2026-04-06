@@ -12,9 +12,12 @@ import {
   SortableOverlay,
 } from '@/components/ui/sortable'
 import { Textarea } from '@/components/ui/textarea'
+import { detectInvalidCharacters } from '@/lib/text-sanitization'
+import { cn } from '@/lib/utils'
 import { Check, GripVertical, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { FieldWarningIndicator } from './field-warning-indicator'
 
 export interface EtapaProcessoSeletivo {
   id: string
@@ -180,8 +183,15 @@ export function EtapasProcessoSeletivo({
             <Input
               value={etapa.titulo}
               onChange={e => updateEtapa(etapa.id, { titulo: e.target.value })}
-              className="mt-1"
+              className={cn(
+                'mt-1',
+                detectInvalidCharacters(etapa.titulo).length > 0 &&
+                  'border-orange-400/50'
+              )}
               placeholder="Ex: Análise de currículo"
+            />
+            <FieldWarningIndicator
+              invalidChars={detectInvalidCharacters(etapa.titulo)}
             />
           </div>
 
@@ -194,8 +204,15 @@ export function EtapasProcessoSeletivo({
               onChange={e =>
                 updateEtapa(etapa.id, { descricao: e.target.value })
               }
-              className="mt-1 min-h-[80px]"
+              className={cn(
+                'mt-1 min-h-[80px]',
+                detectInvalidCharacters(etapa.descricao).length > 0 &&
+                  'border-orange-400/50'
+              )}
               placeholder="Descreva os detalhes desta etapa..."
+            />
+            <FieldWarningIndicator
+              invalidChars={detectInvalidCharacters(etapa.descricao)}
             />
           </div>
         </div>
