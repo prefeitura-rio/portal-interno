@@ -19,6 +19,8 @@ import {
   SortableItemHandle,
   SortableOverlay,
 } from '@/components/ui/sortable'
+import { detectInvalidCharacters } from '@/lib/text-sanitization'
+import { cn } from '@/lib/utils'
 import {
   AlertCircle,
   Check,
@@ -35,6 +37,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { FieldWarningIndicator } from './field-warning-indicator'
 
 export type InformacaoComplementarType =
   | 'text'
@@ -346,7 +349,14 @@ export function InformacoesComplementaresCreator({
             <Input
               value={field.title}
               onChange={e => updateField(field.id, { title: e.target.value })}
-              className="mt-1"
+              className={cn(
+                'mt-1',
+                detectInvalidCharacters(field.title).length > 0 &&
+                  'border-orange-400/50'
+              )}
+            />
+            <FieldWarningIndicator
+              invalidChars={detectInvalidCharacters(field.title)}
             />
           </div>
 
@@ -462,31 +472,40 @@ export function InformacoesComplementaresCreator({
                 Opções de resposta
               </Label>
               {field.options?.map((option, index) => (
-                <div key={option.id} className="flex items-center gap-2">
-                  {field.field_type === 'radio' && (
-                    <div className="w-4 h-4 rounded-full border-2 border-muted-foreground shrink-0" />
-                  )}
-                  {field.field_type === 'multiselect' && (
-                    <div className="w-4 h-4 border-2 border-muted-foreground rounded shrink-0" />
-                  )}
-                  <Input
-                    placeholder={`Opção ${index + 1}`}
-                    value={option.value}
-                    onChange={e =>
-                      updateFieldOption(field.id, option.id, e.target.value)
-                    }
-                    className="flex-1"
+                <div key={option.id} className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    {field.field_type === 'radio' && (
+                      <div className="w-4 h-4 rounded-full border-2 border-muted-foreground shrink-0" />
+                    )}
+                    {field.field_type === 'multiselect' && (
+                      <div className="w-4 h-4 border-2 border-muted-foreground rounded shrink-0" />
+                    )}
+                    <Input
+                      placeholder={`Opção ${index + 1}`}
+                      value={option.value}
+                      onChange={e =>
+                        updateFieldOption(field.id, option.id, e.target.value)
+                      }
+                      className={cn(
+                        'flex-1',
+                        detectInvalidCharacters(option.value).length > 0 &&
+                          'border-orange-400/50'
+                      )}
+                    />
+                    {(field.options?.length || 0) > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFieldOption(field.id, option.id)}
+                        className="text-destructive hover:text-destructive shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <FieldWarningIndicator
+                    invalidChars={detectInvalidCharacters(option.value)}
                   />
-                  {(field.options?.length || 0) > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFieldOption(field.id, option.id)}
-                      className="text-destructive hover:text-destructive shrink-0"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
               ))}
               <Button
