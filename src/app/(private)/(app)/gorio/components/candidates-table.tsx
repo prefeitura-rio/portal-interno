@@ -113,78 +113,153 @@ function getStatusDisplayLabel(candidato: {
   return STATUS_LABELS[candidato.status] ?? candidato.status
 }
 
-/** Formata o currículo em strings para exportação XLSX (uma coluna por seção). */
-function formatCurriculoForExport(curriculo: CurriculoSnapshot | undefined): {
-  formacoes: string
-  idiomas: string
-  cursosComplementares: string
-  experiencias: string
-  conquistas: string
-  situacaoInteresses: string
-} {
-  const empty = ''
-  if (!curriculo) {
-    return {
-      formacoes: empty,
-      idiomas: empty,
-      cursosComplementares: empty,
-      experiencias: empty,
-      conquistas: empty,
-      situacaoInteresses: empty,
+/**
+ * Gera headers e dados de currículo expandido em colunas numeradas.
+ * Cada registro do currículo (formação, experiência, etc.) vira uma coluna separada.
+ */
+function buildExpandedCurriculumColumns(candidatos: Candidato[]) {
+  // Determinar quantas colunas precisamos de cada tipo
+  let maxFormacoes = 0
+  let maxExperiencias = 0
+  let maxIdiomas = 0
+  let maxCursosComplementares = 0
+  let maxConquistas = 0
+
+  for (const c of candidatos) {
+    const curriculo = c.curriculo_snapshot
+    if (!curriculo) continue
+
+    maxFormacoes = Math.max(maxFormacoes, curriculo.formacoes?.length ?? 0)
+    maxExperiencias = Math.max(
+      maxExperiencias,
+      curriculo.experiencias?.length ?? 0
+    )
+    maxIdiomas = Math.max(maxIdiomas, curriculo.idiomas?.length ?? 0)
+    maxCursosComplementares = Math.max(
+      maxCursosComplementares,
+      curriculo.cursos_complementares?.length ?? 0
+    )
+    maxConquistas = Math.max(maxConquistas, curriculo.conquistas?.length ?? 0)
+  }
+
+  const headers: string[] = []
+
+  // Criar headers para formações
+  for (let i = 1; i <= maxFormacoes; i++) {
+    headers.push(`Formação ${i}`)
+  }
+
+  // Criar headers para experiências
+  for (let i = 1; i <= maxExperiencias; i++) {
+    headers.push(`Experiência ${i}`)
+  }
+
+  // Criar headers para idiomas
+  for (let i = 1; i <= maxIdiomas; i++) {
+    headers.push(`Idioma ${i}`)
+  }
+
+  // Criar headers para cursos complementares
+  for (let i = 1; i <= maxCursosComplementares; i++) {
+    headers.push(`Curso Complementar ${i}`)
+  }
+
+  // Criar headers para conquistas
+  for (let i = 1; i <= maxConquistas; i++) {
+    headers.push(`Conquista ${i}`)
+  }
+
+  // Situação e interesses
+  headers.push('Situação e Interesses')
+
+  const dataExtractor = (candidato: Candidato): Record<string, string> => {
+    const row: Record<string, string> = {}
+    const curriculo = candidato.curriculo_snapshot
+
+    if (!curriculo) {
+      for (const header of headers) {
+        row[header] = ''
+      }
+      return row
     }
-  }
-  const formacoes =
-    curriculo.formacoes
-      ?.map(
-        f =>
+
+    // Extrair formações
+    const formacoes = curriculo.formacoes ?? []
+    for (let i = 0; i < maxFormacoes; i++) {
+      const f = formacoes[i]
+      if (f) {
+        row[`Formação ${i + 1}`] =
           `${f.nome_curso ?? '—'} | ${f.nome_instituicao ?? '—'} (${f.escolaridade?.descricao ?? ''}${f.status ? `, ${f.status}` : ''}${f.ano_conclusao ? `, ${f.ano_conclusao}` : ''})`
-      )
-      .join('; ') ?? empty
-  const idiomas =
-    curriculo.idiomas
-      ?.map(
-        id => `${id.idioma?.descricao ?? '—'}: ${id.nivel?.descricao ?? '—'}`
-      )
-      .join('; ') ?? empty
-  const cursosComplementares =
-    curriculo.cursos_complementares
-      ?.map(
-        c =>
-          `${c.nome_curso ?? '—'}${c.nome_instituicao ? ` · ${c.nome_instituicao}` : ''}${c.ano_conclusao ? ` (${c.ano_conclusao})` : ''}`
-      )
-      .join('; ') ?? empty
-  const experiencias =
-    curriculo.experiencias
-      ?.map(
-        e =>
+      } else {
+        row[`Formação ${i + 1}`] = ''
+      }
+    }
+
+    // Extrair experiências
+    const experiencias = curriculo.experiencias ?? []
+    for (let i = 0; i < maxExperiencias; i++) {
+      const e = experiencias[i]
+      if (e) {
+        row[`Experiência ${i + 1}`] =
           `${e.cargo ?? '—'} na ${e.empresa ?? '—'}${e.eh_trabalho_atual ? ' (atual)' : ''}${e.tempo_experiencia_meses != null ? ` - ${e.tempo_experiencia_meses} meses` : ''}`
-      )
-      .join('; ') ?? empty
-  const conquistas =
-    curriculo.conquistas
-      ?.map(
-        q =>
+      } else {
+        row[`Experiência ${i + 1}`] = ''
+      }
+    }
+
+    // Extrair idiomas
+    const idiomas = curriculo.idiomas ?? []
+    for (let i = 0; i < maxIdiomas; i++) {
+      const id = idiomas[i]
+      if (id) {
+        row[`Idioma ${i + 1}`] =
+          `${id.idioma?.descricao ?? '—'}: ${id.nivel?.descricao ?? '—'}`
+      } else {
+        row[`Idioma ${i + 1}`] = ''
+      }
+    }
+
+    // Extrair cursos complementares
+    const cursosComplementares = curriculo.cursos_complementares ?? []
+    for (let i = 0; i < maxCursosComplementares; i++) {
+      const c = cursosComplementares[i]
+      if (c) {
+        row[`Curso Complementar ${i + 1}`] =
+          `${c.nome_curso ?? '—'}${c.nome_instituicao ? ` · ${c.nome_instituicao}` : ''}${c.ano_conclusao ? ` (${c.ano_conclusao})` : ''}`
+      } else {
+        row[`Curso Complementar ${i + 1}`] = ''
+      }
+    }
+
+    // Extrair conquistas
+    const conquistas = curriculo.conquistas ?? []
+    for (let i = 0; i < maxConquistas; i++) {
+      const q = conquistas[i]
+      if (q) {
+        row[`Conquista ${i + 1}`] =
           `${q.titulo ?? '—'}${q.tipo_conquista?.descricao ? ` (${q.tipo_conquista.descricao})` : ''}`
-      )
-      .join('; ') ?? empty
-  const si = curriculo.situacao_interesses
-  const situacaoInteresses = si
-    ? [
-        si.situacao?.descricao && `Situação: ${si.situacao.descricao}`,
-        si.disponibilidade?.descricao &&
-          `Disponibilidade: ${si.disponibilidade.descricao}`,
-      ]
-        .filter(Boolean)
-        .join('; ') || empty
-    : empty
-  return {
-    formacoes,
-    idiomas,
-    cursosComplementares,
-    experiencias,
-    conquistas,
-    situacaoInteresses,
+      } else {
+        row[`Conquista ${i + 1}`] = ''
+      }
+    }
+
+    // Situação e interesses
+    const si = curriculo.situacao_interesses
+    const situacaoInteresses = si
+      ? [
+          si.situacao?.descricao && `Situação: ${si.situacao.descricao}`,
+          si.disponibilidade?.descricao &&
+            `Disponibilidade: ${si.disponibilidade.descricao}`,
+        ]
+          .filter(Boolean)
+          .join('; ') || ''
+      : ''
+    row['Situação e Interesses'] = situacaoInteresses
+
+    return row
   }
+
+  return { headers, dataExtractor }
 }
 
 export function CandidatesTable({
@@ -829,14 +904,9 @@ export function CandidatesTable({
         )
       ).filter(Boolean)
 
-      const curriculumHeaders = [
-        'Formações (currículo)',
-        'Idiomas (currículo)',
-        'Cursos complementares (currículo)',
-        'Experiências (currículo)',
-        'Conquistas (currículo)',
-        'Situação e interesses (currículo)',
-      ]
+      // Gerar headers e extrator de dados para currículo expandido
+      const { headers: curriculumHeaders, dataExtractor } =
+        buildExpandedCurriculumColumns(candidatosToExport)
 
       const headers = [
         'Nome',
@@ -854,7 +924,6 @@ export function CandidatesTable({
       ]
 
       const worksheetData = candidatosToExport.map(c => {
-        const curriculo = formatCurriculoForExport(c.curriculo_snapshot)
         const row: Record<string, string | number> = {
           Nome: c.candidateName ?? '',
           CPF: c.cpf ?? '',
@@ -873,13 +942,11 @@ export function CandidatesTable({
           const field = c.customFields?.find(f => f.title === title)
           row[title] = field?.value ?? ''
         })
-        row['Formações (currículo)'] = curriculo.formacoes
-        row['Idiomas (currículo)'] = curriculo.idiomas
-        row['Cursos complementares (currículo)'] =
-          curriculo.cursosComplementares
-        row['Experiências (currículo)'] = curriculo.experiencias
-        row['Conquistas (currículo)'] = curriculo.conquistas
-        row['Situação e interesses (currículo)'] = curriculo.situacaoInteresses
+
+        // Adicionar dados de currículo expandido
+        const curriculumData = dataExtractor(c)
+        Object.assign(row, curriculumData)
+
         return row
       })
 
