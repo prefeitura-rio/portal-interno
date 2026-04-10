@@ -1,3 +1,4 @@
+import { COURSES_ROLES } from '@/types/heimdall-roles'
 import {
   Briefcase,
   FolderKanban,
@@ -54,6 +55,7 @@ export function getMenuList(pathname: string): Group[] {
             'admin',
             'superadmin',
             'go:admin',
+            'go:cursos:casa_civil',
             'busca:services:admin',
             'busca:services:editor',
             'go:empregabilidade:admin',
@@ -70,17 +72,17 @@ export function getMenuList(pathname: string): Group[] {
           href: '',
           label: 'Capacitação',
           icon: GraduationCap,
-          allowedRoles: ['admin', 'superadmin', 'go:admin'],
+          allowedRoles: [...COURSES_ROLES],
           submenus: [
             {
               href: '/gorio/courses',
               label: 'Cursos',
-              allowedRoles: ['admin', 'superadmin', 'go:admin'],
+              allowedRoles: [...COURSES_ROLES],
             },
             {
               href: '/gorio/courses/new',
               label: 'Novo Curso',
-              allowedRoles: ['admin', 'superadmin', 'go:admin'],
+              allowedRoles: [...COURSES_ROLES],
             },
           ],
         },
@@ -218,6 +220,7 @@ export function getMenuList(pathname: string): Group[] {
             'admin',
             'superadmin',
             'go:admin',
+            'go:cursos:casa_civil',
             'busca:services:admin',
             'busca:services:editor',
             'go:empregabilidade:admin',
