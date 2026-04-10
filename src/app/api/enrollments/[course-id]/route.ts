@@ -95,7 +95,10 @@ function convertApiEnrollmentToFrontend(
   const converted = {
     id: (apiEnrollment.id as string) || '',
     courseId: (apiEnrollment.course_id as number)?.toString() || '',
-    candidateName: (apiEnrollment.personal_info as any)?.nome || (apiEnrollment.name as string) || '',
+    candidateName:
+      (apiEnrollment.personal_info as any)?.nome ||
+      (apiEnrollment.name as string) ||
+      '',
     cpf: (apiEnrollment.cpf as string) || '',
     email: resolveEnrollmentEmail(apiEnrollment),
     phone: (apiEnrollment.phone as string) || '',

@@ -3,6 +3,7 @@
 import { useHeimdallUserWithLoading } from '@/hooks/use-heimdall-user'
 import type { HeimdallUser } from '@/types/heimdall-roles'
 import {
+  canApproveCourses,
   canEditBuscaServices,
   canEditGoRio,
   canFreezeOrDiscontinueVaga,
@@ -10,6 +11,7 @@ import {
   canPublishVagaAsAtivo,
   hasAdminPrivileges,
   hasBuscaServicesAccess,
+  hasCasaCivilAccess,
   hasEmpregoTrabalhoAccess,
   hasGoRioAccess,
   isBuscaServicesAdmin,
@@ -34,6 +36,10 @@ interface HeimdallUserContextType {
   hasBuscaServicesAccess: boolean
   canEditBuscaServices: boolean
   isBuscaServicesAdmin: boolean
+  /** NOVO - Casa Civil curation access */
+  hasCasaCivilAccess: boolean
+  /** NOVO - Can approve/reject courses in review */
+  canApproveCourses: boolean
 }
 
 const HeimdallUserContext = createContext<HeimdallUserContextType | null>(null)
@@ -52,6 +58,8 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
   const buscaServicesAccess = hasBuscaServicesAccess(user?.roles)
   const canEdit = canEditBuscaServices(user?.roles)
   const isBuscaAdmin = isBuscaServicesAdmin(user?.roles)
+  const casaCivilAccess = hasCasaCivilAccess(user?.roles) // NOVO
+  const canApprove = canApproveCourses(user?.roles) // NOVO
 
   return (
     <HeimdallUserContext.Provider
@@ -69,6 +77,8 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
         hasBuscaServicesAccess: buscaServicesAccess,
         canEditBuscaServices: canEdit,
         isBuscaServicesAdmin: isBuscaAdmin,
+        hasCasaCivilAccess: casaCivilAccess, // NOVO
+        canApproveCourses: canApprove, // NOVO
       }}
     >
       {children}

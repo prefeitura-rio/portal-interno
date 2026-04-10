@@ -84,9 +84,7 @@ function InvalidFieldCard({ result }: { result: FieldValidationResult }) {
 
   return (
     <div className="rounded-md border border-gray-200 p-3">
-      <div className="text-sm text-gray-600 mb-0.5">
-        {result.fieldLabel}
-      </div>
+      <div className="text-sm text-gray-600 mb-0.5">{result.fieldLabel}</div>
       <div className="text-sm text-gray-600">
         Caracteres especiais:{' '}
         <span className="font-mono text-red-600">{uniqueChars}</span>

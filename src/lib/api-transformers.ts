@@ -197,17 +197,42 @@ export function transformApiCoursesToCourseListItems(
 export function getStatusDisplayLabel(status: string): string {
   const statusMap: Record<string, string> = {
     draft: 'Rascunho',
-    opened: 'Aberto',
-    ABERTO: 'Aberto',
+    opened: 'Publicado', // Legacy - mapeia para published
+    ABERTO: 'Publicado', // Legacy
+    CRIADO: 'Criado', // Legacy
+    ENCERRADO: 'Encerrado', // Legacy
+    closed: 'Fechado',
+    canceled: 'Cancelado',
+    cancelled: 'Cancelado', // Typo legacy
+    // NOVOS STATUS - Fluxo de Curadoria
+    in_review: 'Em Revisão',
+    needs_changes: 'Requer Alterações',
+    approved: 'Aprovado',
+    published: 'Publicado',
+    pending_deletion: 'Aguardando Exclusão',
+    // Status dinâmicos (frontend only)
     scheduled: 'Agendado',
     accepting_enrollments: 'Recebendo Inscrições',
     in_progress: 'Em Andamento',
     finished: 'Encerrado',
-    closed: 'Fechado',
-    cancelled: 'Cancelado',
   }
 
   return statusMap[status] || status
+}
+
+/**
+ * Normaliza status legados para novos valores
+ * NOVO - Para retrocompatibilidade com backend
+ */
+export function normalizeStatus(status: string): string {
+  const normalizeMap: Record<string, string> = {
+    opened: 'published', // opened → published
+    ABERTO: 'published', // ABERTO → published
+    CRIADO: 'draft', // CRIADO → draft
+    ENCERRADO: 'closed', // ENCERRADO → closed
+  }
+
+  return normalizeMap[status] || status
 }
 
 /**

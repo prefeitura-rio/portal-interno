@@ -1764,33 +1764,54 @@ export function EnrollmentsTable({
                         )
 
                         // Extrai valor de personal_info para campos socioeconômicos
-                        const personalInfo = selectedEnrollment.personal_info as any
-                        const getPersonalInfoSocioValue = (fieldId: string): string | undefined => {
+                        const personalInfo =
+                          selectedEnrollment.personal_info as any
+                        const getPersonalInfoSocioValue = (
+                          fieldId: string
+                        ): string | undefined => {
                           if (!personalInfo) return undefined
                           switch (fieldId) {
-                            case 'raca': return personalInfo.raca || undefined
-                            case 'genero': return personalInfo.genero || undefined
-                            case 'escolaridade': return personalInfo.escolaridade || undefined
-                            case 'renda_familiar': return personalInfo.renda_familiar || undefined
-                            case 'pessoa_com_deficiencia': return personalInfo.deficiencia || undefined
+                            case 'raca':
+                              return personalInfo.raca || undefined
+                            case 'genero':
+                              return personalInfo.genero || undefined
+                            case 'escolaridade':
+                              return personalInfo.escolaridade || undefined
+                            case 'renda_familiar':
+                              return personalInfo.renda_familiar || undefined
+                            case 'pessoa_com_deficiencia':
+                              return personalInfo.deficiencia || undefined
                             case 'endereco': {
                               const e = personalInfo.endereco
                               if (!e) return undefined
-                              return [
-                                e.logradouro,
-                                e.numero ? `, ${e.numero}` : '',
-                                e.complemento ? ` - ${e.complemento}` : '',
-                              ].join('').trim() || undefined
+                              return (
+                                [
+                                  e.logradouro,
+                                  e.numero ? `, ${e.numero}` : '',
+                                  e.complemento ? ` - ${e.complemento}` : '',
+                                ]
+                                  .join('')
+                                  .trim() || undefined
+                              )
                             }
-                            case 'bairro': return personalInfo.endereco?.bairro || undefined
-                            case 'cidade': return personalInfo.endereco?.municipio || undefined
-                            case 'estado': return personalInfo.endereco?.estado || undefined
-                            default: return undefined
+                            case 'bairro':
+                              return personalInfo.endereco?.bairro || undefined
+                            case 'cidade':
+                              return (
+                                personalInfo.endereco?.municipio || undefined
+                              )
+                            case 'estado':
+                              return personalInfo.endereco?.estado || undefined
+                            default:
+                              return undefined
                           }
                         }
 
                         // Títulos padrão para campos socioeconômicos
-                        const socioeconomicDefaultTitles: Record<string, string> = {
+                        const socioeconomicDefaultTitles: Record<
+                          string,
+                          string
+                        > = {
                           endereco: 'Endereço',
                           bairro: 'Bairro',
                           cidade: 'Cidade',
@@ -1818,13 +1839,20 @@ export function EnrollmentsTable({
                         // Mescla personal_info + customFields, com personal_info tendo prioridade
                         const orderedSocioeconomicFields = socioeconomicOrder
                           .map(id => {
-                            const personalInfoValue = getPersonalInfoSocioValue(id)
-                            const customField = allFields.find((f: any) => f.id === id)
+                            const personalInfoValue =
+                              getPersonalInfoSocioValue(id)
+                            const customField = allFields.find(
+                              (f: any) => f.id === id
+                            )
                             if (!personalInfoValue && !customField) return null
                             return {
                               id,
-                              title: customField?.title || socioeconomicDefaultTitles[id] || id,
-                              value: personalInfoValue ?? (customField?.value || ''),
+                              title:
+                                customField?.title ||
+                                socioeconomicDefaultTitles[id] ||
+                                id,
+                              value:
+                                personalInfoValue ?? (customField?.value || ''),
                               required: customField?.required || false,
                             }
                           })
