@@ -29,7 +29,8 @@ export default function NewCourse() {
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
 
-      const response = await fetch('/api/courses/new', {
+      // NOVO - Endpoint que cria e envia para revisão direto (não cria como draft)
+      const response = await fetch('/api/courses/send-to-review', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,15 +46,16 @@ export default function NewCourse() {
       const result = await response.json()
       console.log('Course created successfully:', result)
 
-      // Show success toast and redirect to courses with 'created' tab
-      toast.success('Curso criado com sucesso!')
-      router.push('/gorio/courses?tab=created')
+      // ANTIGO: toast.success('Curso criado com sucesso!') + redirect to 'created' tab
+      // NOVO - Curso é automaticamente enviado para revisão após criação
+      toast.success('Curso enviado para aprovação com sucesso!')
+      router.push('/gorio/courses?tab=in_review')
 
       // Trigger cache revalidation
       router.refresh()
     } catch (error) {
       console.error('Error creating course:', error)
-      toast.error('Erro ao criar curso', {
+      toast.error('Erro ao enviar curso para aprovação', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
       })
       // If there's an error, re-enable the guard

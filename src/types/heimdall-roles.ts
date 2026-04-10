@@ -19,6 +19,18 @@ export const EMPREGO_TRABALHO_ROLES = [
 export type EmpregoTrabalhoRole = (typeof EMPREGO_TRABALHO_ROLES)[number]
 
 /**
+ * Roles that grant access to the "Cursos" (Capacitação) module
+ */
+export const COURSES_ROLES = [
+  'admin',
+  'superadmin',
+  'go:admin',
+  'go:cursos:casa_civil', // NOVO - Casa Civil curadoria
+] as const
+
+export type CoursesRole = (typeof COURSES_ROLES)[number]
+
+/**
  * Available roles in the Heimdall system
  */
 export type HeimdallRole =
@@ -27,6 +39,7 @@ export type HeimdallRole =
   | 'busca:services:admin' // Admin for Busca services module
   | 'busca:services:editor' // Editor for Busca services module
   | 'go:admin' // Admin for GO Rio module only
+  | 'go:cursos:casa_civil' // NOVO - Casa Civil curation for courses
   | 'go:empregabilidade:admin' // Admin for Emprego e trabalho only
   | 'go:empregabilidade:editor_sem_curadoria' // Editor (sem curadoria) - Emprego e trabalho only
   | 'go:empregabilidade:editor_com_curadoria' // Editor (com curadoria) - Emprego e trabalho only
@@ -53,6 +66,7 @@ export function isHeimdallRole(role: string): role is HeimdallRole {
     'busca:services:admin',
     'busca:services:editor',
     'go:admin',
+    'go:cursos:casa_civil', // NOVO
     'go:empregabilidade:admin',
     'go:empregabilidade:editor_sem_curadoria',
     'go:empregabilidade:editor_com_curadoria',
@@ -225,4 +239,26 @@ export function canEditGoRio(roles: string[] | undefined): boolean {
 export function isGoRioAdmin(roles: string[] | undefined): boolean {
   if (!roles) return false
   return hasAdminPrivileges(roles) || roles.includes('go:admin')
+}
+
+/**
+ * Check if user has access to Casa Civil curation (courses approval/review)
+ * NOVO - Para fluxo de curadoria de cursos
+ */
+export function hasCasaCivilAccess(roles: string[] | undefined): boolean {
+  if (!roles) return false
+  return (
+    hasAdminPrivileges(roles) ||
+    roles.includes('go:admin') ||
+    roles.includes('go:cursos:casa_civil')
+  )
+}
+
+/**
+ * Check if user can approve courses (Casa Civil curation)
+ * NOVO - Para aprovar/rejeitar cursos em revisão
+ */
+export function canApproveCourses(roles: string[] | undefined): boolean {
+  if (!roles) return false
+  return hasCasaCivilAccess(roles)
 }

@@ -1,4 +1,4 @@
-import { EMPREGO_TRABALHO_ROLES } from '@/types/heimdall-roles'
+import { COURSES_ROLES, EMPREGO_TRABALHO_ROLES } from '@/types/heimdall-roles'
 
 /**
  * Route permission configuration using Heimdall roles
@@ -10,6 +10,7 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'admin',
     'superadmin',
     'go:admin',
+    'go:cursos:casa_civil', // NOVO
     'busca:services:admin',
     'busca:services:editor',
     'go:empregabilidade:admin',
@@ -17,10 +18,11 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:empregabilidade:editor_com_curadoria',
   ],
 
-  // GO Rio - Capacitação (only admin, superadmin, go:admin - NOT empregabilidade roles)
-  '/gorio/courses': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/courses/new': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/courses/course/*': ['admin', 'superadmin', 'go:admin'],
+  // GO Rio - Capacitação (admin, superadmin, go:admin + Casa Civil curation)
+  // ANTIGO: '/gorio/courses': ['admin', 'superadmin', 'go:admin'],
+  '/gorio/courses': [...COURSES_ROLES],
+  '/gorio/courses/new': [...COURSES_ROLES],
+  '/gorio/courses/course/*': [...COURSES_ROLES],
 
   // GO Rio - MEI (only admin, superadmin, go:admin - NOT empregabilidade roles)
   '/gorio/oportunidades-mei': ['admin', 'superadmin', 'go:admin'],
@@ -85,6 +87,7 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'admin',
     'superadmin',
     'go:admin',
+    'go:cursos:casa_civil', // NOVO
     'busca:services:admin',
     'busca:services:editor',
     'go:empregabilidade:admin',

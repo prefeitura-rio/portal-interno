@@ -83,14 +83,22 @@ export interface CourseListItem {
   external_partner_name?: string
 }
 
+// ANTIGO: export type CourseStatus = 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled' | 'CRIADO' | 'ENCERRADO' | 'scheduled' | 'accepting_enrollments' | 'in_progress' | 'finished'
 export type CourseStatus =
   | 'draft'
-  | 'opened'
-  | 'ABERTO'
+  | 'opened' // Legacy - mantido para retrocompatibilidade
+  | 'ABERTO' // Legacy
   | 'closed'
   | 'canceled'
-  | 'CRIADO'
-  | 'ENCERRADO'
+  | 'CRIADO' // Legacy
+  | 'ENCERRADO' // Legacy
+  // NOVOS STATUS - Fluxo de Curadoria
+  | 'in_review' // Curso em revisão (Casa Civil)
+  | 'needs_changes' // Curso precisa de alterações
+  | 'approved' // Curso aprovado pela Casa Civil
+  | 'published' // Curso publicado (substitui 'opened')
+  | 'pending_deletion' // Aguardando exclusão
+  // Status dinâmicos (frontend only)
   | 'scheduled'
   | 'accepting_enrollments'
   | 'in_progress'
