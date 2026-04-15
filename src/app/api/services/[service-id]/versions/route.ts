@@ -1,5 +1,7 @@
+import {
+  getApiV1AdminServicesIdVersions,
+} from '@/http-busca-search/versions/versions'
 import type { GetApiV1AdminServicesIdVersionsParams } from '@/http-busca-search/models/getApiV1AdminServicesIdVersionsParams'
-import { getApiV1AdminServicesIdVersions } from '@/http-busca-search/versions/versions'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
@@ -31,12 +33,7 @@ export async function GET(
       apiParams.per_page = Number.parseInt(perPage, 10)
     }
 
-    console.log(
-      '🚀 Fetching service versions:',
-      serviceId,
-      'with params:',
-      apiParams
-    )
+    console.log('🚀 Fetching service versions:', serviceId, 'with params:', apiParams)
 
     // Call the external API
     const response = await getApiV1AdminServicesIdVersions(serviceId, apiParams)
@@ -65,3 +62,5 @@ export async function GET(
     )
   }
 }
+
+

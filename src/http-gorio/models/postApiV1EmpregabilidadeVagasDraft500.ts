@@ -6,6 +6,4 @@
  * OpenAPI spec version: 1.0
  */
 
-export type PutApiV1EmpregabilidadeVagasIdUnfreeze200 = {
-  [key: string]: string
-}
+export type PostApiV1EmpregabilidadeVagasDraft500 = { [key: string]: string }

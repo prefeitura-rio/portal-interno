@@ -1,6 +1,7 @@
 'use client'
 import { NewCourseForm } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,7 +10,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -29,8 +29,7 @@ export default function NewCourse() {
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
 
-      // NOVO - Endpoint que cria e envia para revisão direto (não cria como draft)
-      const response = await fetch('/api/courses/send-to-review', {
+      const response = await fetch('/api/courses/new', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,16 +45,15 @@ export default function NewCourse() {
       const result = await response.json()
       console.log('Course created successfully:', result)
 
-      // ANTIGO: toast.success('Curso criado com sucesso!') + redirect to 'created' tab
-      // NOVO - Curso é automaticamente enviado para revisão após criação
-      toast.success('Curso enviado para aprovação com sucesso!')
-      router.push('/gorio/courses?tab=in_review')
+      // Show success toast and redirect to courses with 'created' tab
+      toast.success('Curso criado com sucesso!')
+      router.push('/gorio/courses?tab=created')
 
       // Trigger cache revalidation
       router.refresh()
     } catch (error) {
       console.error('Error creating course:', error)
-      toast.error('Erro ao enviar curso para aprovação', {
+      toast.error('Erro ao criar curso', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
       })
       // If there's an error, re-enable the guard

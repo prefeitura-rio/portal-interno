@@ -43,29 +43,24 @@ O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e p
 
 ## 🔑 Roles Disponíveis
 
-| Role                                      | Descrição                    | Acesso                                           |
-| ----------------------------------------- | ---------------------------- | ------------------------------------------------ |
-| `admin`                                   | Administrador                 | Acesso total a todos os módulos                  |
-| `superadmin`                              | Super Administrador           | Acesso irrestrito a toda a plataforma            |
-| `go:admin`                                | Admin GO Rio                  | Módulo GO Rio (Capacitação + Emprego e trabalho) |
-| `go:empregabilidade:admin`                | Admin Emprego e Trabalho      | Apenas módulo Emprego e trabalho                 |
-| `go:empregabilidade:editor_sem_curadoria` | Editor sem curadoria          | Apenas módulo Emprego e trabalho                 |
-| `go:empregabilidade:editor_com_curadoria` | Editor com curadoria          | Apenas módulo Emprego e trabalho                 |
-| `busca:services:admin`                    | Admin Serviços                | Gerencia e aprova serviços municipais            |
-| `busca:services:editor`                   | Editor Serviços               | Cria e edita serviços municipais                 |
+| Role                      | Descrição         | Acesso                                 |
+| ------------------------- | ------------------- | -------------------------------------- |
+| `admin`                 | Administrador       | Acesso total a todos os módulos       |
+| `superadmin`            | Super Administrador | Acesso irrestrito a toda a plataforma  |
+| `go:admin`              | Admin GO Rio        | Apenas módulo GO Rio (Cursos e Vagas) |
+| `busca:services:admin`  | Admin Serviços     | Gerencia e aprova serviços municipais |
+| `busca:services:editor` | Editor Serviços    | Cria e edita serviços municipais      |
 
 ### Matriz de Acesso
 
-| Módulo/Recurso       | admin | superadmin | go:admin | go:empregab.:admin | go:empregab.:editor_sem | go:empregab.:editor_com | busca:services:admin | busca:services:editor |
-| -------------------- | ----- | ---------- | -------- | ------------------ | ----------------------- | ----------------------- | --------------------- | --------------------- |
-| Dashboard            | ✅    | ✅         | ✅       | ✅                 | ✅                      | ✅                      | ✅                    | ✅                    |
-| GO Rio - Capacitação | ✅    | ✅         | ✅       | ❌                 | ❌                      | ❌                      | ❌                    | ❌                    |
-| Emprego e trabalho   | ✅    | ✅         | ✅       | ✅                 | ✅                      | ✅                      | ❌                    | ❌                    |
-| Serviços Municipais  | ✅    | ✅         | ❌       | ❌                 | ❌                      | ❌                      | ✅                    | ✅                    |
-| Aprovar Serviços     | ✅    | ✅         | ❌       | ❌                 | ❌                      | ❌                      | ✅                    | ❌                    |
-| Minha Conta          | ✅    | ✅         | ✅       | ✅                 | ✅                      | ✅                      | ✅                    | ✅                    |
-
-As roles `go:empregabilidade:*` têm acesso **somente** ao módulo "Emprego e trabalho" (e Dashboard / Minha conta). Capacitação e Serviços municipais não aparecem no menu e o acesso às rotas é bloqueado.
+| Módulo/Recurso      | admin | superadmin | go:admin | busca:services:admin | busca:services:editor |
+| -------------------- | ----- | ---------- | -------- | -------------------- | --------------------- |
+| Dashboard            | ✅    | ✅         | ✅       | ✅                   | ✅                    |
+| GO Rio - Cursos      | ✅    | ✅         | ✅       | ❌                   | ❌                    |
+| GO Rio - Vagas       | ✅    | ✅         | ✅       | ❌                   | ❌                    |
+| Serviços Municipais | ✅    | ✅         | ❌       | ✅                   | ✅                    |
+| Aprovar Serviços    | ✅    | ✅         | ❌       | ✅                   | ❌                    |
+| Minha Conta          | ✅    | ✅         | ✅       | ✅                   | ✅                    |
 
 ---
 
@@ -272,8 +267,7 @@ import {
   useHeimdallUserWithLoading,   // Retorna user + loading state
   useHasRole,                   // Verifica roles específicas
   useIsAdmin,                   // Verifica se é admin/superadmin
-  useHasGoRioAccess,            // Verifica acesso ao GO Rio (Capacitação + Emprego)
-  useHasEmpregoTrabalhoAccess,  // Verifica acesso ao módulo Emprego e trabalho
+  useHasGoRioAccess,            // Verifica acesso ao GO Rio
   useCanEditGoRio,              // Verifica se pode editar GO Rio
   useHasBuscaServicesAccess,    // Verifica acesso a Serviços
   useCanEditBuscaServices,      // Verifica se pode editar serviços
@@ -330,7 +324,6 @@ import {
   requireGoRioAccess,          // Exige acesso GO Rio
   requireAdminAccess,          // Exige admin/superadmin
   requireBuscaServicesAccess,  // Exige acesso a serviços
-  requireEmpregoTrabalhoAccess, // Exige acesso a Emprego e trabalho
 } from '@/lib/server-auth'
 ```
 
@@ -411,9 +404,8 @@ O middleware já protege automaticamente baseado em `route-permissions.ts`:
 ```typescript
 // src/lib/route-permissions.ts
 export const ROUTE_PERMISSIONS: Record<string, string[]> = {
+  '/gorio': ['admin', 'superadmin', 'go:admin'],
   '/gorio/courses': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/oportunidades-mei': ['admin', 'superadmin', 'go:admin', 'go:empregabilidade:admin', ...],
-  '/gorio/empregabilidade': ['admin', 'superadmin', 'go:admin', 'go:empregabilidade:admin', ...],
   '/servicos-municipais': ['admin', 'superadmin', 'busca:services:admin', 'busca:services:editor'],
 }
 ```

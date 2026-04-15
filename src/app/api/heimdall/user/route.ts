@@ -1,9 +1,6 @@
-import {
-  HEIMDALL_USER_COOKIE_CONFIG,
-  HEIMDALL_USER_COOKIE_NAME,
-} from '@/lib/auth-cookie-config'
-import { getCurrentUserFromCacheOrHeimdall } from '@/lib/heimdall-user'
 import type { HeimdallUser } from '@/types/heimdall-roles'
+import { HEIMDALL_USER_COOKIE_CONFIG, HEIMDALL_USER_COOKIE_NAME } from '@/lib/auth-cookie-config'
+import { getCurrentUserFromCacheOrHeimdall } from '@/lib/heimdall-user'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 

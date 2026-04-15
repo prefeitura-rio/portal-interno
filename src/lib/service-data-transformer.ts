@@ -82,9 +82,7 @@ export function transformToApiRequest(
 /**
  * Transform API response to frontend service format
  */
-export function transformFromApiResponse(
-  apiService: ModelsPrefRioService
-): Service {
+export function transformFromApiResponse(apiService: ModelsPrefRioService): Service {
   return {
     id: apiService.id || '',
     title: apiService.nome_servico,

@@ -1,7 +1,4 @@
-import type {
-  ModelsPrefRioService,
-  ModelsRollbackRequest,
-} from '@/http-busca-search/models'
+import type { ModelsPrefRioService, ModelsRollbackRequest } from '@/http-busca-search/models'
 import { postApiV1AdminServicesIdRollback } from '@/http-busca-search/versions/versions'
 import { convertApiToFrontend } from '@/types/service'
 import { revalidateTag } from 'next/cache'
@@ -56,12 +53,11 @@ export async function POST(
       revalidateTag(`service-${serviceId}`)
 
       // Convert API response to frontend format
-      const serviceData =
-        (
-          responseBody as {
-            data?: ModelsPrefRioService
-          }
-        ).data ?? responseBody
+      const serviceData = (
+        responseBody as {
+          data?: ModelsPrefRioService
+        }
+      ).data ?? responseBody
 
       const service = convertApiToFrontend(serviceData as ModelsPrefRioService)
 

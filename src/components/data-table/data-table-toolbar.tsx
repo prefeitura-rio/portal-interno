@@ -74,92 +74,76 @@ interface DataTableToolbarFilterProps<TData> {
 function DataTableToolbarFilter<TData>({
   column,
 }: DataTableToolbarFilterProps<TData>) {
-  const columnMeta = column.columnDef.meta
-  const searchInputRef = React.useRef<HTMLInputElement>(null)
-  const hadFocusRef = React.useRef(false)
+  {
+    const columnMeta = column.columnDef.meta
 
-  // Restore focus to search input after table data refresh (e.g. empty results) so the user can keep typing.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: column intentionally used to re-run when table data updates
-  React.useLayoutEffect(() => {
-    if (hadFocusRef.current && searchInputRef.current) {
-      searchInputRef.current.focus()
-      hadFocusRef.current = false
-    }
-  }, [column])
+    const onFilterRender = React.useCallback(() => {
+      if (!columnMeta?.variant) return null
 
-  const onFilterRender = React.useCallback(() => {
-    if (!columnMeta?.variant) return null
-
-    switch (columnMeta.variant) {
-      case 'text':
-        return (
-          <Input
-            ref={searchInputRef}
-            placeholder={columnMeta.placeholder ?? columnMeta.label}
-            value={(column.getFilterValue() as string) ?? ''}
-            onChange={event => column.setFilterValue(event.target.value)}
-            onFocus={() => {
-              hadFocusRef.current = true
-            }}
-            onBlur={() => {
-              hadFocusRef.current = false
-            }}
-            className="h-8 w-60 lg:w-100 lg:h-12"
-          />
-        )
-
-      case 'number':
-        return (
-          <div className="relative">
+      switch (columnMeta.variant) {
+        case 'text':
+          return (
             <Input
-              type="number"
-              inputMode="numeric"
               placeholder={columnMeta.placeholder ?? columnMeta.label}
               value={(column.getFilterValue() as string) ?? ''}
               onChange={event => column.setFilterValue(event.target.value)}
-              className={cn('h-8 w-[120px]', columnMeta.unit && 'pr-8')}
+              className="h-8 w-60 lg:w-100 lg:h-12"
             />
-            {columnMeta.unit && (
-              <span className="absolute top-0 right-0 bottom-0 flex items-center rounded-r-md bg-accent px-2 text-muted-foreground text-sm">
-                {columnMeta.unit}
-              </span>
-            )}
-          </div>
-        )
+          )
 
-      case 'range':
-        return (
-          <DataTableSliderFilter
-            column={column}
-            title={columnMeta.label ?? column.id}
-          />
-        )
+        case 'number':
+          return (
+            <div className="relative">
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder={columnMeta.placeholder ?? columnMeta.label}
+                value={(column.getFilterValue() as string) ?? ''}
+                onChange={event => column.setFilterValue(event.target.value)}
+                className={cn('h-8 w-[120px]', columnMeta.unit && 'pr-8')}
+              />
+              {columnMeta.unit && (
+                <span className="absolute top-0 right-0 bottom-0 flex items-center rounded-r-md bg-accent px-2 text-muted-foreground text-sm">
+                  {columnMeta.unit}
+                </span>
+              )}
+            </div>
+          )
 
-      case 'date':
-      case 'dateRange':
-        return (
-          <DataTableDateFilter
-            column={column}
-            title={columnMeta.label ?? column.id}
-            multiple={columnMeta.variant === 'dateRange'}
-          />
-        )
+        case 'range':
+          return (
+            <DataTableSliderFilter
+              column={column}
+              title={columnMeta.label ?? column.id}
+            />
+          )
 
-      case 'select':
-      case 'multiSelect':
-        return (
-          <DataTableFacetedFilter
-            column={column}
-            title={columnMeta.label ?? column.id}
-            options={columnMeta.options ?? []}
-            multiple={columnMeta.variant === 'multiSelect'}
-          />
-        )
+        case 'date':
+        case 'dateRange':
+          return (
+            <DataTableDateFilter
+              column={column}
+              title={columnMeta.label ?? column.id}
+              multiple={columnMeta.variant === 'dateRange'}
+            />
+          )
 
-      default:
-        return null
-    }
-  }, [column, columnMeta])
+        case 'select':
+        case 'multiSelect':
+          return (
+            <DataTableFacetedFilter
+              column={column}
+              title={columnMeta.label ?? column.id}
+              options={columnMeta.options ?? []}
+              multiple={columnMeta.variant === 'multiSelect'}
+            />
+          )
 
-  return onFilterRender()
+        default:
+          return null
+      }
+    }, [column, columnMeta])
+
+    return onFilterRender()
+  }
 }

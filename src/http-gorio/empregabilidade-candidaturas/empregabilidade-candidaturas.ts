@@ -9,41 +9,22 @@ import type {
   DeleteApiV1EmpregabilidadeCandidaturasId200,
   DeleteApiV1EmpregabilidadeCandidaturasId400,
   DeleteApiV1EmpregabilidadeCandidaturasId500,
-  EmpregabilidadeBulkUpdateEtapaRequest,
-  EmpregabilidadeBulkUpdateStatusRequest,
   EmpregabilidadeCandidatura,
   EmpregabilidadeCandidaturaBody,
-  EmpregabilidadeUpdateEtapaRequest,
   EmpregabilidadeUpdateStatusRequest,
   GetApiV1EmpregabilidadeCandidaturas200,
-  GetApiV1EmpregabilidadeCandidaturas403,
   GetApiV1EmpregabilidadeCandidaturas500,
   GetApiV1EmpregabilidadeCandidaturasId400,
   GetApiV1EmpregabilidadeCandidaturasId404,
   GetApiV1EmpregabilidadeCandidaturasId500,
   GetApiV1EmpregabilidadeCandidaturasParams,
-  GetApiV1EmpregabilidadeCandidaturasUsuarioCpf200,
-  GetApiV1EmpregabilidadeCandidaturasUsuarioCpf401,
-  GetApiV1EmpregabilidadeCandidaturasUsuarioCpf403,
-  GetApiV1EmpregabilidadeCandidaturasUsuarioCpf500,
-  GetApiV1EmpregabilidadeCandidaturasUsuarioCpfParams,
   PostApiV1EmpregabilidadeCandidaturas400,
   PostApiV1EmpregabilidadeCandidaturas500,
-  PutApiV1EmpregabilidadeCandidaturasBulkEtapa200,
-  PutApiV1EmpregabilidadeCandidaturasBulkEtapa400,
-  PutApiV1EmpregabilidadeCandidaturasBulkEtapa409,
-  PutApiV1EmpregabilidadeCandidaturasBulkEtapa500,
-  PutApiV1EmpregabilidadeCandidaturasBulkStatus200,
-  PutApiV1EmpregabilidadeCandidaturasBulkStatus400,
-  PutApiV1EmpregabilidadeCandidaturasBulkStatus500,
   PutApiV1EmpregabilidadeCandidaturasId400,
   PutApiV1EmpregabilidadeCandidaturasId500,
   PutApiV1EmpregabilidadeCandidaturasIdApprove200,
   PutApiV1EmpregabilidadeCandidaturasIdApprove400,
   PutApiV1EmpregabilidadeCandidaturasIdApprove500,
-  PutApiV1EmpregabilidadeCandidaturasIdEtapa200,
-  PutApiV1EmpregabilidadeCandidaturasIdEtapa400,
-  PutApiV1EmpregabilidadeCandidaturasIdEtapa500,
   PutApiV1EmpregabilidadeCandidaturasIdReject200,
   PutApiV1EmpregabilidadeCandidaturasIdReject400,
   PutApiV1EmpregabilidadeCandidaturasIdReject500,
@@ -55,17 +36,12 @@ import type {
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
- * Retorna lista paginada de candidaturas com filtros e busca universal. Restrito a administradores.
- * @summary Listar candidaturas (admin)
+ * Retorna lista paginada de candidaturas
+ * @summary Listar candidaturas
  */
 export type getApiV1EmpregabilidadeCandidaturasResponse200 = {
   data: GetApiV1EmpregabilidadeCandidaturas200
   status: 200
-}
-
-export type getApiV1EmpregabilidadeCandidaturasResponse403 = {
-  data: GetApiV1EmpregabilidadeCandidaturas403
-  status: 403
 }
 
 export type getApiV1EmpregabilidadeCandidaturasResponse500 = {
@@ -75,7 +51,6 @@ export type getApiV1EmpregabilidadeCandidaturasResponse500 = {
 
 export type getApiV1EmpregabilidadeCandidaturasResponseComposite =
   | getApiV1EmpregabilidadeCandidaturasResponse200
-  | getApiV1EmpregabilidadeCandidaturasResponse403
   | getApiV1EmpregabilidadeCandidaturasResponse500
 
 export type getApiV1EmpregabilidadeCandidaturasResponse =
@@ -158,176 +133,6 @@ export const postApiV1EmpregabilidadeCandidaturas = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...options?.headers },
       body: JSON.stringify(empregabilidadeCandidaturaBody),
-    }
-  )
-}
-
-/**
- * Atualiza a etapa atual de múltiplas candidaturas de uma vaga. Todos os candidatos devem estar na mesma etapa atual.
- * @summary Atualizar etapa de candidaturas em lote
- */
-export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse200 = {
-  data: PutApiV1EmpregabilidadeCandidaturasBulkEtapa200
-  status: 200
-}
-
-export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse400 = {
-  data: PutApiV1EmpregabilidadeCandidaturasBulkEtapa400
-  status: 400
-}
-
-export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse409 = {
-  data: PutApiV1EmpregabilidadeCandidaturasBulkEtapa409
-  status: 409
-}
-
-export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse500 = {
-  data: PutApiV1EmpregabilidadeCandidaturasBulkEtapa500
-  status: 500
-}
-
-export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponseComposite =
-  | putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse200
-  | putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse400
-  | putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse409
-  | putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse500
-
-export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse =
-  putApiV1EmpregabilidadeCandidaturasBulkEtapaResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutApiV1EmpregabilidadeCandidaturasBulkEtapaUrl = () => {
-  return `/api/v1/empregabilidade/candidaturas/bulk-etapa`
-}
-
-export const putApiV1EmpregabilidadeCandidaturasBulkEtapa = async (
-  empregabilidadeBulkUpdateEtapaRequest: EmpregabilidadeBulkUpdateEtapaRequest,
-  options?: RequestInit
-): Promise<putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse> => {
-  return customFetchGoRio<putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse>(
-    getPutApiV1EmpregabilidadeCandidaturasBulkEtapaUrl(),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(empregabilidadeBulkUpdateEtapaRequest),
-    }
-  )
-}
-
-/**
- * Atualiza o status de múltiplas candidaturas de uma vaga identificadas por lista de CPFs
- * @summary Atualizar status de candidaturas em lote
- */
-export type putApiV1EmpregabilidadeCandidaturasBulkStatusResponse200 = {
-  data: PutApiV1EmpregabilidadeCandidaturasBulkStatus200
-  status: 200
-}
-
-export type putApiV1EmpregabilidadeCandidaturasBulkStatusResponse400 = {
-  data: PutApiV1EmpregabilidadeCandidaturasBulkStatus400
-  status: 400
-}
-
-export type putApiV1EmpregabilidadeCandidaturasBulkStatusResponse500 = {
-  data: PutApiV1EmpregabilidadeCandidaturasBulkStatus500
-  status: 500
-}
-
-export type putApiV1EmpregabilidadeCandidaturasBulkStatusResponseComposite =
-  | putApiV1EmpregabilidadeCandidaturasBulkStatusResponse200
-  | putApiV1EmpregabilidadeCandidaturasBulkStatusResponse400
-  | putApiV1EmpregabilidadeCandidaturasBulkStatusResponse500
-
-export type putApiV1EmpregabilidadeCandidaturasBulkStatusResponse =
-  putApiV1EmpregabilidadeCandidaturasBulkStatusResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutApiV1EmpregabilidadeCandidaturasBulkStatusUrl = () => {
-  return `/api/v1/empregabilidade/candidaturas/bulk-status`
-}
-
-export const putApiV1EmpregabilidadeCandidaturasBulkStatus = async (
-  empregabilidadeBulkUpdateStatusRequest: EmpregabilidadeBulkUpdateStatusRequest,
-  options?: RequestInit
-): Promise<putApiV1EmpregabilidadeCandidaturasBulkStatusResponse> => {
-  return customFetchGoRio<putApiV1EmpregabilidadeCandidaturasBulkStatusResponse>(
-    getPutApiV1EmpregabilidadeCandidaturasBulkStatusUrl(),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(empregabilidadeBulkUpdateStatusRequest),
-    }
-  )
-}
-
-/**
- * Retorna lista paginada de candidaturas de um usuário pelo CPF. Usuários só podem acessar o próprio CPF; admins podem acessar qualquer CPF.
- * @summary Listar candidaturas por CPF
- */
-export type getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse200 = {
-  data: GetApiV1EmpregabilidadeCandidaturasUsuarioCpf200
-  status: 200
-}
-
-export type getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse401 = {
-  data: GetApiV1EmpregabilidadeCandidaturasUsuarioCpf401
-  status: 401
-}
-
-export type getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse403 = {
-  data: GetApiV1EmpregabilidadeCandidaturasUsuarioCpf403
-  status: 403
-}
-
-export type getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse500 = {
-  data: GetApiV1EmpregabilidadeCandidaturasUsuarioCpf500
-  status: 500
-}
-
-export type getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponseComposite =
-  | getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse200
-  | getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse401
-  | getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse403
-  | getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse500
-
-export type getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse =
-  getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponseComposite & {
-    headers: Headers
-  }
-
-export const getGetApiV1EmpregabilidadeCandidaturasUsuarioCpfUrl = (
-  cpf: string,
-  params?: GetApiV1EmpregabilidadeCandidaturasUsuarioCpfParams
-) => {
-  const normalizedParams = new URLSearchParams()
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  })
-
-  const stringifiedParams = normalizedParams.toString()
-
-  return stringifiedParams.length > 0
-    ? `/api/v1/empregabilidade/candidaturas/usuario/${cpf}?${stringifiedParams}`
-    : `/api/v1/empregabilidade/candidaturas/usuario/${cpf}`
-}
-
-export const getApiV1EmpregabilidadeCandidaturasUsuarioCpf = async (
-  cpf: string,
-  params?: GetApiV1EmpregabilidadeCandidaturasUsuarioCpfParams,
-  options?: RequestInit
-): Promise<getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse> => {
-  return customFetchGoRio<getApiV1EmpregabilidadeCandidaturasUsuarioCpfResponse>(
-    getGetApiV1EmpregabilidadeCandidaturasUsuarioCpfUrl(cpf, params),
-    {
-      ...options,
-      method: 'GET',
     }
   )
 }
@@ -523,57 +328,6 @@ export const putApiV1EmpregabilidadeCandidaturasIdApprove = async (
     {
       ...options,
       method: 'PUT',
-    }
-  )
-}
-
-/**
- * Atualiza a etapa atual de uma candidatura
- * @summary Avançar etapa da candidatura
- */
-export type putApiV1EmpregabilidadeCandidaturasIdEtapaResponse200 = {
-  data: PutApiV1EmpregabilidadeCandidaturasIdEtapa200
-  status: 200
-}
-
-export type putApiV1EmpregabilidadeCandidaturasIdEtapaResponse400 = {
-  data: PutApiV1EmpregabilidadeCandidaturasIdEtapa400
-  status: 400
-}
-
-export type putApiV1EmpregabilidadeCandidaturasIdEtapaResponse500 = {
-  data: PutApiV1EmpregabilidadeCandidaturasIdEtapa500
-  status: 500
-}
-
-export type putApiV1EmpregabilidadeCandidaturasIdEtapaResponseComposite =
-  | putApiV1EmpregabilidadeCandidaturasIdEtapaResponse200
-  | putApiV1EmpregabilidadeCandidaturasIdEtapaResponse400
-  | putApiV1EmpregabilidadeCandidaturasIdEtapaResponse500
-
-export type putApiV1EmpregabilidadeCandidaturasIdEtapaResponse =
-  putApiV1EmpregabilidadeCandidaturasIdEtapaResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutApiV1EmpregabilidadeCandidaturasIdEtapaUrl = (
-  id: string
-) => {
-  return `/api/v1/empregabilidade/candidaturas/${id}/etapa`
-}
-
-export const putApiV1EmpregabilidadeCandidaturasIdEtapa = async (
-  id: string,
-  empregabilidadeUpdateEtapaRequest: EmpregabilidadeUpdateEtapaRequest,
-  options?: RequestInit
-): Promise<putApiV1EmpregabilidadeCandidaturasIdEtapaResponse> => {
-  return customFetchGoRio<putApiV1EmpregabilidadeCandidaturasIdEtapaResponse>(
-    getPutApiV1EmpregabilidadeCandidaturasIdEtapaUrl(id),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(empregabilidadeUpdateEtapaRequest),
     }
   )
 }

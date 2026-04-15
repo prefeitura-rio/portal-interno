@@ -19,7 +19,10 @@ export async function POST(
     const file = formData.get('file') as File | null
 
     if (!file) {
-      return NextResponse.json({ error: 'File is required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'File is required' },
+        { status: 400 }
+      )
     }
 
     // Validate file type
@@ -48,7 +51,7 @@ export async function POST(
     // Call the API to import enrollments
     const response = await postApiV1CoursesCourseIdEnrollmentsImport(
       Number.parseInt(courseId, 10),
-      { file }
+     { file}
     )
 
     if (response.status === 202) {

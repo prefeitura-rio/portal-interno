@@ -55,62 +55,42 @@ export async function GET(request: Request) {
         pagination = responseData.data.pagination
       }
 
-      // Filter out courses that belong to other tabs (drafts and curadoria
-      // review queue). The "Cursos Criados" tab must not show in_review/draft
-      // courses — those have their own dedicated tabs/endpoints.
-      const excludedStatuses = new Set(['in_review', 'draft'])
-      const filteredApiCourses = Array.isArray(courses)
-        ? courses.filter((course: any) => !excludedStatuses.has(course?.status))
-        : []
-      const removedCount = Array.isArray(courses)
-        ? courses.length - filteredApiCourses.length
-        : 0
-
       // Transform the API response to match our CourseListItem interface
-      const transformedCourses = filteredApiCourses.map((course: any) => {
-        try {
-          return transformApiCourseToCourseListItem(course)
-        } catch (error) {
-          console.error('Error transforming course:', course, error)
-          // Return a fallback course item
-          return {
-            id: course.id?.toString() || 'unknown',
-            title: course.title || 'Sem título',
-            duration: course.carga_horaria || 0,
-            vacancies: course.numero_vagas || 0,
-            status: course.status || 'draft',
-            originalStatus: course.status || 'draft',
-            created_at: new Date(course.created_at || Date.now()),
-            registration_start: course.enrollment_start_date
-              ? new Date(course.enrollment_start_date)
-              : null,
-            registration_end: course.enrollment_end_date
-              ? new Date(course.enrollment_end_date)
-              : null,
-            modalidade: course.modalidade || 'PRESENCIAL',
-            orgao_id: course.orgao_id || null,
-            is_external_partner: course.is_external_partner,
-            course_management_type: course.course_management_type,
-            external_partner_name: course.external_partner_name,
-          } as CourseListItem
-        }
-      })
-
-      // Adjust pagination total to account for items filtered out on this page.
-      // Note: ideally the backend would filter by status server-side; until
-      // then this keeps the displayed count consistent with the visible rows.
-      const adjustedTotal = Math.max(
-        (pagination?.total || 0) - removedCount,
-        transformedCourses.length
-      )
-      const adjustedPagination = pagination
-        ? { ...pagination, total: adjustedTotal }
-        : null
+      const transformedCourses = Array.isArray(courses)
+        ? courses.map((course: any) => {
+            try {
+              return transformApiCourseToCourseListItem(course)
+            } catch (error) {
+              console.error('Error transforming course:', course, error)
+              // Return a fallback course item
+              return {
+                id: course.id?.toString() || 'unknown',
+                title: course.title || 'Sem título',
+                duration: course.carga_horaria || 0,
+                vacancies: course.numero_vagas || 0,
+                status: course.status || 'draft',
+                originalStatus: course.status || 'draft',
+                created_at: new Date(course.created_at || Date.now()),
+                registration_start: course.enrollment_start_date
+                  ? new Date(course.enrollment_start_date)
+                  : null,
+                registration_end: course.enrollment_end_date
+                  ? new Date(course.enrollment_end_date)
+                  : null,
+                modalidade: course.modalidade || 'PRESENCIAL',
+                orgao_id: course.orgao_id || null,
+                is_external_partner: course.is_external_partner,
+                course_management_type: course.course_management_type,
+                external_partner_name: course.external_partner_name,
+              } as CourseListItem
+            }
+          })
+        : []
 
       return NextResponse.json({
         courses: transformedCourses,
-        pagination: adjustedPagination,
-        total: adjustedTotal,
+        pagination: pagination,
+        total: pagination?.total || 0,
         page: params.page,
         per_page: params.limit,
         success: true,

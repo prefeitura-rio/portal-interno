@@ -7,7 +7,9 @@ import {
   type NewCourseFormRef,
 } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { Badge } from '@/components/ui/badge'
+import { useDepartment } from '@/hooks/use-department'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,28 +20,21 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { formatDateTimeToUTC } from '@/components/ui/datetime-picker'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
-import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useCourse } from '@/hooks/use-course'
-import { useDepartment } from '@/hooks/use-department'
 import type { CourseStatusConfig } from '@/types/course'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Ban,
   Calendar,
-  CheckCircle2,
   ClipboardList,
   Edit,
   FileText,
   Flag,
   Play,
-  RotateCcw,
   Save,
-  Send,
   Trash2,
   UserCheck,
   Users,
@@ -49,6 +44,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { formatDateTimeToUTC } from '@/components/ui/datetime-picker'
 
 // Status configuration for badges - updated to match courses list page
 const statusConfig: Record<string, CourseStatusConfig> = {
@@ -125,36 +121,6 @@ const statusConfig: Record<string, CourseStatusConfig> = {
     variant: 'secondary',
     className: 'text-red-600 border-red-200 bg-red-50',
   },
-  in_review: {
-    icon: ClipboardList,
-    label: 'Em Revisão',
-    variant: 'outline',
-    className: 'text-purple-600 border-purple-200 bg-purple-50',
-  },
-  needs_changes: {
-    icon: RotateCcw,
-    label: 'Requer Alterações',
-    variant: 'outline',
-    className: 'text-amber-600 border-amber-200 bg-amber-50',
-  },
-  approved: {
-    icon: CheckCircle2,
-    label: 'Aprovado',
-    variant: 'default',
-    className: 'text-teal-600 border-teal-200 bg-teal-50',
-  },
-  published: {
-    icon: CheckCircle2,
-    label: 'Publicado',
-    variant: 'default',
-    className: 'text-green-700 border-green-200 bg-green-50',
-  },
-  pending_deletion: {
-    icon: Trash2,
-    label: 'Aguardando Exclusão',
-    variant: 'outline',
-    className: 'text-gray-500 border-gray-200 bg-gray-50',
-  },
 }
 
 export default function CourseDetailPage({
@@ -180,12 +146,6 @@ export default function CourseDetailPage({
       | 'cancel_course'
       | 'close_course'
       | 'reopen_course'
-      | 'send_to_review'
-      | 'request_changes'
-      | 'approve_publish'
-      | 'request_deletion'
-      | 'confirm_delete_course'
-      | 'agree_with_edit'
       | null
   }>({
     open: false,
@@ -195,9 +155,6 @@ export default function CourseDetailPage({
   // Refs to trigger form submission
   const draftFormRef = useRef<NewCourseFormRef>(null)
   const courseFormRef = useRef<NewCourseFormRef>(null)
-
-  // Heimdall user context for role-based actions
-  const { canApproveCourses } = useHeimdallUserContext()
 
   // Use the custom hook to fetch course data
   const { course, loading, error, refetch } = useCourse(
@@ -241,18 +198,15 @@ export default function CourseDetailPage({
   }, [searchParams, course, updateTabInUrl])
 
   // Handler for tab change - intercept if editing with unsaved changes
-  const handleTabChange = useCallback(
-    (newTab: string) => {
-      if (isEditing && hasFormChanges && newTab !== activeTab) {
-        setPendingTab(newTab)
-        setShowTabChangeDialog(true)
-      } else {
-        setActiveTab(newTab)
-        updateTabInUrl(newTab)
-      }
-    },
-    [isEditing, hasFormChanges, activeTab, updateTabInUrl]
-  )
+  const handleTabChange = useCallback((newTab: string) => {
+    if (isEditing && hasFormChanges && newTab !== activeTab) {
+      setPendingTab(newTab)
+      setShowTabChangeDialog(true)
+    } else {
+      setActiveTab(newTab)
+      updateTabInUrl(newTab)
+    }
+  }, [isEditing, hasFormChanges, activeTab, updateTabInUrl])
 
   const handleConfirmTabChange = useCallback(() => {
     if (pendingTab) {
@@ -410,75 +364,69 @@ export default function CourseDetailPage({
   // Helper function to transform locations from frontend format to API format
   const transformLocationsToApiFormat = (locations: any[]) => {
     if (!locations || !Array.isArray(locations)) return []
-
-    return locations
-      .map(location => {
-        // Frontend format (camelCase) - transform to API format
-        if (location.schedules && Array.isArray(location.schedules)) {
-          // Filter and transform schedules, only including those with valid start dates
-          const validSchedules = location.schedules
-            .map((schedule: any) => {
-              const startDate =
-                normalizeDateToISO(schedule.classStartDate) ||
-                normalizeDateToISO(schedule.class_start_date)
-              const endDate =
-                normalizeDateToISO(schedule.classEndDate) ||
-                normalizeDateToISO(schedule.class_end_date)
-
-              // Only include schedule if it has a valid start date
-              if (!startDate) return null
-
-              return {
-                id: schedule.id || '00000000-0000-0000-0000-000000000000',
-                vacancies: schedule.vacancies,
-                class_start_date: startDate,
-                class_end_date: endDate,
-                class_time: schedule.classTime || schedule.class_time || '',
-                class_days: schedule.classDays || schedule.class_days || '',
-              }
-            })
-            .filter((schedule: any) => schedule !== null)
-
-          // Only include location if it has at least one valid schedule
-          if (validSchedules.length === 0) return null
-
-          return {
-            id: location.id || '00000000-0000-0000-0000-000000000000',
-            address: location.address,
-            neighborhood: location.neighborhood,
-            neighborhood_zone: location.neighborhood_zone || location.zona,
-            schedules: validSchedules,
-          }
-        }
-
-        // Old format without schedules - convert to new format
-        const startDate =
-          normalizeDateToISO(location.classStartDate) ||
-          normalizeDateToISO(location.class_start_date)
-
-        // Only include location if it has a valid start date
-        if (!startDate) return null
-
+    
+    return locations.map(location => {
+      // Frontend format (camelCase) - transform to API format
+      if (location.schedules && Array.isArray(location.schedules)) {
+        // Filter and transform schedules, only including those with valid start dates
+        const validSchedules = location.schedules
+          .map((schedule: any) => {
+            const startDate = normalizeDateToISO(schedule.classStartDate) || 
+              normalizeDateToISO(schedule.class_start_date)
+            const endDate = normalizeDateToISO(schedule.classEndDate) || 
+              normalizeDateToISO(schedule.class_end_date)
+            
+            // Only include schedule if it has a valid start date
+            if (!startDate) return null
+            
+            return {
+              id: schedule.id || '00000000-0000-0000-0000-000000000000',
+              vacancies: schedule.vacancies,
+              class_start_date: startDate,
+              class_end_date: endDate,
+              class_time: schedule.classTime || schedule.class_time || '',
+              class_days: schedule.classDays || schedule.class_days || '',
+            }
+          })
+          .filter((schedule: any) => schedule !== null)
+        
+        // Only include location if it has at least one valid schedule
+        if (validSchedules.length === 0) return null
+        
         return {
           id: location.id || '00000000-0000-0000-0000-000000000000',
           address: location.address,
           neighborhood: location.neighborhood,
           neighborhood_zone: location.neighborhood_zone || location.zona,
-          schedules: [
-            {
-              id: '00000000-0000-0000-0000-000000000000',
-              vacancies: location.vacancies || 1,
-              class_start_date: startDate,
-              class_end_date:
-                normalizeDateToISO(location.classEndDate) ||
-                normalizeDateToISO(location.class_end_date),
-              class_time: location.classTime || location.class_time || '',
-              class_days: location.classDays || location.class_days || '',
-            },
-          ],
+          schedules: validSchedules,
         }
-      })
-      .filter((location: any) => location !== null) // Remove locations without valid schedules
+      }
+
+      // Old format without schedules - convert to new format
+      const startDate = normalizeDateToISO(location.classStartDate) || 
+        normalizeDateToISO(location.class_start_date)
+      
+      // Only include location if it has a valid start date
+      if (!startDate) return null
+      
+      return {
+        id: location.id || '00000000-0000-0000-0000-000000000000',
+        address: location.address,
+        neighborhood: location.neighborhood,
+        neighborhood_zone: location.neighborhood_zone || location.zona,
+        schedules: [
+          {
+            id: '00000000-0000-0000-0000-000000000000',
+            vacancies: location.vacancies || 1,
+            class_start_date: startDate,
+            class_end_date: normalizeDateToISO(location.classEndDate) || 
+              normalizeDateToISO(location.class_end_date),
+            class_time: location.classTime || location.class_time || '',
+            class_days: location.classDays || location.class_days || '',
+          },
+        ],
+      }
+    }).filter((location: any) => location !== null) // Remove locations without valid schedules
   }
 
   // Helper function to transform remote_class from frontend format to API format
@@ -490,16 +438,14 @@ export default function CourseDetailPage({
       // Filter and transform schedules, only including those with valid start dates
       const validSchedules = remoteClass.schedules
         .map((schedule: any) => {
-          const startDate =
-            normalizeDateToISO(schedule.classStartDate) ||
+          const startDate = normalizeDateToISO(schedule.classStartDate) || 
             normalizeDateToISO(schedule.class_start_date)
-          const endDate =
-            normalizeDateToISO(schedule.classEndDate) ||
+          const endDate = normalizeDateToISO(schedule.classEndDate) || 
             normalizeDateToISO(schedule.class_end_date)
-
+          
           // Only include schedule if it has a valid start date
           if (!startDate) return null
-
+          
           return {
             id: schedule.id || '00000000-0000-0000-0000-000000000000',
             vacancies: schedule.vacancies,
@@ -510,10 +456,10 @@ export default function CourseDetailPage({
           }
         })
         .filter((schedule: any) => schedule !== null)
-
+      
       // Only return remote_class if it has at least one valid schedule
       if (validSchedules.length === 0) return undefined
-
+      
       return {
         id: remoteClass.id || '00000000-0000-0000-0000-000000000000',
         schedules: validSchedules,
@@ -521,13 +467,12 @@ export default function CourseDetailPage({
     }
 
     // Old format - wrap in schedules array
-    const startDate =
-      normalizeDateToISO(remoteClass.classStartDate) ||
+    const startDate = normalizeDateToISO(remoteClass.classStartDate) || 
       normalizeDateToISO(remoteClass.class_start_date)
-
+    
     // Only return remote_class if it has a valid start date
     if (!startDate) return undefined
-
+    
     return {
       id: remoteClass.id || '00000000-0000-0000-0000-000000000000',
       schedules: [
@@ -535,8 +480,7 @@ export default function CourseDetailPage({
           id: remoteClass.id || '00000000-0000-0000-0000-000000000000',
           vacancies: remoteClass.vacancies || 1,
           class_start_date: startDate,
-          class_end_date:
-            normalizeDateToISO(remoteClass.classEndDate) ||
+          class_end_date: normalizeDateToISO(remoteClass.classEndDate) || 
             normalizeDateToISO(remoteClass.class_end_date),
           class_time: remoteClass.classTime || remoteClass.class_time || '',
           class_days: remoteClass.classDays || remoteClass.class_days || '',
@@ -615,11 +559,7 @@ export default function CourseDetailPage({
       locations: transformedLocations,
       remote_class: transformedRemoteClass,
       turno: 'LIVRE',
-      formato_aula:
-        course.modalidade === 'ONLINE' ||
-        course.modalidade === 'LIVRE_FORMACAO_ONLINE'
-          ? 'GRAVADO'
-          : 'PRESENCIAL',
+      formato_aula: course.modalidade === 'ONLINE' || course.modalidade === 'LIVRE_FORMACAO_ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
       status: statusOverride || course.status,
     }
   }
@@ -746,173 +686,12 @@ export default function CourseDetailPage({
     }
   }
 
-  // === NEW CURATION FLOW HANDLERS ===
-
-  const confirmSendToReview = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch(`/api/courses/${courseId}/send-to-review`, {
-        method: 'PUT',
-      })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Erro ao enviar para aprovação')
-      }
-      toast.success('Curso enviado para aprovação com sucesso!')
-      if (refetch) refetch()
-    } catch (err) {
-      console.error('Error sending to review:', err)
-      toast.error('Erro ao enviar para aprovação', {
-        description: err instanceof Error ? err.message : 'Erro inesperado',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const confirmRequestChanges = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch(`/api/courses/${courseId}/request-changes`, {
-        method: 'PUT',
-      })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Erro ao enviar para edição')
-      }
-      toast.success('Curso enviado para edição com sucesso!')
-      if (refetch) refetch()
-    } catch (err) {
-      console.error('Error requesting changes:', err)
-      toast.error('Erro ao enviar para edição', {
-        description: err instanceof Error ? err.message : 'Erro inesperado',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const confirmApproveAndPublish = async () => {
-    try {
-      setIsLoading(true)
-
-      // Step 1: Approve
-      const approveResponse = await fetch(`/api/courses/${courseId}/approve`, {
-        method: 'PUT',
-      })
-      if (!approveResponse.ok) {
-        const errorData = await approveResponse.json()
-        throw new Error(errorData.error || 'Erro ao aprovar curso')
-      }
-
-      // Step 2: Publish
-      const publishResponse = await fetch(`/api/courses/${courseId}/publish`, {
-        method: 'PUT',
-      })
-      if (!publishResponse.ok) {
-        const errorData = await publishResponse.json()
-        throw new Error(errorData.error || 'Erro ao publicar curso')
-      }
-
-      toast.success('Curso aprovado e publicado com sucesso!')
-      if (refetch) refetch()
-    } catch (err) {
-      console.error('Error approving and publishing:', err)
-      toast.error('Erro ao aprovar e publicar', {
-        description: err instanceof Error ? err.message : 'Erro inesperado',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const confirmAgreeWithEdit = async () => {
-    try {
-      setIsLoading(true)
-
-      // Flow: needs_changes → in_review → approved → published
-      // Step 1: Send to review
-      const reviewResponse = await fetch(
-        `/api/courses/${courseId}/send-to-review`,
-        { method: 'PUT' }
-      )
-      if (!reviewResponse.ok) {
-        const errorData = await reviewResponse.json()
-        throw new Error(errorData.error || 'Erro ao enviar para revisão')
-      }
-
-      // Step 2: Approve
-      const approveResponse = await fetch(`/api/courses/${courseId}/approve`, {
-        method: 'PUT',
-      })
-      if (!approveResponse.ok) {
-        const errorData = await approveResponse.json()
-        throw new Error(errorData.error || 'Erro ao aprovar curso')
-      }
-
-      // Step 3: Publish
-      const publishResponse = await fetch(`/api/courses/${courseId}/publish`, {
-        method: 'PUT',
-      })
-      if (!publishResponse.ok) {
-        const errorData = await publishResponse.json()
-        throw new Error(errorData.error || 'Erro ao publicar curso')
-      }
-
-      toast.success('Edição aprovada e curso publicado com sucesso!')
-      if (refetch) refetch()
-    } catch (err) {
-      console.error('Error agreeing with edit:', err)
-      toast.error('Erro ao concordar com a edição', {
-        description: err instanceof Error ? err.message : 'Erro inesperado',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const confirmDeleteCourse = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch(`/api/courses/${courseId}`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Erro ao excluir curso')
-      }
-      toast.success('Curso excluído com sucesso!')
-      router.push('/gorio/courses')
-    } catch (err) {
-      console.error('Error deleting course:', err)
-      toast.error('Erro ao excluir curso', {
-        description: err instanceof Error ? err.message : 'Erro inesperado',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const confirmRequestDeletion = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch(
-        `/api/courses/${courseId}/request-deletion`,
-        { method: 'PUT' }
-      )
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Erro ao propor exclusão')
-      }
-      toast.success('Proposta de exclusão enviada com sucesso!')
-      if (refetch) refetch()
-    } catch (err) {
-      console.error('Error requesting deletion:', err)
-      toast.error('Erro ao propor exclusão', {
-        description: err instanceof Error ? err.message : 'Erro inesperado',
-      })
-    } finally {
-      setIsLoading(false)
+  const handlePublishFromHeader = () => {
+    // Trigger form validation and publish
+    if (isDraft) {
+      draftFormRef.current?.triggerPublish()
+    } else {
+      courseFormRef.current?.triggerPublish()
     }
   }
 
@@ -1017,24 +796,30 @@ export default function CourseDetailPage({
   const actualStatus = course.status as string
   console.log('actualStatus', actualStatus)
 
-  // Status flags
+  // Check if course is a draft
   const isDraft = actualStatus === 'draft'
-  const isInReview = actualStatus === 'in_review'
-  const isNeedsChanges = actualStatus === 'needs_changes'
-  const isPublished = actualStatus === 'published'
-  const isPendingDeletion = actualStatus === 'pending_deletion'
-  const isOpened =
+
+  // Check if course can be canceled (only if status is "opened", "ABERTO", "accepting_enrollments", or "in_progress")
+  const canCancel =
     actualStatus === 'opened' ||
-    actualStatus === 'ABERTO' ||
     actualStatus === 'scheduled' ||
+    actualStatus === 'ABERTO' ||
     actualStatus === 'accepting_enrollments' ||
     actualStatus === 'in_progress'
 
-  // Treat opened courses like published for Casa Civil curation buttons
-  const showPublishedActions = isPublished || isOpened
+  // Check if course can be closed (only if status is "opened" or "ABERTO")
+  const canClose = actualStatus === 'opened' || actualStatus === 'ABERTO'
 
-  // Legacy status flags
+  // Check if course can be reopened (only if status is "closed" or "canceled")
   const canReopen = actualStatus === 'closed' || actualStatus === 'canceled'
+
+  // Debug logging for canReopen
+  console.log('canReopen calculation:', {
+    actualStatus,
+    isClosed: actualStatus === 'closed',
+    isCanceled: actualStatus === 'canceled',
+    canReopen,
+  })
 
   return (
     <ContentLayout title="Detalhes do Curso">
@@ -1088,184 +873,27 @@ export default function CourseDetailPage({
               </div>
             </div>
             <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-              {/* Show action buttons based on course status and role */}
+              {/* Show action buttons based on course status */}
               {!isEditing ? (
                 <>
-                  {/* === DRAFT: Editar + Enviar para Aprovação + Excluir rascunho === */}
-                  {isDraft && (
-                    <>
+                  {/* Duplicate Course button */}
+                  <DuplicateCourseButton course={course} disabled={isLoading} />
+                  {/* Edit button - don't show for closed, canceled, finished, or encerrado courses when not in enrollments tab */}
+                  {actualStatus !== 'closed' &&
+                    actualStatus !== 'canceled' &&
+                    // actualStatus !== 'finished' &&
+                    actualStatus !== 'ENCERRADO' && (
                       <Button
                         onClick={handleEdit}
-                        disabled={isLoading}
+                        disabled={activeTab === 'enrollments' || isLoading}
                         className="w-full md:w-auto"
                       >
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
                       </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type: 'send_to_review',
-                          })
-                        }
-                        disabled={isLoading}
-                        className="w-full md:w-auto"
-                      >
-                        <Send className="mr-2 h-4 w-4" />
-                        Enviar para Aprovação
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={handleDeleteDraft}
-                        className="w-full md:w-auto"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir rascunho
-                      </Button>
-                    </>
-                  )}
+                    )}
 
-                  {/* === IN_REVIEW + Casa Civil: Enviar para edição + Aprovar e publicar + Editar === */}
-                  {isInReview && canApproveCourses && (
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type: 'request_changes',
-                          })
-                        }
-                        disabled={isLoading}
-                        className="w-full md:w-auto"
-                      >
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        Enviar para edição
-                      </Button>
-                      <Button
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type: 'approve_publish',
-                          })
-                        }
-                        disabled={isLoading}
-                        className="w-full md:w-auto"
-                      >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Aprovar e publicar
-                      </Button>
-                      <Button
-                        onClick={handleEdit}
-                        disabled={isLoading}
-                        className="w-full md:w-auto"
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar curso
-                      </Button>
-                    </>
-                  )}
-
-                  {/* === NEEDS_CHANGES (não Casa Civil): Editar + Enviar para Aprovação === */}
-                  {isNeedsChanges && !canApproveCourses && (
-                    <>
-                      <Button
-                        onClick={handleEdit}
-                        disabled={isLoading}
-                        className="w-full md:w-auto"
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type: 'send_to_review',
-                          })
-                        }
-                        disabled={isLoading}
-                        className="w-full md:w-auto"
-                      >
-                        <Send className="mr-2 h-4 w-4" />
-                        Enviar para Aprovação
-                      </Button>
-                    </>
-                  )}
-
-                  {/* === PUBLISHED / OPENED: Propor edição + Propor exclusão (todas as roles) === */}
-                  {showPublishedActions && (
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type: 'request_changes',
-                          })
-                        }
-                        disabled={isLoading}
-                        className="w-full md:w-auto"
-                      >
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        Propor edição
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type: 'request_deletion',
-                          })
-                        }
-                        disabled={isLoading}
-                        className="w-full md:w-auto"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Propor exclusão
-                      </Button>
-                    </>
-                  )}
-
-                  {/* === NEEDS_CHANGES (Casa Civil): Concordar com a edição === */}
-                  {isNeedsChanges && canApproveCourses && (
-                    <Button
-                      onClick={() =>
-                        setConfirmDialog({
-                          open: true,
-                          type: 'agree_with_edit',
-                        })
-                      }
-                      disabled={isLoading}
-                      className="w-full md:w-auto bg-green-600 hover:bg-green-700"
-                    >
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Concordar com a edição
-                    </Button>
-                  )}
-
-                  {/* === PENDING_DELETION (Casa Civil): Concordar com a exclusão === */}
-                  {isPendingDeletion && canApproveCourses && (
-                    <Button
-                      variant="destructive"
-                      onClick={() =>
-                        setConfirmDialog({
-                          open: true,
-                          type: 'confirm_delete_course',
-                        })
-                      }
-                      disabled={isLoading}
-                      className="w-full md:w-auto"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Concordar com a exclusão
-                    </Button>
-                  )}
-
-                  {/* === LEGACY: closed, canceled === */}
+                  {/* Reopen Course button - only show if status is "closed" or "canceled" */}
                   {canReopen && (
                     <Button
                       variant="outline"
@@ -1277,9 +905,57 @@ export default function CourseDetailPage({
                       Reabrir Curso
                     </Button>
                   )}
+
+                  {/* Close Course button - only show if status is "opened" or "ABERTO" */}
+                  {canClose && (
+                    <Button
+                      variant="outline"
+                      onClick={handleCloseCourse}
+                      disabled={isLoading}
+                      className="w-full md:w-auto"
+                    >
+                      <Flag className="mr-2 h-4 w-4" />
+                      Fechar Curso
+                    </Button>
+                  )}
+
+                  {/* Cancel Course button - only show if status is "opened", "ABERTO", "accepting_enrollments", or "in_progress" */}
+                  {canCancel && (
+                    <Button
+                      variant="destructive"
+                      onClick={handleCancelCourse}
+                      disabled={isLoading}
+                      className="w-full md:w-auto"
+                    >
+                      <Ban className="mr-2 h-4 w-4" />
+                      Cancelar Curso
+                    </Button>
+                  )}
+
+                  {/* Delete Draft button - only show for draft courses */}
+                  {isDraft && (
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteDraft}
+                      className="w-full md:w-auto"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir rascunho
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>
+                  {isDraft && (
+                    <Button
+                      onClick={handlePublishFromHeader}
+                      disabled={isLoading}
+                      className="w-full md:w-auto"
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      Salvar e Publicar
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={handleSaveDraftFromHeader}
@@ -1331,10 +1007,7 @@ export default function CourseDetailPage({
               <TabsTrigger value="about" disabled={isEditing && hasFormChanges}>
                 Sobre o curso
               </TabsTrigger>
-              <TabsTrigger
-                value="enrollments"
-                disabled={isEditing || (isEditing && hasFormChanges)}
-              >
+              <TabsTrigger value="enrollments" disabled={isEditing || (isEditing && hasFormChanges)}>
                 <Users className="w-4 h-4 mr-2" />
                 Inscrições
               </TabsTrigger>
@@ -1399,19 +1072,7 @@ export default function CourseDetailPage({
                     ? 'Fechar Curso'
                     : confirmDialog.type === 'reopen_course'
                       ? 'Reabrir Curso'
-                      : confirmDialog.type === 'send_to_review'
-                        ? 'Enviar para Aprovação'
-                        : confirmDialog.type === 'request_changes'
-                          ? 'Enviar para Edição'
-                          : confirmDialog.type === 'approve_publish'
-                            ? 'Aprovar e Publicar'
-                            : confirmDialog.type === 'request_deletion'
-                              ? 'Propor Exclusão'
-                              : confirmDialog.type === 'confirm_delete_course'
-                                ? 'Concordar com a Exclusão'
-                                : confirmDialog.type === 'agree_with_edit'
-                                  ? 'Concordar com a Edição'
-                                  : 'Confirmar Ação'
+                      : 'Confirmar Ação'
         }
         description={
           confirmDialog.type === 'delete_draft'
@@ -1423,22 +1084,10 @@ export default function CourseDetailPage({
                 : confirmDialog.type === 'cancel_course'
                   ? `Tem certeza que deseja cancelar o curso "${course.title}"? O curso não estará mais disponível para inscrições.`
                   : confirmDialog.type === 'close_course'
-                    ? `Tem certeza que deseja fechar o curso "${course.title}"? Esta ação encerrará o período de inscrições.`
+                    ? `Tem certeza que deseja fechar o curso "${course.title}"? Esta ação encerrará o período de inscrições e o curso não receberá mais candidatos.`
                     : confirmDialog.type === 'reopen_course'
-                      ? `Tem certeza que deseja reabrir o curso "${course.title}"? O curso voltará a receber inscrições.`
-                      : confirmDialog.type === 'send_to_review'
-                        ? `Tem certeza que deseja enviar o curso "${course.title}" para aprovação? O curso será revisado pela Casa Civil.`
-                        : confirmDialog.type === 'request_changes'
-                          ? `Tem certeza que deseja enviar o curso "${course.title}" de volta para edição? O responsável fará as alterações necessárias.`
-                          : confirmDialog.type === 'approve_publish'
-                            ? `Tem certeza que deseja aprovar e publicar o curso "${course.title}"? O curso ficará disponível publicamente.`
-                            : confirmDialog.type === 'request_deletion'
-                              ? `Tem certeza que deseja propor a exclusão do curso "${course.title}"? O curso será marcado para remoção.`
-                              : confirmDialog.type === 'confirm_delete_course'
-                                ? `Tem certeza que deseja excluir permanentemente o curso "${course.title}"? Esta ação não pode ser desfeita.`
-                                : confirmDialog.type === 'agree_with_edit'
-                                  ? `Tem certeza que deseja concordar com a edição e republicar o curso "${course.title}"?`
-                                  : 'Tem certeza que deseja realizar esta ação?'
+                      ? `Tem certeza que deseja reabrir o curso "${course.title}"? Esta ação permitirá que o curso volte a receber inscrições.`
+                      : 'Tem certeza que deseja realizar esta ação?'
         }
         confirmText={
           confirmDialog.type === 'delete_draft'
@@ -1453,24 +1102,11 @@ export default function CourseDetailPage({
                     ? 'Fechar Curso'
                     : confirmDialog.type === 'reopen_course'
                       ? 'Reabrir Curso'
-                      : confirmDialog.type === 'send_to_review'
-                        ? 'Enviar para Aprovação'
-                        : confirmDialog.type === 'request_changes'
-                          ? 'Enviar para Edição'
-                          : confirmDialog.type === 'approve_publish'
-                            ? 'Aprovar e Publicar'
-                            : confirmDialog.type === 'request_deletion'
-                              ? 'Propor Exclusão'
-                              : confirmDialog.type === 'confirm_delete_course'
-                                ? 'Excluir Permanentemente'
-                                : confirmDialog.type === 'agree_with_edit'
-                                  ? 'Concordar e Publicar'
-                                  : 'Confirmar'
+                      : 'Confirmar'
         }
         variant={
           confirmDialog.type === 'delete_draft' ||
-          confirmDialog.type === 'cancel_course' ||
-          confirmDialog.type === 'confirm_delete_course'
+          confirmDialog.type === 'cancel_course'
             ? 'destructive'
             : 'default'
         }
@@ -1478,12 +1114,14 @@ export default function CourseDetailPage({
           if (confirmDialog.type === 'delete_draft') {
             confirmDeleteDraft()
           } else if (confirmDialog.type === 'save_changes') {
+            // Trigger form submission
             if (isDraft) {
               draftFormRef.current?.triggerSubmit()
             } else {
               courseFormRef.current?.triggerSubmit()
             }
           } else if (confirmDialog.type === 'publish_course') {
+            // Trigger form publication
             if (isDraft) {
               draftFormRef.current?.triggerPublish()
             } else {
@@ -1495,18 +1133,6 @@ export default function CourseDetailPage({
             confirmCloseCourse()
           } else if (confirmDialog.type === 'reopen_course') {
             confirmReopenCourse()
-          } else if (confirmDialog.type === 'send_to_review') {
-            confirmSendToReview()
-          } else if (confirmDialog.type === 'request_changes') {
-            confirmRequestChanges()
-          } else if (confirmDialog.type === 'approve_publish') {
-            confirmApproveAndPublish()
-          } else if (confirmDialog.type === 'request_deletion') {
-            confirmRequestDeletion()
-          } else if (confirmDialog.type === 'confirm_delete_course') {
-            confirmDeleteCourse()
-          } else if (confirmDialog.type === 'agree_with_edit') {
-            confirmAgreeWithEdit()
           }
         }}
       />

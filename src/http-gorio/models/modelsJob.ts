@@ -8,6 +8,8 @@
 import type { ModelsJobErrorsItem } from './modelsJobErrorsItem'
 import type { ModelsJobMetadata } from './modelsJobMetadata'
 import type { ModelsJobResult } from './modelsJobResult'
+import type { ModelsJobStatus } from './modelsJobStatus'
+import type { ModelsJobType } from './modelsJobType'
 
 export interface ModelsJob {
   /** Data/hora de conclusão */
@@ -27,13 +29,13 @@ export interface ModelsJob {
   /** Resultado final do processamento */
   result?: ModelsJobResult
   /** Status: pending, processing, completed, failed */
-  status?: string
+  status?: ModelsJobStatus
   /** Quantidade de registros processados com sucesso */
   success_count?: number
   /** Total de registros a processar */
   total_records?: number
   /** Tipo de job (enrollment_import, etc) */
-  type?: string
+  type?: ModelsJobType
   /** Data/hora da última atualização */
   updated_at?: string
 }
