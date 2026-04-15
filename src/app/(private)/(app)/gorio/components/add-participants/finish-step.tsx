@@ -45,4 +45,3 @@ export function FinishStep({ status, onRetry }: FinishStepProps) {
     </motion.div>
   )
 }
-

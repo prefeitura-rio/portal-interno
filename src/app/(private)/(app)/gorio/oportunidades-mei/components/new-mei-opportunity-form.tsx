@@ -33,14 +33,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DepartmentCombobox } from '@/components/ui/department-combobox'
+import { CnaeSubclasseSelect } from '@/components/ui/cnae-subclasse-select'
+import { Combobox } from '@/components/ui/combobox'
 import {
   DateTimePicker,
   formatDateTimeToUTC,
 } from '@/components/ui/datetime-picker'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import { ImageUpload } from '@/components/ui/image-upload'
-import { CnaeSubclasseSelect } from '@/components/ui/cnae-subclasse-select'
-import { Combobox } from '@/components/ui/combobox'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { Plus, Trash2 } from 'lucide-react'

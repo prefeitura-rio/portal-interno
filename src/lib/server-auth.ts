@@ -54,6 +54,22 @@ export async function requireGoRioAccess(): Promise<string[]> {
 }
 
 /**
+ * Check if user has access to "Emprego e trabalho" module
+ * (admin, superadmin, go:admin, or the 3 empregabilidade roles)
+ * Redirects to /unauthorized if user doesn't have access
+ */
+export async function requireEmpregoTrabalhoAccess(): Promise<string[]> {
+  return requireRoles([
+    'admin',
+    'superadmin',
+    'go:admin',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
+  ])
+}
+
+/**
  * Check if user has admin privileges (admin or superadmin)
  * Redirects to /unauthorized if user doesn't have access
  */

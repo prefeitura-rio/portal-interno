@@ -53,6 +53,24 @@ function getRoleInfo(role: string) {
       variant: 'outline',
       className: 'bg-amber-100 text-amber-800 border-amber-300',
     },
+    'go:empregabilidade:admin': {
+      label: 'Administrador Emprego e Trabalho',
+      description: 'Acesso ao módulo Emprego e trabalho',
+      variant: 'secondary',
+      className: 'bg-blue-100 text-blue-800 border-blue-300',
+    },
+    'go:empregabilidade:editor_sem_curadoria': {
+      label: 'Editor Emprego e Trabalho (sem curadoria)',
+      description: 'Edição no módulo Emprego e trabalho',
+      variant: 'outline',
+      className: 'bg-slate-100 text-slate-800 border-slate-300',
+    },
+    'go:empregabilidade:editor_com_curadoria': {
+      label: 'Editor Emprego e Trabalho (com curadoria)',
+      description: 'Edição com curadoria no módulo Emprego e trabalho',
+      variant: 'outline',
+      className: 'bg-slate-100 text-slate-800 border-slate-300',
+    },
   }
 
   return (
@@ -78,9 +96,16 @@ function getModuleAccess(roles: string[] | undefined) {
   const hasAdminPrivileges =
     roles.includes('admin') || roles.includes('superadmin')
 
+  const hasEmpregoTrabalho =
+    hasAdminPrivileges ||
+    roles.includes('go:admin') ||
+    roles.includes('go:empregabilidade:admin') ||
+    roles.includes('go:empregabilidade:editor_sem_curadoria') ||
+    roles.includes('go:empregabilidade:editor_com_curadoria')
+
   return {
     dashboard: true, // Everyone with any role has dashboard access
-    goRio: hasAdminPrivileges || roles.includes('go:admin'),
+    goRio: hasEmpregoTrabalho,
     servicosMunicipais:
       hasAdminPrivileges ||
       roles.includes('busca:services:admin') ||

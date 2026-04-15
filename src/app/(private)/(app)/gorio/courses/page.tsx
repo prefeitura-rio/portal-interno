@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { DepartmentName } from '@/components/ui/department-name'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +28,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
-import { DepartmentName } from '@/components/ui/department-name'
 import { useDepartment } from '@/hooks/use-department'
 import type {
   CourseListItem,
@@ -48,17 +48,22 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
+  AlertCircle,
   Ban,
   BookOpen,
   Building2,
   Calendar,
+  CheckCircle,
+  CheckCircle2,
   ClipboardList,
+  Eye,
   FileText,
   Flag,
   Handshake,
   MoreHorizontal,
   Play,
   Text,
+  Trash2,
   UserCheck,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -134,6 +139,37 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
     variant: 'outline',
     className: 'text-gray-500 border-gray-200 bg-gray-50',
   },
+  // NOVOS STATUS - Fluxo de Curadoria
+  in_review: {
+    icon: Eye,
+    label: 'Em Revisão',
+    variant: 'outline',
+    className: 'text-purple-600 border-purple-200 bg-purple-50',
+  },
+  needs_changes: {
+    icon: AlertCircle,
+    label: 'Requer Alterações',
+    variant: 'outline',
+    className: 'text-amber-600 border-amber-200 bg-amber-50',
+  },
+  approved: {
+    icon: CheckCircle2,
+    label: 'Aprovado',
+    variant: 'outline',
+    className: 'text-teal-600 border-teal-200 bg-teal-50',
+  },
+  published: {
+    icon: CheckCircle,
+    label: 'Publicado',
+    variant: 'default',
+    className: 'text-green-700 border-green-300 bg-green-100',
+  },
+  pending_deletion: {
+    icon: Trash2,
+    label: 'Aguardando Exclusão',
+    variant: 'destructive',
+    className: 'text-gray-500 border-gray-200 bg-gray-50',
+  },
 }
 
 // Component to display department sigla + partner name with tooltip showing full name + partner
@@ -164,12 +200,12 @@ function DepartmentSiglaWithPartnerTooltip({
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="truncate cursor-help">
-        <Badge
-                    variant="secondary"
-                    className="text-xs mr-2 px-2 py-0.5 bg-blue-100 text-blue-500 border-blue-200 shrink-0"
-                  >
-                    Parceria
-                  </Badge>
+          <Badge
+            variant="secondary"
+            className="text-xs mr-2 px-2 py-0.5 bg-blue-100 text-blue-500 border-blue-200 shrink-0"
+          >
+            Parceria
+          </Badge>
           {sigla}
           {externalPartnerName && (
             <>
@@ -215,6 +251,14 @@ export default function Courses() {
   const [coursesPageCount, setCoursesPageCount] = React.useState(0)
   const [draftCoursesPageCount, setDraftCoursesPageCount] = React.useState(0)
 
+  // NOVO - Estado para cursos em revisão
+  const [inReviewCourses, setInReviewCourses] = React.useState<
+    CourseListItem[]
+  >([])
+  const [inReviewCoursesTotal, setInReviewCoursesTotal] = React.useState(0)
+  const [inReviewCoursesPageCount, setInReviewCoursesPageCount] =
+    React.useState(0)
+
   // Fetch courses data with pagination
   const fetchCourses = React.useCallback(
     async (pageIndex = 0, pageSize = 10, tab = activeTab, searchQuery = '') => {
@@ -240,6 +284,24 @@ export default function Courses() {
             setDraftCourses(data.courses || [])
             setDraftCoursesTotal(data.total || data.pagination?.total || 0)
             setDraftCoursesPageCount(
+              Math.ceil((data.total || data.pagination?.total || 0) / pageSize)
+            )
+          }
+        } else if (tab === 'in_review') {
+          // NOVO - Build URL para cursos em revisão
+          const url = new URL('/api/courses/in-review', window.location.origin)
+          url.searchParams.set('page', (pageIndex + 1).toString())
+          url.searchParams.set('per_page', pageSize.toString())
+          if (searchQuery.trim()) {
+            url.searchParams.set('search', searchQuery.trim())
+          }
+
+          const response = await fetch(url.toString())
+          if (response.ok) {
+            const data = await response.json()
+            setInReviewCourses(data.courses || [])
+            setInReviewCoursesTotal(data.total || data.pagination?.total || 0)
+            setInReviewCoursesPageCount(
               Math.ceil((data.total || data.pagination?.total || 0) / pageSize)
             )
           }
@@ -351,21 +413,37 @@ export default function Courses() {
   )
 
   // Filter data based on active tab
+  // ANTIGO: return activeTab === 'draft' ? draftCourses : courses
   const filteredData = React.useMemo(() => {
     if (activeTab === 'draft') {
       return draftCourses
     }
+    if (activeTab === 'in_review') {
+      // NOVO - Retorna cursos em revisão
+      return inReviewCourses
+    }
     return courses
-  }, [activeTab, courses, draftCourses])
+  }, [activeTab, courses, draftCourses, inReviewCourses])
 
   // Get total count and page count based on active tab
+  // ANTIGO: return activeTab === 'draft' ? draftCoursesTotal : coursesTotal
   const totalCount = React.useMemo(() => {
-    return activeTab === 'draft' ? draftCoursesTotal : coursesTotal
-  }, [activeTab, draftCoursesTotal, coursesTotal])
+    if (activeTab === 'draft') return draftCoursesTotal
+    if (activeTab === 'in_review') return inReviewCoursesTotal // NOVO
+    return coursesTotal
+  }, [activeTab, draftCoursesTotal, inReviewCoursesTotal, coursesTotal])
 
+  // ANTIGO: return activeTab === 'draft' ? draftCoursesPageCount : coursesPageCount
   const pageCount = React.useMemo(() => {
-    return activeTab === 'draft' ? draftCoursesPageCount : coursesPageCount
-  }, [activeTab, draftCoursesPageCount, coursesPageCount])
+    if (activeTab === 'draft') return draftCoursesPageCount
+    if (activeTab === 'in_review') return inReviewCoursesPageCount // NOVO
+    return coursesPageCount
+  }, [
+    activeTab,
+    draftCoursesPageCount,
+    inReviewCoursesPageCount,
+    coursesPageCount,
+  ])
 
   // Common columns without selection and status
   const baseColumns = React.useMemo<ColumnDef<CourseListItem>[]>(() => {
@@ -430,7 +508,7 @@ export default function Courses() {
 
           // Determine if we should show handshake icon
           // Show handshake for external partnerships
-          const showHandshake = 
+          const showHandshake =
             courseManagementType === 'EXTERNAL_MANAGED_BY_ORG' ||
             courseManagementType === 'EXTERNAL_MANAGED_BY_PARTNER' ||
             (courseManagementType === undefined && isExternalPartner)
@@ -663,14 +741,6 @@ export default function Courses() {
                     Editar
                   </Link>
                 </DropdownMenuItem>
-                {/* {course.status === 'draft' && (
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onClick={() => openConfirmDialog('delete_draft', course)}
-                  >
-                    Excluir rascunho
-                  </DropdownMenuItem>
-                )} */}
               </DropdownMenuContent>
             </DropdownMenu>
           )
@@ -804,9 +874,11 @@ export default function Courses() {
           onValueChange={handleTabChange}
           className="space-y-4"
         >
-          <TabsList className="grid w-full grid-cols-2">
+          {/* ANTIGO: <TabsList className="grid w-full grid-cols-2"> */}
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="created">Cursos Criados</TabsTrigger>
-            <TabsTrigger value="draft">Rascunho</TabsTrigger>
+            <TabsTrigger value="in_review">Pronto para Aprovação</TabsTrigger>
+            <TabsTrigger value="draft">Rascunhos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="created" className="space-y-4">
@@ -815,6 +887,19 @@ export default function Courses() {
               loading={loading}
               onRowClick={course => {
                 // Navigate to the course detail page in a new tab
+                window.open(`/gorio/courses/course/${course.id}`, '_blank')
+              }}
+            >
+              <DataTableToolbar table={table} />
+            </DataTable>
+          </TabsContent>
+
+          {/* NOVO - Tab para cursos em revisão */}
+          <TabsContent value="in_review" className="space-y-4">
+            <DataTable
+              table={table}
+              loading={loading}
+              onRowClick={course => {
                 window.open(`/gorio/courses/course/${course.id}`, '_blank')
               }}
             >

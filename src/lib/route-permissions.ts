@@ -1,3 +1,5 @@
+import { COURSES_ROLES, EMPREGO_TRABALHO_ROLES } from '@/types/heimdall-roles'
+
 /**
  * Route permission configuration using Heimdall roles
  * Maps routes to their required roles from the Heimdall API
@@ -8,16 +10,21 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'admin',
     'superadmin',
     'go:admin',
+    'go:cursos:casa_civil', // NOVO
     'busca:services:admin',
     'busca:services:editor',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
   ],
 
-  // GO Rio - Capacitação (only admin, superadmin, and go:admin)
-  '/gorio/courses': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/courses/new': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/courses/course/*': ['admin', 'superadmin', 'go:admin'],
+  // GO Rio - Capacitação (admin, superadmin, go:admin + Casa Civil curation)
+  // ANTIGO: '/gorio/courses': ['admin', 'superadmin', 'go:admin'],
+  '/gorio/courses': [...COURSES_ROLES],
+  '/gorio/courses/new': [...COURSES_ROLES],
+  '/gorio/courses/course/*': [...COURSES_ROLES],
 
-  // GO Rio - Emprego e Trabalho (only admin, superadmin, and go:admin)
+  // GO Rio - MEI (only admin, superadmin, go:admin - NOT empregabilidade roles)
   '/gorio/oportunidades-mei': ['admin', 'superadmin', 'go:admin'],
   '/gorio/oportunidades-mei/new': ['admin', 'superadmin', 'go:admin'],
   '/gorio/oportunidades-mei/oportunidade-mei/*': [
@@ -26,12 +33,36 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:admin',
   ],
 
-  // GO Rio - Empregabilidade (only admin, superadmin, and go:admin)
-  '/gorio/empregabilidade': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/empregabilidade/new': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/empregabilidade/*': ['admin', 'superadmin', 'go:admin'],
+  // GO Rio - Empregabilidade (admin, superadmin, go:admin + 3 empregabilidade roles)
+  '/gorio/empregabilidade': [...EMPREGO_TRABALHO_ROLES],
+  '/gorio/empregabilidade/new': [...EMPREGO_TRABALHO_ROLES],
+  // Empresas: editor_com_curadoria cannot create/edit - list and new must be before /* so they match first
+  '/gorio/empregabilidade/empresas': [
+    'admin',
+    'superadmin',
+    'go:admin',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
+  ],
+  '/gorio/empregabilidade/new/empresa': [
+    'admin',
+    'superadmin',
+    'go:admin',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+  ],
+  '/gorio/empregabilidade/empresas/*': [
+    'admin',
+    'superadmin',
+    'go:admin',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
+  ],
+  '/gorio/empregabilidade/*': [...EMPREGO_TRABALHO_ROLES],
 
-  // Serviços Municipais (admin, superadmin, busca:services roles)
+  // Serviços Municipais (admin, superadmin, busca:services roles - NOT empregabilidade)
   '/servicos-municipais/servicos': [
     'admin',
     'superadmin',
@@ -56,8 +87,12 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'admin',
     'superadmin',
     'go:admin',
+    'go:cursos:casa_civil', // NOVO
     'busca:services:admin',
     'busca:services:editor',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
   ],
 } as const
 

@@ -5,7 +5,8 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const page = searchParams.get('page') || '1'
-    const perPage = searchParams.get('per_page') || searchParams.get('page_size') || '100'
+    const perPage =
+      searchParams.get('per_page') || searchParams.get('page_size') || '100'
     const ocupacao = searchParams.get('ocupacao') || undefined
     const subclasse = searchParams.get('subclasse') || undefined
     const search = searchParams.get('search') || undefined

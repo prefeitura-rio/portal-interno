@@ -1866,7 +1866,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           type: 'save_changes',
         })
       } else {
-        // Creating a new course - show "Criar Curso" dialog
+        // Creating a new course - show "Enviar para Aprovação" dialog
         setConfirmDialog({
           open: true,
           type: 'create_course',
@@ -1917,9 +1917,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           if (onSubmit) {
             onSubmit(courseData)
           } else {
-            toast.success('Curso criado com sucesso!')
-            // Redirect to courses page with 'created' tab active
-            router.push('/gorio/courses?tab=created')
+            // ANTIGO: toast.success('Curso criado com sucesso!') + redirect to 'created' tab
+            // NOVO - Curso é automaticamente enviado para revisão após criação
+            toast.success('Curso enviado para aprovação com sucesso!')
+            router.push('/gorio/courses?tab=in_review')
           }
         }
       } catch (error) {
@@ -3506,7 +3507,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     ? 'Enviando...'
                     : initialData
                       ? 'Salvar Alterações'
-                      : 'Criar Curso'}
+                      : 'Enviar para Aprovação'}
                 </Button>
               )}
           </div>
@@ -3518,7 +3519,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
           title={
             confirmDialog.type === 'create_course'
-              ? 'Criar Curso'
+              ? 'Enviar para Aprovação'
               : confirmDialog.type === 'save_draft'
                 ? 'Salvar Rascunho'
                 : confirmDialog.type === 'save_changes'
@@ -3529,7 +3530,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           }
           description={
             confirmDialog.type === 'create_course'
-              ? 'Tem certeza que deseja criar este curso? Esta ação tornará o curso visível para inscrições.'
+              ? 'Tem certeza que deseja enviar este curso para aprovação? O curso será enviado para revisão.'
               : confirmDialog.type === 'save_draft'
                 ? 'Tem certeza que deseja salvar este rascunho? O curso não será publicado ainda.'
                 : confirmDialog.type === 'save_changes'
@@ -3540,7 +3541,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           }
           confirmText={
             confirmDialog.type === 'create_course'
-              ? 'Criar Curso'
+              ? 'Enviar para Aprovação'
               : confirmDialog.type === 'save_draft'
                 ? 'Salvar Rascunho'
                 : confirmDialog.type === 'save_changes'

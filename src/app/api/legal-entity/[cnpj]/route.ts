@@ -14,10 +14,7 @@ export async function GET(
     const cnpj = resolvedParams.cnpj
 
     if (!cnpj) {
-      return NextResponse.json(
-        { error: 'CNPJ is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'CNPJ is required' }, { status: 400 })
     }
 
     // Call RMI API
@@ -64,4 +61,3 @@ export async function GET(
     )
   }
 }
-

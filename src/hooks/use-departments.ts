@@ -59,4 +59,3 @@ export function useDepartments(options?: UseDepartmentsOptions) {
     refetch: fetchDepartments,
   }
 }
-

@@ -1,5 +1,5 @@
-import type { Accessibility } from '../app/(private)/(app)/gorio/components/new-course-form'
 import type { ModelsCitizenPersonalInfo } from '@/http-gorio/models'
+import type { Accessibility } from '../app/(private)/(app)/gorio/components/new-course-form'
 
 // API Response types based on actual API responses
 export interface ApiPagination {
@@ -27,7 +27,10 @@ export interface ApiCourse {
   enrollment_end_date?: string | null
   // External partner fields
   is_external_partner?: boolean
-  course_management_type?: 'OWN_ORG' | 'EXTERNAL_MANAGED_BY_ORG' | 'EXTERNAL_MANAGED_BY_PARTNER'
+  course_management_type?:
+    | 'OWN_ORG'
+    | 'EXTERNAL_MANAGED_BY_ORG'
+    | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
   external_partner_url?: string
   external_partner_logo_url?: string
@@ -73,18 +76,29 @@ export interface CourseListItem {
   orgao_id?: string | null
   // External partner fields (optional for CourseListItem)
   is_external_partner?: boolean
-  course_management_type?: 'OWN_ORG' | 'EXTERNAL_MANAGED_BY_ORG' | 'EXTERNAL_MANAGED_BY_PARTNER'
+  course_management_type?:
+    | 'OWN_ORG'
+    | 'EXTERNAL_MANAGED_BY_ORG'
+    | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
 }
 
+// ANTIGO: export type CourseStatus = 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled' | 'CRIADO' | 'ENCERRADO' | 'scheduled' | 'accepting_enrollments' | 'in_progress' | 'finished'
 export type CourseStatus =
   | 'draft'
-  | 'opened'
-  | 'ABERTO'
+  | 'opened' // Legacy - mantido para retrocompatibilidade
+  | 'ABERTO' // Legacy
   | 'closed'
   | 'canceled'
-  | 'CRIADO'
-  | 'ENCERRADO'
+  | 'CRIADO' // Legacy
+  | 'ENCERRADO' // Legacy
+  // NOVOS STATUS - Fluxo de Curadoria
+  | 'in_review' // Curso em revisão (Casa Civil)
+  | 'needs_changes' // Curso precisa de alterações
+  | 'approved' // Curso aprovado pela Casa Civil
+  | 'published' // Curso publicado (substitui 'opened')
+  | 'pending_deletion' // Aguardando exclusão
+  // Status dinâmicos (frontend only)
   | 'scheduled'
   | 'accepting_enrollments'
   | 'in_progress'
@@ -179,7 +193,11 @@ export interface Course {
   updated_at: Date
 }
 
-export type CourseModality = 'Presencial' | 'Remoto' | 'Semipresencial' | 'Livre formação (online)'
+export type CourseModality =
+  | 'Presencial'
+  | 'Remoto'
+  | 'Semipresencial'
+  | 'Livre formação (online)'
 
 export interface CourseLocation {
   id: string

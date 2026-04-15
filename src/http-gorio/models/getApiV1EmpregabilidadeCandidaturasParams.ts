@@ -27,4 +27,12 @@ export type GetApiV1EmpregabilidadeCandidaturasParams = {
    * Filtrar por status
    */
   status?: string
+  /**
+   * Busca parcial por CPF, nome ou email
+   */
+  search?: string
+  /**
+   * Filtrar por ID da etapa atual
+   */
+  etapa_id?: string
 }

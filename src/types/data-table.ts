@@ -3,7 +3,6 @@ import type { FilterItemSchema } from '@/lib/parsers'
 import type { ColumnSort, Row, RowData } from '@tanstack/react-table'
 
 declare module '@tanstack/react-table' {
-  // biome-ignore lint/correctness/noUnusedVariables: TValue is used in the ColumnMeta interface
   interface ColumnMeta<TData extends RowData, TValue> {
     label?: string
     placeholder?: string
@@ -12,6 +11,8 @@ declare module '@tanstack/react-table' {
     range?: [number, number]
     unit?: string
     icon?: React.FC<React.SVGProps<SVGSVGElement>>
+    cellClassName?: string
+    headerClassName?: string
   }
 }
 
@@ -20,6 +21,8 @@ export interface Option {
   value: string
   count?: number
   icon?: React.FC<React.SVGProps<SVGSVGElement>>
+  /** When true, option is shown but cannot be selected */
+  disabled?: boolean
 }
 
 export type FilterOperator = DataTableConfig['operators'][number]

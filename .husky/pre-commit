@@ -1,0 +1,12 @@
+#!/bin/sh
+set +e
+OUTPUT="$(npx biome check --staged --write 2>&1)"
+STATUS=$?
+
+printf "%s\n" "$OUTPUT"
+
+if [ "$STATUS" -ne 0 ]; then
+  printf "%s\n" "$OUTPUT" | grep -q "No files were processed in the specified paths." && exit 0
+fi
+
+exit "$STATUS"
