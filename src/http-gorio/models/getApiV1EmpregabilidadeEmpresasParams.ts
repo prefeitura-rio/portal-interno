@@ -15,12 +15,4 @@ export type GetApiV1EmpregabilidadeEmpresasParams = {
    * Tamanho da página (default: 10)
    */
   pageSize?: number
-  /**
-   * Busca parcial em razão social ou nome fantasia
-   */
-  search?: string
-  /**
-   * Filtrar por CNPJ exato
-   */
-  cnpj?: string
 }

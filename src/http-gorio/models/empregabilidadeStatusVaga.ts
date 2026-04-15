@@ -15,6 +15,4 @@ export const EmpregabilidadeStatusVaga = {
   StatusVagaEmAprovacao: 'em_aprovacao',
   StatusVagaPublicadoAtivo: 'publicado_ativo',
   StatusVagaPublicadoExpirado: 'publicado_expirado',
-  StatusVagaCongelada: 'vaga_congelada',
-  StatusVagaDescontinuada: 'vaga_descontinuada',
 } as const

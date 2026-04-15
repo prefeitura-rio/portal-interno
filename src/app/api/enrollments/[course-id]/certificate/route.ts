@@ -93,11 +93,7 @@ function convertApiEnrollmentToFrontend(
             let value = ''
             let required = false
 
-            if (
-              fieldData &&
-              typeof fieldData === 'object' &&
-              !Array.isArray(fieldData)
-            ) {
+            if (fieldData && typeof fieldData === 'object' && !Array.isArray(fieldData)) {
               const fieldObj = fieldData as {
                 id?: string
                 title?: string
@@ -142,7 +138,6 @@ function convertApiEnrollmentToFrontend(
       return []
     })(),
     certificateUrl: apiEnrollment.certificate_url as string | undefined,
-    personal_info: apiEnrollment.personal_info as any,
     created_at:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
     updated_at:

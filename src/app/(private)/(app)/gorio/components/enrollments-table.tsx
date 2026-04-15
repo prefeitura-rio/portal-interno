@@ -298,54 +298,48 @@ export function EnrollmentsTable({
    * 2. Usa campo age direto
    * 3. Busca em customFields
    */
-  const getEnrollmentAge = React.useCallback(
-    (enrollment: Enrollment): string => {
-      // Prioridade 1: Calcular de data_nascimento
-      if (enrollment.personal_info?.data_nascimento) {
-        try {
-          const birthDate = new Date(enrollment.personal_info.data_nascimento)
-          const today = new Date()
-          let age = today.getFullYear() - birthDate.getFullYear()
-          const monthDiff = today.getMonth() - birthDate.getMonth()
-          if (
-            monthDiff < 0 ||
-            (monthDiff === 0 && today.getDate() < birthDate.getDate())
-          ) {
-            age--
-          }
-          // Validação de sanidade
-          if (age >= 0 && age <= 150) {
-            return age.toString()
-          }
-        } catch (error) {
-          console.warn('Erro ao calcular idade de data_nascimento:', error)
+  const getEnrollmentAge = React.useCallback((enrollment: Enrollment): string => {
+    // Prioridade 1: Calcular de data_nascimento
+    if (enrollment.personal_info?.data_nascimento) {
+      try {
+        const birthDate = new Date(enrollment.personal_info.data_nascimento)
+        const today = new Date()
+        let age = today.getFullYear() - birthDate.getFullYear()
+        const monthDiff = today.getMonth() - birthDate.getMonth()
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--
         }
-      }
-
-      // Prioridade 2: Campo age direto
-      if (enrollment.age !== undefined && enrollment.age !== null) {
-        return enrollment.age.toString()
-      }
-
-      // Prioridade 3: Custom fields
-      const customFieldsObj = enrollment.customFields as any
-      if (Array.isArray(customFieldsObj)) {
-        const idadeField = customFieldsObj.find(
-          (f: any) => f.id === 'idade' || f.title === 'Idade'
-        )
-        if (idadeField?.value) {
-          return idadeField.value
+        // Validação de sanidade
+        if (age >= 0 && age <= 150) {
+          return age.toString()
         }
-      } else if (customFieldsObj && typeof customFieldsObj === 'object') {
-        if (customFieldsObj.idade?.value) {
-          return customFieldsObj.idade.value
-        }
+      } catch (error) {
+        console.warn('Erro ao calcular idade de data_nascimento:', error)
       }
+    }
 
-      return ''
-    },
-    []
-  )
+    // Prioridade 2: Campo age direto
+    if (enrollment.age !== undefined && enrollment.age !== null) {
+      return enrollment.age.toString()
+    }
+
+    // Prioridade 3: Custom fields
+    const customFieldsObj = enrollment.customFields as any
+    if (Array.isArray(customFieldsObj)) {
+      const idadeField = customFieldsObj.find(
+        (f: any) => f.id === 'idade' || f.title === 'Idade'
+      )
+      if (idadeField?.value) {
+        return idadeField.value
+      }
+    } else if (customFieldsObj && typeof customFieldsObj === 'object') {
+      if (customFieldsObj.idade?.value) {
+        return customFieldsObj.idade.value
+      }
+    }
+
+    return ''
+  }, [])
 
   const handleConfirmEnrollment = React.useCallback(
     async (enrollment: Enrollment) => {
@@ -899,11 +893,9 @@ export function EnrollmentsTable({
           .filter(field => {
             const fieldId = field.id || ''
             const fieldTitle = field.title || ''
-            return (
-              !socioeconomicFieldIds.includes(fieldId.toLowerCase()) &&
+            return !socioeconomicFieldIds.includes(fieldId.toLowerCase()) &&
               fieldTitle !== 'Cidade' &&
               fieldTitle !== 'Estado'
-            )
           })
           .map(field => field.title)
       )
@@ -1079,73 +1071,49 @@ export function EnrollmentsTable({
       const idadeValue = getEnrollmentAge(enrollment)
 
       // Extract raça
-      const racaValue =
-        personalInfo?.raca ||
-        (() => {
-          const customFieldsObj = enrollment.customFields as any
-          if (Array.isArray(customFieldsObj)) {
-            return (
-              customFieldsObj.find((f: any) => f.id === 'raca')?.value || ''
-            )
-          }
-          return customFieldsObj?.raca?.value || ''
-        })()
+      const racaValue = personalInfo?.raca || (() => {
+        const customFieldsObj = enrollment.customFields as any
+        if (Array.isArray(customFieldsObj)) {
+          return customFieldsObj.find((f: any) => f.id === 'raca')?.value || ''
+        }
+        return customFieldsObj?.raca?.value || ''
+      })()
 
       // Extract gênero
-      const generoValue =
-        personalInfo?.genero ||
-        (() => {
-          const customFieldsObj = enrollment.customFields as any
-          if (Array.isArray(customFieldsObj)) {
-            return (
-              customFieldsObj.find((f: any) => f.id === 'genero')?.value || ''
-            )
-          }
-          return customFieldsObj?.genero?.value || ''
-        })()
+      const generoValue = personalInfo?.genero || (() => {
+        const customFieldsObj = enrollment.customFields as any
+        if (Array.isArray(customFieldsObj)) {
+          return customFieldsObj.find((f: any) => f.id === 'genero')?.value || ''
+        }
+        return customFieldsObj?.genero?.value || ''
+      })()
 
       // Extract escolaridade
-      const escolaridadeValue =
-        personalInfo?.escolaridade ||
-        (() => {
-          const customFieldsObj = enrollment.customFields as any
-          if (Array.isArray(customFieldsObj)) {
-            return (
-              customFieldsObj.find((f: any) => f.id === 'escolaridade')
-                ?.value || ''
-            )
-          }
-          return customFieldsObj?.escolaridade?.value || ''
-        })()
+      const escolaridadeValue = personalInfo?.escolaridade || (() => {
+        const customFieldsObj = enrollment.customFields as any
+        if (Array.isArray(customFieldsObj)) {
+          return customFieldsObj.find((f: any) => f.id === 'escolaridade')?.value || ''
+        }
+        return customFieldsObj?.escolaridade?.value || ''
+      })()
 
       // Extract renda_familiar
-      const rendaFamiliarValue =
-        personalInfo?.renda_familiar ||
-        (() => {
-          const customFieldsObj = enrollment.customFields as any
-          if (Array.isArray(customFieldsObj)) {
-            return (
-              customFieldsObj.find((f: any) => f.id === 'renda_familiar')
-                ?.value || ''
-            )
-          }
-          return customFieldsObj?.renda_familiar?.value || ''
-        })()
+      const rendaFamiliarValue = personalInfo?.renda_familiar || (() => {
+        const customFieldsObj = enrollment.customFields as any
+        if (Array.isArray(customFieldsObj)) {
+          return customFieldsObj.find((f: any) => f.id === 'renda_familiar')?.value || ''
+        }
+        return customFieldsObj?.renda_familiar?.value || ''
+      })()
 
       // Extract deficiência
-      const deficienciaValue =
-        personalInfo?.deficiencia ||
-        (() => {
-          const customFieldsObj = enrollment.customFields as any
-          if (Array.isArray(customFieldsObj)) {
-            return (
-              customFieldsObj.find(
-                (f: any) => f.id === 'pessoa_com_deficiencia'
-              )?.value || ''
-            )
-          }
-          return customFieldsObj?.pessoa_com_deficiencia?.value || ''
-        })()
+      const deficienciaValue = personalInfo?.deficiencia || (() => {
+        const customFieldsObj = enrollment.customFields as any
+        if (Array.isArray(customFieldsObj)) {
+          return customFieldsObj.find((f: any) => f.id === 'pessoa_com_deficiencia')?.value || ''
+        }
+        return customFieldsObj?.pessoa_com_deficiencia?.value || ''
+      })()
 
       // Extract cidade and estado from personal_info first, then fallback to customFields
       const enderecoInfo = personalInfo?.endereco
@@ -1189,13 +1157,8 @@ export function EnrollmentsTable({
           enrollment.enrollmentDate
         ).toLocaleDateString('pt-BR'),
         Status: enrollment.status || '',
-        Endereço:
-          enderecoCompleto || enrollment.address || enrolledUnit?.address || '',
-        Bairro:
-          bairroValue ||
-          enrollment.neighborhood ||
-          enrolledUnit?.neighborhood ||
-          '',
+        Endereço: enderecoCompleto || enrollment.address || enrolledUnit?.address || '',
+        Bairro: bairroValue || enrollment.neighborhood || enrolledUnit?.neighborhood || '',
         Cidade: cidadeValue,
         Estado: estadoValue,
         Raça: racaValue,
@@ -1764,54 +1727,33 @@ export function EnrollmentsTable({
                         )
 
                         // Extrai valor de personal_info para campos socioeconômicos
-                        const personalInfo =
-                          selectedEnrollment.personal_info as any
-                        const getPersonalInfoSocioValue = (
-                          fieldId: string
-                        ): string | undefined => {
+                        const personalInfo = selectedEnrollment.personal_info as any
+                        const getPersonalInfoSocioValue = (fieldId: string): string | undefined => {
                           if (!personalInfo) return undefined
                           switch (fieldId) {
-                            case 'raca':
-                              return personalInfo.raca || undefined
-                            case 'genero':
-                              return personalInfo.genero || undefined
-                            case 'escolaridade':
-                              return personalInfo.escolaridade || undefined
-                            case 'renda_familiar':
-                              return personalInfo.renda_familiar || undefined
-                            case 'pessoa_com_deficiencia':
-                              return personalInfo.deficiencia || undefined
+                            case 'raca': return personalInfo.raca || undefined
+                            case 'genero': return personalInfo.genero || undefined
+                            case 'escolaridade': return personalInfo.escolaridade || undefined
+                            case 'renda_familiar': return personalInfo.renda_familiar || undefined
+                            case 'pessoa_com_deficiencia': return personalInfo.deficiencia || undefined
                             case 'endereco': {
                               const e = personalInfo.endereco
                               if (!e) return undefined
-                              return (
-                                [
-                                  e.logradouro,
-                                  e.numero ? `, ${e.numero}` : '',
-                                  e.complemento ? ` - ${e.complemento}` : '',
-                                ]
-                                  .join('')
-                                  .trim() || undefined
-                              )
+                              return [
+                                e.logradouro,
+                                e.numero ? `, ${e.numero}` : '',
+                                e.complemento ? ` - ${e.complemento}` : '',
+                              ].join('').trim() || undefined
                             }
-                            case 'bairro':
-                              return personalInfo.endereco?.bairro || undefined
-                            case 'cidade':
-                              return (
-                                personalInfo.endereco?.municipio || undefined
-                              )
-                            case 'estado':
-                              return personalInfo.endereco?.estado || undefined
-                            default:
-                              return undefined
+                            case 'bairro': return personalInfo.endereco?.bairro || undefined
+                            case 'cidade': return personalInfo.endereco?.municipio || undefined
+                            case 'estado': return personalInfo.endereco?.estado || undefined
+                            default: return undefined
                           }
                         }
 
                         // Títulos padrão para campos socioeconômicos
-                        const socioeconomicDefaultTitles: Record<
-                          string,
-                          string
-                        > = {
+                        const socioeconomicDefaultTitles: Record<string, string> = {
                           endereco: 'Endereço',
                           bairro: 'Bairro',
                           cidade: 'Cidade',
@@ -1839,20 +1781,13 @@ export function EnrollmentsTable({
                         // Mescla personal_info + customFields, com personal_info tendo prioridade
                         const orderedSocioeconomicFields = socioeconomicOrder
                           .map(id => {
-                            const personalInfoValue =
-                              getPersonalInfoSocioValue(id)
-                            const customField = allFields.find(
-                              (f: any) => f.id === id
-                            )
+                            const personalInfoValue = getPersonalInfoSocioValue(id)
+                            const customField = allFields.find((f: any) => f.id === id)
                             if (!personalInfoValue && !customField) return null
                             return {
                               id,
-                              title:
-                                customField?.title ||
-                                socioeconomicDefaultTitles[id] ||
-                                id,
-                              value:
-                                personalInfoValue ?? (customField?.value || ''),
+                              title: customField?.title || socioeconomicDefaultTitles[id] || id,
+                              value: personalInfoValue ?? (customField?.value || ''),
                               required: customField?.required || false,
                             }
                           })

@@ -5,7 +5,6 @@ import {
   canEditBuscaServices,
   hasAdminPrivileges,
   hasBuscaServicesAccess,
-  hasEmpregoTrabalhoAccess,
   hasGoRioAccess,
   isBuscaServicesAdmin,
 } from '@/types/heimdall-roles'
@@ -188,16 +187,6 @@ export function useIsAdmin(): boolean {
 export function useHasGoRioAccess(): boolean {
   const user = useHeimdallUser()
   return hasGoRioAccess(user?.roles)
-}
-
-/**
- * Custom hook to check if user has access to "Emprego e trabalho" module
- *
- * @returns boolean indicating if user has Emprego e trabalho access
- */
-export function useHasEmpregoTrabalhoAccess(): boolean {
-  const user = useHeimdallUser()
-  return hasEmpregoTrabalhoAccess(user?.roles)
 }
 
 /**

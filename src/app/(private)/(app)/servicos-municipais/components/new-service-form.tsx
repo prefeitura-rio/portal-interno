@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
+import { SubcategoryCombobox } from '@/components/ui/subcategory-combobox'
 import {
   Form,
   FormControl,
@@ -32,12 +33,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { SubcategoryCombobox } from '@/components/ui/subcategory-combobox'
-import { useDepartment } from '@/hooks/use-department'
 import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
 } from '@/hooks/use-heimdall-user'
+import { useDepartment } from '@/hooks/use-department'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import {
   getCurrentTimestamp,

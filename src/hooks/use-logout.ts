@@ -26,10 +26,7 @@ export function useLogout() {
       iframe.onload = () => {
         setTimeout(() => {
           // Safely remove iframe only if it's still a child of document.body
-          if (
-            iframeRef.current &&
-            iframeRef.current.parentNode === document.body
-          ) {
+          if (iframeRef.current && iframeRef.current.parentNode === document.body) {
             try {
               document.body.removeChild(iframeRef.current)
             } catch (error) {
@@ -44,10 +41,7 @@ export function useLogout() {
 
       iframe.onerror = () => {
         // In case of error, still redirect but clean up the iframe
-        if (
-          iframeRef.current &&
-          iframeRef.current.parentNode === document.body
-        ) {
+        if (iframeRef.current && iframeRef.current.parentNode === document.body) {
           try {
             document.body.removeChild(iframeRef.current)
           } catch (error) {
