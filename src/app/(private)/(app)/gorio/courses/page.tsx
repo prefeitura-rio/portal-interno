@@ -697,6 +697,9 @@ export default function Courses() {
       cell: ({ cell }) => {
         const status = cell.getValue<CourseListItem['status']>()
         const config = statusConfig[status]
+        if (!config) {
+          return <Badge variant="outline">{status}</Badge>
+        }
         const Icon = config.icon
 
         return (
