@@ -1,0 +1,156 @@
+name: Release and Deploy to Production
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Extract release version
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION_NO_V=${VERSION#v}
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/portal-interno"
+
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION_NO_V=$VERSION_NO_V" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
+      - name: Build and Push Docker Image (Production)
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_IDENTIDADE_CARIOCA_BASE_URL="https://auth-idrio.apps.rio.gov.br/auth/realms/idrio_cidadao/protocol/openid-connect" \
+            --build-arg NEXT_PUBLIC_IDENTIDADE_CARIOCA_CLIENT_ID="superapp.apps.rio.gov.br" \
+            --build-arg NEXT_PUBLIC_IDENTIDADE_CARIOCA_REDIRECT_URI="https://admin.pref.rio/api/auth/callback/keycloak" \
+            --build-arg NEXT_PUBLIC_GOVBR_BASE_URL="https://sso.acesso.gov.br/" \
+            --build-arg NEXT_PUBLIC_COURSES_BASE_API_URL="https://services.pref.rio/go" \
+            --build-arg NEXT_PUBLIC_BUSCA_SEARCH_API_URL="https://services.pref.rio/app-busca-search" \
+            --build-arg NEXT_PUBLIC_HEIMDALL_BASE_API_URL="https://services.pref.rio/heimdall-admin" \
+            --build-arg NEXT_PUBLIC_RMI_BASE_API_URL="https://services.pref.rio/rmi/v1" \
+            --build-arg NEXT_PUBLIC_BUSCA_1746_COLLECTION=1746 \
+            --build-arg NEXT_PUBLIC_BUSCA_CARIOCA_DIGITAL_COLLECTION=carioca-digital \
+            --build-arg NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT=1 \
+            --build-arg NEXT_PUBLIC_FEATURE_FLAG=true \
+            --build-arg NEXT_PUBLIC_BASE_URL_APP="https://pref.rio" \
+            --tag $IMAGE_NAME:$VERSION \
+            --tag $IMAGE_NAME:$VERSION_NO_V \
+            --tag $IMAGE_NAME:stable \
+            --push .
+
+      - name: Get image digest
+        run: |
+          DIGEST=$(docker buildx imagetools inspect $IMAGE_NAME:$VERSION --format '{{.Manifest.Digest}}' | grep -oE 'sha256:[a-f0-9]+' | head -n1)
+          echo "DIGEST=$DIGEST" >> $GITHUB_ENV
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Install gke-gcloud-auth-plugin
+        run: gcloud components install gke-gcloud-auth-plugin
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: latest
+
+      - name: Configure kubectl for GKE (Production)
+        run: gcloud container clusters get-credentials application --zone=us-central1 --project="${{ vars.GCP_PROJECT_ID }}"
+
+      - name: Update ArgoCD Application image override
+        run: |
+          kubectl patch application portal-interno -n argocd --type=merge \
+            -p="{\"spec\":{\"source\":{\"kustomize\":{\"images\":[\"$IMAGE_NAME:$VERSION@$DIGEST\"]}}}}"
+          echo "✅ ArgoCD Application updated"
+
+      - name: Wait for Rollout image update
+        timeout-minutes: 5
+        run: |
+          for i in {1..60}; do
+            CURRENT_IMAGE=$(kubectl get rollout portal-interno -n portal-interno -o jsonpath='{.spec.template.spec.containers[0].image}')
+            echo "Attempt $i/60: $CURRENT_IMAGE"
+            if [[ "$CURRENT_IMAGE" == "$IMAGE_NAME:$VERSION@$DIGEST" ]]; then
+              echo "✅ Rollout spec updated"
+              break
+            fi
+            [ $i -eq 60 ] && echo "❌ Timeout" && exit 1
+            sleep 5
+          done
+
+      - name: Monitor canary rollout
+        timeout-minutes: 45
+        run: |
+          echo "Monitoring canary rollout for $VERSION..."
+          while true; do
+            PHASE=$(kubectl get rollout portal-interno -n portal-interno -o jsonpath='{.status.phase}')
+            echo "Phase: $PHASE"
+            [ "$PHASE" = "Healthy"  ] && echo "✅ Rollout complete!" && exit 0
+            [ "$PHASE" = "Degraded" ] && echo "❌ Rollout degraded" && kubectl get rollout portal-interno -n portal-interno -o yaml && exit 1
+            [ "$PHASE" = "Aborted"  ] && echo "❌ Rollout aborted (analysis failed)" && kubectl get analysisrun -n portal-interno --sort-by=.metadata.creationTimestamp -o yaml || true && exit 1
+            kubectl get rollout portal-interno -n portal-interno
+            sleep 30
+          done
+
+      - name: Create deployment summary
+        if: always()
+        run: |
+          PHASE=$(kubectl get rollout portal-interno -n portal-interno -o jsonpath='{.status.phase}' 2>/dev/null || echo "Unknown")
+          echo "## 🚀 Production Release — portal-interno" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: $VERSION | **Status**: $PHASE" >> $GITHUB_STEP_SUMMARY
+          [ "$PHASE" = "Healthy" ] && echo "### ✅ Canary rollout complete — 100% traffic on new version" >> $GITHUB_STEP_SUMMARY || echo "### ❌ Deployment failed — check logs" >> $GITHUB_STEP_SUMMARY
+
+      - name: Send Discord notification
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          [ -z "$DISCORD_WEBHOOK" ] && echo "No webhook configured" && exit 0
+          PHASE=$(kubectl get rollout portal-interno -n portal-interno -o jsonpath='{.status.phase}' 2>/dev/null || echo "Unknown")
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$VERSION"
+          case "$PHASE" in
+            Healthy)  EMOJI="✅"; TEXT="Successful"; COLOR="3066993";  DESC="Canary complete. 100% prod traffic on new version." ;;
+            Aborted)  EMOJI="🛑"; TEXT="Aborted";    COLOR="15105570"; DESC="Rollout aborted due to failed analysis. Rolled back." ;;
+            Degraded) EMOJI="❌"; TEXT="Failed";     COLOR="15158332"; DESC="Rollout entered degraded state. Manual check required." ;;
+            *)        EMOJI="⚠️"; TEXT="Unknown";    COLOR="16776960"; DESC="Status unknown. Manual investigation required." ;;
+          esac
+          curl -sf -H "Content-Type: application/json" -d "{
+            \"content\": \"<@&903644455582695494>\",
+            \"embeds\": [{
+              \"title\": \"${EMOJI} Production Release ${TEXT} — portal-interno\",
+              \"description\": \"${DESC}\",
+              \"color\": ${COLOR},
+              \"fields\": [
+                {\"name\": \"Version\", \"value\": \"[${VERSION}](${RELEASE_URL})\", \"inline\": true},
+                {\"name\": \"Status\", \"value\": \"\`${PHASE}\`\", \"inline\": true},
+                {\"name\": \"Image\", \"value\": \"\`${IMAGE_NAME}:${VERSION}\`\", \"inline\": false}
+              ]
+            }]
+          }" "$DISCORD_WEBHOOK" || true
