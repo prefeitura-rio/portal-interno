@@ -4,14 +4,20 @@ import { useHeimdallUserWithLoading } from '@/hooks/use-heimdall-user'
 import type { HeimdallUser } from '@/types/heimdall-roles'
 import {
   canApproveCourses,
+  canDeleteOwnDraft,
   canEditBuscaServices,
+  canEditCourses,
   canEditGoRio,
+  canFinalDeleteCourse,
   canFreezeOrDiscontinueVaga,
   canManageEmpresasInEmpregabilidade,
+  canManageEnrollments,
+  canPublishCourses,
   canPublishVagaAsAtivo,
   hasAdminPrivileges,
   hasBuscaServicesAccess,
   hasCasaCivilAccess,
+  hasCursosEditorAccess,
   hasEmpregoTrabalhoAccess,
   hasGoRioAccess,
   isBuscaServicesAdmin,
@@ -36,10 +42,22 @@ interface HeimdallUserContextType {
   hasBuscaServicesAccess: boolean
   canEditBuscaServices: boolean
   isBuscaServicesAdmin: boolean
-  /** NOVO - Casa Civil curation access */
+  /** Casa Civil curation access */
   hasCasaCivilAccess: boolean
-  /** NOVO - Can approve/reject courses in review */
+  /** Editor-or-above access to the Cursos module */
+  hasCursosEditorAccess: boolean
+  /** Can approve/reject courses in review (Casa Civil) */
   canApproveCourses: boolean
+  /** Can publish courses directly (Casa Civil) */
+  canPublishCourses: boolean
+  /** Can perform final course deletion (Casa Civil) */
+  canFinalDeleteCourse: boolean
+  /** Can create/edit/duplicate/save-draft/send-to-review/request-changes/request-deletion */
+  canEditCourses: boolean
+  /** Can delete own draft */
+  canDeleteOwnDraft: boolean
+  /** Can manage enrollments (approve/reject/complete) */
+  canManageEnrollments: boolean
 }
 
 const HeimdallUserContext = createContext<HeimdallUserContextType | null>(null)
@@ -58,8 +76,14 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
   const buscaServicesAccess = hasBuscaServicesAccess(user?.roles)
   const canEdit = canEditBuscaServices(user?.roles)
   const isBuscaAdmin = isBuscaServicesAdmin(user?.roles)
-  const casaCivilAccess = hasCasaCivilAccess(user?.roles) // NOVO
-  const canApprove = canApproveCourses(user?.roles) // NOVO
+  const casaCivilAccess = hasCasaCivilAccess(user?.roles)
+  const cursosEditorAccess = hasCursosEditorAccess(user?.roles)
+  const canApprove = canApproveCourses(user?.roles)
+  const canPublish = canPublishCourses(user?.roles)
+  const canFinalDelete = canFinalDeleteCourse(user?.roles)
+  const canEditCoursesPermission = canEditCourses(user?.roles)
+  const canDeleteDraft = canDeleteOwnDraft(user?.roles)
+  const canManageEnrollmentsPermission = canManageEnrollments(user?.roles)
 
   return (
     <HeimdallUserContext.Provider
@@ -77,8 +101,14 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
         hasBuscaServicesAccess: buscaServicesAccess,
         canEditBuscaServices: canEdit,
         isBuscaServicesAdmin: isBuscaAdmin,
-        hasCasaCivilAccess: casaCivilAccess, // NOVO
-        canApproveCourses: canApprove, // NOVO
+        hasCasaCivilAccess: casaCivilAccess,
+        hasCursosEditorAccess: cursosEditorAccess,
+        canApproveCourses: canApprove,
+        canPublishCourses: canPublish,
+        canFinalDeleteCourse: canFinalDelete,
+        canEditCourses: canEditCoursesPermission,
+        canDeleteOwnDraft: canDeleteDraft,
+        canManageEnrollments: canManageEnrollmentsPermission,
       }}
     >
       {children}

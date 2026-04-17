@@ -48,6 +48,8 @@ O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e p
 | `admin`                                   | Administrador                 | Acesso total a todos os módulos                  |
 | `superadmin`                              | Super Administrador           | Acesso irrestrito a toda a plataforma            |
 | `go:admin`                                | Admin GO Rio                  | Módulo GO Rio (Capacitação + Emprego e trabalho) |
+| `go:cursos:casa_civil`                    | Casa Civil — curadoria cursos | Aprova/publica/rejeita cursos; edita em qualquer status |
+| `go:cursos:editor`                        | Editor de cursos (secretaria) | Cria/edita/duplica/envia p/ revisão; gerencia inscritos; **sem** publicar/aprovar |
 | `go:empregabilidade:admin`                | Admin Emprego e Trabalho      | Apenas módulo Emprego e trabalho                 |
 | `go:empregabilidade:editor_sem_curadoria` | Editor sem curadoria          | Apenas módulo Emprego e trabalho                 |
 | `go:empregabilidade:editor_com_curadoria` | Editor com curadoria          | Apenas módulo Emprego e trabalho                 |
@@ -56,14 +58,17 @@ O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e p
 
 ### Matriz de Acesso
 
-| Módulo/Recurso       | admin | superadmin | go:admin | go:empregab.:admin | go:empregab.:editor_sem | go:empregab.:editor_com | busca:services:admin | busca:services:editor |
-| -------------------- | ----- | ---------- | -------- | ------------------ | ----------------------- | ----------------------- | --------------------- | --------------------- |
-| Dashboard            | ✅    | ✅         | ✅       | ✅                 | ✅                      | ✅                      | ✅                    | ✅                    |
-| GO Rio - Capacitação | ✅    | ✅         | ✅       | ❌                 | ❌                      | ❌                      | ❌                    | ❌                    |
-| Emprego e trabalho   | ✅    | ✅         | ✅       | ✅                 | ✅                      | ✅                      | ❌                    | ❌                    |
-| Serviços Municipais  | ✅    | ✅         | ❌       | ❌                 | ❌                      | ❌                      | ✅                    | ✅                    |
-| Aprovar Serviços     | ✅    | ✅         | ❌       | ❌                 | ❌                      | ❌                      | ✅                    | ❌                    |
-| Minha Conta          | ✅    | ✅         | ✅       | ✅                 | ✅                      | ✅                      | ✅                    | ✅                    |
+| Módulo/Recurso          | admin | superadmin | go:admin | go:cursos:casa_civil | go:cursos:editor | go:empregab.:admin | go:empregab.:editor_sem | go:empregab.:editor_com | busca:services:admin | busca:services:editor |
+| ----------------------- | ----- | ---------- | -------- | -------------------- | ---------------- | ------------------ | ----------------------- | ----------------------- | -------------------- | --------------------- |
+| Dashboard               | ✅    | ✅         | ✅       | ✅                   | ✅               | ✅                 | ✅                      | ✅                      | ✅                   | ✅                    |
+| GO Rio - Capacitação    | ✅    | ✅         | ✅       | ✅                   | ✅               | ❌                 | ❌                      | ❌                      | ❌                   | ❌                    |
+| Aprovar/Publicar cursos | ✅    | ✅         | ✅       | ✅                   | ❌               | ❌                 | ❌                      | ❌                      | ❌                   | ❌                    |
+| Criar/Editar cursos     | ✅    | ✅         | ✅       | ✅                   | ✅               | ❌                 | ❌                      | ❌                      | ❌                   | ❌                    |
+| Gerenciar inscritos     | ✅    | ✅         | ✅       | ✅                   | ✅               | ❌                 | ❌                      | ❌                      | ❌                   | ❌                    |
+| Emprego e trabalho      | ✅    | ✅         | ✅       | ❌                   | ❌               | ✅                 | ✅                      | ✅                      | ❌                   | ❌                    |
+| Serviços Municipais     | ✅    | ✅         | ❌       | ❌                   | ❌               | ❌                 | ❌                      | ❌                      | ✅                   | ✅                    |
+| Aprovar Serviços        | ✅    | ✅         | ❌       | ❌                   | ❌               | ❌                 | ❌                      | ❌                      | ✅                   | ❌                    |
+| Minha Conta             | ✅    | ✅         | ✅       | ✅                   | ✅               | ✅                 | ✅                      | ✅                      | ✅                   | ✅                    |
 
 As roles `go:empregabilidade:*` têm acesso **somente** ao módulo "Emprego e trabalho" (e Dashboard / Minha conta). Capacitação e Serviços municipais não aparecem no menu e o acesso às rotas é bloqueado.
 
@@ -201,10 +206,15 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = hasAdminPrivileges(user?.roles)
   const canEditGoRio = canEditGoRio(user?.roles)
+  // Permissões de cursos (curadoria)
+  const canApproveCourses = canApproveCourses(user?.roles)     // Casa Civil: aprovar/rejeitar
+  const canPublishCourses = canPublishCourses(user?.roles)     // Casa Civil: publicar direto
+  const canEditCourses = canEditCourses(user?.roles)           // Editor + Casa Civil: criar/editar
+  const canManageEnrollments = canManageEnrollments(user?.roles) // Editor + Casa Civil: inscritos
   // ... outras permissões calculadas
 
   return (
-    <HeimdallUserContext.Provider value={{ user, loading, isAdmin, canEditGoRio, ... }}>
+    <HeimdallUserContext.Provider value={{ user, loading, isAdmin, canEditGoRio, canApproveCourses, ... }}>
       {children}
     </HeimdallUserContext.Provider>
   )
@@ -245,18 +255,25 @@ import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 
 export function MyComponent() {
   const {
-    user,           // Dados completos do usuário
-    loading,        // Estado de carregamento
-    isAdmin,        // É admin ou superadmin?
-    canEditGoRio,   // Pode editar no GO Rio?
-    canEditBuscaServices, // Pode editar serviços?
+    user,                  // Dados completos do usuário
+    loading,               // Estado de carregamento
+    isAdmin,               // É admin ou superadmin?
+    canEditGoRio,          // Pode editar no GO Rio?
+    canEditBuscaServices,  // Pode editar serviços?
+    // Permissões de cursos (curadoria)
+    hasCursosEditorAccess, // Acesso ao módulo de cursos (editor ou acima)
+    canApproveCourses,     // Pode aprovar/rejeitar cursos (Casa Civil)
+    canPublishCourses,     // Pode publicar cursos direto (Casa Civil)
+    canEditCourses,        // Pode criar/editar/duplicar cursos
+    canManageEnrollments,  // Pode gerenciar inscritos
   } = useHeimdallUserContext()
 
   if (loading) return <Skeleton />
 
   return (
     <div>
-      {canEditGoRio && <Button>Criar Curso</Button>}
+      {canEditCourses && <Button>Criar Curso</Button>}
+      {canApproveCourses && <Button>Aprovar</Button>}
     </div>
   )
 }
@@ -411,12 +428,16 @@ O middleware já protege automaticamente baseado em `route-permissions.ts`:
 ```typescript
 // src/lib/route-permissions.ts
 export const ROUTE_PERMISSIONS: Record<string, string[]> = {
-  '/gorio/courses': ['admin', 'superadmin', 'go:admin'],
-  '/gorio/oportunidades-mei': ['admin', 'superadmin', 'go:admin', 'go:empregabilidade:admin', ...],
-  '/gorio/empregabilidade': ['admin', 'superadmin', 'go:admin', 'go:empregabilidade:admin', ...],
-  '/servicos-municipais': ['admin', 'superadmin', 'busca:services:admin', 'busca:services:editor'],
+  '/gorio/courses': [...COURSES_ROLES],        // admin, superadmin, go:admin, go:cursos:casa_civil, go:cursos:editor
+  '/gorio/courses/new': [...COURSES_ROLES],
+  '/gorio/courses/course/*': [...COURSES_ROLES],
+  '/gorio/oportunidades-mei': ['admin', 'superadmin', 'go:admin'],
+  '/gorio/empregabilidade': [...EMPREGO_TRABALHO_ROLES],
+  '/servicos-municipais/servicos': ['admin', 'superadmin', 'busca:services:admin', 'busca:services:editor'],
 }
 ```
+
+> **Nota:** O layout `/gorio/layout.tsx` usa um `ProtectedRoute` com a união de `EMPREGO_TRABALHO_ROLES` + `COURSES_ROLES` (`GORIO_ROLES`), garantindo que tanto roles de cursos quanto de empregabilidade acessem suas respectivas sub-rotas dentro de `/gorio/*`.
 
 ---
 
@@ -590,5 +611,5 @@ clearHeimdallUserCache()
 
 ---
 
-**Última atualização:** 2025-10-25
+**Última atualização:** 2026-04-17
 **Sistema:** Heimdall RBAC com Cache Global

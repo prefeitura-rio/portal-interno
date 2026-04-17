@@ -97,10 +97,16 @@ export async function GET(request: Request) {
           })
         : []
 
+      // Filter to ensure only actual drafts are returned (backend may include
+      // courses whose status changed after being created as draft)
+      const draftOnlyCourses = transformedCourses.filter(
+        (course: CourseListItem) => course.status === 'draft'
+      )
+
       return NextResponse.json({
-        courses: transformedCourses,
+        courses: draftOnlyCourses,
         pagination: pagination,
-        total: pagination?.total || 0,
+        total: draftOnlyCourses.length,
         page: params.page,
         per_page: params.limit,
         success: true,

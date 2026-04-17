@@ -1,5 +1,8 @@
 import { ProtectedRoute } from '@/components/auth/protected-route'
-import { EMPREGO_TRABALHO_ROLES } from '@/types/heimdall-roles'
+import { COURSES_ROLES, EMPREGO_TRABALHO_ROLES } from '@/types/heimdall-roles'
+
+// Combine roles from both modules under /gorio: Cursos (Capacitação) + Emprego e trabalho
+const GORIO_ROLES = [...new Set([...EMPREGO_TRABALHO_ROLES, ...COURSES_ROLES])]
 
 export default function GorioLayout({
   children,
@@ -8,9 +11,7 @@ export default function GorioLayout({
 }) {
   return (
     <>
-      <ProtectedRoute requiredRoles={[...EMPREGO_TRABALHO_ROLES]}>
-        {children}
-      </ProtectedRoute>
+      <ProtectedRoute requiredRoles={GORIO_ROLES}>{children}</ProtectedRoute>
     </>
   )
 }
