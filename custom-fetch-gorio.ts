@@ -95,6 +95,7 @@ export const customFetchGoRio = async <T>(
   const requestInit: RequestInit = {
     ...options,
     headers: requestHeaders,
+    cache: 'no-store',
   }
 
   console.log('🟢 [customFetchGoRio] URL:', requestUrl)
