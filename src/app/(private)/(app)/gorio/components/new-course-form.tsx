@@ -3495,6 +3495,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             )}
 
             {!isDraft &&
+              !isReadOnly &&
               courseStatus !== 'cancelled' &&
               courseStatus !== 'finished' &&
               courseStatus !== 'canceled' &&

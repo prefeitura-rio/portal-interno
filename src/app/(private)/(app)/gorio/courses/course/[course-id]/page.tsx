@@ -153,7 +153,7 @@ const statusConfig: Record<string, CourseStatusConfig> = {
     icon: Trash2,
     label: 'Aguardando Exclusão',
     variant: 'outline',
-    className: 'text-gray-500 border-gray-200 bg-gray-50',
+    className: 'text-red-500 border-red-200 bg-red-50',
   },
 }
 
@@ -1072,7 +1072,7 @@ export default function CourseDetailPage({
   const isDraft = actualStatus === 'draft'
   const isInReview = actualStatus === 'in_review'
   const isNeedsChanges = actualStatus === 'needs_changes'
-  const isPublished = actualStatus === 'published'
+  const isPublished = actualStatus === 'published' || actualStatus === 'approved'
   const isPendingDeletion = actualStatus === 'pending_deletion'
   const isOpened =
     actualStatus === 'opened' ||
@@ -1167,6 +1167,7 @@ export default function CourseDetailPage({
                         <Send className="mr-2 h-4 w-4" />
                         Enviar para Aprovação
                       </Button>
+                      <DuplicateCourseButton course={course as any} disabled={isLoading} />
                       <Button
                         variant="destructive"
                         onClick={handleDeleteDraft}
@@ -1216,7 +1217,13 @@ export default function CourseDetailPage({
                         <Edit className="mr-2 h-4 w-4" />
                         Editar curso
                       </Button>
+                      <DuplicateCourseButton course={course as any} disabled={isLoading} />
                     </>
+                  )}
+
+                  {/* === IN_REVIEW + Editor: apenas Duplicar === */}
+                  {isInReview && !canApproveCourses && (
+                    <DuplicateCourseButton course={course as any} disabled={isLoading} />
                   )}
 
                   {/* === NEEDS_CHANGES (editor e casa_civil): Editar + Reenviar para Aprovação === */}
@@ -1244,6 +1251,7 @@ export default function CourseDetailPage({
                         <Send className="mr-2 h-4 w-4" />
                         Reenviar para Aprovação
                       </Button>
+                      <DuplicateCourseButton course={course as any} disabled={isLoading} />
                     </>
                   )}
 
@@ -1278,6 +1286,7 @@ export default function CourseDetailPage({
                         <Trash2 className="mr-2 h-4 w-4" />
                         Propor exclusão
                       </Button>
+                      <DuplicateCourseButton course={course as any} disabled={isLoading} />
                     </>
                   )}
 
@@ -1316,6 +1325,11 @@ export default function CourseDetailPage({
                     </Button>
                   )}
 
+                  {/* === PENDING_DELETION (todas as roles): Duplicar === */}
+                  {isPendingDeletion && (
+                    <DuplicateCourseButton course={course as any} disabled={isLoading} />
+                  )}
+
                   {/* === LEGACY: closed, canceled === */}
                   {canReopen && (
                     <Button
@@ -1327,6 +1341,11 @@ export default function CourseDetailPage({
                       <ClipboardList className="mr-2 h-4 w-4" />
                       Reabrir Curso
                     </Button>
+                  )}
+
+                  {/* === LEGACY closed/canceled: Duplicar === */}
+                  {canReopen && (
+                    <DuplicateCourseButton course={course as any} disabled={isLoading} />
                   )}
                 </>
               ) : (
