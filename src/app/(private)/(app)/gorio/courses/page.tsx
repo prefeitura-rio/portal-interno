@@ -27,6 +27,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useDepartment } from '@/hooks/use-department'
 import type {
@@ -225,6 +226,7 @@ function DepartmentSiglaWithPartnerTooltip({
 export default function Courses() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { canApproveCourses } = useHeimdallUserContext()
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'created_at', desc: true },
@@ -877,7 +879,9 @@ export default function Courses() {
           {/* ANTIGO: <TabsList className="grid w-full grid-cols-2"> */}
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="created">Cursos Criados</TabsTrigger>
-            <TabsTrigger value="in_review">Pronto para Aprovação</TabsTrigger>
+            <TabsTrigger value="in_review">
+              {canApproveCourses ? 'Pronto para aprovação' : 'Em aprovação'}
+            </TabsTrigger>
             <TabsTrigger value="draft">Rascunhos</TabsTrigger>
           </TabsList>
 

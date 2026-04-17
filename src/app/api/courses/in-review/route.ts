@@ -4,8 +4,8 @@ import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 
 /**
- * NOVO - Endpoint para listar cursos em revisão (status: in_review)
- * Útil para Casa Civil visualizar cursos aguardando aprovação
+ * Endpoint para listar cursos no fluxo de curadoria (status: in_review + needs_changes).
+ * Ambos os statuses aparecem na tab "Em aprovação" / "Pronto para aprovação".
  */
 export async function GET(request: NextRequest) {
   try {
@@ -25,67 +25,58 @@ export async function GET(request: NextRequest) {
     const perPage = searchParams.get('per_page') || '10'
     const search = searchParams.get('search') || ''
 
-    // Chamar backend API com filtro de status
     const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
-    const queryParams = new URLSearchParams({
-      page,
-      per_page: perPage,
-      status: 'in_review', // Filtro específico
-      ...(search && { search }),
-    })
 
-    const response = await fetch(
-      `${baseUrl}/api/v1/courses?${queryParams.toString()}`,
-      {
+    // Fetch both in_review and needs_changes in parallel
+    const buildParams = (status: string) =>
+      new URLSearchParams({
+        page,
+        per_page: perPage,
+        status,
+        ...(search && { search }),
+      })
+
+    const fetchCoursesByStatus = (status: string) =>
+      fetch(`${baseUrl}/api/v1/courses?${buildParams(status).toString()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken.value}`,
         },
         cache: 'no-store',
-      }
-    )
+      })
 
-    if (!response.ok) {
-      const error = await response.json()
-      return NextResponse.json(
-        {
-          error: error.error || 'Erro ao buscar cursos em revisão',
-          success: false,
-        },
-        { status: response.status }
-      )
+    const [inReviewRes, needsChangesRes] = await Promise.all([
+      fetchCoursesByStatus('in_review'),
+      fetchCoursesByStatus('needs_changes'),
+    ])
+
+    const extractCourses = async (res: Response): Promise<any[]> => {
+      if (!res.ok) return []
+      const data = await res.json()
+      if (Array.isArray(data?.courses)) return data.courses
+      if (Array.isArray(data?.data?.courses)) return data.data.courses
+      if (Array.isArray(data)) return data
+      return []
     }
 
-    const data = await response.json()
+    const [inReviewCourses, needsChangesCourses] = await Promise.all([
+      extractCourses(inReviewRes),
+      extractCourses(needsChangesRes),
+    ])
 
-    // Backend response shape may be flat ({ courses, pagination }) or nested
-    // ({ data: { courses, pagination } }). Normalize and transform so the
-    // table columns receive CourseListItem objects with the expected fields
-    // (registration_start/registration_end, Date instances, etc.).
-    let rawCourses: any[] = []
-    let pagination: any = null
+    const allRawCourses = [...inReviewCourses, ...needsChangesCourses]
 
-    if (Array.isArray(data?.courses)) {
-      rawCourses = data.courses
-    } else if (Array.isArray(data?.data?.courses)) {
-      rawCourses = data.data.courses
-    } else if (Array.isArray(data)) {
-      rawCourses = data
-    }
-
-    if (data?.pagination) {
-      pagination = data.pagination
-    } else if (data?.data?.pagination) {
-      pagination = data.data.pagination
-    }
-
-    const transformedCourses: CourseListItem[] = rawCourses.map(
+    const transformedCourses: CourseListItem[] = allRawCourses.map(
       (course: any) => {
         try {
           return transformApiCourseToCourseListItem(course)
         } catch (error) {
-          console.error('Error transforming in-review course:', course, error)
+          console.error(
+            'Error transforming in-review/needs-changes course:',
+            course,
+            error
+          )
           return {
             id: course.id?.toString() || 'unknown',
             title: course.title || 'Sem título',
@@ -112,8 +103,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       courses: transformedCourses,
-      pagination,
-      total: pagination?.total || transformedCourses.length,
+      total: transformedCourses.length,
       page: Number.parseInt(page, 10),
       per_page: Number.parseInt(perPage, 10),
       success: true,

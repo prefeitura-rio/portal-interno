@@ -56,9 +56,9 @@ export async function GET(request: Request) {
       }
 
       // Filter out courses that belong to other tabs (drafts and curadoria
-      // review queue). The "Cursos Criados" tab must not show in_review/draft
-      // courses — those have their own dedicated tabs/endpoints.
-      const excludedStatuses = new Set(['in_review', 'draft'])
+      // review queue). The "Cursos Criados" tab must not show in_review/draft/
+      // needs_changes courses — those have their own dedicated tabs/endpoints.
+      const excludedStatuses = new Set(['in_review', 'draft', 'needs_changes'])
       const filteredApiCourses = Array.isArray(courses)
         ? courses.filter((course: any) => !excludedStatuses.has(course?.status))
         : []

@@ -10,7 +10,8 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'admin',
     'superadmin',
     'go:admin',
-    'go:cursos:casa_civil', // NOVO
+    'go:cursos:casa_civil',
+    'go:cursos:editor',
     'busca:services:admin',
     'busca:services:editor',
     'go:empregabilidade:admin',
@@ -87,7 +88,8 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'admin',
     'superadmin',
     'go:admin',
-    'go:cursos:casa_civil', // NOVO
+    'go:cursos:casa_civil',
+    'go:cursos:editor',
     'busca:services:admin',
     'busca:services:editor',
     'go:empregabilidade:admin',

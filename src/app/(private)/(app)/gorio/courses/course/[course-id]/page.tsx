@@ -197,7 +197,7 @@ export default function CourseDetailPage({
   const courseFormRef = useRef<NewCourseFormRef>(null)
 
   // Heimdall user context for role-based actions
-  const { canApproveCourses } = useHeimdallUserContext()
+  const { canApproveCourses, canPublishCourses } = useHeimdallUserContext()
 
   // Use the custom hook to fetch course data
   const { course, loading, error, refetch } = useCourse(
@@ -770,6 +770,57 @@ export default function CourseDetailPage({
     }
   }
 
+  // Handler for "Enviar para Aprovação" button inside the draft form footer.
+  // Saves the form data first (PUT), then sends to review (PUT send-to-review).
+  const handleSendToReviewFromForm = async (data: any) => {
+    try {
+      setIsLoading(true)
+
+      // Step 1: Save draft with form data
+      const updateData = {
+        ...data,
+        title: data.title || course?.title,
+        categorias: data.categorias || course?.categorias || [],
+        modalidade: data.modalidade || course?.modalidade,
+        status: data.status || course?.status,
+        orgao_id: data.orgao_id || course?.orgao_id,
+      }
+
+      const saveResponse = await fetch(`/api/courses/${courseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      })
+
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json()
+        throw new Error(errorData.error || 'Erro ao salvar rascunho')
+      }
+
+      // Step 2: Send to review
+      const reviewResponse = await fetch(
+        `/api/courses/${courseId}/send-to-review`,
+        { method: 'PUT' }
+      )
+
+      if (!reviewResponse.ok) {
+        const errorData = await reviewResponse.json()
+        throw new Error(errorData.error || 'Erro ao enviar para aprovação')
+      }
+
+      toast.success('Curso enviado para aprovação com sucesso!')
+      setIsEditing(false)
+      if (refetch) refetch()
+    } catch (err) {
+      console.error('Error saving and sending to review:', err)
+      toast.error('Erro ao enviar para aprovação', {
+        description: err instanceof Error ? err.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const confirmRequestChanges = async () => {
     try {
       setIsLoading(true)
@@ -1168,8 +1219,8 @@ export default function CourseDetailPage({
                     </>
                   )}
 
-                  {/* === NEEDS_CHANGES (não Casa Civil): Editar + Enviar para Aprovação === */}
-                  {isNeedsChanges && !canApproveCourses && (
+                  {/* === NEEDS_CHANGES (editor e casa_civil): Editar + Reenviar para Aprovação === */}
+                  {isNeedsChanges && (
                     <>
                       <Button
                         onClick={handleEdit}
@@ -1191,7 +1242,7 @@ export default function CourseDetailPage({
                         className="w-full md:w-auto"
                       >
                         <Send className="mr-2 h-4 w-4" />
-                        Enviar para Aprovação
+                        Reenviar para Aprovação
                       </Button>
                     </>
                   )}
@@ -1240,9 +1291,9 @@ export default function CourseDetailPage({
                         })
                       }
                       disabled={isLoading}
-                      className="w-full md:w-auto bg-green-600 hover:bg-green-700"
+                      className="w-full md:w-auto"
                     >
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
                       Concordar com a edição
                     </Button>
                   )}
@@ -1313,7 +1364,7 @@ export default function CourseDetailPage({
                 initialData={course as any}
                 isReadOnly={!isEditing}
                 onSubmit={handleSave}
-                onPublish={handlePublish}
+                onPublish={handleSendToReviewFromForm}
                 isDraft={isDraft}
                 courseStatus={course.status as string}
                 onFormChangesDetected={setHasFormChanges}
@@ -1350,7 +1401,7 @@ export default function CourseDetailPage({
                   initialData={course as any}
                   isReadOnly={!isEditing}
                   onSubmit={handleSave}
-                  onPublish={handlePublish}
+                  onPublish={canPublishCourses ? handlePublish : undefined}
                   isDraft={isDraft}
                   courseStatus={course.status as string}
                   onFormChangesDetected={setHasFormChanges}

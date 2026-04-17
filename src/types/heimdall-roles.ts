@@ -25,7 +25,8 @@ export const COURSES_ROLES = [
   'admin',
   'superadmin',
   'go:admin',
-  'go:cursos:casa_civil', // NOVO - Casa Civil curadoria
+  'go:cursos:casa_civil', // Casa Civil curadoria
+  'go:cursos:editor', // Editor de cursos (secretaria)
 ] as const
 
 export type CoursesRole = (typeof COURSES_ROLES)[number]
@@ -39,7 +40,8 @@ export type HeimdallRole =
   | 'busca:services:admin' // Admin for Busca services module
   | 'busca:services:editor' // Editor for Busca services module
   | 'go:admin' // Admin for GO Rio module only
-  | 'go:cursos:casa_civil' // NOVO - Casa Civil curation for courses
+  | 'go:cursos:casa_civil' // Casa Civil curation for courses
+  | 'go:cursos:editor' // Editor de cursos (secretaria)
   | 'go:empregabilidade:admin' // Admin for Emprego e trabalho only
   | 'go:empregabilidade:editor_sem_curadoria' // Editor (sem curadoria) - Emprego e trabalho only
   | 'go:empregabilidade:editor_com_curadoria' // Editor (com curadoria) - Emprego e trabalho only
@@ -66,7 +68,8 @@ export function isHeimdallRole(role: string): role is HeimdallRole {
     'busca:services:admin',
     'busca:services:editor',
     'go:admin',
-    'go:cursos:casa_civil', // NOVO
+    'go:cursos:casa_civil',
+    'go:cursos:editor',
     'go:empregabilidade:admin',
     'go:empregabilidade:editor_sem_curadoria',
     'go:empregabilidade:editor_com_curadoria',
@@ -242,8 +245,8 @@ export function isGoRioAdmin(roles: string[] | undefined): boolean {
 }
 
 /**
- * Check if user has access to Casa Civil curation (courses approval/review)
- * NOVO - Para fluxo de curadoria de cursos
+ * Check if user has access to Casa Civil curation (courses approval/review).
+ * Curadoria-level access: can approve, publish, reject, agree-with-deletion.
  */
 export function hasCasaCivilAccess(roles: string[] | undefined): boolean {
   if (!roles) return false
@@ -255,10 +258,40 @@ export function hasCasaCivilAccess(roles: string[] | undefined): boolean {
 }
 
 /**
- * Check if user can approve courses (Casa Civil curation)
- * NOVO - Para aprovar/rejeitar cursos em revisão
+ * Access to the Cursos module as an editor or above.
+ * Includes admin/superadmin/go:admin, Casa Civil and the new go:cursos:editor.
  */
-export function canApproveCourses(roles: string[] | undefined): boolean {
+export function hasCursosEditorAccess(roles: string[] | undefined): boolean {
   if (!roles) return false
+  return hasCasaCivilAccess(roles) || roles.includes('go:cursos:editor')
+}
+
+/** Can approve/reject courses in review (Casa Civil curation). */
+export function canApproveCourses(roles: string[] | undefined): boolean {
   return hasCasaCivilAccess(roles)
+}
+
+/** Can publish courses directly. */
+export function canPublishCourses(roles: string[] | undefined): boolean {
+  return hasCasaCivilAccess(roles)
+}
+
+/** Can perform the final course deletion (after pending_deletion). */
+export function canFinalDeleteCourse(roles: string[] | undefined): boolean {
+  return hasCasaCivilAccess(roles)
+}
+
+/** Can create/edit/duplicate/save-draft/send-to-review/request-changes/request-deletion. */
+export function canEditCourses(roles: string[] | undefined): boolean {
+  return hasCursosEditorAccess(roles)
+}
+
+/** Can delete own draft (status=draft). Editor can. */
+export function canDeleteOwnDraft(roles: string[] | undefined): boolean {
+  return hasCursosEditorAccess(roles)
+}
+
+/** Can manage enrollments (approve/reject/complete). */
+export function canManageEnrollments(roles: string[] | undefined): boolean {
+  return hasCursosEditorAccess(roles)
 }

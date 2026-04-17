@@ -3474,13 +3474,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 Salvar Rascunho
               </Button>
             )}
-            {isDraft && (
+            {isDraft && onPublish && (
               <Button
                 type="button"
                 onClick={handlePublish}
                 className="w-full py-6"
               >
-                Salvar e Publicar
+                Enviar para Aprovação
               </Button>
             )}
             {isDraft && (
@@ -3497,7 +3497,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             {!isDraft &&
               courseStatus !== 'cancelled' &&
               courseStatus !== 'finished' &&
-              courseStatus !== 'canceled' && (
+              courseStatus !== 'canceled' &&
+              courseStatus !== 'in_review' &&
+              courseStatus !== 'needs_changes' && (
                 <Button
                   type="submit"
                   disabled={form.formState.isSubmitting}
@@ -3525,7 +3527,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 : confirmDialog.type === 'save_changes'
                   ? 'Salvar Alterações'
                   : confirmDialog.type === 'publish_course'
-                    ? 'Publicar Curso'
+                    ? 'Enviar para Aprovação'
                     : 'Salvar Alterações'
           }
           description={
@@ -3536,7 +3538,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 : confirmDialog.type === 'save_changes'
                   ? 'Tem certeza que deseja salvar as alterações neste curso?'
                   : confirmDialog.type === 'publish_course'
-                    ? 'Tem certeza que deseja publicar este curso? Esta ação tornará o curso visível para inscrições.'
+                    ? 'Tem certeza que deseja enviar este curso para aprovação? O curso será revisado pela Casa Civil.'
                     : 'Tem certeza que deseja salvar as alterações neste curso?'
           }
           confirmText={
@@ -3547,7 +3549,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 : confirmDialog.type === 'save_changes'
                   ? 'Salvar Alterações'
                   : confirmDialog.type === 'publish_course'
-                    ? 'Publicar Curso'
+                    ? 'Enviar para Aprovação'
                     : 'Salvar Alterações'
           }
           variant="default"
