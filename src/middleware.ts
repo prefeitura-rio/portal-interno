@@ -69,10 +69,10 @@ export async function middleware(request: NextRequest) {
     refreshTokenLength: refreshToken?.value?.length || 0,
   })
 
-  // TEMPORARY: Block access to "oportunidades-mei" and "empregabilidade" routes when feature flag is enabled
-  // TODO: Remove this block once the feature is ready
+  // TEMPORARY: Block access to "oportunidades-mei" routes when feature flag is enabled
+  // TODO: Remove this block once MEI is ready for production
   if (
-    (path.includes('oportunidades-mei') || path.includes('empregabilidade')) &&
+    path.includes('oportunidades-mei') &&
     process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
   ) {
     return await handleUnauthorizedUser(request)

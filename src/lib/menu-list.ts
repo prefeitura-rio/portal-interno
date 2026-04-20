@@ -155,14 +155,27 @@ export function getMenuList(pathname: string): Group[] {
             },
           ],
         },
-      ].filter(menu => {
-        // TEMPORARY: Hide "Emprego e trabalho" menu when feature flag is enabled
-        // TODO: Remove this filter once the feature is ready
+      ].map(menu => {
+        // TEMPORARY: Hide MEI submenus when feature flag is enabled (Empregabilidade remains visible)
+        // TODO: Remove this block once MEI is ready for production
         if (
           menu.label === 'Emprego e trabalho' &&
           process.env.NEXT_PUBLIC_FEATURE_FLAG === 'true'
         ) {
-          return false
+          return {
+            ...menu,
+            submenus: menu.submenus?.filter(item => {
+              if (isSubmenuGroup(item)) {
+                return item.label !== 'MEI'
+              }
+              return true
+            }),
+          }
+        }
+        return menu
+      }).filter(menu => {
+        if (menu.label === 'Emprego e trabalho') {
+          return !menu.submenus || menu.submenus.length > 0
         }
         return true
       }),
