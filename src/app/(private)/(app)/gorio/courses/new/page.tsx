@@ -10,6 +10,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -20,16 +21,15 @@ export default function NewCourse() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
+  const { canPublishCourses } = useHeimdallUserContext()
 
   const handleCreateCourse = async (data: any) => {
     try {
       console.log('Creating course:', data)
 
-      // Mark as submitting to prevent guard from blocking
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
 
-      // NOVO - Endpoint que cria e envia para revisão direto (não cria como draft)
       const response = await fetch('/api/courses/send-to-review', {
         method: 'POST',
         headers: {
@@ -46,19 +46,50 @@ export default function NewCourse() {
       const result = await response.json()
       console.log('Course created successfully:', result)
 
-      // ANTIGO: toast.success('Curso criado com sucesso!') + redirect to 'created' tab
-      // NOVO - Curso é automaticamente enviado para revisão após criação
       toast.success('Curso enviado para aprovação com sucesso!')
       router.push('/gorio/courses?tab=in_review')
-
-      // Trigger cache revalidation
       router.refresh()
     } catch (error) {
       console.error('Error creating course:', error)
       toast.error('Erro ao enviar curso para aprovação', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
       })
-      // If there's an error, re-enable the guard
+      setIsSubmitting(false)
+      setHasUnsavedChanges(true)
+    }
+  }
+
+  const handlePublishDirectly = async (data: any) => {
+    try {
+      console.log('Publishing course directly:', data)
+
+      setIsSubmitting(true)
+      setHasUnsavedChanges(false)
+
+      const response = await fetch('/api/courses/publish-directly', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to publish course')
+      }
+
+      const result = await response.json()
+      console.log('Course published successfully:', result)
+
+      toast.success('Curso publicado com sucesso!')
+      router.push('/gorio/courses?tab=created')
+      router.refresh()
+    } catch (error) {
+      console.error('Error publishing course directly:', error)
+      toast.error('Erro ao publicar curso', {
+        description: error instanceof Error ? error.message : 'Erro inesperado',
+      })
       setIsSubmitting(false)
       setHasUnsavedChanges(true)
     }
@@ -135,9 +166,12 @@ export default function NewCourse() {
           </div>
         </div>
         <NewCourseForm
-          onSubmit={handleCreateCourse}
+          onSubmit={
+            canPublishCourses ? handlePublishDirectly : handleCreateCourse
+          }
           onSaveDraft={handleCreateDraft}
           onFormChangesDetected={setHasUnsavedChanges}
+          canPublishDirectly={canPublishCourses}
         />
       </div>
 

@@ -81,7 +81,10 @@ export interface CourseListItem {
     | 'EXTERNAL_MANAGED_BY_ORG'
     | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
+  courseType?: CourseType
 }
+
+export type CourseType = 'new_course' | 'edit_proposal' | 'deletion_proposal'
 
 // ANTIGO: export type CourseStatus = 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled' | 'CRIADO' | 'ENCERRADO' | 'scheduled' | 'accepting_enrollments' | 'in_progress' | 'finished'
 export type CourseStatus =

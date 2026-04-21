@@ -4,8 +4,8 @@ import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 
 /**
- * Endpoint para listar cursos no fluxo de curadoria (status: in_review + needs_changes).
- * Ambos os statuses aparecem na tab "Em aprovação" / "Pronto para aprovação".
+ * Endpoint para listar cursos no fluxo de curadoria (status: in_review + needs_changes + pending_deletion).
+ * Todos aparecem na tab "Em aprovação" / "Pronto para aprovação".
  */
 export async function GET(request: NextRequest) {
   try {
@@ -46,10 +46,12 @@ export async function GET(request: NextRequest) {
         cache: 'no-store',
       })
 
-    const [inReviewRes, needsChangesRes] = await Promise.all([
-      fetchCoursesByStatus('in_review'),
-      fetchCoursesByStatus('needs_changes'),
-    ])
+    const [inReviewRes, needsChangesRes, pendingDeletionRes] =
+      await Promise.all([
+        fetchCoursesByStatus('in_review'),
+        fetchCoursesByStatus('needs_changes'),
+        fetchCoursesByStatus('pending_deletion'),
+      ])
 
     const extractCourses = async (res: Response): Promise<any[]> => {
       if (!res.ok) return []
@@ -60,12 +62,18 @@ export async function GET(request: NextRequest) {
       return []
     }
 
-    const [inReviewCourses, needsChangesCourses] = await Promise.all([
-      extractCourses(inReviewRes),
-      extractCourses(needsChangesRes),
-    ])
+    const [inReviewCourses, needsChangesCourses, pendingDeletionCourses] =
+      await Promise.all([
+        extractCourses(inReviewRes),
+        extractCourses(needsChangesRes),
+        extractCourses(pendingDeletionRes),
+      ])
 
-    const allRawCourses = [...inReviewCourses, ...needsChangesCourses]
+    const allRawCourses = [
+      ...inReviewCourses,
+      ...needsChangesCourses,
+      ...pendingDeletionCourses,
+    ]
 
     const transformedCourses: CourseListItem[] = allRawCourses.map(
       (course: any) => {

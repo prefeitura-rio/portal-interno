@@ -186,6 +186,7 @@ export default function CourseDetailPage({
       | 'request_deletion'
       | 'confirm_delete_course'
       | 'agree_with_edit'
+      | 'publish_directly'
       | null
   }>({
     open: false,
@@ -770,6 +771,31 @@ export default function CourseDetailPage({
     }
   }
 
+  const confirmPublishDirectly = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(
+        `/api/courses/${courseId}/publish-directly`,
+        {
+          method: 'PUT',
+        }
+      )
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao publicar curso')
+      }
+      toast.success('Curso publicado com sucesso!')
+      if (refetch) refetch()
+    } catch (err) {
+      console.error('Error publishing directly:', err)
+      toast.error('Erro ao publicar curso', {
+        description: err instanceof Error ? err.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // Handler for "Enviar para Aprovação" button inside the draft form footer.
   // Saves the form data first (PUT), then sends to review (PUT send-to-review).
   const handleSendToReviewFromForm = async (data: any) => {
@@ -814,6 +840,57 @@ export default function CourseDetailPage({
     } catch (err) {
       console.error('Error saving and sending to review:', err)
       toast.error('Erro ao enviar para aprovação', {
+        description: err instanceof Error ? err.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handler for "Publicar" button inside the draft form footer (Casa Civil).
+  // Saves the form data first (PUT), then publishes directly (PUT publish-directly).
+  const handlePublishDirectlyFromForm = async (data: any) => {
+    try {
+      setIsLoading(true)
+
+      // Step 1: Save draft with form data
+      const updateData = {
+        ...data,
+        title: data.title || course?.title,
+        categorias: data.categorias || course?.categorias || [],
+        modalidade: data.modalidade || course?.modalidade,
+        status: data.status || course?.status,
+        orgao_id: data.orgao_id || course?.orgao_id,
+      }
+
+      const saveResponse = await fetch(`/api/courses/${courseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      })
+
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json()
+        throw new Error(errorData.error || 'Erro ao salvar rascunho')
+      }
+
+      // Step 2: Publish directly
+      const publishResponse = await fetch(
+        `/api/courses/${courseId}/publish-directly`,
+        { method: 'PUT' }
+      )
+
+      if (!publishResponse.ok) {
+        const errorData = await publishResponse.json()
+        throw new Error(errorData.error || 'Erro ao publicar curso')
+      }
+
+      toast.success('Curso publicado com sucesso!')
+      setIsEditing(false)
+      if (refetch) refetch()
+    } catch (err) {
+      console.error('Error saving and publishing directly:', err)
+      toast.error('Erro ao publicar curso', {
         description: err instanceof Error ? err.message : 'Erro inesperado',
       })
     } finally {
@@ -1072,7 +1149,8 @@ export default function CourseDetailPage({
   const isDraft = actualStatus === 'draft'
   const isInReview = actualStatus === 'in_review'
   const isNeedsChanges = actualStatus === 'needs_changes'
-  const isPublished = actualStatus === 'published' || actualStatus === 'approved'
+  const isPublished =
+    actualStatus === 'published' || actualStatus === 'approved'
   const isPendingDeletion = actualStatus === 'pending_deletion'
   const isOpened =
     actualStatus === 'opened' ||
@@ -1142,7 +1220,7 @@ export default function CourseDetailPage({
               {/* Show action buttons based on course status and role */}
               {!isEditing ? (
                 <>
-                  {/* === DRAFT: Editar + Enviar para Aprovação + Excluir rascunho === */}
+                  {/* === DRAFT: Editar + Publicar/Enviar para Aprovação + Excluir rascunho === */}
                   {isDraft && (
                     <>
                       <Button
@@ -1153,21 +1231,41 @@ export default function CourseDetailPage({
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
                       </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type: 'send_to_review',
-                          })
-                        }
+                      {canPublishCourses ? (
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            setConfirmDialog({
+                              open: true,
+                              type: 'publish_directly',
+                            })
+                          }
+                          disabled={isLoading}
+                          className="w-full md:w-auto"
+                        >
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Publicar
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            setConfirmDialog({
+                              open: true,
+                              type: 'send_to_review',
+                            })
+                          }
+                          disabled={isLoading}
+                          className="w-full md:w-auto"
+                        >
+                          <Send className="mr-2 h-4 w-4" />
+                          Enviar para Aprovação
+                        </Button>
+                      )}
+                      <DuplicateCourseButton
+                        course={course as any}
                         disabled={isLoading}
-                        className="w-full md:w-auto"
-                      >
-                        <Send className="mr-2 h-4 w-4" />
-                        Enviar para Aprovação
-                      </Button>
-                      <DuplicateCourseButton course={course as any} disabled={isLoading} />
+                      />
                       <Button
                         variant="destructive"
                         onClick={handleDeleteDraft}
@@ -1217,13 +1315,19 @@ export default function CourseDetailPage({
                         <Edit className="mr-2 h-4 w-4" />
                         Editar curso
                       </Button>
-                      <DuplicateCourseButton course={course as any} disabled={isLoading} />
+                      <DuplicateCourseButton
+                        course={course as any}
+                        disabled={isLoading}
+                      />
                     </>
                   )}
 
                   {/* === IN_REVIEW + Editor: apenas Duplicar === */}
                   {isInReview && !canApproveCourses && (
-                    <DuplicateCourseButton course={course as any} disabled={isLoading} />
+                    <DuplicateCourseButton
+                      course={course as any}
+                      disabled={isLoading}
+                    />
                   )}
 
                   {/* === NEEDS_CHANGES (editor e casa_civil): Editar + Reenviar para Aprovação === */}
@@ -1251,13 +1355,26 @@ export default function CourseDetailPage({
                         <Send className="mr-2 h-4 w-4" />
                         Reenviar para Aprovação
                       </Button>
-                      <DuplicateCourseButton course={course as any} disabled={isLoading} />
+                      <DuplicateCourseButton
+                        course={course as any}
+                        disabled={isLoading}
+                      />
                     </>
                   )}
 
-                  {/* === PUBLISHED / OPENED: Propor edição + Propor exclusão (todas as roles) === */}
+                  {/* === PUBLISHED / OPENED: Editar (Casa Civil) + Propor edição + Propor exclusão === */}
                   {showPublishedActions && (
                     <>
+                      {canPublishCourses && (
+                        <Button
+                          onClick={handleEdit}
+                          disabled={isLoading}
+                          className="w-full md:w-auto"
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         onClick={() =>
@@ -1286,7 +1403,10 @@ export default function CourseDetailPage({
                         <Trash2 className="mr-2 h-4 w-4" />
                         Propor exclusão
                       </Button>
-                      <DuplicateCourseButton course={course as any} disabled={isLoading} />
+                      <DuplicateCourseButton
+                        course={course as any}
+                        disabled={isLoading}
+                      />
                     </>
                   )}
 
@@ -1327,7 +1447,10 @@ export default function CourseDetailPage({
 
                   {/* === PENDING_DELETION (todas as roles): Duplicar === */}
                   {isPendingDeletion && (
-                    <DuplicateCourseButton course={course as any} disabled={isLoading} />
+                    <DuplicateCourseButton
+                      course={course as any}
+                      disabled={isLoading}
+                    />
                   )}
 
                   {/* === LEGACY: closed, canceled === */}
@@ -1345,7 +1468,10 @@ export default function CourseDetailPage({
 
                   {/* === LEGACY closed/canceled: Duplicar === */}
                   {canReopen && (
-                    <DuplicateCourseButton course={course as any} disabled={isLoading} />
+                    <DuplicateCourseButton
+                      course={course as any}
+                      disabled={isLoading}
+                    />
                   )}
                 </>
               ) : (
@@ -1357,7 +1483,11 @@ export default function CourseDetailPage({
                     className="w-full md:w-auto"
                   >
                     <Save className="mr-2 h-4 w-4" />
-                    {isDraft ? 'Salvar Rascunho' : 'Salvar'}
+                    {isDraft
+                      ? 'Salvar Rascunho'
+                      : showPublishedActions && canPublishCourses
+                        ? 'Salvar e Publicar'
+                        : 'Salvar'}
                   </Button>
                   <Button
                     variant="outline"
@@ -1383,10 +1513,15 @@ export default function CourseDetailPage({
                 initialData={course as any}
                 isReadOnly={!isEditing}
                 onSubmit={handleSave}
-                onPublish={handleSendToReviewFromForm}
+                onPublish={
+                  canPublishCourses
+                    ? handlePublishDirectlyFromForm
+                    : handleSendToReviewFromForm
+                }
                 isDraft={isDraft}
                 courseStatus={course.status as string}
                 onFormChangesDetected={setHasFormChanges}
+                canPublishDirectly={canPublishCourses}
               />
             </div>
           </div>
@@ -1481,7 +1616,9 @@ export default function CourseDetailPage({
                                 ? 'Concordar com a Exclusão'
                                 : confirmDialog.type === 'agree_with_edit'
                                   ? 'Concordar com a Edição'
-                                  : 'Confirmar Ação'
+                                  : confirmDialog.type === 'publish_directly'
+                                    ? 'Publicar Curso'
+                                    : 'Confirmar Ação'
         }
         description={
           confirmDialog.type === 'delete_draft'
@@ -1508,7 +1645,9 @@ export default function CourseDetailPage({
                                 ? `Tem certeza que deseja excluir permanentemente o curso "${course.title}"? Esta ação não pode ser desfeita.`
                                 : confirmDialog.type === 'agree_with_edit'
                                   ? `Tem certeza que deseja concordar com a edição e republicar o curso "${course.title}"?`
-                                  : 'Tem certeza que deseja realizar esta ação?'
+                                  : confirmDialog.type === 'publish_directly'
+                                    ? `Tem certeza que deseja publicar o curso "${course.title}"? O curso será publicado imediatamente.`
+                                    : 'Tem certeza que deseja realizar esta ação?'
         }
         confirmText={
           confirmDialog.type === 'delete_draft'
@@ -1535,7 +1674,9 @@ export default function CourseDetailPage({
                                 ? 'Excluir Permanentemente'
                                 : confirmDialog.type === 'agree_with_edit'
                                   ? 'Concordar e Publicar'
-                                  : 'Confirmar'
+                                  : confirmDialog.type === 'publish_directly'
+                                    ? 'Publicar'
+                                    : 'Confirmar'
         }
         variant={
           confirmDialog.type === 'delete_draft' ||
@@ -1577,6 +1718,8 @@ export default function CourseDetailPage({
             confirmDeleteCourse()
           } else if (confirmDialog.type === 'agree_with_edit') {
             confirmAgreeWithEdit()
+          } else if (confirmDialog.type === 'publish_directly') {
+            confirmPublishDirectly()
           }
         }}
       />

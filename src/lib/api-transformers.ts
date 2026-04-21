@@ -1,4 +1,25 @@
-import type { ApiCourse, CourseListItem, CourseStatus } from '@/types/course'
+import type {
+  ApiCourse,
+  CourseListItem,
+  CourseStatus,
+  CourseType,
+} from '@/types/course'
+
+const NO_TYPE_STATUSES = new Set([
+  'closed',
+  'canceled',
+  'finished',
+  'ENCERRADO',
+  'CANCELADO',
+  'draft',
+])
+
+function deriveCourseType(status: string): CourseType | undefined {
+  if (status === 'needs_changes') return 'edit_proposal'
+  if (status === 'pending_deletion') return 'deletion_proposal'
+  if (NO_TYPE_STATUSES.has(status)) return undefined
+  return 'new_course'
+}
 
 /**
  * Determines the dynamic status for opened/ABERTO courses based on dates
@@ -179,6 +200,7 @@ export function transformApiCourseToCourseListItem(
     is_external_partner: apiCourse.is_external_partner,
     course_management_type: apiCourse.course_management_type,
     external_partner_name: apiCourse.external_partner_name,
+    courseType: deriveCourseType(apiCourse.status),
   }
 }
 
