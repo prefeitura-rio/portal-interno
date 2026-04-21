@@ -810,6 +810,7 @@ interface NewCourseFormProps {
   isDraft?: boolean
   courseStatus?: string
   onFormChangesDetected?: (hasChanges: boolean) => void
+  canPublishDirectly?: boolean
 }
 
 export interface NewCourseFormRef {
@@ -830,6 +831,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       isDraft = false,
       courseStatus,
       onFormChangesDetected,
+      canPublishDirectly = false,
     },
     ref
   ) => {
@@ -3480,7 +3482,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 onClick={handlePublish}
                 className="w-full py-6"
               >
-                Enviar para Aprovação
+                {canPublishDirectly ? 'Publicar' : 'Enviar para Aprovação'}
               </Button>
             )}
             {isDraft && (
@@ -3509,8 +3511,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   {form.formState.isSubmitting
                     ? 'Enviando...'
                     : initialData
-                      ? 'Salvar Alterações'
-                      : 'Enviar para Aprovação'}
+                      ? canPublishDirectly &&
+                        (courseStatus === 'published' ||
+                          courseStatus === 'opened' ||
+                          courseStatus === 'approved')
+                        ? 'Salvar e Publicar'
+                        : 'Salvar Alterações'
+                      : canPublishDirectly
+                        ? 'Publicar'
+                        : 'Enviar para Aprovação'}
                 </Button>
               )}
           </div>
@@ -3522,35 +3531,47 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
           title={
             confirmDialog.type === 'create_course'
-              ? 'Enviar para Aprovação'
+              ? canPublishDirectly
+                ? 'Publicar Curso'
+                : 'Enviar para Aprovação'
               : confirmDialog.type === 'save_draft'
                 ? 'Salvar Rascunho'
                 : confirmDialog.type === 'save_changes'
                   ? 'Salvar Alterações'
                   : confirmDialog.type === 'publish_course'
-                    ? 'Enviar para Aprovação'
+                    ? canPublishDirectly
+                      ? 'Publicar Curso'
+                      : 'Enviar para Aprovação'
                     : 'Salvar Alterações'
           }
           description={
             confirmDialog.type === 'create_course'
-              ? 'Tem certeza que deseja enviar este curso para aprovação? O curso será enviado para revisão.'
+              ? canPublishDirectly
+                ? 'Tem certeza que deseja publicar este curso? O curso será publicado imediatamente.'
+                : 'Tem certeza que deseja enviar este curso para aprovação? O curso será enviado para revisão.'
               : confirmDialog.type === 'save_draft'
                 ? 'Tem certeza que deseja salvar este rascunho? O curso não será publicado ainda.'
                 : confirmDialog.type === 'save_changes'
                   ? 'Tem certeza que deseja salvar as alterações neste curso?'
                   : confirmDialog.type === 'publish_course'
-                    ? 'Tem certeza que deseja enviar este curso para aprovação? O curso será revisado pela Casa Civil.'
+                    ? canPublishDirectly
+                      ? 'Tem certeza que deseja publicar este curso? O curso será publicado imediatamente.'
+                      : 'Tem certeza que deseja enviar este curso para aprovação? O curso será revisado pela Casa Civil.'
                     : 'Tem certeza que deseja salvar as alterações neste curso?'
           }
           confirmText={
             confirmDialog.type === 'create_course'
-              ? 'Enviar para Aprovação'
+              ? canPublishDirectly
+                ? 'Publicar'
+                : 'Enviar para Aprovação'
               : confirmDialog.type === 'save_draft'
                 ? 'Salvar Rascunho'
                 : confirmDialog.type === 'save_changes'
                   ? 'Salvar Alterações'
                   : confirmDialog.type === 'publish_course'
-                    ? 'Enviar para Aprovação'
+                    ? canPublishDirectly
+                      ? 'Publicar'
+                      : 'Enviar para Aprovação'
                     : 'Salvar Alterações'
           }
           variant="default"

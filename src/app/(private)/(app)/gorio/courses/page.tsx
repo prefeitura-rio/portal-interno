@@ -34,6 +34,7 @@ import type {
   CourseListItem,
   CourseStatus,
   CourseStatusConfig,
+  CourseType,
 } from '@/types/course'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -80,14 +81,14 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
     className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
   },
   opened: {
-    icon: ClipboardList,
-    label: 'Aberto',
+    icon: CheckCircle,
+    label: 'Publicado',
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
   ABERTO: {
-    icon: ClipboardList,
-    label: 'Aberto',
+    icon: CheckCircle,
+    label: 'Publicado',
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
@@ -129,8 +130,8 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
     className: 'text-red-600 border-red-200 bg-red-50',
   },
   CRIADO: {
-    icon: ClipboardList,
-    label: 'Criado',
+    icon: CheckCircle,
+    label: 'Publicado',
     variant: 'default',
     className: 'text-green-600 border-green-200 bg-green-50',
   },
@@ -143,13 +144,13 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
   // NOVOS STATUS - Fluxo de Curadoria
   in_review: {
     icon: Eye,
-    label: 'Em Revisão',
+    label: 'Aguardando aprovação',
     variant: 'outline',
     className: 'text-purple-600 border-purple-200 bg-purple-50',
   },
   needs_changes: {
     icon: AlertCircle,
-    label: 'Requer Alterações',
+    label: 'Devolvido para edição',
     variant: 'outline',
     className: 'text-amber-600 border-amber-200 bg-amber-50',
   },
@@ -261,14 +262,6 @@ export default function Courses() {
   const [inReviewCoursesPageCount, setInReviewCoursesPageCount] =
     React.useState(0)
 
-  // Estado para cursos pendentes de exclusão (tab Casa Civil)
-  const [pendingDeletionCourses, setPendingDeletionCourses] = React.useState<
-    CourseListItem[]
-  >([])
-  const [pendingDeletionTotal, setPendingDeletionTotal] = React.useState(0)
-  const [pendingDeletionPageCount, setPendingDeletionPageCount] =
-    React.useState(0)
-
   // Fetch courses data with pagination
   const fetchCourses = React.useCallback(
     async (pageIndex = 0, pageSize = 10, tab = activeTab, searchQuery = '') => {
@@ -312,26 +305,6 @@ export default function Courses() {
             setInReviewCourses(data.courses || [])
             setInReviewCoursesTotal(data.total || data.pagination?.total || 0)
             setInReviewCoursesPageCount(
-              Math.ceil((data.total || data.pagination?.total || 0) / pageSize)
-            )
-          }
-        } else if (tab === 'pending_deletion') {
-          const url = new URL(
-            '/api/courses/pending-deletion',
-            window.location.origin
-          )
-          url.searchParams.set('page', (pageIndex + 1).toString())
-          url.searchParams.set('per_page', pageSize.toString())
-          if (searchQuery.trim()) {
-            url.searchParams.set('search', searchQuery.trim())
-          }
-
-          const response = await fetch(url.toString())
-          if (response.ok) {
-            const data = await response.json()
-            setPendingDeletionCourses(data.courses || [])
-            setPendingDeletionTotal(data.total || data.pagination?.total || 0)
-            setPendingDeletionPageCount(
               Math.ceil((data.total || data.pagination?.total || 0) / pageSize)
             )
           }
@@ -388,29 +361,6 @@ export default function Courses() {
     activeTab,
     searchQuery,
   ])
-
-  // Fetch pending deletion count on mount (Casa Civil only) to decide if tab is visible
-  React.useEffect(() => {
-    if (!canApproveCourses) return
-    const fetchPendingCount = async () => {
-      try {
-        const url = new URL(
-          '/api/courses/pending-deletion',
-          window.location.origin
-        )
-        url.searchParams.set('page', '1')
-        url.searchParams.set('per_page', '1')
-        const response = await fetch(url.toString())
-        if (response.ok) {
-          const data = await response.json()
-          setPendingDeletionTotal(data.total || data.pagination?.total || 0)
-        }
-      } catch (error) {
-        console.error('Error fetching pending deletion count:', error)
-      }
-    }
-    fetchPendingCount()
-  }, [canApproveCourses])
 
   // Handle search filter changes
   React.useEffect(() => {
@@ -474,32 +424,26 @@ export default function Courses() {
     if (activeTab === 'in_review') {
       return inReviewCourses
     }
-    if (activeTab === 'pending_deletion') {
-      return pendingDeletionCourses
-    }
     return courses
-  }, [activeTab, courses, draftCourses, inReviewCourses, pendingDeletionCourses])
+  }, [activeTab, courses, draftCourses, inReviewCourses])
 
   // Get total count and page count based on active tab
   // ANTIGO: return activeTab === 'draft' ? draftCoursesTotal : coursesTotal
   const totalCount = React.useMemo(() => {
     if (activeTab === 'draft') return draftCoursesTotal
     if (activeTab === 'in_review') return inReviewCoursesTotal
-    if (activeTab === 'pending_deletion') return pendingDeletionTotal
     return coursesTotal
-  }, [activeTab, draftCoursesTotal, inReviewCoursesTotal, pendingDeletionTotal, coursesTotal])
+  }, [activeTab, draftCoursesTotal, inReviewCoursesTotal, coursesTotal])
 
   // ANTIGO: return activeTab === 'draft' ? draftCoursesPageCount : coursesPageCount
   const pageCount = React.useMemo(() => {
     if (activeTab === 'draft') return draftCoursesPageCount
     if (activeTab === 'in_review') return inReviewCoursesPageCount
-    if (activeTab === 'pending_deletion') return pendingDeletionPageCount
     return coursesPageCount
   }, [
     activeTab,
     draftCoursesPageCount,
     inReviewCoursesPageCount,
-    pendingDeletionPageCount,
     coursesPageCount,
   ])
 
@@ -843,10 +787,46 @@ export default function Courses() {
       },
     }
 
-    // For created courses tab, include status column before actions
+    // Type column
+    const typeConfig: Record<CourseType, { label: string; className: string }> =
+      {
+        new_course: {
+          label: 'Novo curso',
+          className: 'text-blue-600 border-blue-200 bg-blue-50',
+        },
+        edit_proposal: {
+          label: 'Proposta de edição',
+          className: 'text-amber-600 border-amber-200 bg-amber-50',
+        },
+        deletion_proposal: {
+          label: 'Proposta de exclusão',
+          className: 'text-red-600 border-red-200 bg-red-50',
+        },
+      }
+
+    const typeColumn: ColumnDef<CourseListItem> = {
+      id: 'courseType',
+      accessorKey: 'courseType',
+      header: ({ column }: { column: Column<CourseListItem, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Tipo" />
+      ),
+      cell: ({ cell }) => {
+        const courseType = cell.getValue<CourseListItem['courseType']>()
+        if (!courseType) return null
+        const config = typeConfig[courseType]
+        return (
+          <Badge variant="outline" className={config.className}>
+            {config.label}
+          </Badge>
+        )
+      },
+    }
+
+    // For non-draft tabs, include status + type columns before actions
     return [
       ...baseColumns.slice(0, -1),
       statusColumn,
+      typeColumn,
       baseColumns[baseColumns.length - 1],
     ]
   }, [activeTab, baseColumns])
@@ -932,30 +912,13 @@ export default function Courses() {
           onValueChange={handleTabChange}
           className="space-y-4"
         >
-          {/* Grid dinâmico: 3 cols padrão, 4 cols se Casa Civil tem pendências de exclusão */}
-          {(() => {
-            const showPendingTab = canApproveCourses && pendingDeletionTotal > 0
-            return (
-              <TabsList
-                className={`grid w-full ${showPendingTab ? 'grid-cols-4' : 'grid-cols-3'}`}
-              >
-                <TabsTrigger value="created">Cursos Criados</TabsTrigger>
-                <TabsTrigger value="in_review">
-                  {canApproveCourses ? 'Pronto para aprovação' : 'Em aprovação'}
-                </TabsTrigger>
-                <TabsTrigger value="draft">Rascunhos</TabsTrigger>
-                {showPendingTab && (
-                  <TabsTrigger value="pending_deletion" className="relative">
-                    Pendências de exclusão
-                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                    </span>
-                  </TabsTrigger>
-                )}
-              </TabsList>
-            )
-          })()}
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="created">Cursos Criados</TabsTrigger>
+            <TabsTrigger value="in_review">
+              {canApproveCourses ? 'Pronto para aprovação' : 'Em aprovação'}
+            </TabsTrigger>
+            <TabsTrigger value="draft">Rascunhos</TabsTrigger>
+          </TabsList>
 
           <TabsContent value="created" className="space-y-4">
             <DataTable
@@ -982,21 +945,6 @@ export default function Courses() {
               <DataTableToolbar table={table} />
             </DataTable>
           </TabsContent>
-
-          {/* Tab para pendências de exclusão (Casa Civil) */}
-          {canApproveCourses && pendingDeletionTotal > 0 && (
-            <TabsContent value="pending_deletion" className="space-y-4">
-              <DataTable
-                table={table}
-                loading={loading}
-                onRowClick={course => {
-                  window.open(`/gorio/courses/course/${course.id}`, '_blank')
-                }}
-              >
-                <DataTableToolbar table={table} />
-              </DataTable>
-            </TabsContent>
-          )}
 
           <TabsContent value="draft" className="space-y-4">
             <DataTable
