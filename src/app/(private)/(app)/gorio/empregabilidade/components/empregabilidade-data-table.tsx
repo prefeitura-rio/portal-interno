@@ -82,6 +82,7 @@ import {
 import {
   Building2,
   Calendar,
+  Copy,
   Eye,
   FileText,
   MoreHorizontal,
@@ -311,6 +312,11 @@ export function EmpregabilidadeDataTable() {
     vagaId: string | null
   }>({ open: false, type: null, vagaId: null })
 
+  const [duplicateDialog, setDuplicateDialog] = React.useState<{
+    open: boolean
+    vaga: EmpregabilidadeVaga | null
+  }>({ open: false, vaga: null })
+
   const openConfirmDialog = React.useCallback(
     (type: 'delete' | 'freeze' | 'discontinue', vagaId: string) => {
       setConfirmDialog({ open: true, type, vagaId })
@@ -445,6 +451,73 @@ export function EmpregabilidadeDataTable() {
         'Erro ao reativar vaga'
       ),
     [callVagaAction]
+  )
+
+  const handleDuplicate = React.useCallback(
+    async (vaga: EmpregabilidadeVaga) => {
+      try {
+        const transformedEtapas = vaga.etapas
+          ? vaga.etapas.map(etapa => ({
+              titulo: etapa.titulo,
+              descricao: etapa.descricao,
+              ordem: etapa.ordem,
+            }))
+          : []
+
+        const transformedInformacoesComplementares =
+          vaga.informacoes_complementares
+            ? vaga.informacoes_complementares.map(info => ({
+                titulo: info.titulo,
+                tipo_campo: info.tipo_campo,
+                obrigatorio: info.obrigatorio,
+                opcoes: info.opcoes,
+                valor_minimo: info.valor_minimo,
+                valor_maximo: info.valor_maximo,
+              }))
+            : []
+
+        const draftData = {
+          titulo: `${vaga.titulo} - Cópia`,
+          descricao: vaga.descricao,
+          id_contratante: vaga.id_contratante,
+          id_regime_contratacao: vaga.id_regime_contratacao,
+          id_modelo_trabalho: vaga.id_modelo_trabalho,
+          id_orgao_parceiro: vaga.id_orgao_parceiro,
+          valor_vaga: vaga.valor_vaga,
+          bairro: vaga.bairro,
+          data_limite: vaga.data_limite,
+          requisitos: vaga.requisitos,
+          diferenciais: vaga.diferenciais,
+          responsabilidades: vaga.responsabilidades,
+          beneficios: vaga.beneficios,
+          acessibilidade_pcd: vaga.acessibilidade_pcd,
+          tipos_pcd: vaga.tipos_pcd,
+          etapas: transformedEtapas,
+          informacoes_complementares: transformedInformacoesComplementares,
+          status: 'em_edicao',
+        }
+
+        const response = await fetch('/api/empregabilidade/vagas/draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(draftData),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to duplicate vaga')
+        }
+
+        toast.success('Vaga duplicada com sucesso!')
+        router.push('/gorio/empregabilidade?tab=draft')
+      } catch (error) {
+        toast.error('Erro ao duplicar vaga', {
+          description:
+            error instanceof Error ? error.message : 'Erro inesperado',
+        })
+      }
+    },
+    [router]
   )
 
   // Define table columns
@@ -676,6 +749,15 @@ export function EmpregabilidadeDataTable() {
                     Visualizar
                   </Link>
                 </DropdownMenuItem>
+                {canEditVagas && (
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setDuplicateDialog({ open: true, vaga })}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Duplicar
+                  </DropdownMenuItem>
+                )}
                 {canEditVagas && !isReadOnlyForEditor && (
                   <>
                     <DropdownMenuItem asChild>
@@ -1036,6 +1118,26 @@ export function EmpregabilidadeDataTable() {
           </DataTable>
         </TabsContent>
       </Tabs>
+
+      {/* Confirm dialog for Duplicar from table dropdown */}
+      <ConfirmDialog
+        open={duplicateDialog.open}
+        onOpenChange={open =>
+          setDuplicateDialog(prev => ({
+            ...prev,
+            open,
+            vaga: open ? prev.vaga : null,
+          }))
+        }
+        title="Duplicar Vaga"
+        description={`Tem certeza que deseja duplicar a vaga "${duplicateDialog.vaga?.titulo}"? Uma cópia será criada como rascunho com o nome "${duplicateDialog.vaga?.titulo} - Cópia".`}
+        confirmText="Duplicar Vaga"
+        cancelText="Cancelar"
+        variant="default"
+        onConfirm={() => {
+          if (duplicateDialog.vaga) handleDuplicate(duplicateDialog.vaga)
+        }}
+      />
 
       {/* Confirm dialogs for Excluir / Pausar / Encerrar from table dropdown */}
       <ConfirmDialog
