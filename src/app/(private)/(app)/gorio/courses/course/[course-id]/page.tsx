@@ -1123,9 +1123,7 @@ export default function CourseDetailPage({
     statusConfig.draft
   const StatusIcon = config.icon
 
-  // Use originalStatus for business logic, fallback to status if originalStatus not available
   const actualStatus = course.status as string
-  console.log('actualStatus', actualStatus)
 
   // Status flags
   const isDraft = actualStatus === 'draft'

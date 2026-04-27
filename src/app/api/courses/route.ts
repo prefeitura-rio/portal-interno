@@ -14,12 +14,16 @@ import { type NextRequest, NextResponse } from 'next/server'
 
 // Status que pertencem à tab "Cursos Criados"
 const CREATED_TAB_STATUSES = [
-  'opened',
+  'opened', // legado
   'closed',
   'canceled',
   'approved',
   'published',
   'pending_deletion',
+  'scheduled',
+  'accepting_enrollments',
+  'in_progress',
+  'finished',
 ]
 
 export async function GET(request: NextRequest) {
@@ -61,9 +65,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const responses = await Promise.all(
-      CREATED_TAB_STATUSES.map(fetchByStatus)
-    )
+    const responses = await Promise.all(CREATED_TAB_STATUSES.map(fetchByStatus))
 
     // Extract courses from each response
     const extractCourses = async (res: Response): Promise<any[]> => {
@@ -91,7 +93,6 @@ export async function GET(request: NextRequest) {
             duration: course.carga_horaria || 0,
             vacancies: course.numero_vagas || 0,
             status: course.status || 'opened',
-            originalStatus: course.status || 'opened',
             created_at: new Date(course.created_at || Date.now()),
             registration_start: course.enrollment_start_date
               ? new Date(course.enrollment_start_date)

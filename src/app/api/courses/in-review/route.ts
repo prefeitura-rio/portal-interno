@@ -91,7 +91,6 @@ export async function GET(request: NextRequest) {
             duration: course.carga_horaria || 0,
             vacancies: course.numero_vagas || 0,
             status: course.status || 'in_review',
-            originalStatus: course.status || 'in_review',
             created_at: new Date(course.created_at || Date.now()),
             registration_start: course.enrollment_start_date
               ? new Date(course.enrollment_start_date)

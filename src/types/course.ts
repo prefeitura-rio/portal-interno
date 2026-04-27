@@ -20,7 +20,22 @@ export interface ApiCourse {
     | 'LIVRE_FORMACAO_ONLINE'
     | 'Remoto'
     | 'Presencial'
-  status: 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled'
+  status:
+    | 'draft'
+    | 'in_review'
+    | 'needs_changes'
+    | 'approved'
+    | 'published'
+    | 'pending_deletion'
+    | 'scheduled'
+    | 'accepting_enrollments'
+    | 'in_progress'
+    | 'finished'
+    | 'closed'
+    | 'canceled'
+    // Legados
+    | 'opened'
+    | 'ABERTO'
   created_at: string
   updated_at: string
   enrollment_start_date?: string | null
@@ -68,7 +83,6 @@ export interface CourseListItem {
   duration: number
   vacancies: number
   status: CourseStatus
-  originalStatus?: CourseStatus // The actual status from API (for sending back)
   created_at: Date
   registration_start: Date | null
   registration_end: Date | null
@@ -101,7 +115,6 @@ export type CourseStatus =
   | 'approved' // Curso aprovado pela Casa Civil
   | 'published' // Curso publicado (substitui 'opened')
   | 'pending_deletion' // Aguardando exclusão
-  // Status dinâmicos (frontend only)
   | 'scheduled'
   | 'accepting_enrollments'
   | 'in_progress'
@@ -191,7 +204,6 @@ export interface Course {
     updated_at?: string
   }
   status: CourseStatus
-  originalStatus?: CourseStatus // The actual status from API (for sending back)
   created_at: Date
   updated_at: Date
 }
