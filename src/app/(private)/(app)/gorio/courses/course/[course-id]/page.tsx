@@ -924,22 +924,13 @@ export default function CourseDetailPage({
     try {
       setIsLoading(true)
 
-      // Step 1: Approve
+      // Approve (backend já publica diretamente: in_review → published)
       const approveResponse = await fetch(`/api/courses/${courseId}/approve`, {
         method: 'PUT',
       })
       if (!approveResponse.ok) {
         const errorData = await approveResponse.json()
         throw new Error(errorData.error || 'Erro ao aprovar curso')
-      }
-
-      // Step 2: Publish
-      const publishResponse = await fetch(`/api/courses/${courseId}/publish`, {
-        method: 'PUT',
-      })
-      if (!publishResponse.ok) {
-        const errorData = await publishResponse.json()
-        throw new Error(errorData.error || 'Erro ao publicar curso')
       }
 
       toast.success('Curso aprovado e publicado com sucesso!')
@@ -958,7 +949,7 @@ export default function CourseDetailPage({
     try {
       setIsLoading(true)
 
-      // Flow: needs_changes → in_review → approved → published
+      // Flow: needs_changes → in_review → published (approve já publica direto)
       // Step 1: Send to review
       const reviewResponse = await fetch(
         `/api/courses/${courseId}/send-to-review`,
@@ -969,22 +960,13 @@ export default function CourseDetailPage({
         throw new Error(errorData.error || 'Erro ao enviar para revisão')
       }
 
-      // Step 2: Approve
+      // Step 2: Approve (backend já publica diretamente: in_review → published)
       const approveResponse = await fetch(`/api/courses/${courseId}/approve`, {
         method: 'PUT',
       })
       if (!approveResponse.ok) {
         const errorData = await approveResponse.json()
         throw new Error(errorData.error || 'Erro ao aprovar curso')
-      }
-
-      // Step 3: Publish
-      const publishResponse = await fetch(`/api/courses/${courseId}/publish`, {
-        method: 'PUT',
-      })
-      if (!publishResponse.ok) {
-        const errorData = await publishResponse.json()
-        throw new Error(errorData.error || 'Erro ao publicar curso')
       }
 
       toast.success('Edição aprovada e curso publicado com sucesso!')

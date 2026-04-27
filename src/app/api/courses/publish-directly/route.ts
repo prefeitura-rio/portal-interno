@@ -6,8 +6,7 @@ import { NextResponse } from 'next/server'
  * Endpoint para criar curso e publicar diretamente (Casa Civil).
  * Flow: 1) Cria curso como draft
  *       2) Envia para revisão (draft → in_review)
- *       3) Aprova (in_review → approved)
- *       4) Publica (approved → published)
+ *       3) Aprova (backend já publica diretamente: in_review → published)
  */
 export async function POST(request: Request) {
   try {
@@ -98,7 +97,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Step 3: Approve (in_review → approved)
+    // Step 3: Approve (backend já publica diretamente: in_review → published)
     const approveResponse = await fetch(
       `${baseUrl}/api/v1/courses/${courseId}/approve`,
       { method: 'PUT', headers }
@@ -117,33 +116,14 @@ export async function POST(request: Request) {
       )
     }
 
-    // Step 4: Publish (approved → published)
-    const publishResponse = await fetch(
-      `${baseUrl}/api/v1/courses/${courseId}/publish`,
-      { method: 'PUT', headers }
-    )
-
-    if (!publishResponse.ok) {
-      const errorText = await publishResponse.text()
-      let errorMessage = 'Erro ao publicar curso'
-      try {
-        const errorJson = JSON.parse(errorText)
-        errorMessage = errorJson.error || errorMessage
-      } catch {}
-      return NextResponse.json(
-        { error: errorMessage, success: false, courseId, step: 'publish' },
-        { status: publishResponse.status }
-      )
-    }
-
-    const publishResult = await publishResponse.json()
+    const approveResult = await approveResponse.json()
 
     revalidateTag('courses')
     revalidateTag('courses-drafts')
     revalidateTag('courses-in-review')
 
     return NextResponse.json({
-      course: publishResult.data || publishResult,
+      course: approveResult.data || approveResult,
       courseId,
       success: true,
     })
