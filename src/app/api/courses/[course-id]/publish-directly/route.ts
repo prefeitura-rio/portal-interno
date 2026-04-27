@@ -56,7 +56,7 @@ export async function PUT(
       )
     }
 
-    // Step 2: Approve (in_review → approved)
+    // Step 2: Approve (backend já publica diretamente: in_review → published)
     const approveResponse = await fetch(
       `${baseUrl}/api/v1/courses/${courseId}/approve`,
       { method: 'PUT', headers }
@@ -70,21 +70,7 @@ export async function PUT(
       )
     }
 
-    // Step 3: Publish (approved → published)
-    const publishResponse = await fetch(
-      `${baseUrl}/api/v1/courses/${courseId}/publish`,
-      { method: 'PUT', headers }
-    )
-
-    if (!publishResponse.ok) {
-      const error = await publishResponse.json()
-      return NextResponse.json(
-        { error: error.error || 'Erro ao publicar curso', success: false },
-        { status: publishResponse.status }
-      )
-    }
-
-    const data = await publishResponse.json()
+    const data = await approveResponse.json()
 
     revalidateTag('courses')
     revalidateTag('courses-drafts')
