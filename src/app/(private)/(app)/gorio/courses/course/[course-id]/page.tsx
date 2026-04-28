@@ -8,6 +8,7 @@ import {
 } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { Badge } from '@/components/ui/badge'
 import { useDepartment } from '@/hooks/use-department'
 import {
