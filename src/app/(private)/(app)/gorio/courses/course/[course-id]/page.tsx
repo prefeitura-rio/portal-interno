@@ -1128,6 +1128,9 @@ export default function CourseDetailPage({
   // Check if course can be reopened (only if status is "closed" or "canceled")
   const canReopen = actualStatus === 'closed' || actualStatus === 'canceled'
 
+  // Show published/opened action buttons
+  const showPublishedActions = isPublished || isOpened
+
   // Debug logging for canReopen
   console.log('canReopen calculation:', {
     actualStatus,
