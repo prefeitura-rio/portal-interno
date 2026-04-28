@@ -29,6 +29,7 @@ import { ptBR } from 'date-fns/locale'
 import {
   Ban,
   Calendar,
+  CheckCircle2,
   ClipboardList,
   Edit,
   FileText,
@@ -36,6 +37,7 @@ import {
   Play,
   RotateCcw,
   Save,
+  Send,
   Trash2,
   UserCheck,
   Users,

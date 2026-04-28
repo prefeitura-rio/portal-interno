@@ -50,17 +50,22 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
+  AlertCircle,
   Ban,
   BookOpen,
   Building2,
   Calendar,
+  CheckCircle,
+  CheckCircle2,
   ClipboardList,
+  Eye,
   FileText,
   Flag,
   Handshake,
   MoreHorizontal,
   Play,
   Text,
+  Trash2,
   UserCheck,
 } from 'lucide-react'
 import Link from 'next/link'

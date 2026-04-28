@@ -24,6 +24,7 @@ import {
   Phone,
   Text,
   User,
+  Users,
   XCircle,
 } from 'lucide-react'
 import * as React from 'react'
