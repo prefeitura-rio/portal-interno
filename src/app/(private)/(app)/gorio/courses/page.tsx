@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { DepartmentName } from '@/components/ui/department-name'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +29,6 @@ import {
 } from '@/components/ui/tooltip'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
-import { DepartmentName } from '@/components/ui/department-name'
 import { useDepartment } from '@/hooks/use-department'
 import type {
   CourseListItem,
@@ -404,7 +404,7 @@ export default function Courses() {
       return inReviewCourses
     }
     return courses
-  }, [activeTab, courses, draftCourses])
+  }, [activeTab, courses, draftCourses, inReviewCourses])
 
   // Get total count and page count based on active tab
   const totalCount = React.useMemo(() => {

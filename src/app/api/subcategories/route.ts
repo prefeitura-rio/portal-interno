@@ -1,5 +1,5 @@
-import { getApiV1CategoriesCategorySubcategories } from '@/http-busca-search/subcategories/subcategories'
 import type { GetApiV1CategoriesCategorySubcategoriesSortBy } from '@/http-busca-search/models'
+import { getApiV1CategoriesCategorySubcategories } from '@/http-busca-search/subcategories/subcategories'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {

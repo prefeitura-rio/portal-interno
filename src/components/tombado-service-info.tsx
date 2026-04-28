@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Archive, Calendar, FileText, User } from 'lucide-react'
-import React from 'react'
+import type React from 'react'
 
 interface TombadoServiceInfoProps {
   origem: string

@@ -1,8 +1,5 @@
 'use client'
 
-import { CheckIcon, ChevronsUpDownIcon, XIcon } from 'lucide-react'
-import * as React from 'react'
-import { useCnaesBySubclasse } from '@/hooks/use-cnaes'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,7 +15,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { useCnaesBySubclasse } from '@/hooks/use-cnaes'
 import { cn } from '@/lib/utils'
+import { CheckIcon, ChevronsUpDownIcon, XIcon } from 'lucide-react'
+import * as React from 'react'
 
 export interface CnaeSubclasseOption {
   subclasse: string

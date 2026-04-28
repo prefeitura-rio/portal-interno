@@ -1,5 +1,5 @@
-import { getApiV1AdminServicesIdVersionsCompare } from '@/http-busca-search/versions/versions'
 import type { GetApiV1AdminServicesIdVersionsCompareParams } from '@/http-busca-search/models/getApiV1AdminServicesIdVersionsCompareParams'
+import { getApiV1AdminServicesIdVersionsCompare } from '@/http-busca-search/versions/versions'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(

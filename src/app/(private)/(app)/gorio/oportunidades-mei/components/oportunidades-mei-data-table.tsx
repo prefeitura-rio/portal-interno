@@ -40,8 +40,8 @@ type OportunidadeMEI = {
   cnaeIds?: string[]
 }
 
-import { DepartmentName } from '@/components/ui/department-name'
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
+import { DepartmentName } from '@/components/ui/department-name'
 import { Label } from '@/components/ui/label'
 import {
   Tooltip,

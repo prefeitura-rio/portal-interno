@@ -1,9 +1,9 @@
-// src/app/api/auth/callback/keycloak/route.ts
-import { type NextRequest, NextResponse } from 'next/server'
 import {
   getAccessTokenCookieConfig,
   getRefreshTokenCookieConfig,
 } from '@/lib/auth-cookie-config'
+// src/app/api/auth/callback/keycloak/route.ts
+import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)

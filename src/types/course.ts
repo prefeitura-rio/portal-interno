@@ -1,5 +1,5 @@
-import type { Accessibility } from '../app/(private)/(app)/gorio/components/new-course-form'
 import type { ModelsCitizenPersonalInfo } from '@/http-gorio/models'
+import type { Accessibility } from '../app/(private)/(app)/gorio/components/new-course-form'
 
 // API Response types based on actual API responses
 export interface ApiPagination {

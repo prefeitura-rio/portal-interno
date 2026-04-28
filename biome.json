@@ -28,7 +28,8 @@
         "noSvgWithoutTitle": "off",
         "useFocusableInteractive": "off",
         "useSemanticElements": "off",
-        "useKeyWithClickEvents": "off"
+        "useKeyWithClickEvents": "off",
+        "useValidAnchor": "off"
       },
       "style": {
         "noNonNullAssertion": "off",

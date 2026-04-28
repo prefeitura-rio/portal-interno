@@ -29,11 +29,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
+import { useDepartment } from '@/hooks/use-department'
 import {
   useCanEditBuscaServices,
   useIsBuscaServicesAdmin,
 } from '@/hooks/use-heimdall-user'
-import { useDepartment } from '@/hooks/use-department'
 import { useService } from '@/hooks/use-service'
 import { useServiceOperations } from '@/hooks/use-service-operations'
 import { type Tombamento, useTombamentos } from '@/hooks/use-tombamentos'
@@ -55,8 +56,8 @@ import {
   EllipsisVertical,
   Eye,
   Link as LinkIcon,
-  Save,
   Pause,
+  Save,
   Trash2,
   X,
 } from 'lucide-react'
@@ -64,7 +65,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { toast } from 'sonner'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { NewServiceForm } from '../../../components/new-service-form'
 
 // Status configuration for badges

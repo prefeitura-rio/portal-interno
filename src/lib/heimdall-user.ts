@@ -1,11 +1,11 @@
+import { getCurrentUserInfoApiV1UsersMeGet } from '@/http-heimdall/users/users'
 import type { HeimdallUser } from '@/types/heimdall-roles'
+import { cookies } from 'next/headers'
+import { cache } from 'react'
 import {
   HEIMDALL_USER_COOKIE_CONFIG,
   HEIMDALL_USER_COOKIE_NAME,
 } from './auth-cookie-config'
-import { cookies } from 'next/headers'
-import { cache } from 'react'
-import { getCurrentUserInfoApiV1UsersMeGet } from '@/http-heimdall/users/users'
 
 async function fetchHeimdallUserFromApi(): Promise<HeimdallUser | null> {
   const response = await getCurrentUserInfoApiV1UsersMeGet()
@@ -34,7 +34,7 @@ export const getCurrentUserFromCacheOrHeimdall = cache(
     if (cached?.value) {
       try {
         const parsed = JSON.parse(cached.value) as HeimdallUser
-        if (parsed && parsed.id && parsed.cpf) {
+        if (parsed?.id && parsed.cpf) {
           return parsed
         }
       } catch {

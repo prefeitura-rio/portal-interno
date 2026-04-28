@@ -7,10 +7,7 @@ import {
   type NewCourseFormRef,
 } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
-import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { Badge } from '@/components/ui/badge'
-import { useDepartment } from '@/hooks/use-department'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -21,9 +18,13 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { formatDateTimeToUTC } from '@/components/ui/datetime-picker'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useCourse } from '@/hooks/use-course'
+import { useDepartment } from '@/hooks/use-department'
 import type { CourseStatusConfig } from '@/types/course'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -48,7 +49,6 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { formatDateTimeToUTC } from '@/components/ui/datetime-picker'
 
 // Status configuration for badges - updated to match courses list page
 const statusConfig: Record<string, CourseStatusConfig> = {
