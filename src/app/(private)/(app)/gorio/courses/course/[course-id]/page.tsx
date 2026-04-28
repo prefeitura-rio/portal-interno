@@ -1018,6 +1018,14 @@ export default function CourseDetailPage({
     }
   }
 
+  const handlePublishFromHeader = () => {
+    if (isDraft) {
+      draftFormRef.current?.triggerPublish()
+    } else {
+      courseFormRef.current?.triggerPublish()
+    }
+  }
+
   const handleCancel = () => {
     // Reset form to initial values before disabling edit mode
     if (isDraft) {
