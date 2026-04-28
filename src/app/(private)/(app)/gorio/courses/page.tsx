@@ -251,8 +251,11 @@ export default function Courses() {
   // Add state for total counts and pagination info
   const [coursesTotal, setCoursesTotal] = React.useState(0)
   const [draftCoursesTotal, setDraftCoursesTotal] = React.useState(0)
+  const [inReviewCourses, setInReviewCourses] = React.useState<CourseListItem[]>([])
+  const [inReviewCoursesTotal, setInReviewCoursesTotal] = React.useState(0)
   const [coursesPageCount, setCoursesPageCount] = React.useState(0)
   const [draftCoursesPageCount, setDraftCoursesPageCount] = React.useState(0)
+  const [inReviewCoursesPageCount, setInReviewCoursesPageCount] = React.useState(0)
 
   // Fetch courses data with pagination
   const fetchCourses = React.useCallback(

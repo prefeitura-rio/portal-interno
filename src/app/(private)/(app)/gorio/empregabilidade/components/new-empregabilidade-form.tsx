@@ -1,0 +1,1205 @@
+'use client'
+
+import { MarkdownEditor } from '@/components/blocks/editor-md'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Combobox } from '@/components/ui/combobox'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { DateTimePicker } from '@/components/ui/datetime-picker'
+import { DepartmentCombobox } from '@/components/ui/department-combobox'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { MultiSelect } from '@/components/ui/multi-select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
+import { useEmpregabilidadeValidation } from '@/hooks/use-empregabilidade-validation'
+import { useEmpresas } from '@/hooks/use-empresas'
+import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
+import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
+import { useTiposPcd } from '@/hooks/use-tipos-pcd'
+import { EmpregabilidadeAcessibilidadePCD } from '@/http-gorio/models/empregabilidadeAcessibilidadePCD'
+import {
+  FUTURE_DATE_ERROR_MESSAGE,
+  isDateInFuture,
+} from '@/lib/date-validation'
+import { neighborhoodZone } from '@/lib/neighborhood_zone'
+import { cn } from '@/lib/utils'
+import { hasEditorComCuradoriaRestrictions } from '@/types/heimdall-roles'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useRouter } from 'next/navigation'
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
+import {
+  type EtapaProcessoSeletivo,
+  EtapasProcessoSeletivo,
+} from './etapas-processo-seletivo'
+import { FieldWarningIndicator } from './field-warning-indicator'
+import {
+  type InformacaoComplementar,
+  InformacoesComplementaresCreator,
+} from './informacoes-complementares-creator'
+import { InvalidEntriesModal } from './invalid-entries-modal'
+
+// Schema para etapa do processo seletivo
+const etapaSchema = z.object({
+  id: z.string(),
+  titulo: z.string(),
+  descricao: z.string(),
+  ordem: z.number(),
+})
+
+// Schema para informação complementar
+const informacaoComplementarOptionSchema = z.object({
+  id: z.string(),
+  value: z.string(),
+})
+
+const informacaoComplementarSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  required: z.boolean(),
+  field_type: z.enum([
+    'text',
+    'number',
+    'email',
+    'date',
+    'select',
+    'textarea',
+    'checkbox',
+    'radio',
+    'multiselect',
+  ]),
+  options: z.array(informacaoComplementarOptionSchema).optional(),
+  valor_min: z.number().optional(),
+  valor_max: z.number().optional(),
+})
+
+// Form schema - minimal validation for now (only UI)
+const formSchema = z.object({
+  titulo: z.string().optional(),
+  descricao: z.string().optional(),
+  contratante: z.string().optional(),
+  regime_contratacao: z.string().optional(),
+  modelo_trabalho: z.string().optional(),
+  vaga_pcd: z.boolean().optional(),
+  acessibilidade_pcd: z
+    .enum([
+      EmpregabilidadeAcessibilidadePCD.AcessibilidadeParaPCD,
+      EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD,
+      EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD,
+    ])
+    .optional(),
+  tipo_pcd: z.array(z.string()).optional(),
+  valor_vaga: z.number().nullish(),
+  bairro: z.string().optional(),
+  data_limite: z.date().optional(),
+  requisitos: z.string().optional(),
+  diferenciais: z.string().optional(),
+  responsabilidades: z.string().optional(),
+  beneficios: z.string().optional(),
+  etapas: z.array(etapaSchema).optional(),
+  informacoes_complementares: z.array(informacaoComplementarSchema).optional(),
+  id_orgao_parceiro: z.string().optional(),
+})
+
+type FormData = z.infer<typeof formSchema>
+
+// ============================================
+// SCHEMAS DE VALIDAÇÃO
+// ============================================
+
+// Schema para validação de rascunho (5 campos obrigatórios)
+const draftValidationSchema = z.object({
+  titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
+  descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
+  contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
+  regime_contratacao: z
+    .string()
+    .min(1, { message: 'Regime de contratação é obrigatório.' }),
+  modelo_trabalho: z
+    .string()
+    .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+})
+
+// Schema para validação de publicação (10 campos obrigatórios; valor_vaga opcional)
+const publishValidationSchema = z.object({
+  titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
+  descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
+  contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
+  regime_contratacao: z
+    .string()
+    .min(1, { message: 'Regime de contratação é obrigatório.' }),
+  modelo_trabalho: z
+    .string()
+    .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+  valor_vaga: z
+    .number()
+    .min(0, { message: 'Valor da vaga deve ser maior ou igual a zero.' })
+    .nullish(),
+  bairro: z.string().min(1, { message: 'Bairro é obrigatório.' }),
+  data_limite: z
+    .date({ required_error: 'Data limite é obrigatória.' })
+    .refine(isDateInFuture, { message: FUTURE_DATE_ERROR_MESSAGE }),
+  id_orgao_parceiro: z
+    .string()
+    .min(1, { message: 'Órgão parceiro é obrigatório.' }),
+  requisitos: z.string().min(1, { message: 'Requisitos são obrigatórios.' }),
+  responsabilidades: z
+    .string()
+    .min(1, { message: 'Responsabilidades são obrigatórias.' }),
+})
+
+// ============================================
+// FUNÇÕES DE VALIDAÇÃO MANUAL
+// ============================================
+
+const validateForPublish = (
+  data: FormData,
+  form: ReturnType<typeof useForm<FormData>>
+) => {
+  const result = publishValidationSchema.safeParse(data)
+
+  if (!result.success) {
+    // Limpar erros anteriores
+    form.clearErrors()
+
+    // Aplicar erros a cada campo
+    result.error.errors.forEach(error => {
+      const fieldName = error.path[0] as keyof FormData
+      form.setError(fieldName, {
+        type: 'manual',
+        message: error.message,
+      })
+    })
+
+    // Mostrar toast com lista de campos faltantes
+    const errorMessages = result.error.errors.map(e => e.message)
+    toast.error('Campos obrigatórios não preenchidos', {
+      description: errorMessages.join(', '),
+    })
+
+    return false
+  }
+
+  return true
+}
+
+const validateForDraft = (
+  data: FormData,
+  form: ReturnType<typeof useForm<FormData>>
+) => {
+  const result = draftValidationSchema.safeParse(data)
+
+  if (!result.success) {
+    // Limpar erros anteriores
+    form.clearErrors()
+
+    // Aplicar erros a cada campo
+    result.error.errors.forEach(error => {
+      const fieldName = error.path[0] as keyof FormData
+      form.setError(fieldName, {
+        type: 'manual',
+        message: error.message,
+      })
+    })
+
+    // Mostrar toast com lista de campos faltantes
+    const errorMessages = result.error.errors.map(e => e.message)
+    toast.error('Campos obrigatórios não preenchidos', {
+      description: errorMessages.join(', '),
+    })
+
+    return false
+  }
+
+  return true
+}
+
+interface NewEmpregabilidadeFormProps {
+  initialData?: Partial<FormData>
+  isReadOnly?: boolean
+  /** Show action buttons at the end of form (for /new page). Default: false */
+  showActionButtons?: boolean
+  /** Current vaga status - used for edit mode to determine validation rules */
+  vagaStatus?:
+    | 'em_edicao'
+    | 'publicado_ativo'
+    | 'publicado_expirado'
+    | 'vaga_congelada'
+    | 'vaga_descontinuada'
+    | null
+  onSubmit?: (data: FormData) => void
+  onSaveDraft?: (data: FormData) => void
+  /** Called when saving draft in edit mode and then publishing */
+  onSaveAndPublish?: (data: FormData) => void
+  /** Called when sending vaga for approval on /new page */
+  onSendForApproval?: (data: FormData) => void
+  onFormChangesDetected?: (hasChanges: boolean) => void
+}
+
+export interface NewEmpregabilidadeFormRef {
+  triggerSubmit: () => void
+  triggerSaveDraft: () => void
+  triggerSaveAndPublish: () => void
+  triggerSendForApproval: () => void
+}
+
+export const NewEmpregabilidadeForm = forwardRef<
+  NewEmpregabilidadeFormRef,
+  NewEmpregabilidadeFormProps
+>(
+  (
+    {
+      initialData,
+      isReadOnly = false,
+      showActionButtons = false,
+      vagaStatus = null,
+      onSubmit,
+      onSaveDraft,
+      onSaveAndPublish,
+      onSendForApproval,
+      onFormChangesDetected,
+    },
+    ref
+  ) => {
+    const router = useRouter()
+    const { user, canPublishVagaAsAtivo } = useHeimdallUserContext()
+    const hasEditorRestrictions = hasEditorComCuradoriaRestrictions(user?.roles)
+
+    // Memoize neighborhood options for the combobox
+    const neighborhoodOptions = useMemo(() => {
+      const uniqueNeighborhoods = Array.from(
+        new Set(neighborhoodZone.map(n => n.bairro))
+      )
+        .sort()
+        .map(bairro => ({
+          value: bairro,
+          label: bairro,
+        }))
+      return uniqueNeighborhoods
+    }, [])
+
+    // Fetch real data from backend via API routes
+    const {
+      regimes,
+      loading: regimesLoading,
+      error: regimesError,
+    } = useRegimesContratacao()
+    const {
+      modelos,
+      loading: modelosLoading,
+      error: modelosError,
+    } = useModelosTrabalho()
+    const {
+      empresas,
+      loading: empresasLoading,
+      error: empresasError,
+    } = useEmpresas()
+
+    // Transform API data to select options (UUID values)
+    const regimeContratacaoOptions = useMemo(() => {
+      return regimes.map(regime => ({
+        value: regime.id || '',
+        label: regime.descricao || '',
+      }))
+    }, [regimes])
+
+    const modeloTrabalhoOptions = useMemo(() => {
+      return modelos.map(modelo => ({
+        value: modelo.id || '',
+        label: modelo.descricao || '',
+      }))
+    }, [modelos])
+
+    const { tiposPcd } = useTiposPcd()
+    const tipoPcdOptions = useMemo(
+      () =>
+        tiposPcd.map(t => ({
+          value: t.id ?? '',
+          label: t.descricao ?? '',
+        })),
+      [tiposPcd]
+    )
+
+    const acessibilidadePcdOptions = [
+      {
+        value: EmpregabilidadeAcessibilidadePCD.AcessibilidadeParaPCD,
+        label: 'Para PcD',
+      },
+      {
+        value: EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD,
+        label: 'Preferencial PcD',
+      },
+      {
+        value: EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD,
+        label: 'Exclusivo PcD',
+      },
+    ]
+
+    // Transform empresas API data to select options (CNPJ as value)
+    const empresasOptions = useMemo(() => {
+      return empresas.map(empresa => ({
+        value: empresa.cnpj || '',
+        label:
+          empresa.nome_fantasia || empresa.razao_social || 'Empresa sem nome',
+      }))
+    }, [empresas])
+
+    // Helper para converter etapas de string (legado) para array
+    const parseEtapas = (
+      etapas: string | EtapaProcessoSeletivo[] | undefined
+    ): EtapaProcessoSeletivo[] => {
+      if (!etapas) return []
+      if (Array.isArray(etapas)) return etapas
+      try {
+        const parsed = JSON.parse(etapas)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+
+    // Helper para converter informações complementares de string (legado) para array
+    const parseInformacoesComplementares = (
+      informacoes: string | InformacaoComplementar[] | undefined
+    ): InformacaoComplementar[] => {
+      if (!informacoes) return []
+      if (Array.isArray(informacoes)) return informacoes
+      try {
+        const parsed = JSON.parse(informacoes)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+
+    const form = useForm<FormData>({
+      resolver: zodResolver(formSchema),
+      defaultValues: initialData
+        ? {
+            ...initialData,
+            etapas: parseEtapas(initialData.etapas as any),
+            informacoes_complementares: parseInformacoesComplementares(
+              initialData.informacoes_complementares as any
+            ),
+          }
+        : {
+            titulo: '',
+            descricao: '',
+            contratante: '',
+            regime_contratacao: '',
+            modelo_trabalho: '',
+            vaga_pcd: false,
+            acessibilidade_pcd: undefined,
+            tipo_pcd: [],
+            valor_vaga: undefined,
+            bairro: '',
+            data_limite: undefined,
+            requisitos: '',
+            diferenciais: '',
+            responsabilidades: '',
+            beneficios: '',
+            etapas: [],
+            informacoes_complementares: [],
+            id_orgao_parceiro: '',
+          },
+      mode: 'onChange',
+    })
+
+    // Track form changes for unsaved changes guard
+    const isDirty = form.formState.isDirty
+    const watchedValues = form.watch()
+
+    // Text validation hook for detecting invalid characters
+    const { validationResults, hasAnyIssues, getFieldIssues } =
+      useEmpregabilidadeValidation(watchedValues)
+
+    // Modal state for invalid entries confirmation
+    const [showInvalidEntriesModal, setShowInvalidEntriesModal] =
+      useState(false)
+    const [pendingSubmitAction, setPendingSubmitAction] = useState<
+      null | 'submit' | 'draft' | 'publish' | 'approval'
+    >(null)
+
+    useEffect(() => {
+      if (onFormChangesDetected) {
+        // When creating (no initialData), consider any field filled as "has changes"
+        const hasAnyValue =
+          !initialData &&
+          !!(
+            watchedValues.titulo?.trim() ||
+            watchedValues.descricao?.trim() ||
+            watchedValues.contratante ||
+            watchedValues.regime_contratacao ||
+            watchedValues.modelo_trabalho ||
+            watchedValues.bairro?.trim() ||
+            watchedValues.valor_vaga != null ||
+            watchedValues.data_limite ||
+            (watchedValues.etapas && watchedValues.etapas.length > 0)
+          )
+        const hasChanges = isDirty || hasAnyValue
+        onFormChangesDetected(hasChanges)
+      }
+    }, [isDirty, watchedValues, initialData, onFormChangesDetected])
+
+    // Expose methods to parent component via ref
+    useImperativeHandle(ref, () => ({
+      triggerSubmit: () => {
+        form.handleSubmit(handleSubmit)()
+      },
+      triggerSaveDraft: () => {
+        handleSaveDraft()
+      },
+      triggerSaveAndPublish: () => {
+        handleSaveAndPublish()
+      },
+      triggerSendForApproval: () => {
+        handleSendForApproval()
+      },
+    }))
+
+    const handleSubmit = (data: FormData) => {
+      console.log('Form submitted:', data)
+
+      // Check for invalid characters first
+      if (hasAnyIssues) {
+        setPendingSubmitAction('submit')
+        setShowInvalidEntriesModal(true)
+        return
+      }
+
+      proceedWithSubmit(data)
+    }
+
+    const proceedWithSubmit = (data: FormData) => {
+      // Se está editando vaga publicada, usa validação de publicação
+      // Se está criando nova vaga (sem vagaStatus), usa validação de publicação
+      // Se está editando rascunho, onSubmit não deve ser chamado diretamente
+      // (deve usar onSaveDraft ou onSaveAndPublish)
+      const isPublished =
+        vagaStatus === 'publicado_ativo' ||
+        vagaStatus === 'publicado_expirado' ||
+        vagaStatus === 'vaga_congelada' ||
+        vagaStatus === 'vaga_descontinuada'
+
+      if (isPublished || !vagaStatus) {
+        // Validar para publicação (11 campos)
+        if (!validateForPublish(data, form)) {
+          return
+        }
+      }
+
+      // Se passou validação, enviar
+      if (onSubmit) {
+        onSubmit(data)
+      }
+    }
+
+    const handleSaveDraft = () => {
+      const currentValues = form.getValues()
+      console.log('Saving draft:', currentValues)
+
+      // Check for invalid characters first
+      if (hasAnyIssues) {
+        setPendingSubmitAction('draft')
+        setShowInvalidEntriesModal(true)
+        return
+      }
+
+      proceedWithDraft()
+    }
+
+    const proceedWithDraft = () => {
+      const currentValues = form.getValues()
+
+      // Validar 5 campos para rascunho
+      if (!validateForDraft(currentValues, form)) {
+        return
+      }
+
+      // Se passou validação, enviar
+      if (onSaveDraft) {
+        onSaveDraft(currentValues)
+      }
+    }
+
+    const handleSaveAndPublish = () => {
+      const currentValues = form.getValues()
+      console.log('Save and publish:', currentValues)
+
+      // Check for invalid characters first
+      if (hasAnyIssues) {
+        setPendingSubmitAction('publish')
+        setShowInvalidEntriesModal(true)
+        return
+      }
+
+      proceedWithPublish()
+    }
+
+    const proceedWithPublish = () => {
+      const currentValues = form.getValues()
+
+      // Validar 11 campos para publicação
+      if (!validateForPublish(currentValues, form)) {
+        return
+      }
+
+      // Se passou validação, enviar
+      if (onSaveAndPublish) {
+        onSaveAndPublish(currentValues)
+      }
+    }
+
+    const handleSendForApproval = () => {
+      const currentValues = form.getValues()
+      console.log('Save and send to approval:', currentValues)
+
+      // Check for invalid characters first
+      if (hasAnyIssues) {
+        setPendingSubmitAction('approval')
+        setShowInvalidEntriesModal(true)
+        return
+      }
+
+      proceedWithApproval()
+    }
+
+    const proceedWithApproval = () => {
+      const currentValues = form.getValues()
+
+      // Validar 11 campos obrigatórios (mesmo conjunto de publicação)
+      if (!validateForPublish(currentValues, form)) {
+        return
+      }
+
+      if (onSendForApproval) {
+        onSendForApproval(currentValues)
+      }
+    }
+
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="">
+          {/* Nota explicativa sobre campos obrigatórios */}
+          <div className="mb-6 p-4 border border-muted rounded-md bg-muted/50">
+            <p className="text-sm text-muted-foreground">
+              <strong>Nota:</strong> Campos marcados com{' '}
+              <span className="text-destructive">*</span> são obrigatórios para
+              publicação da vaga. Para salvar como rascunho, apenas Título,
+              Descrição, Contratante, Regime de Contratação e Modelo de Trabalho
+              são obrigatórios.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16">
+            {/* Coluna Esquerda */}
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="titulo"
+                render={({ field }) => {
+                  const issues = getFieldIssues('titulo')
+                  return (
+                    <FormItem>
+                      <FormLabel>Título*</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ex: Desenvolvedor Full Stack"
+                          {...field}
+                          disabled={isReadOnly}
+                          className={cn(
+                            issues?.hasIssues && 'border-orange-400/50'
+                          )}
+                        />
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="descricao"
+                render={({ field }) => {
+                  const issues = getFieldIssues('descricao')
+                  return (
+                    <FormItem>
+                      <FormLabel>Descrição*</FormLabel>
+                      <FormControl>
+                        <div
+                          className={cn(
+                            issues?.hasIssues &&
+                              'rounded-md border-orange-400/50 border'
+                          )}
+                        >
+                          <MarkdownEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Descreva a vaga de forma clara e objetiva..."
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="contratante"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contratante*</FormLabel>
+                    <FormControl>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || undefined}
+                        disabled={isReadOnly || empresasLoading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              empresasLoading
+                                ? 'Carregando empresas...'
+                                : empresasOptions.length === 0
+                                  ? 'Nenhuma empresa cadastrada'
+                                  : 'Selecione a empresa'
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {empresasOptions.map(empresa => (
+                            <SelectItem
+                              key={empresa.value}
+                              value={empresa.value}
+                            >
+                              {empresa.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    {empresasError && (
+                      <p className="text-sm text-destructive">
+                        Erro ao carregar empresas
+                      </p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="regime_contratacao"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Regime de Contratação*</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || undefined}
+                          disabled={isReadOnly || regimesLoading}
+                        >
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={
+                                regimesLoading
+                                  ? 'Carregando regimes...'
+                                  : 'Selecione o regime'
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {regimeContratacaoOptions.map(regime => (
+                              <SelectItem
+                                key={regime.value}
+                                value={regime.value}
+                              >
+                                {regime.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      {regimesError && (
+                        <p className="text-sm text-destructive">
+                          Erro ao carregar regimes
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="modelo_trabalho"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Modelo de Trabalho*</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || undefined}
+                          disabled={isReadOnly || modelosLoading}
+                        >
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={
+                                modelosLoading
+                                  ? 'Carregando modelos...'
+                                  : 'Selecione o modelo'
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {modeloTrabalhoOptions.map(modelo => (
+                              <SelectItem
+                                key={modelo.value}
+                                value={modelo.value}
+                              >
+                                {modelo.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      {modelosError && (
+                        <p className="text-sm text-destructive">
+                          Erro ao carregar modelos
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="vaga_pcd"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={checked => {
+                          field.onChange(checked)
+                          if (!checked) {
+                            form.setValue('acessibilidade_pcd', undefined)
+                            form.setValue('tipo_pcd', [])
+                          }
+                        }}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Vaga PcD</FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Marque se esta vaga é para pessoas com deficiência
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {form.watch('vaga_pcd') && (
+                <FormField
+                  control={form.control}
+                  name="acessibilidade_pcd"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Acessibilidade PcD</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || undefined}
+                        disabled={isReadOnly}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo de acessibilidade" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {acessibilidadePcdOptions.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <FormField
+                control={form.control}
+                name="tipo_pcd"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Deficiência (PcD)</FormLabel>
+                    <FormControl>
+                      <MultiSelect
+                        options={tipoPcdOptions}
+                        value={field.value || []}
+                        onValueChange={field.onChange}
+                        placeholder="Selecione os tipos de deficiência"
+                        searchPlaceholder="Buscar tipo de deficiência..."
+                        emptyMessage="Nenhum tipo encontrado."
+                        disabled={isReadOnly || !form.watch('vaga_pcd')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="valor_vaga"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor da Vaga</FormLabel>
+                    <FormControl>
+                      <CurrencyInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="R$ 0,00"
+                        disabled={isReadOnly}
+                        id="valor_vaga"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bairro"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bairro*</FormLabel>
+                    <FormControl>
+                      <Combobox
+                        options={neighborhoodOptions}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Selecione o bairro"
+                        searchPlaceholder="Buscar bairro..."
+                        emptyMessage="Nenhum bairro encontrado."
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="data_limite"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data Limite*</FormLabel>
+                    <FormControl>
+                      <DateTimePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Selecione a data e hora limite"
+                        disabled={isReadOnly}
+                        disablePastDates={true}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="id_orgao_parceiro"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Órgão Parceiro*</FormLabel>
+                    <FormControl>
+                      <DepartmentCombobox
+                        value={field.value || ''}
+                        onValueChange={field.onChange}
+                        disabled={isReadOnly}
+                        placeholder="Selecione um órgão"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Coluna Direita */}
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="requisitos"
+                render={({ field }) => {
+                  const issues = getFieldIssues('requisitos')
+                  return (
+                    <FormItem>
+                      <FormLabel>Requisitos*</FormLabel>
+                      <FormControl>
+                        <div
+                          className={cn(
+                            issues?.hasIssues &&
+                              'rounded-md border-orange-400/50 border'
+                          )}
+                        >
+                          <MarkdownEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Liste os requisitos necessários para a vaga..."
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="diferenciais"
+                render={({ field }) => {
+                  const issues = getFieldIssues('diferenciais')
+                  return (
+                    <FormItem>
+                      <FormLabel>Diferenciais</FormLabel>
+                      <FormControl>
+                        <div
+                          className={cn(
+                            issues?.hasIssues &&
+                              'rounded-md border-orange-400/50 border'
+                          )}
+                        >
+                          <MarkdownEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Liste os diferenciais que seriam desejáveis..."
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="responsabilidades"
+                render={({ field }) => {
+                  const issues = getFieldIssues('responsabilidades')
+                  return (
+                    <FormItem>
+                      <FormLabel>Responsabilidades*</FormLabel>
+                      <FormControl>
+                        <div
+                          className={cn(
+                            issues?.hasIssues &&
+                              'rounded-md border-orange-400/50 border'
+                          )}
+                        >
+                          <MarkdownEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Descreva as principais responsabilidades da função..."
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="beneficios"
+                render={({ field }) => {
+                  const issues = getFieldIssues('beneficios')
+                  return (
+                    <FormItem>
+                      <FormLabel>Benefícios</FormLabel>
+                      <FormControl>
+                        <div
+                          className={cn(
+                            issues?.hasIssues &&
+                              'rounded-md border-orange-400/50 border'
+                          )}
+                        >
+                          <MarkdownEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Liste os benefícios oferecidos..."
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                      </FormControl>
+                      <FieldWarningIndicator
+                        invalidChars={issues?.invalidChars || []}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="etapas"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Etapas do Processo Seletivo</FormLabel>
+                    <FormControl>
+                      <EtapasProcessoSeletivo
+                        etapas={field.value || []}
+                        onEtapasChange={field.onChange}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="informacoes_complementares"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Informações Complementares</FormLabel>
+                    <FormControl>
+                      <InformacoesComplementaresCreator
+                        fields={field.value || []}
+                        onFieldsChange={field.onChange}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons - Only shown when showActionButtons is true (e.g., /new page) */}
+          {showActionButtons && (
+            <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isReadOnly}
+              >
+                Salvar Rascunho
+              </Button>
+              <Button
+                type="button"
+                variant={hasEditorRestrictions ? 'default' : 'outline'}
+                onClick={handleSendForApproval}
+                disabled={isReadOnly}
+              >
+                Enviar p/ aprovação
+              </Button>
+              {canPublishVagaAsAtivo && (
+                <Button type="submit" disabled={isReadOnly}>
+                  Publicar Vaga
+                </Button>
+              )}
+            </div>
+          )}
+        </form>
+
+        {/* Invalid Entries Modal */}
+        <InvalidEntriesModal
+          open={showInvalidEntriesModal}
+          onOpenChange={setShowInvalidEntriesModal}
+          validationResults={validationResults.filter(r => r.hasIssues)}
+          onContinue={() => {
+            setShowInvalidEntriesModal(false)
+            // Proceed with pending action
+            switch (pendingSubmitAction) {
+              case 'submit':
+                proceedWithSubmit(form.getValues())
+                break
+              case 'draft':
+                proceedWithDraft()
+                break
+              case 'publish':
+                proceedWithPublish()
+                break
+              case 'approval':
+                proceedWithApproval()
+                break
+            }
+            setPendingSubmitAction(null)
+          }}
+          onGoBack={() => {
+            setShowInvalidEntriesModal(false)
+            setPendingSubmitAction(null)
+          }}
+        />
+      </Form>
+    )
+  }
+)
+
+NewEmpregabilidadeForm.displayName = 'NewEmpregabilidadeForm'
