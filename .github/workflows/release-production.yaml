@@ -112,9 +112,18 @@ jobs:
           while true; do
             PHASE=$(kubectl get rollout portal-interno -n portal-interno -o jsonpath='{.status.phase}')
             echo "Phase: $PHASE"
-            [ "$PHASE" = "Healthy"  ] && echo "✅ Rollout complete!" && exit 0
-            [ "$PHASE" = "Degraded" ] && echo "❌ Rollout degraded" && kubectl get rollout portal-interno -n portal-interno -o yaml && exit 1
-            [ "$PHASE" = "Aborted"  ] && echo "❌ Rollout aborted (analysis failed)" && kubectl get analysisrun -n portal-interno --sort-by=.metadata.creationTimestamp -o yaml || true && exit 1
+            if [ "$PHASE" = "Healthy" ]; then
+              echo "✅ Rollout complete!"
+              exit 0
+            elif [ "$PHASE" = "Degraded" ]; then
+              echo "❌ Rollout degraded"
+              kubectl get rollout portal-interno -n portal-interno -o yaml
+              exit 1
+            elif [ "$PHASE" = "Aborted" ]; then
+              echo "❌ Rollout aborted (analysis failed)"
+              kubectl get analysisrun -n portal-interno --sort-by=.metadata.creationTimestamp -o yaml || true
+              exit 1
+            fi
             kubectl get rollout portal-interno -n portal-interno
             sleep 30
           done
