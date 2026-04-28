@@ -18,25 +18,25 @@ export function normalizeString(str: string): string {
   // FIRST: Fix corrupted encoding patterns BEFORE lowercasing
   // "ObrigatÃ³rio" is a common corruption of "Obrigatório" in Windows-1252 to UTF-8
   let normalized = str
-    .replace(/Ã³/g, 'ó')  // Fix corrupted ó (uppercase)
-    .replace(/ã³/g, 'ó')  // Fix corrupted ó (lowercase)
-    .replace(/Ã¡/g, 'á')  // Fix corrupted á
+    .replace(/Ã³/g, 'ó') // Fix corrupted ó (uppercase)
+    .replace(/ã³/g, 'ó') // Fix corrupted ó (lowercase)
+    .replace(/Ã¡/g, 'á') // Fix corrupted á
     .replace(/ã¡/g, 'á')
-    .replace(/Ã¢/g, 'â')  // Fix corrupted â
+    .replace(/Ã¢/g, 'â') // Fix corrupted â
     .replace(/ã¢/g, 'â')
-    .replace(/Ã£/g, 'ã')  // Fix corrupted ã
+    .replace(/Ã£/g, 'ã') // Fix corrupted ã
     .replace(/ã£/g, 'ã')
-    .replace(/Ã©/g, 'é')  // Fix corrupted é
+    .replace(/Ã©/g, 'é') // Fix corrupted é
     .replace(/ã©/g, 'é')
-    .replace(/Ãª/g, 'ê')  // Fix corrupted ê
+    .replace(/Ãª/g, 'ê') // Fix corrupted ê
     .replace(/ãª/g, 'ê')
-    .replace(/Ã­/g, 'í')  // Fix corrupted í
+    .replace(/Ã­/g, 'í') // Fix corrupted í
     .replace(/ã­/g, 'í')
-    .replace(/Ãº/g, 'ú')  // Fix corrupted ú
+    .replace(/Ãº/g, 'ú') // Fix corrupted ú
     .replace(/ãº/g, 'ú')
-    .replace(/Ã§/g, 'ç')  // Fix corrupted ç
+    .replace(/Ã§/g, 'ç') // Fix corrupted ç
     .replace(/ã§/g, 'ç')
-    .replace(/Ãµ/g, 'õ')  // Fix corrupted õ
+    .replace(/Ãµ/g, 'õ') // Fix corrupted õ
     .replace(/ãµ/g, 'õ')
 
   // SECOND: Convert to lowercase

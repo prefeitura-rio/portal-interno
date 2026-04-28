@@ -63,10 +63,7 @@ export function SessionExpiredHandler() {
 
     // Cleanup on unmount
     return () => {
-      if (
-        iframeRef.current &&
-        iframeRef.current.parentNode === document.body
-      ) {
+      if (iframeRef.current && iframeRef.current.parentNode === document.body) {
         try {
           document.body.removeChild(iframeRef.current)
         } catch (error) {

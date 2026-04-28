@@ -83,7 +83,7 @@ export function AddParticipantsModal({
                     onFinish={handleFinish}
                     courseData={courseData}
                     onStartProcessing={() => setStep('processing')}
-                    onProcessingComplete={(result) => {
+                    onProcessingComplete={result => {
                       setJobResult(result)
                       setStep('results')
                     }}

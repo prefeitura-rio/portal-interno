@@ -1,7 +1,5 @@
-import {
-  getApiV1AdminServicesIdVersionsCompare,
-} from '@/http-busca-search/versions/versions'
 import type { GetApiV1AdminServicesIdVersionsCompareParams } from '@/http-busca-search/models/getApiV1AdminServicesIdVersionsCompareParams'
+import { getApiV1AdminServicesIdVersionsCompare } from '@/http-busca-search/versions/versions'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
@@ -35,10 +33,18 @@ export async function GET(
       to_version: Number.parseInt(toVersion, 10),
     }
 
-    console.log('🚀 Comparing service versions:', serviceId, 'with params:', apiParams)
+    console.log(
+      '🚀 Comparing service versions:',
+      serviceId,
+      'with params:',
+      apiParams
+    )
 
     // Call the external API
-    const response = await getApiV1AdminServicesIdVersionsCompare(serviceId, apiParams)
+    const response = await getApiV1AdminServicesIdVersionsCompare(
+      serviceId,
+      apiParams
+    )
 
     if (response.status === 200) {
       console.log('✅ Service versions compared successfully')
@@ -64,5 +70,3 @@ export async function GET(
     )
   }
 }
-
-

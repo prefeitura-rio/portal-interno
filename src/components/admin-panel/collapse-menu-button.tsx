@@ -24,8 +24,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
 import type { MenuItem, Submenu, SubmenuGroup } from '@/lib/menu-list'
+import { cn } from '@/lib/utils'
 import { DropdownMenuArrow } from '@radix-ui/react-dropdown-menu'
 import { usePathname } from 'next/navigation'
 

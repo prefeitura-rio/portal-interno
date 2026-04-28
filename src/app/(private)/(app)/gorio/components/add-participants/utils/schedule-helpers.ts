@@ -24,7 +24,9 @@ interface Schedule {
 /**
  * Extracts all schedules from course locations (presencial) or remote_class (online) and formats them for a dropdown
  */
-export function getScheduleOptions(courseData?: CourseData | null): ScheduleOption[] {
+export function getScheduleOptions(
+  courseData?: CourseData | null
+): ScheduleOption[] {
   if (!courseData) {
     return []
   }
@@ -32,24 +34,33 @@ export function getScheduleOptions(courseData?: CourseData | null): ScheduleOpti
   const options: ScheduleOption[] = []
 
   // Check if it's an online course with multiple schedules
-  if (courseData.modalidade === 'ONLINE' && courseData.remote_class?.schedules && courseData.remote_class.schedules.length > 0) {
-    courseData.remote_class.schedules.forEach((schedule: Schedule, index: number) => {
-      if (!schedule.id) {
-        console.error('Schedule without ID found - skipping. Backend should always provide schedule IDs:', schedule)
-        return
+  if (
+    courseData.modalidade === 'ONLINE' &&
+    courseData.remote_class?.schedules &&
+    courseData.remote_class.schedules.length > 0
+  ) {
+    courseData.remote_class.schedules.forEach(
+      (schedule: Schedule, index: number) => {
+        if (!schedule.id) {
+          console.error(
+            'Schedule without ID found - skipping. Backend should always provide schedule IDs:',
+            schedule
+          )
+          return
+        }
+
+        const classTime = schedule.class_time || schedule.classTime || ''
+        const classDays = schedule.class_days || schedule.classDays || ''
+
+        options.push({
+          id: schedule.id,
+          label: formatOnlineScheduleLabel(index + 1, classTime, classDays),
+          locationId: courseData.remote_class?.id || '',
+          locationAddress: 'Online',
+          isOnline: true,
+        })
       }
-
-      const classTime = schedule.class_time || schedule.classTime || ''
-      const classDays = schedule.class_days || schedule.classDays || ''
-
-      options.push({
-        id: schedule.id,
-        label: formatOnlineScheduleLabel(index + 1, classTime, classDays),
-        locationId: courseData.remote_class?.id || '',
-        locationAddress: 'Online',
-        isOnline: true,
-      })
-    })
+    )
 
     return options
   }
@@ -82,7 +93,10 @@ export function getScheduleOptions(courseData?: CourseData | null): ScheduleOpti
     location.schedules.forEach((schedule: Schedule) => {
       // Use the schedule ID directly from backend
       if (!schedule.id) {
-        console.error('Schedule without ID found - skipping. Backend should always provide schedule IDs:', schedule)
+        console.error(
+          'Schedule without ID found - skipping. Backend should always provide schedule IDs:',
+          schedule
+        )
         return
       }
 

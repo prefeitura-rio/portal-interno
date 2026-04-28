@@ -22,17 +22,14 @@ export function useAddParticipantsModal({
   const [finishStatus, setFinishStatus] = useState<FinishStatus>('loading')
   const [jobResult, setJobResult] = useState<JobResult | null>(null)
 
-  const handleFinish = useCallback(
-    async (success: boolean) => {
-      setStep('finish')
-      setFinishStatus('loading')
+  const handleFinish = useCallback(async (success: boolean) => {
+    setStep('finish')
+    setFinishStatus('loading')
 
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+    await new Promise(resolve => setTimeout(resolve, 1500))
 
-      setFinishStatus(success ? 'success' : 'error')
-    },
-    []
-  )
+    setFinishStatus(success ? 'success' : 'error')
+  }, [])
 
   const handleBack = useCallback(() => {
     setStep('options')
@@ -83,4 +80,3 @@ export function useAddParticipantsModal({
     setJobResult,
   }
 }
-

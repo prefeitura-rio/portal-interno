@@ -1,9 +1,14 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Card, CardContent } from '@/components/ui/card'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Archive, Calendar, FileText, User } from 'lucide-react'
-import React from 'react'
+import type React from 'react'
 
 interface TombadoServiceInfoProps {
   origem: string
@@ -49,8 +54,10 @@ export function TombadoServiceInfo({
                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded-t-lg"
             >
               <div className="flex w-full items-center gap-3">
-                <div className="inline-flex h-8 w-8 items-center justify-center rounded-xl
-                                bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 ring-1 ring-emerald-200/60 dark:ring-emerald-900/50">
+                <div
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-xl
+                                bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 ring-1 ring-emerald-200/60 dark:ring-emerald-900/50"
+                >
                   <Archive className="h-4 w-4" />
                 </div>
                 <div className="flex-1">
@@ -63,7 +70,6 @@ export function TombadoServiceInfo({
 
             <AccordionContent className="px-4 sm:px-5 pb-4 pt-5">
               <div className="space-y-4">
-
                 {/* linha principal: origem + id */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <Label>Origem</Label>
@@ -117,7 +123,6 @@ export function TombadoServiceInfo({
                     </div>
                   </div>
                 )}
-
               </div>
             </AccordionContent>
           </AccordionItem>
@@ -129,9 +134,14 @@ export function TombadoServiceInfo({
 
 /** ——— UI helpers ——— */
 
-function Label({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+function Label({
+  children,
+  className = '',
+}: { children: React.ReactNode; className?: string }) {
   return (
-    <span className={`text-xs uppercase tracking-wide font-semibold text-zinc-500 dark:text-zinc-400 ${className}`}>
+    <span
+      className={`text-xs uppercase tracking-wide font-semibold text-zinc-500 dark:text-zinc-400 ${className}`}
+    >
       {children}
     </span>
   )
@@ -147,11 +157,11 @@ function Pill({
   return (
     <span
       className={[
-        "inline-flex max-w-full items-center gap-1 rounded-lg",
-        "border border-emerald-200/60 dark:border-emerald-900/40",
-        "bg-emerald-50/60 dark:bg-emerald-900/20",
-        "px-2 py-1 text-xs text-emerald-800 dark:text-emerald-200",
-        mono ? "font-mono tracking-tight" : "font-medium",
+        'inline-flex max-w-full items-center gap-1 rounded-lg',
+        'border border-emerald-200/60 dark:border-emerald-900/40',
+        'bg-emerald-50/60 dark:bg-emerald-900/20',
+        'px-2 py-1 text-xs text-emerald-800 dark:text-emerald-200',
+        mono ? 'font-mono tracking-tight' : 'font-medium',
       ].join(' ')}
     >
       {children}
@@ -171,7 +181,9 @@ function InfoRow({
   return (
     <div className="flex min-w-0 items-center gap-1.5">
       <span className="text-emerald-700 dark:text-emerald-300">{icon}</span>
-      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</span>
+      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+        {label}
+      </span>
       <span className="truncate">
         <Pill mono>{value}</Pill>
       </span>

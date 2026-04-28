@@ -1,6 +1,9 @@
-import type { HeimdallUser } from '@/types/heimdall-roles'
-import { HEIMDALL_USER_COOKIE_CONFIG, HEIMDALL_USER_COOKIE_NAME } from '@/lib/auth-cookie-config'
+import {
+  HEIMDALL_USER_COOKIE_CONFIG,
+  HEIMDALL_USER_COOKIE_NAME,
+} from '@/lib/auth-cookie-config'
 import { getCurrentUserFromCacheOrHeimdall } from '@/lib/heimdall-user'
+import type { HeimdallUser } from '@/types/heimdall-roles'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -23,7 +26,7 @@ export async function GET() {
     if (cachedUserCookie?.value) {
       try {
         const parsed = JSON.parse(cachedUserCookie.value) as HeimdallUser
-        if (parsed && parsed.id && parsed.cpf) {
+        if (parsed?.id && parsed.cpf) {
           return NextResponse.json(parsed, { status: 200 })
         }
       } catch {

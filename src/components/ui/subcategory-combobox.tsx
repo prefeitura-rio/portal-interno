@@ -17,10 +17,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { useIsAdmin } from '@/hooks/use-heimdall-user'
 import type { ModelsSubcategory } from '@/http-busca-search/models'
 import { cn } from '@/lib/utils'
-import { useIsAdmin } from '@/hooks/use-heimdall-user'
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 interface SubcategoryComboboxProps {
   category?: string
   value?: string

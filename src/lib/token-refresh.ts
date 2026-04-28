@@ -43,8 +43,12 @@ export async function refreshAccessToken(
     console.log('[TOKEN_REFRESH] Token response from Keycloak:', {
       expires_in: data.expires_in,
       refresh_expires_in: data.refresh_expires_in,
-      expires_in_minutes: data.expires_in ? Math.floor(data.expires_in / 60) : null,
-      expires_in_hours: data.expires_in ? Math.floor(data.expires_in / 3600) : null,
+      expires_in_minutes: data.expires_in
+        ? Math.floor(data.expires_in / 60)
+        : null,
+      expires_in_hours: data.expires_in
+        ? Math.floor(data.expires_in / 3600)
+        : null,
       refresh_expires_in_minutes: data.refresh_expires_in
         ? Math.floor(data.refresh_expires_in / 60)
         : null,
