@@ -9,4 +9,3 @@ export type {
   JobResult,
   ModalStep,
 } from './types'
-

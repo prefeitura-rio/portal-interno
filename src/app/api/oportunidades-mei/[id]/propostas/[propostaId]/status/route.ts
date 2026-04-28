@@ -49,9 +49,10 @@ export async function PUT(
     // - status_cidadao: the actual proposal status (submitted/approved/rejected)
     // - status_admin: soft-delete flag (active/inactive)
     // The /status endpoint updates status_cidadao
-    const requestBody: PutApiV1OportunidadesMeiIdPropostasPropostaIdStatusBody = {
-      status: backendStatus,
-    }
+    const requestBody: PutApiV1OportunidadesMeiIdPropostasPropostaIdStatusBody =
+      {
+        status: backendStatus,
+      }
 
     console.log('Request body being sent to API:', requestBody)
 

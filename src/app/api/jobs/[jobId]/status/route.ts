@@ -9,10 +9,7 @@ export async function GET(
     const { jobId } = await params
 
     if (!jobId) {
-      return NextResponse.json(
-        { error: 'Job ID is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Job ID is required' }, { status: 400 })
     }
 
     const response = await getApiV1JobsJobIdStatus(jobId)

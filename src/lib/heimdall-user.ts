@@ -1,5 +1,8 @@
 import type { HeimdallUser } from '@/types/heimdall-roles'
-import { HEIMDALL_USER_COOKIE_CONFIG, HEIMDALL_USER_COOKIE_NAME } from './auth-cookie-config'
+import {
+  HEIMDALL_USER_COOKIE_CONFIG,
+  HEIMDALL_USER_COOKIE_NAME,
+} from './auth-cookie-config'
 import { cookies } from 'next/headers'
 import { cache } from 'react'
 import { getCurrentUserInfoApiV1UsersMeGet } from '@/http-heimdall/users/users'
@@ -64,4 +67,3 @@ export async function getCurrentUserRoles(): Promise<string[] | undefined> {
   const user = await getCurrentUserFromCacheOrHeimdall()
   return user?.roles
 }
-

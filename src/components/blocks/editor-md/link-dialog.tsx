@@ -83,7 +83,11 @@ export function LinkDialog({
               Remover link
             </Button>
           )}
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Cancelar
           </Button>
           <Button type="button" onClick={handleConfirm}>
@@ -94,4 +98,3 @@ export function LinkDialog({
     </Dialog>
   )
 }
-

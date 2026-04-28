@@ -6,7 +6,9 @@ export function OptionsStep({ onSelect }: OptionsStepProps) {
   return (
     <div className="flex flex-col items-center gap-6 text-center">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold text-foreground">Como deseja incluir os participantes?</h3>
+        <h3 className="text-lg font-semibold text-foreground">
+          Como deseja incluir os participantes?
+        </h3>
       </div>
 
       <div className="flex flex-col w-full gap-3">
