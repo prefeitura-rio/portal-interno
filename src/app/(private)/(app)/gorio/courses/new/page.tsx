@@ -1,6 +1,7 @@
 'use client'
 import { NewCourseForm } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -51,7 +52,7 @@ export default function NewCourse() {
       router.refresh()
     } catch (error) {
       console.error('Error creating course:', error)
-      toast.error('Erro ao enviar curso para aprovação', {
+      toast.error('Erro ao criar curso', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
       })
       setIsSubmitting(false)

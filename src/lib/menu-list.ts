@@ -1,4 +1,3 @@
-import { COURSES_ROLES } from '@/types/heimdall-roles'
 import {
   Briefcase,
   FolderKanban,
@@ -59,9 +58,6 @@ export function getMenuList(pathname: string): Group[] {
             'go:cursos:editor',
             'busca:services:admin',
             'busca:services:editor',
-            'go:empregabilidade:admin',
-            'go:empregabilidade:editor_sem_curadoria',
-            'go:empregabilidade:editor_com_curadoria',
           ],
         },
       ],
@@ -73,17 +69,17 @@ export function getMenuList(pathname: string): Group[] {
           href: '',
           label: 'Capacitação',
           icon: GraduationCap,
-          allowedRoles: [...COURSES_ROLES],
+          allowedRoles: ['admin', 'superadmin', 'go:admin'],
           submenus: [
             {
               href: '/gorio/courses',
               label: 'Cursos',
-              allowedRoles: [...COURSES_ROLES],
+              allowedRoles: ['admin', 'superadmin', 'go:admin'],
             },
             {
               href: '/gorio/courses/new',
               label: 'Novo Curso',
-              allowedRoles: [...COURSES_ROLES],
+              allowedRoles: ['admin', 'superadmin', 'go:admin'],
             },
           ],
         },
@@ -91,14 +87,7 @@ export function getMenuList(pathname: string): Group[] {
           href: '',
           label: 'Emprego e trabalho',
           icon: Briefcase,
-          allowedRoles: [
-            'admin',
-            'superadmin',
-            'go:admin',
-            'go:empregabilidade:admin',
-            'go:empregabilidade:editor_sem_curadoria',
-            'go:empregabilidade:editor_com_curadoria',
-          ],
+          allowedRoles: ['admin', 'superadmin', 'go:admin'],
           submenus: [
             {
               label: 'MEI',
@@ -118,38 +107,17 @@ export function getMenuList(pathname: string): Group[] {
             },
             {
               label: 'Empregabilidade',
-              allowedRoles: [
-                'admin',
-                'superadmin',
-                'go:admin',
-                'go:empregabilidade:admin',
-                'go:empregabilidade:editor_sem_curadoria',
-                'go:empregabilidade:editor_com_curadoria',
-              ],
+              allowedRoles: ['admin', 'superadmin', 'go:admin'],
               submenus: [
                 {
                   href: '/gorio/empregabilidade',
                   label: 'Vagas',
-                  allowedRoles: [
-                    'admin',
-                    'superadmin',
-                    'go:admin',
-                    'go:empregabilidade:admin',
-                    'go:empregabilidade:editor_sem_curadoria',
-                    'go:empregabilidade:editor_com_curadoria',
-                  ],
+                  allowedRoles: ['admin', 'superadmin', 'go:admin'],
                 },
                 {
                   href: '/gorio/empregabilidade/new',
                   label: 'Nova vaga',
-                  allowedRoles: [
-                    'admin',
-                    'superadmin',
-                    'go:admin',
-                    'go:empregabilidade:admin',
-                    'go:empregabilidade:editor_sem_curadoria',
-                    'go:empregabilidade:editor_com_curadoria',
-                  ],
+                  allowedRoles: ['admin', 'superadmin', 'go:admin'],
                 },
               ],
             },
@@ -240,9 +208,6 @@ export function getMenuList(pathname: string): Group[] {
             'go:cursos:editor',
             'busca:services:admin',
             'busca:services:editor',
-            'go:empregabilidade:admin',
-            'go:empregabilidade:editor_sem_curadoria',
-            'go:empregabilidade:editor_com_curadoria',
           ],
         },
       ],

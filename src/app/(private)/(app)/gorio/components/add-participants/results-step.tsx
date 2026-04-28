@@ -80,9 +80,7 @@ export function ResultsStep({ result, onClose }: ResultsStepProps) {
                   {error.data}
                 </p>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground">
-                    Linha {error.line}
-                  </span>
+                  <span className="text-muted-foreground">Linha {error.line}</span>
                   <span className="text-muted-foreground">•</span>
                   <span className="text-red-600 dark:text-red-400">
                     {error.message}

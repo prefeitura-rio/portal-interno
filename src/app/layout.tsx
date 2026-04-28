@@ -23,13 +23,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+
   return (
-    <html
-      lang="en"
-      className="notranslate"
-      translate="no"
-      suppressHydrationWarning
-    >
+    <html lang="en" className="notranslate" translate="no" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

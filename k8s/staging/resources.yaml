@@ -1,15 +1,22 @@
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: portal-interno
   annotations:
     secrets.infisical.com/auto-reload: "true"
 spec:
-  replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: portal-interno
+  strategy:
+    blueGreen:
+      activeService: portal-interno
+      previewService: portal-interno-preview
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 30
+      previewReplicaCount: 1
   template:
     metadata:
       labels:
@@ -21,6 +28,42 @@ spec:
           envFrom:
             - secretRef:
                 name: portal-interno-secrets
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 24
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
       restartPolicy: Always
 
 ---
@@ -41,6 +84,21 @@ metadata:
   labels:
     app: portal-interno
   name: portal-interno
+spec:
+  ports:
+    - name: "80"
+      port: 80
+      targetPort: 3000
+  selector:
+    app: portal-interno
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: portal-interno
+  name: portal-interno-preview
 spec:
   ports:
     - name: "80"

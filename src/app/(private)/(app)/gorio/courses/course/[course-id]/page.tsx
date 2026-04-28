@@ -7,7 +7,9 @@ import {
   type NewCourseFormRef,
 } from '@/app/(private)/(app)/gorio/components/new-course-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { Badge } from '@/components/ui/badge'
+import { useDepartment } from '@/hooks/use-department'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,28 +20,21 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { formatDateTimeToUTC } from '@/components/ui/datetime-picker'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
-import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useCourse } from '@/hooks/use-course'
-import { useDepartment } from '@/hooks/use-department'
 import type { CourseStatusConfig } from '@/types/course'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Ban,
   Calendar,
-  CheckCircle2,
   ClipboardList,
   Edit,
   FileText,
   Flag,
   Play,
-  RotateCcw,
   Save,
-  Send,
   Trash2,
   UserCheck,
   Users,
@@ -49,6 +44,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { formatDateTimeToUTC } from '@/components/ui/datetime-picker'
 
 // Status configuration for badges - updated to match courses list page
 const statusConfig: Record<string, CourseStatusConfig> = {
@@ -242,18 +238,15 @@ export default function CourseDetailPage({
   }, [searchParams, course, updateTabInUrl])
 
   // Handler for tab change - intercept if editing with unsaved changes
-  const handleTabChange = useCallback(
-    (newTab: string) => {
-      if (isEditing && hasFormChanges && newTab !== activeTab) {
-        setPendingTab(newTab)
-        setShowTabChangeDialog(true)
-      } else {
-        setActiveTab(newTab)
-        updateTabInUrl(newTab)
-      }
-    },
-    [isEditing, hasFormChanges, activeTab, updateTabInUrl]
-  )
+  const handleTabChange = useCallback((newTab: string) => {
+    if (isEditing && hasFormChanges && newTab !== activeTab) {
+      setPendingTab(newTab)
+      setShowTabChangeDialog(true)
+    } else {
+      setActiveTab(newTab)
+      updateTabInUrl(newTab)
+    }
+  }, [isEditing, hasFormChanges, activeTab, updateTabInUrl])
 
   const handleConfirmTabChange = useCallback(() => {
     if (pendingTab) {
@@ -411,75 +404,69 @@ export default function CourseDetailPage({
   // Helper function to transform locations from frontend format to API format
   const transformLocationsToApiFormat = (locations: any[]) => {
     if (!locations || !Array.isArray(locations)) return []
-
-    return locations
-      .map(location => {
-        // Frontend format (camelCase) - transform to API format
-        if (location.schedules && Array.isArray(location.schedules)) {
-          // Filter and transform schedules, only including those with valid start dates
-          const validSchedules = location.schedules
-            .map((schedule: any) => {
-              const startDate =
-                normalizeDateToISO(schedule.classStartDate) ||
-                normalizeDateToISO(schedule.class_start_date)
-              const endDate =
-                normalizeDateToISO(schedule.classEndDate) ||
-                normalizeDateToISO(schedule.class_end_date)
-
-              // Only include schedule if it has a valid start date
-              if (!startDate) return null
-
-              return {
-                id: schedule.id || '00000000-0000-0000-0000-000000000000',
-                vacancies: schedule.vacancies,
-                class_start_date: startDate,
-                class_end_date: endDate,
-                class_time: schedule.classTime || schedule.class_time || '',
-                class_days: schedule.classDays || schedule.class_days || '',
-              }
-            })
-            .filter((schedule: any) => schedule !== null)
-
-          // Only include location if it has at least one valid schedule
-          if (validSchedules.length === 0) return null
-
-          return {
-            id: location.id || '00000000-0000-0000-0000-000000000000',
-            address: location.address,
-            neighborhood: location.neighborhood,
-            neighborhood_zone: location.neighborhood_zone || location.zona,
-            schedules: validSchedules,
-          }
-        }
-
-        // Old format without schedules - convert to new format
-        const startDate =
-          normalizeDateToISO(location.classStartDate) ||
-          normalizeDateToISO(location.class_start_date)
-
-        // Only include location if it has a valid start date
-        if (!startDate) return null
-
+    
+    return locations.map(location => {
+      // Frontend format (camelCase) - transform to API format
+      if (location.schedules && Array.isArray(location.schedules)) {
+        // Filter and transform schedules, only including those with valid start dates
+        const validSchedules = location.schedules
+          .map((schedule: any) => {
+            const startDate = normalizeDateToISO(schedule.classStartDate) || 
+              normalizeDateToISO(schedule.class_start_date)
+            const endDate = normalizeDateToISO(schedule.classEndDate) || 
+              normalizeDateToISO(schedule.class_end_date)
+            
+            // Only include schedule if it has a valid start date
+            if (!startDate) return null
+            
+            return {
+              id: schedule.id || '00000000-0000-0000-0000-000000000000',
+              vacancies: schedule.vacancies,
+              class_start_date: startDate,
+              class_end_date: endDate,
+              class_time: schedule.classTime || schedule.class_time || '',
+              class_days: schedule.classDays || schedule.class_days || '',
+            }
+          })
+          .filter((schedule: any) => schedule !== null)
+        
+        // Only include location if it has at least one valid schedule
+        if (validSchedules.length === 0) return null
+        
         return {
           id: location.id || '00000000-0000-0000-0000-000000000000',
           address: location.address,
           neighborhood: location.neighborhood,
           neighborhood_zone: location.neighborhood_zone || location.zona,
-          schedules: [
-            {
-              id: '00000000-0000-0000-0000-000000000000',
-              vacancies: location.vacancies || 1,
-              class_start_date: startDate,
-              class_end_date:
-                normalizeDateToISO(location.classEndDate) ||
-                normalizeDateToISO(location.class_end_date),
-              class_time: location.classTime || location.class_time || '',
-              class_days: location.classDays || location.class_days || '',
-            },
-          ],
+          schedules: validSchedules,
         }
-      })
-      .filter((location: any) => location !== null) // Remove locations without valid schedules
+      }
+
+      // Old format without schedules - convert to new format
+      const startDate = normalizeDateToISO(location.classStartDate) || 
+        normalizeDateToISO(location.class_start_date)
+      
+      // Only include location if it has a valid start date
+      if (!startDate) return null
+      
+      return {
+        id: location.id || '00000000-0000-0000-0000-000000000000',
+        address: location.address,
+        neighborhood: location.neighborhood,
+        neighborhood_zone: location.neighborhood_zone || location.zona,
+        schedules: [
+          {
+            id: '00000000-0000-0000-0000-000000000000',
+            vacancies: location.vacancies || 1,
+            class_start_date: startDate,
+            class_end_date: normalizeDateToISO(location.classEndDate) || 
+              normalizeDateToISO(location.class_end_date),
+            class_time: location.classTime || location.class_time || '',
+            class_days: location.classDays || location.class_days || '',
+          },
+        ],
+      }
+    }).filter((location: any) => location !== null) // Remove locations without valid schedules
   }
 
   // Helper function to transform remote_class from frontend format to API format
@@ -491,16 +478,14 @@ export default function CourseDetailPage({
       // Filter and transform schedules, only including those with valid start dates
       const validSchedules = remoteClass.schedules
         .map((schedule: any) => {
-          const startDate =
-            normalizeDateToISO(schedule.classStartDate) ||
+          const startDate = normalizeDateToISO(schedule.classStartDate) || 
             normalizeDateToISO(schedule.class_start_date)
-          const endDate =
-            normalizeDateToISO(schedule.classEndDate) ||
+          const endDate = normalizeDateToISO(schedule.classEndDate) || 
             normalizeDateToISO(schedule.class_end_date)
-
+          
           // Only include schedule if it has a valid start date
           if (!startDate) return null
-
+          
           return {
             id: schedule.id || '00000000-0000-0000-0000-000000000000',
             vacancies: schedule.vacancies,
@@ -511,10 +496,10 @@ export default function CourseDetailPage({
           }
         })
         .filter((schedule: any) => schedule !== null)
-
+      
       // Only return remote_class if it has at least one valid schedule
       if (validSchedules.length === 0) return undefined
-
+      
       return {
         id: remoteClass.id || '00000000-0000-0000-0000-000000000000',
         schedules: validSchedules,
@@ -522,13 +507,12 @@ export default function CourseDetailPage({
     }
 
     // Old format - wrap in schedules array
-    const startDate =
-      normalizeDateToISO(remoteClass.classStartDate) ||
+    const startDate = normalizeDateToISO(remoteClass.classStartDate) || 
       normalizeDateToISO(remoteClass.class_start_date)
-
+    
     // Only return remote_class if it has a valid start date
     if (!startDate) return undefined
-
+    
     return {
       id: remoteClass.id || '00000000-0000-0000-0000-000000000000',
       schedules: [
@@ -536,8 +520,7 @@ export default function CourseDetailPage({
           id: remoteClass.id || '00000000-0000-0000-0000-000000000000',
           vacancies: remoteClass.vacancies || 1,
           class_start_date: startDate,
-          class_end_date:
-            normalizeDateToISO(remoteClass.classEndDate) ||
+          class_end_date: normalizeDateToISO(remoteClass.classEndDate) || 
             normalizeDateToISO(remoteClass.class_end_date),
           class_time: remoteClass.classTime || remoteClass.class_time || '',
           class_days: remoteClass.classDays || remoteClass.class_days || '',
@@ -616,11 +599,7 @@ export default function CourseDetailPage({
       locations: transformedLocations,
       remote_class: transformedRemoteClass,
       turno: 'LIVRE',
-      formato_aula:
-        course.modalidade === 'ONLINE' ||
-        course.modalidade === 'LIVRE_FORMACAO_ONLINE'
-          ? 'GRAVADO'
-          : 'PRESENCIAL',
+      formato_aula: course.modalidade === 'ONLINE' || course.modalidade === 'LIVRE_FORMACAO_ONLINE' ? 'GRAVADO' : 'PRESENCIAL',
       status: statusOverride || course.status,
     }
   }
@@ -1125,7 +1104,7 @@ export default function CourseDetailPage({
 
   const actualStatus = course.status as string
 
-  // Status flags
+  // Check if course is a draft
   const isDraft = actualStatus === 'draft'
   const isInReview = actualStatus === 'in_review'
   const isNeedsChanges = actualStatus === 'needs_changes'
@@ -1134,16 +1113,24 @@ export default function CourseDetailPage({
   const isPendingDeletion = actualStatus === 'pending_deletion'
   const isOpened =
     actualStatus === 'opened' ||
-    actualStatus === 'ABERTO' ||
     actualStatus === 'scheduled' ||
+    actualStatus === 'ABERTO' ||
     actualStatus === 'accepting_enrollments' ||
     actualStatus === 'in_progress'
 
-  // Treat opened courses like published for Casa Civil curation buttons
-  const showPublishedActions = isPublished || isOpened
+  // Check if course can be closed (only if status is "opened" or "ABERTO")
+  const canClose = actualStatus === 'opened' || actualStatus === 'ABERTO'
 
-  // Legacy status flags
+  // Check if course can be reopened (only if status is "closed" or "canceled")
   const canReopen = actualStatus === 'closed' || actualStatus === 'canceled'
+
+  // Debug logging for canReopen
+  console.log('canReopen calculation:', {
+    actualStatus,
+    isClosed: actualStatus === 'closed',
+    isCanceled: actualStatus === 'canceled',
+    canReopen,
+  })
 
   return (
     <ContentLayout title="Detalhes do Curso">
@@ -1197,7 +1184,7 @@ export default function CourseDetailPage({
               </div>
             </div>
             <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-              {/* Show action buttons based on course status and role */}
+              {/* Show action buttons based on course status */}
               {!isEditing ? (
                 <>
                   {/* === DRAFT: Editar + Publicar/Enviar para Aprovação + Excluir rascunho === */}
@@ -1205,7 +1192,7 @@ export default function CourseDetailPage({
                     <>
                       <Button
                         onClick={handleEdit}
-                        disabled={isLoading}
+                        disabled={activeTab === 'enrollments' || isLoading}
                         className="w-full md:w-auto"
                       >
                         <Edit className="mr-2 h-4 w-4" />
@@ -1456,6 +1443,16 @@ export default function CourseDetailPage({
                 </>
               ) : (
                 <>
+                  {isDraft && (
+                    <Button
+                      onClick={handlePublishFromHeader}
+                      disabled={isLoading}
+                      className="w-full md:w-auto"
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      Salvar e Publicar
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={handleSaveDraftFromHeader}
@@ -1516,10 +1513,7 @@ export default function CourseDetailPage({
               <TabsTrigger value="about" disabled={isEditing && hasFormChanges}>
                 Sobre o curso
               </TabsTrigger>
-              <TabsTrigger
-                value="enrollments"
-                disabled={isEditing || (isEditing && hasFormChanges)}
-              >
+              <TabsTrigger value="enrollments" disabled={isEditing || (isEditing && hasFormChanges)}>
                 <Users className="w-4 h-4 mr-2" />
                 Inscrições
               </TabsTrigger>
@@ -1610,7 +1604,7 @@ export default function CourseDetailPage({
                 : confirmDialog.type === 'cancel_course'
                   ? `Tem certeza que deseja cancelar o curso "${course.title}"? O curso não estará mais disponível para inscrições.`
                   : confirmDialog.type === 'close_course'
-                    ? `Tem certeza que deseja fechar o curso "${course.title}"? Esta ação encerrará o período de inscrições.`
+                    ? `Tem certeza que deseja fechar o curso "${course.title}"? Esta ação encerrará o período de inscrições e o curso não receberá mais candidatos.`
                     : confirmDialog.type === 'reopen_course'
                       ? `Tem certeza que deseja reabrir o curso "${course.title}"? O curso voltará a receber inscrições.`
                       : confirmDialog.type === 'send_to_review'
@@ -1660,8 +1654,7 @@ export default function CourseDetailPage({
         }
         variant={
           confirmDialog.type === 'delete_draft' ||
-          confirmDialog.type === 'cancel_course' ||
-          confirmDialog.type === 'confirm_delete_course'
+          confirmDialog.type === 'cancel_course'
             ? 'destructive'
             : 'default'
         }
@@ -1669,12 +1662,14 @@ export default function CourseDetailPage({
           if (confirmDialog.type === 'delete_draft') {
             confirmDeleteDraft()
           } else if (confirmDialog.type === 'save_changes') {
+            // Trigger form submission
             if (isDraft) {
               draftFormRef.current?.triggerSubmit()
             } else {
               courseFormRef.current?.triggerSubmit()
             }
           } else if (confirmDialog.type === 'publish_course') {
+            // Trigger form publication
             if (isDraft) {
               draftFormRef.current?.triggerPublish()
             } else {

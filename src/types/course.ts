@@ -1,5 +1,5 @@
-import type { ModelsCitizenPersonalInfo } from '@/http-gorio/models'
 import type { Accessibility } from '../app/(private)/(app)/gorio/components/new-course-form'
+import type { ModelsCitizenPersonalInfo } from '@/http-gorio/models'
 
 // API Response types based on actual API responses
 export interface ApiPagination {
@@ -42,10 +42,7 @@ export interface ApiCourse {
   enrollment_end_date?: string | null
   // External partner fields
   is_external_partner?: boolean
-  course_management_type?:
-    | 'OWN_ORG'
-    | 'EXTERNAL_MANAGED_BY_ORG'
-    | 'EXTERNAL_MANAGED_BY_PARTNER'
+  course_management_type?: 'OWN_ORG' | 'EXTERNAL_MANAGED_BY_ORG' | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
   external_partner_url?: string
   external_partner_logo_url?: string
@@ -90,10 +87,7 @@ export interface CourseListItem {
   orgao_id?: string | null
   // External partner fields (optional for CourseListItem)
   is_external_partner?: boolean
-  course_management_type?:
-    | 'OWN_ORG'
-    | 'EXTERNAL_MANAGED_BY_ORG'
-    | 'EXTERNAL_MANAGED_BY_PARTNER'
+  course_management_type?: 'OWN_ORG' | 'EXTERNAL_MANAGED_BY_ORG' | 'EXTERNAL_MANAGED_BY_PARTNER'
   external_partner_name?: string
   courseType?: CourseType
 }
@@ -103,8 +97,8 @@ export type CourseType = 'new_course' | 'edit_proposal' | 'deletion_proposal'
 // ANTIGO: export type CourseStatus = 'draft' | 'opened' | 'ABERTO' | 'closed' | 'canceled' | 'CRIADO' | 'ENCERRADO' | 'scheduled' | 'accepting_enrollments' | 'in_progress' | 'finished'
 export type CourseStatus =
   | 'draft'
-  | 'opened' // Legacy - mantido para retrocompatibilidade
-  | 'ABERTO' // Legacy
+  | 'opened'
+  | 'ABERTO'
   | 'closed'
   | 'canceled'
   | 'CRIADO' // Legacy
@@ -208,11 +202,7 @@ export interface Course {
   updated_at: Date
 }
 
-export type CourseModality =
-  | 'Presencial'
-  | 'Remoto'
-  | 'Semipresencial'
-  | 'Livre formação (online)'
+export type CourseModality = 'Presencial' | 'Remoto' | 'Semipresencial' | 'Livre formação (online)'
 
 export interface CourseLocation {
   id: string

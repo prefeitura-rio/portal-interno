@@ -28,3 +28,4 @@ export function ModalHeader({ step, onClose }: ModalHeaderProps) {
     </div>
   )
 }
+

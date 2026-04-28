@@ -289,8 +289,7 @@ import {
   useHeimdallUserWithLoading,   // Retorna user + loading state
   useHasRole,                   // Verifica roles específicas
   useIsAdmin,                   // Verifica se é admin/superadmin
-  useHasGoRioAccess,            // Verifica acesso ao GO Rio (Capacitação + Emprego)
-  useHasEmpregoTrabalhoAccess,  // Verifica acesso ao módulo Emprego e trabalho
+  useHasGoRioAccess,            // Verifica acesso ao GO Rio
   useCanEditGoRio,              // Verifica se pode editar GO Rio
   useHasBuscaServicesAccess,    // Verifica acesso a Serviços
   useCanEditBuscaServices,      // Verifica se pode editar serviços
@@ -347,7 +346,6 @@ import {
   requireGoRioAccess,          // Exige acesso GO Rio
   requireAdminAccess,          // Exige admin/superadmin
   requireBuscaServicesAccess,  // Exige acesso a serviços
-  requireEmpregoTrabalhoAccess, // Exige acesso a Emprego e trabalho
 } from '@/lib/server-auth'
 ```
 

@@ -1,5 +1,4 @@
 'use client'
-
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import {
   Breadcrumb,
@@ -8,28 +7,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
-import { BookPlus, Building2, ChevronDown, Eye, Plus } from 'lucide-react'
-import Link from 'next/link'
-import { EmpregabilidadeDataTable } from './components/empregabilidade-data-table'
 
 export default function EmpregabilidadePage() {
-  const {
-    canEditGoRio,
-    hasEmpregoTrabalhoAccess,
-    canManageEmpresasInEmpregabilidade,
-  } = useHeimdallUserContext()
-
-  const showActions = canEditGoRio || hasEmpregoTrabalhoAccess
-  const showEmpresasDropdown = canEditGoRio || hasEmpregoTrabalhoAccess
-
   return (
     <ContentLayout title="Gestão de Vagas de Empregos">
       <div className="space-y-4">
@@ -44,57 +23,9 @@ export default function EmpregabilidadePage() {
             </BreadcrumbList>
           </Breadcrumb>
         </div>
-        <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-2">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">
-              Vagas de Empregos
-            </h2>
-            <p className="text-muted-foreground">
-              Gerencie e monitore todas as vagas de empregos disponíveis na
-              plataforma.
-            </p>
-          </div>
-          {showActions && (
-            <div className="flex items-center gap-2">
-              {showEmpresasDropdown && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="cursor-pointer">
-                      <Building2 className="mr-2 h-4 w-4" />
-                      Empresas
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {canManageEmpresasInEmpregabilidade && (
-                      <DropdownMenuItem asChild>
-                        <Link href="/gorio/empregabilidade/new/empresa">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Criar nova Empresa
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem asChild>
-                      <Link href="/gorio/empregabilidade/empresas">
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver empresas
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-
-              <Link href="/gorio/empregabilidade/new">
-                <Button className="cursor-pointer">
-                  <BookPlus className="mr-2 h-4 w-4" />
-                  Nova vaga
-                </Button>
-              </Link>
-            </div>
-          )}
+        <div>
+          <h1>Vagas</h1>
         </div>
-
-        <EmpregabilidadeDataTable />
       </div>
     </ContentLayout>
   )

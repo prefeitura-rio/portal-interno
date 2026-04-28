@@ -1,16 +1,18 @@
-import type { HeimdallUser } from '@/types/heimdall-roles'
 import { type NextRequest, NextResponse } from 'next/server'
 import {
   REDIRECT_WHEN_SESSION_EXPIRED_ROUTE,
   REDIRECT_WHEN_UNAUTHORIZED_ROUTE,
 } from '../constants/url'
+import type { HeimdallUser } from '@/types/heimdall-roles'
+import { refreshAccessToken } from './token-refresh'
 import {
+  AUTH_COOKIE_CONFIG,
   HEIMDALL_USER_COOKIE_CONFIG,
   HEIMDALL_USER_COOKIE_NAME,
   getAccessTokenCookieConfig,
   getRefreshTokenCookieConfig,
 } from './auth-cookie-config'
-import { refreshAccessToken } from './token-refresh'
+
 /**
  * Extracts CPF from JWT token for logging purposes
  * @param accessToken - The user's access token

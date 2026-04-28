@@ -8,28 +8,18 @@
 import type {
   DeleteApiV1EmpregabilidadeCurriculoConquistasId200,
   DeleteApiV1EmpregabilidadeCurriculoConquistasId400,
-  DeleteApiV1EmpregabilidadeCurriculoConquistasId403,
-  DeleteApiV1EmpregabilidadeCurriculoConquistasId404,
   DeleteApiV1EmpregabilidadeCurriculoConquistasId500,
   DeleteApiV1EmpregabilidadeCurriculoCursosComplementaresId200,
   DeleteApiV1EmpregabilidadeCurriculoCursosComplementaresId400,
-  DeleteApiV1EmpregabilidadeCurriculoCursosComplementaresId403,
-  DeleteApiV1EmpregabilidadeCurriculoCursosComplementaresId404,
   DeleteApiV1EmpregabilidadeCurriculoCursosComplementaresId500,
   DeleteApiV1EmpregabilidadeCurriculoExperienciasId200,
   DeleteApiV1EmpregabilidadeCurriculoExperienciasId400,
-  DeleteApiV1EmpregabilidadeCurriculoExperienciasId403,
-  DeleteApiV1EmpregabilidadeCurriculoExperienciasId404,
   DeleteApiV1EmpregabilidadeCurriculoExperienciasId500,
   DeleteApiV1EmpregabilidadeCurriculoFormacoesId200,
   DeleteApiV1EmpregabilidadeCurriculoFormacoesId400,
-  DeleteApiV1EmpregabilidadeCurriculoFormacoesId403,
-  DeleteApiV1EmpregabilidadeCurriculoFormacoesId404,
   DeleteApiV1EmpregabilidadeCurriculoFormacoesId500,
   DeleteApiV1EmpregabilidadeCurriculoIdiomasId200,
   DeleteApiV1EmpregabilidadeCurriculoIdiomasId400,
-  DeleteApiV1EmpregabilidadeCurriculoIdiomasId403,
-  DeleteApiV1EmpregabilidadeCurriculoIdiomasId404,
   DeleteApiV1EmpregabilidadeCurriculoIdiomasId500,
   EmpregabilidadeCurriculoCompleto,
   EmpregabilidadeCurriculoConquista,
@@ -43,29 +33,20 @@ import type {
   EmpregabilidadeCurriculoIdioma,
   EmpregabilidadeCurriculoIdiomaBody,
   EmpregabilidadeCurriculoSituacaoInteresses,
-  EmpregabilidadeExperienciaProfissionalAccordionRequest,
-  EmpregabilidadeFormacaoAccordionRequest,
   GetApiV1EmpregabilidadeCurriculoConquistasId400,
   GetApiV1EmpregabilidadeCurriculoConquistasId404,
   GetApiV1EmpregabilidadeCurriculoConquistasId500,
-  GetApiV1EmpregabilidadeCurriculoCpf403,
   GetApiV1EmpregabilidadeCurriculoCpf500,
   GetApiV1EmpregabilidadeCurriculoCpfConquistas200,
-  GetApiV1EmpregabilidadeCurriculoCpfConquistas403,
   GetApiV1EmpregabilidadeCurriculoCpfConquistas500,
   GetApiV1EmpregabilidadeCurriculoCpfCursosComplementares200,
-  GetApiV1EmpregabilidadeCurriculoCpfCursosComplementares403,
   GetApiV1EmpregabilidadeCurriculoCpfCursosComplementares500,
   GetApiV1EmpregabilidadeCurriculoCpfExperiencias200,
-  GetApiV1EmpregabilidadeCurriculoCpfExperiencias403,
   GetApiV1EmpregabilidadeCurriculoCpfExperiencias500,
   GetApiV1EmpregabilidadeCurriculoCpfFormacoes200,
-  GetApiV1EmpregabilidadeCurriculoCpfFormacoes403,
   GetApiV1EmpregabilidadeCurriculoCpfFormacoes500,
   GetApiV1EmpregabilidadeCurriculoCpfIdiomas200,
-  GetApiV1EmpregabilidadeCurriculoCpfIdiomas403,
   GetApiV1EmpregabilidadeCurriculoCpfIdiomas500,
-  GetApiV1EmpregabilidadeCurriculoCpfSituacaoInteresses403,
   GetApiV1EmpregabilidadeCurriculoCpfSituacaoInteresses404,
   GetApiV1EmpregabilidadeCurriculoCpfSituacaoInteresses500,
   GetApiV1EmpregabilidadeCurriculoCursosComplementaresId400,
@@ -81,69 +62,33 @@ import type {
   GetApiV1EmpregabilidadeCurriculoIdiomasId404,
   GetApiV1EmpregabilidadeCurriculoIdiomasId500,
   PostApiV1EmpregabilidadeCurriculoConquistas400,
-  PostApiV1EmpregabilidadeCurriculoConquistas401,
   PostApiV1EmpregabilidadeCurriculoConquistas500,
   PostApiV1EmpregabilidadeCurriculoCursosComplementares400,
-  PostApiV1EmpregabilidadeCurriculoCursosComplementares401,
   PostApiV1EmpregabilidadeCurriculoCursosComplementares500,
   PostApiV1EmpregabilidadeCurriculoExperiencias400,
-  PostApiV1EmpregabilidadeCurriculoExperiencias401,
   PostApiV1EmpregabilidadeCurriculoExperiencias500,
   PostApiV1EmpregabilidadeCurriculoFormacoes400,
-  PostApiV1EmpregabilidadeCurriculoFormacoes401,
   PostApiV1EmpregabilidadeCurriculoFormacoes500,
   PostApiV1EmpregabilidadeCurriculoIdiomas400,
-  PostApiV1EmpregabilidadeCurriculoIdiomas401,
   PostApiV1EmpregabilidadeCurriculoIdiomas500,
   PutApiV1EmpregabilidadeCurriculoConquistasId400,
-  PutApiV1EmpregabilidadeCurriculoConquistasId403,
-  PutApiV1EmpregabilidadeCurriculoConquistasId404,
   PutApiV1EmpregabilidadeCurriculoConquistasId500,
-  PutApiV1EmpregabilidadeCurriculoCpfConquistas200,
-  PutApiV1EmpregabilidadeCurriculoCpfConquistas400,
-  PutApiV1EmpregabilidadeCurriculoCpfConquistas403,
-  PutApiV1EmpregabilidadeCurriculoCpfConquistas500,
-  PutApiV1EmpregabilidadeCurriculoCpfCursosComplementares200,
-  PutApiV1EmpregabilidadeCurriculoCpfCursosComplementares400,
-  PutApiV1EmpregabilidadeCurriculoCpfCursosComplementares403,
-  PutApiV1EmpregabilidadeCurriculoCpfCursosComplementares500,
-  PutApiV1EmpregabilidadeCurriculoCpfExperiencias200,
-  PutApiV1EmpregabilidadeCurriculoCpfExperiencias400,
-  PutApiV1EmpregabilidadeCurriculoCpfExperiencias403,
-  PutApiV1EmpregabilidadeCurriculoCpfExperiencias500,
-  PutApiV1EmpregabilidadeCurriculoCpfFormacoes200,
-  PutApiV1EmpregabilidadeCurriculoCpfFormacoes400,
-  PutApiV1EmpregabilidadeCurriculoCpfFormacoes403,
-  PutApiV1EmpregabilidadeCurriculoCpfFormacoes500,
-  PutApiV1EmpregabilidadeCurriculoCpfIdiomas200,
-  PutApiV1EmpregabilidadeCurriculoCpfIdiomas400,
-  PutApiV1EmpregabilidadeCurriculoCpfIdiomas403,
-  PutApiV1EmpregabilidadeCurriculoCpfIdiomas500,
   PutApiV1EmpregabilidadeCurriculoCursosComplementaresId400,
-  PutApiV1EmpregabilidadeCurriculoCursosComplementaresId403,
-  PutApiV1EmpregabilidadeCurriculoCursosComplementaresId404,
   PutApiV1EmpregabilidadeCurriculoCursosComplementaresId500,
   PutApiV1EmpregabilidadeCurriculoExperienciasId400,
-  PutApiV1EmpregabilidadeCurriculoExperienciasId403,
-  PutApiV1EmpregabilidadeCurriculoExperienciasId404,
   PutApiV1EmpregabilidadeCurriculoExperienciasId500,
   PutApiV1EmpregabilidadeCurriculoFormacoesId400,
-  PutApiV1EmpregabilidadeCurriculoFormacoesId403,
-  PutApiV1EmpregabilidadeCurriculoFormacoesId404,
   PutApiV1EmpregabilidadeCurriculoFormacoesId500,
   PutApiV1EmpregabilidadeCurriculoIdiomasId400,
-  PutApiV1EmpregabilidadeCurriculoIdiomasId403,
-  PutApiV1EmpregabilidadeCurriculoIdiomasId404,
   PutApiV1EmpregabilidadeCurriculoIdiomasId500,
   PutApiV1EmpregabilidadeCurriculoSituacaoInteresses400,
-  PutApiV1EmpregabilidadeCurriculoSituacaoInteresses401,
   PutApiV1EmpregabilidadeCurriculoSituacaoInteresses500,
 } from '.././models'
 
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
- * Adiciona uma nova conquista ao currículo do usuário autenticado
+ * Adiciona uma nova conquista ao currículo
  * @summary Criar conquista
  */
 export type postApiV1EmpregabilidadeCurriculoConquistasResponse201 = {
@@ -156,11 +101,6 @@ export type postApiV1EmpregabilidadeCurriculoConquistasResponse400 = {
   status: 400
 }
 
-export type postApiV1EmpregabilidadeCurriculoConquistasResponse401 = {
-  data: PostApiV1EmpregabilidadeCurriculoConquistas401
-  status: 401
-}
-
 export type postApiV1EmpregabilidadeCurriculoConquistasResponse500 = {
   data: PostApiV1EmpregabilidadeCurriculoConquistas500
   status: 500
@@ -169,7 +109,6 @@ export type postApiV1EmpregabilidadeCurriculoConquistasResponse500 = {
 export type postApiV1EmpregabilidadeCurriculoConquistasResponseComposite =
   | postApiV1EmpregabilidadeCurriculoConquistasResponse201
   | postApiV1EmpregabilidadeCurriculoConquistasResponse400
-  | postApiV1EmpregabilidadeCurriculoConquistasResponse401
   | postApiV1EmpregabilidadeCurriculoConquistasResponse500
 
 export type postApiV1EmpregabilidadeCurriculoConquistasResponse =
@@ -251,7 +190,7 @@ export const getApiV1EmpregabilidadeCurriculoConquistasId = async (
 }
 
 /**
- * Atualiza uma conquista existente do usuário autenticado
+ * Atualiza uma conquista existente no currículo
  * @summary Atualizar conquista
  */
 export type putApiV1EmpregabilidadeCurriculoConquistasIdResponse200 = {
@@ -264,16 +203,6 @@ export type putApiV1EmpregabilidadeCurriculoConquistasIdResponse400 = {
   status: 400
 }
 
-export type putApiV1EmpregabilidadeCurriculoConquistasIdResponse403 = {
-  data: PutApiV1EmpregabilidadeCurriculoConquistasId403
-  status: 403
-}
-
-export type putApiV1EmpregabilidadeCurriculoConquistasIdResponse404 = {
-  data: PutApiV1EmpregabilidadeCurriculoConquistasId404
-  status: 404
-}
-
 export type putApiV1EmpregabilidadeCurriculoConquistasIdResponse500 = {
   data: PutApiV1EmpregabilidadeCurriculoConquistasId500
   status: 500
@@ -282,8 +211,6 @@ export type putApiV1EmpregabilidadeCurriculoConquistasIdResponse500 = {
 export type putApiV1EmpregabilidadeCurriculoConquistasIdResponseComposite =
   | putApiV1EmpregabilidadeCurriculoConquistasIdResponse200
   | putApiV1EmpregabilidadeCurriculoConquistasIdResponse400
-  | putApiV1EmpregabilidadeCurriculoConquistasIdResponse403
-  | putApiV1EmpregabilidadeCurriculoConquistasIdResponse404
   | putApiV1EmpregabilidadeCurriculoConquistasIdResponse500
 
 export type putApiV1EmpregabilidadeCurriculoConquistasIdResponse =
@@ -314,7 +241,7 @@ export const putApiV1EmpregabilidadeCurriculoConquistasId = async (
 }
 
 /**
- * Remove uma conquista do currículo do usuário autenticado
+ * Remove uma conquista do currículo
  * @summary Excluir conquista
  */
 export type deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse200 = {
@@ -327,16 +254,6 @@ export type deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse400 = {
   status: 400
 }
 
-export type deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse403 = {
-  data: DeleteApiV1EmpregabilidadeCurriculoConquistasId403
-  status: 403
-}
-
-export type deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse404 = {
-  data: DeleteApiV1EmpregabilidadeCurriculoConquistasId404
-  status: 404
-}
-
 export type deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse500 = {
   data: DeleteApiV1EmpregabilidadeCurriculoConquistasId500
   status: 500
@@ -345,8 +262,6 @@ export type deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse500 = {
 export type deleteApiV1EmpregabilidadeCurriculoConquistasIdResponseComposite =
   | deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse200
   | deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse400
-  | deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse403
-  | deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse404
   | deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse500
 
 export type deleteApiV1EmpregabilidadeCurriculoConquistasIdResponse =
@@ -374,7 +289,7 @@ export const deleteApiV1EmpregabilidadeCurriculoConquistasId = async (
 }
 
 /**
- * Adiciona um novo curso complementar ao currículo do usuário autenticado
+ * Adiciona um novo curso complementar ao currículo
  * @summary Criar curso complementar
  */
 export type postApiV1EmpregabilidadeCurriculoCursosComplementaresResponse201 = {
@@ -387,11 +302,6 @@ export type postApiV1EmpregabilidadeCurriculoCursosComplementaresResponse400 = {
   status: 400
 }
 
-export type postApiV1EmpregabilidadeCurriculoCursosComplementaresResponse401 = {
-  data: PostApiV1EmpregabilidadeCurriculoCursosComplementares401
-  status: 401
-}
-
 export type postApiV1EmpregabilidadeCurriculoCursosComplementaresResponse500 = {
   data: PostApiV1EmpregabilidadeCurriculoCursosComplementares500
   status: 500
@@ -400,7 +310,6 @@ export type postApiV1EmpregabilidadeCurriculoCursosComplementaresResponse500 = {
 export type postApiV1EmpregabilidadeCurriculoCursosComplementaresResponseComposite =
   | postApiV1EmpregabilidadeCurriculoCursosComplementaresResponse201
   | postApiV1EmpregabilidadeCurriculoCursosComplementaresResponse400
-  | postApiV1EmpregabilidadeCurriculoCursosComplementaresResponse401
   | postApiV1EmpregabilidadeCurriculoCursosComplementaresResponse500
 
 export type postApiV1EmpregabilidadeCurriculoCursosComplementaresResponse =
@@ -487,7 +396,7 @@ export const getApiV1EmpregabilidadeCurriculoCursosComplementaresId = async (
 }
 
 /**
- * Atualiza um curso complementar existente do usuário autenticado
+ * Atualiza um curso complementar existente no currículo
  * @summary Atualizar curso complementar
  */
 export type putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse200 =
@@ -502,18 +411,6 @@ export type putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse400 =
     status: 400
   }
 
-export type putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse403 =
-  {
-    data: PutApiV1EmpregabilidadeCurriculoCursosComplementaresId403
-    status: 403
-  }
-
-export type putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse404 =
-  {
-    data: PutApiV1EmpregabilidadeCurriculoCursosComplementaresId404
-    status: 404
-  }
-
 export type putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse500 =
   {
     data: PutApiV1EmpregabilidadeCurriculoCursosComplementaresId500
@@ -523,8 +420,6 @@ export type putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse500 =
 export type putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponseComposite =
   | putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse200
   | putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse400
-  | putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse403
-  | putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse404
   | putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse500
 
 export type putApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse =
@@ -555,7 +450,7 @@ export const putApiV1EmpregabilidadeCurriculoCursosComplementaresId = async (
 }
 
 /**
- * Remove um curso complementar do currículo do usuário autenticado
+ * Remove um curso complementar do currículo
  * @summary Excluir curso complementar
  */
 export type deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse200 =
@@ -570,18 +465,6 @@ export type deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse400
     status: 400
   }
 
-export type deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse403 =
-  {
-    data: DeleteApiV1EmpregabilidadeCurriculoCursosComplementaresId403
-    status: 403
-  }
-
-export type deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse404 =
-  {
-    data: DeleteApiV1EmpregabilidadeCurriculoCursosComplementaresId404
-    status: 404
-  }
-
 export type deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse500 =
   {
     data: DeleteApiV1EmpregabilidadeCurriculoCursosComplementaresId500
@@ -591,8 +474,6 @@ export type deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse500
 export type deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponseComposite =
   | deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse200
   | deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse400
-  | deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse403
-  | deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse404
   | deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse500
 
 export type deleteApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse =
@@ -620,7 +501,7 @@ export const deleteApiV1EmpregabilidadeCurriculoCursosComplementaresId = async (
 }
 
 /**
- * Adiciona uma nova experiência profissional ao currículo do usuário autenticado
+ * Adiciona uma nova experiência profissional ao currículo
  * @summary Criar experiência
  */
 export type postApiV1EmpregabilidadeCurriculoExperienciasResponse201 = {
@@ -633,11 +514,6 @@ export type postApiV1EmpregabilidadeCurriculoExperienciasResponse400 = {
   status: 400
 }
 
-export type postApiV1EmpregabilidadeCurriculoExperienciasResponse401 = {
-  data: PostApiV1EmpregabilidadeCurriculoExperiencias401
-  status: 401
-}
-
 export type postApiV1EmpregabilidadeCurriculoExperienciasResponse500 = {
   data: PostApiV1EmpregabilidadeCurriculoExperiencias500
   status: 500
@@ -646,7 +522,6 @@ export type postApiV1EmpregabilidadeCurriculoExperienciasResponse500 = {
 export type postApiV1EmpregabilidadeCurriculoExperienciasResponseComposite =
   | postApiV1EmpregabilidadeCurriculoExperienciasResponse201
   | postApiV1EmpregabilidadeCurriculoExperienciasResponse400
-  | postApiV1EmpregabilidadeCurriculoExperienciasResponse401
   | postApiV1EmpregabilidadeCurriculoExperienciasResponse500
 
 export type postApiV1EmpregabilidadeCurriculoExperienciasResponse =
@@ -728,7 +603,7 @@ export const getApiV1EmpregabilidadeCurriculoExperienciasId = async (
 }
 
 /**
- * Atualiza uma experiência existente do usuário autenticado
+ * Atualiza uma experiência existente no currículo
  * @summary Atualizar experiência
  */
 export type putApiV1EmpregabilidadeCurriculoExperienciasIdResponse200 = {
@@ -741,16 +616,6 @@ export type putApiV1EmpregabilidadeCurriculoExperienciasIdResponse400 = {
   status: 400
 }
 
-export type putApiV1EmpregabilidadeCurriculoExperienciasIdResponse403 = {
-  data: PutApiV1EmpregabilidadeCurriculoExperienciasId403
-  status: 403
-}
-
-export type putApiV1EmpregabilidadeCurriculoExperienciasIdResponse404 = {
-  data: PutApiV1EmpregabilidadeCurriculoExperienciasId404
-  status: 404
-}
-
 export type putApiV1EmpregabilidadeCurriculoExperienciasIdResponse500 = {
   data: PutApiV1EmpregabilidadeCurriculoExperienciasId500
   status: 500
@@ -759,8 +624,6 @@ export type putApiV1EmpregabilidadeCurriculoExperienciasIdResponse500 = {
 export type putApiV1EmpregabilidadeCurriculoExperienciasIdResponseComposite =
   | putApiV1EmpregabilidadeCurriculoExperienciasIdResponse200
   | putApiV1EmpregabilidadeCurriculoExperienciasIdResponse400
-  | putApiV1EmpregabilidadeCurriculoExperienciasIdResponse403
-  | putApiV1EmpregabilidadeCurriculoExperienciasIdResponse404
   | putApiV1EmpregabilidadeCurriculoExperienciasIdResponse500
 
 export type putApiV1EmpregabilidadeCurriculoExperienciasIdResponse =
@@ -791,7 +654,7 @@ export const putApiV1EmpregabilidadeCurriculoExperienciasId = async (
 }
 
 /**
- * Remove uma experiência do currículo do usuário autenticado
+ * Remove uma experiência do currículo
  * @summary Excluir experiência
  */
 export type deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse200 = {
@@ -804,16 +667,6 @@ export type deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse400 = {
   status: 400
 }
 
-export type deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse403 = {
-  data: DeleteApiV1EmpregabilidadeCurriculoExperienciasId403
-  status: 403
-}
-
-export type deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse404 = {
-  data: DeleteApiV1EmpregabilidadeCurriculoExperienciasId404
-  status: 404
-}
-
 export type deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse500 = {
   data: DeleteApiV1EmpregabilidadeCurriculoExperienciasId500
   status: 500
@@ -822,8 +675,6 @@ export type deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse500 = {
 export type deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponseComposite =
   | deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse200
   | deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse400
-  | deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse403
-  | deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse404
   | deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse500
 
 export type deleteApiV1EmpregabilidadeCurriculoExperienciasIdResponse =
@@ -851,7 +702,7 @@ export const deleteApiV1EmpregabilidadeCurriculoExperienciasId = async (
 }
 
 /**
- * Cria uma nova formação no currículo do usuário autenticado
+ * Cria uma nova formação no currículo
  * @summary Criar formação
  */
 export type postApiV1EmpregabilidadeCurriculoFormacoesResponse201 = {
@@ -864,11 +715,6 @@ export type postApiV1EmpregabilidadeCurriculoFormacoesResponse400 = {
   status: 400
 }
 
-export type postApiV1EmpregabilidadeCurriculoFormacoesResponse401 = {
-  data: PostApiV1EmpregabilidadeCurriculoFormacoes401
-  status: 401
-}
-
 export type postApiV1EmpregabilidadeCurriculoFormacoesResponse500 = {
   data: PostApiV1EmpregabilidadeCurriculoFormacoes500
   status: 500
@@ -877,7 +723,6 @@ export type postApiV1EmpregabilidadeCurriculoFormacoesResponse500 = {
 export type postApiV1EmpregabilidadeCurriculoFormacoesResponseComposite =
   | postApiV1EmpregabilidadeCurriculoFormacoesResponse201
   | postApiV1EmpregabilidadeCurriculoFormacoesResponse400
-  | postApiV1EmpregabilidadeCurriculoFormacoesResponse401
   | postApiV1EmpregabilidadeCurriculoFormacoesResponse500
 
 export type postApiV1EmpregabilidadeCurriculoFormacoesResponse =
@@ -959,7 +804,7 @@ export const getApiV1EmpregabilidadeCurriculoFormacoesId = async (
 }
 
 /**
- * Atualiza uma formação existente do usuário autenticado
+ * Atualiza uma formação existente
  * @summary Atualizar formação
  */
 export type putApiV1EmpregabilidadeCurriculoFormacoesIdResponse200 = {
@@ -972,16 +817,6 @@ export type putApiV1EmpregabilidadeCurriculoFormacoesIdResponse400 = {
   status: 400
 }
 
-export type putApiV1EmpregabilidadeCurriculoFormacoesIdResponse403 = {
-  data: PutApiV1EmpregabilidadeCurriculoFormacoesId403
-  status: 403
-}
-
-export type putApiV1EmpregabilidadeCurriculoFormacoesIdResponse404 = {
-  data: PutApiV1EmpregabilidadeCurriculoFormacoesId404
-  status: 404
-}
-
 export type putApiV1EmpregabilidadeCurriculoFormacoesIdResponse500 = {
   data: PutApiV1EmpregabilidadeCurriculoFormacoesId500
   status: 500
@@ -990,8 +825,6 @@ export type putApiV1EmpregabilidadeCurriculoFormacoesIdResponse500 = {
 export type putApiV1EmpregabilidadeCurriculoFormacoesIdResponseComposite =
   | putApiV1EmpregabilidadeCurriculoFormacoesIdResponse200
   | putApiV1EmpregabilidadeCurriculoFormacoesIdResponse400
-  | putApiV1EmpregabilidadeCurriculoFormacoesIdResponse403
-  | putApiV1EmpregabilidadeCurriculoFormacoesIdResponse404
   | putApiV1EmpregabilidadeCurriculoFormacoesIdResponse500
 
 export type putApiV1EmpregabilidadeCurriculoFormacoesIdResponse =
@@ -1022,7 +855,7 @@ export const putApiV1EmpregabilidadeCurriculoFormacoesId = async (
 }
 
 /**
- * Remove uma formação do currículo do usuário autenticado
+ * Remove uma formação do currículo
  * @summary Excluir formação
  */
 export type deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse200 = {
@@ -1035,16 +868,6 @@ export type deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse400 = {
   status: 400
 }
 
-export type deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse403 = {
-  data: DeleteApiV1EmpregabilidadeCurriculoFormacoesId403
-  status: 403
-}
-
-export type deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse404 = {
-  data: DeleteApiV1EmpregabilidadeCurriculoFormacoesId404
-  status: 404
-}
-
 export type deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse500 = {
   data: DeleteApiV1EmpregabilidadeCurriculoFormacoesId500
   status: 500
@@ -1053,8 +876,6 @@ export type deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse500 = {
 export type deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponseComposite =
   | deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse200
   | deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse400
-  | deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse403
-  | deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse404
   | deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse500
 
 export type deleteApiV1EmpregabilidadeCurriculoFormacoesIdResponse =
@@ -1082,7 +903,7 @@ export const deleteApiV1EmpregabilidadeCurriculoFormacoesId = async (
 }
 
 /**
- * Adiciona um novo idioma ao currículo do usuário autenticado
+ * Adiciona um novo idioma ao currículo
  * @summary Criar idioma no currículo
  */
 export type postApiV1EmpregabilidadeCurriculoIdiomasResponse201 = {
@@ -1095,11 +916,6 @@ export type postApiV1EmpregabilidadeCurriculoIdiomasResponse400 = {
   status: 400
 }
 
-export type postApiV1EmpregabilidadeCurriculoIdiomasResponse401 = {
-  data: PostApiV1EmpregabilidadeCurriculoIdiomas401
-  status: 401
-}
-
 export type postApiV1EmpregabilidadeCurriculoIdiomasResponse500 = {
   data: PostApiV1EmpregabilidadeCurriculoIdiomas500
   status: 500
@@ -1108,7 +924,6 @@ export type postApiV1EmpregabilidadeCurriculoIdiomasResponse500 = {
 export type postApiV1EmpregabilidadeCurriculoIdiomasResponseComposite =
   | postApiV1EmpregabilidadeCurriculoIdiomasResponse201
   | postApiV1EmpregabilidadeCurriculoIdiomasResponse400
-  | postApiV1EmpregabilidadeCurriculoIdiomasResponse401
   | postApiV1EmpregabilidadeCurriculoIdiomasResponse500
 
 export type postApiV1EmpregabilidadeCurriculoIdiomasResponse =
@@ -1188,7 +1003,7 @@ export const getApiV1EmpregabilidadeCurriculoIdiomasId = async (
 }
 
 /**
- * Atualiza um idioma existente do usuário autenticado
+ * Atualiza um idioma existente no currículo
  * @summary Atualizar idioma no currículo
  */
 export type putApiV1EmpregabilidadeCurriculoIdiomasIdResponse200 = {
@@ -1201,16 +1016,6 @@ export type putApiV1EmpregabilidadeCurriculoIdiomasIdResponse400 = {
   status: 400
 }
 
-export type putApiV1EmpregabilidadeCurriculoIdiomasIdResponse403 = {
-  data: PutApiV1EmpregabilidadeCurriculoIdiomasId403
-  status: 403
-}
-
-export type putApiV1EmpregabilidadeCurriculoIdiomasIdResponse404 = {
-  data: PutApiV1EmpregabilidadeCurriculoIdiomasId404
-  status: 404
-}
-
 export type putApiV1EmpregabilidadeCurriculoIdiomasIdResponse500 = {
   data: PutApiV1EmpregabilidadeCurriculoIdiomasId500
   status: 500
@@ -1219,8 +1024,6 @@ export type putApiV1EmpregabilidadeCurriculoIdiomasIdResponse500 = {
 export type putApiV1EmpregabilidadeCurriculoIdiomasIdResponseComposite =
   | putApiV1EmpregabilidadeCurriculoIdiomasIdResponse200
   | putApiV1EmpregabilidadeCurriculoIdiomasIdResponse400
-  | putApiV1EmpregabilidadeCurriculoIdiomasIdResponse403
-  | putApiV1EmpregabilidadeCurriculoIdiomasIdResponse404
   | putApiV1EmpregabilidadeCurriculoIdiomasIdResponse500
 
 export type putApiV1EmpregabilidadeCurriculoIdiomasIdResponse =
@@ -1249,7 +1052,7 @@ export const putApiV1EmpregabilidadeCurriculoIdiomasId = async (
 }
 
 /**
- * Remove um idioma do currículo do usuário autenticado
+ * Remove um idioma do currículo
  * @summary Excluir idioma do currículo
  */
 export type deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse200 = {
@@ -1262,16 +1065,6 @@ export type deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse400 = {
   status: 400
 }
 
-export type deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse403 = {
-  data: DeleteApiV1EmpregabilidadeCurriculoIdiomasId403
-  status: 403
-}
-
-export type deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse404 = {
-  data: DeleteApiV1EmpregabilidadeCurriculoIdiomasId404
-  status: 404
-}
-
 export type deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse500 = {
   data: DeleteApiV1EmpregabilidadeCurriculoIdiomasId500
   status: 500
@@ -1280,8 +1073,6 @@ export type deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse500 = {
 export type deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponseComposite =
   | deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse200
   | deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse400
-  | deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse403
-  | deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse404
   | deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse500
 
 export type deleteApiV1EmpregabilidadeCurriculoIdiomasIdResponse =
@@ -1309,7 +1100,7 @@ export const deleteApiV1EmpregabilidadeCurriculoIdiomasId = async (
 }
 
 /**
- * Cria ou atualiza a situação atual e interesses do usuário autenticado
+ * Cria ou atualiza a situação atual e interesses do usuário
  * @summary Criar ou atualizar situação e interesses
  */
 export type putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponse200 = {
@@ -1322,11 +1113,6 @@ export type putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponse400 = {
   status: 400
 }
 
-export type putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponse401 = {
-  data: PutApiV1EmpregabilidadeCurriculoSituacaoInteresses401
-  status: 401
-}
-
 export type putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponse500 = {
   data: PutApiV1EmpregabilidadeCurriculoSituacaoInteresses500
   status: 500
@@ -1335,7 +1121,6 @@ export type putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponse500 = {
 export type putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponseComposite =
   | putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponse200
   | putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponse400
-  | putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponse401
   | putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponse500
 
 export type putApiV1EmpregabilidadeCurriculoSituacaoInteressesResponse =
@@ -1371,11 +1156,6 @@ export type getApiV1EmpregabilidadeCurriculoCpfResponse200 = {
   status: 200
 }
 
-export type getApiV1EmpregabilidadeCurriculoCpfResponse403 = {
-  data: GetApiV1EmpregabilidadeCurriculoCpf403
-  status: 403
-}
-
 export type getApiV1EmpregabilidadeCurriculoCpfResponse500 = {
   data: GetApiV1EmpregabilidadeCurriculoCpf500
   status: 500
@@ -1383,7 +1163,6 @@ export type getApiV1EmpregabilidadeCurriculoCpfResponse500 = {
 
 export type getApiV1EmpregabilidadeCurriculoCpfResponseComposite =
   | getApiV1EmpregabilidadeCurriculoCpfResponse200
-  | getApiV1EmpregabilidadeCurriculoCpfResponse403
   | getApiV1EmpregabilidadeCurriculoCpfResponse500
 
 export type getApiV1EmpregabilidadeCurriculoCpfResponse =
@@ -1409,17 +1188,12 @@ export const getApiV1EmpregabilidadeCurriculoCpf = async (
 }
 
 /**
- * Retorna todas as conquistas do usuário autenticado
+ * Retorna todas as conquistas de um usuário
  * @summary Listar conquistas por CPF
  */
 export type getApiV1EmpregabilidadeCurriculoCpfConquistasResponse200 = {
   data: GetApiV1EmpregabilidadeCurriculoCpfConquistas200
   status: 200
-}
-
-export type getApiV1EmpregabilidadeCurriculoCpfConquistasResponse403 = {
-  data: GetApiV1EmpregabilidadeCurriculoCpfConquistas403
-  status: 403
 }
 
 export type getApiV1EmpregabilidadeCurriculoCpfConquistasResponse500 = {
@@ -1429,7 +1203,6 @@ export type getApiV1EmpregabilidadeCurriculoCpfConquistasResponse500 = {
 
 export type getApiV1EmpregabilidadeCurriculoCpfConquistasResponseComposite =
   | getApiV1EmpregabilidadeCurriculoCpfConquistasResponse200
-  | getApiV1EmpregabilidadeCurriculoCpfConquistasResponse403
   | getApiV1EmpregabilidadeCurriculoCpfConquistasResponse500
 
 export type getApiV1EmpregabilidadeCurriculoCpfConquistasResponse =
@@ -1457,76 +1230,13 @@ export const getApiV1EmpregabilidadeCurriculoCpfConquistas = async (
 }
 
 /**
- * Remove todas as conquistas do CPF e insere as novas em uma transação
- * @summary Substituir conquistas por CPF
- */
-export type putApiV1EmpregabilidadeCurriculoCpfConquistasResponse200 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfConquistas200
-  status: 200
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfConquistasResponse400 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfConquistas400
-  status: 400
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfConquistasResponse403 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfConquistas403
-  status: 403
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfConquistasResponse500 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfConquistas500
-  status: 500
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfConquistasResponseComposite =
-  | putApiV1EmpregabilidadeCurriculoCpfConquistasResponse200
-  | putApiV1EmpregabilidadeCurriculoCpfConquistasResponse400
-  | putApiV1EmpregabilidadeCurriculoCpfConquistasResponse403
-  | putApiV1EmpregabilidadeCurriculoCpfConquistasResponse500
-
-export type putApiV1EmpregabilidadeCurriculoCpfConquistasResponse =
-  putApiV1EmpregabilidadeCurriculoCpfConquistasResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutApiV1EmpregabilidadeCurriculoCpfConquistasUrl = (
-  cpf: string
-) => {
-  return `/api/v1/empregabilidade/curriculo/${cpf}/conquistas`
-}
-
-export const putApiV1EmpregabilidadeCurriculoCpfConquistas = async (
-  cpf: string,
-  empregabilidadeCurriculoConquista: EmpregabilidadeCurriculoConquista[],
-  options?: RequestInit
-): Promise<putApiV1EmpregabilidadeCurriculoCpfConquistasResponse> => {
-  return customFetchGoRio<putApiV1EmpregabilidadeCurriculoCpfConquistasResponse>(
-    getPutApiV1EmpregabilidadeCurriculoCpfConquistasUrl(cpf),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(empregabilidadeCurriculoConquista),
-    }
-  )
-}
-
-/**
- * Retorna todos os cursos complementares do usuário autenticado
+ * Retorna todos os cursos complementares de um usuário
  * @summary Listar cursos complementares por CPF
  */
 export type getApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse200 =
   {
     data: GetApiV1EmpregabilidadeCurriculoCpfCursosComplementares200
     status: 200
-  }
-
-export type getApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse403 =
-  {
-    data: GetApiV1EmpregabilidadeCurriculoCpfCursosComplementares403
-    status: 403
   }
 
 export type getApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse500 =
@@ -1537,7 +1247,6 @@ export type getApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse500 =
 
 export type getApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponseComposite =
   | getApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse200
-  | getApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse403
   | getApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse500
 
 export type getApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse =
@@ -1565,78 +1274,12 @@ export const getApiV1EmpregabilidadeCurriculoCpfCursosComplementares = async (
 }
 
 /**
- * Remove todos os cursos complementares do CPF e insere os novos em uma transação
- * @summary Substituir cursos complementares por CPF
- */
-export type putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse200 =
-  {
-    data: PutApiV1EmpregabilidadeCurriculoCpfCursosComplementares200
-    status: 200
-  }
-
-export type putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse400 =
-  {
-    data: PutApiV1EmpregabilidadeCurriculoCpfCursosComplementares400
-    status: 400
-  }
-
-export type putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse403 =
-  {
-    data: PutApiV1EmpregabilidadeCurriculoCpfCursosComplementares403
-    status: 403
-  }
-
-export type putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse500 =
-  {
-    data: PutApiV1EmpregabilidadeCurriculoCpfCursosComplementares500
-    status: 500
-  }
-
-export type putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponseComposite =
-  | putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse200
-  | putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse400
-  | putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse403
-  | putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse500
-
-export type putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse =
-  putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutApiV1EmpregabilidadeCurriculoCpfCursosComplementaresUrl = (
-  cpf: string
-) => {
-  return `/api/v1/empregabilidade/curriculo/${cpf}/cursos-complementares`
-}
-
-export const putApiV1EmpregabilidadeCurriculoCpfCursosComplementares = async (
-  cpf: string,
-  empregabilidadeCurriculoCursoComplementar: EmpregabilidadeCurriculoCursoComplementar[],
-  options?: RequestInit
-): Promise<putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse> => {
-  return customFetchGoRio<putApiV1EmpregabilidadeCurriculoCpfCursosComplementaresResponse>(
-    getPutApiV1EmpregabilidadeCurriculoCpfCursosComplementaresUrl(cpf),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(empregabilidadeCurriculoCursoComplementar),
-    }
-  )
-}
-
-/**
- * Retorna todas as experiências profissionais do usuário autenticado
+ * Retorna todas as experiências profissionais de um usuário
  * @summary Listar experiências por CPF
  */
 export type getApiV1EmpregabilidadeCurriculoCpfExperienciasResponse200 = {
   data: GetApiV1EmpregabilidadeCurriculoCpfExperiencias200
   status: 200
-}
-
-export type getApiV1EmpregabilidadeCurriculoCpfExperienciasResponse403 = {
-  data: GetApiV1EmpregabilidadeCurriculoCpfExperiencias403
-  status: 403
 }
 
 export type getApiV1EmpregabilidadeCurriculoCpfExperienciasResponse500 = {
@@ -1646,7 +1289,6 @@ export type getApiV1EmpregabilidadeCurriculoCpfExperienciasResponse500 = {
 
 export type getApiV1EmpregabilidadeCurriculoCpfExperienciasResponseComposite =
   | getApiV1EmpregabilidadeCurriculoCpfExperienciasResponse200
-  | getApiV1EmpregabilidadeCurriculoCpfExperienciasResponse403
   | getApiV1EmpregabilidadeCurriculoCpfExperienciasResponse500
 
 export type getApiV1EmpregabilidadeCurriculoCpfExperienciasResponse =
@@ -1674,76 +1316,12 @@ export const getApiV1EmpregabilidadeCurriculoCpfExperiencias = async (
 }
 
 /**
- * Remove todas as experiências e conquistas do CPF e insere as novas em uma transação
- * @summary Substituir experiências e conquistas por CPF
- */
-export type putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse200 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfExperiencias200
-  status: 200
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse400 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfExperiencias400
-  status: 400
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse403 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfExperiencias403
-  status: 403
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse500 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfExperiencias500
-  status: 500
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfExperienciasResponseComposite =
-  | putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse200
-  | putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse400
-  | putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse403
-  | putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse500
-
-export type putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse =
-  putApiV1EmpregabilidadeCurriculoCpfExperienciasResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutApiV1EmpregabilidadeCurriculoCpfExperienciasUrl = (
-  cpf: string
-) => {
-  return `/api/v1/empregabilidade/curriculo/${cpf}/experiencias`
-}
-
-export const putApiV1EmpregabilidadeCurriculoCpfExperiencias = async (
-  cpf: string,
-  empregabilidadeExperienciaProfissionalAccordionRequest: EmpregabilidadeExperienciaProfissionalAccordionRequest,
-  options?: RequestInit
-): Promise<putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse> => {
-  return customFetchGoRio<putApiV1EmpregabilidadeCurriculoCpfExperienciasResponse>(
-    getPutApiV1EmpregabilidadeCurriculoCpfExperienciasUrl(cpf),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(
-        empregabilidadeExperienciaProfissionalAccordionRequest
-      ),
-    }
-  )
-}
-
-/**
- * Retorna todas as formações do usuário autenticado
+ * Retorna todas as formações de um usuário
  * @summary Listar formações por CPF
  */
 export type getApiV1EmpregabilidadeCurriculoCpfFormacoesResponse200 = {
   data: GetApiV1EmpregabilidadeCurriculoCpfFormacoes200
   status: 200
-}
-
-export type getApiV1EmpregabilidadeCurriculoCpfFormacoesResponse403 = {
-  data: GetApiV1EmpregabilidadeCurriculoCpfFormacoes403
-  status: 403
 }
 
 export type getApiV1EmpregabilidadeCurriculoCpfFormacoesResponse500 = {
@@ -1753,7 +1331,6 @@ export type getApiV1EmpregabilidadeCurriculoCpfFormacoesResponse500 = {
 
 export type getApiV1EmpregabilidadeCurriculoCpfFormacoesResponseComposite =
   | getApiV1EmpregabilidadeCurriculoCpfFormacoesResponse200
-  | getApiV1EmpregabilidadeCurriculoCpfFormacoesResponse403
   | getApiV1EmpregabilidadeCurriculoCpfFormacoesResponse500
 
 export type getApiV1EmpregabilidadeCurriculoCpfFormacoesResponse =
@@ -1781,74 +1358,12 @@ export const getApiV1EmpregabilidadeCurriculoCpfFormacoes = async (
 }
 
 /**
- * Remove todas as formações e idiomas do CPF e insere os novos em uma única transação
- * @summary Substituir formações e idiomas por CPF
- */
-export type putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse200 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfFormacoes200
-  status: 200
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse400 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfFormacoes400
-  status: 400
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse403 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfFormacoes403
-  status: 403
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse500 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfFormacoes500
-  status: 500
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfFormacoesResponseComposite =
-  | putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse200
-  | putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse400
-  | putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse403
-  | putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse500
-
-export type putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse =
-  putApiV1EmpregabilidadeCurriculoCpfFormacoesResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutApiV1EmpregabilidadeCurriculoCpfFormacoesUrl = (
-  cpf: string
-) => {
-  return `/api/v1/empregabilidade/curriculo/${cpf}/formacoes`
-}
-
-export const putApiV1EmpregabilidadeCurriculoCpfFormacoes = async (
-  cpf: string,
-  empregabilidadeFormacaoAccordionRequest: EmpregabilidadeFormacaoAccordionRequest,
-  options?: RequestInit
-): Promise<putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse> => {
-  return customFetchGoRio<putApiV1EmpregabilidadeCurriculoCpfFormacoesResponse>(
-    getPutApiV1EmpregabilidadeCurriculoCpfFormacoesUrl(cpf),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(empregabilidadeFormacaoAccordionRequest),
-    }
-  )
-}
-
-/**
- * Retorna todos os idiomas do usuário autenticado
+ * Retorna todos os idiomas de um usuário
  * @summary Listar idiomas por CPF
  */
 export type getApiV1EmpregabilidadeCurriculoCpfIdiomasResponse200 = {
   data: GetApiV1EmpregabilidadeCurriculoCpfIdiomas200
   status: 200
-}
-
-export type getApiV1EmpregabilidadeCurriculoCpfIdiomasResponse403 = {
-  data: GetApiV1EmpregabilidadeCurriculoCpfIdiomas403
-  status: 403
 }
 
 export type getApiV1EmpregabilidadeCurriculoCpfIdiomasResponse500 = {
@@ -1858,7 +1373,6 @@ export type getApiV1EmpregabilidadeCurriculoCpfIdiomasResponse500 = {
 
 export type getApiV1EmpregabilidadeCurriculoCpfIdiomasResponseComposite =
   | getApiV1EmpregabilidadeCurriculoCpfIdiomasResponse200
-  | getApiV1EmpregabilidadeCurriculoCpfIdiomasResponse403
   | getApiV1EmpregabilidadeCurriculoCpfIdiomasResponse500
 
 export type getApiV1EmpregabilidadeCurriculoCpfIdiomasResponse =
@@ -1886,74 +1400,12 @@ export const getApiV1EmpregabilidadeCurriculoCpfIdiomas = async (
 }
 
 /**
- * Remove todos os idiomas do CPF e insere os novos em uma transação
- * @summary Substituir idiomas por CPF
- */
-export type putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse200 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfIdiomas200
-  status: 200
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse400 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfIdiomas400
-  status: 400
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse403 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfIdiomas403
-  status: 403
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse500 = {
-  data: PutApiV1EmpregabilidadeCurriculoCpfIdiomas500
-  status: 500
-}
-
-export type putApiV1EmpregabilidadeCurriculoCpfIdiomasResponseComposite =
-  | putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse200
-  | putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse400
-  | putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse403
-  | putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse500
-
-export type putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse =
-  putApiV1EmpregabilidadeCurriculoCpfIdiomasResponseComposite & {
-    headers: Headers
-  }
-
-export const getPutApiV1EmpregabilidadeCurriculoCpfIdiomasUrl = (
-  cpf: string
-) => {
-  return `/api/v1/empregabilidade/curriculo/${cpf}/idiomas`
-}
-
-export const putApiV1EmpregabilidadeCurriculoCpfIdiomas = async (
-  cpf: string,
-  empregabilidadeCurriculoIdioma: EmpregabilidadeCurriculoIdioma[],
-  options?: RequestInit
-): Promise<putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse> => {
-  return customFetchGoRio<putApiV1EmpregabilidadeCurriculoCpfIdiomasResponse>(
-    getPutApiV1EmpregabilidadeCurriculoCpfIdiomasUrl(cpf),
-    {
-      ...options,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(empregabilidadeCurriculoIdioma),
-    }
-  )
-}
-
-/**
- * Retorna a situação atual e interesses do usuário autenticado
+ * Retorna a situação atual e interesses de um usuário
  * @summary Buscar situação e interesses por CPF
  */
 export type getApiV1EmpregabilidadeCurriculoCpfSituacaoInteressesResponse200 = {
   data: EmpregabilidadeCurriculoSituacaoInteresses
   status: 200
-}
-
-export type getApiV1EmpregabilidadeCurriculoCpfSituacaoInteressesResponse403 = {
-  data: GetApiV1EmpregabilidadeCurriculoCpfSituacaoInteresses403
-  status: 403
 }
 
 export type getApiV1EmpregabilidadeCurriculoCpfSituacaoInteressesResponse404 = {
@@ -1968,7 +1420,6 @@ export type getApiV1EmpregabilidadeCurriculoCpfSituacaoInteressesResponse500 = {
 
 export type getApiV1EmpregabilidadeCurriculoCpfSituacaoInteressesResponseComposite =
   | getApiV1EmpregabilidadeCurriculoCpfSituacaoInteressesResponse200
-  | getApiV1EmpregabilidadeCurriculoCpfSituacaoInteressesResponse403
   | getApiV1EmpregabilidadeCurriculoCpfSituacaoInteressesResponse404
   | getApiV1EmpregabilidadeCurriculoCpfSituacaoInteressesResponse500
 

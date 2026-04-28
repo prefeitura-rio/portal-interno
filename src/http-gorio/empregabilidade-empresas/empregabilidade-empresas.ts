@@ -28,7 +28,7 @@ import type {
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 /**
- * Retorna lista paginada de empresas com filtros opcionais
+ * Retorna lista paginada de empresas
  * @summary Listar empresas
  */
 export type getApiV1EmpregabilidadeEmpresasResponse200 = {

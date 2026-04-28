@@ -1,10 +1,4 @@
-export type ModalStep =
-  | 'options'
-  | 'manual'
-  | 'spreadsheet'
-  | 'processing'
-  | 'results'
-  | 'finish'
+export type ModalStep = 'options' | 'manual' | 'spreadsheet' | 'processing' | 'results' | 'finish'
 
 export type FinishStatus = 'loading' | 'success' | 'error'
 
@@ -140,3 +134,4 @@ export interface UseAddParticipantsModalReturn {
   setStep: (step: ModalStep) => void
   setJobResult: (result: JobResult) => void
 }
+

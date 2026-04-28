@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { DepartmentName } from '@/components/ui/department-name'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +28,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import { DepartmentName } from '@/components/ui/department-name'
 import { useDepartment } from '@/hooks/use-department'
 import type {
   CourseListItem,
@@ -50,22 +50,17 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
-  AlertCircle,
   Ban,
   BookOpen,
   Building2,
   Calendar,
-  CheckCircle,
-  CheckCircle2,
   ClipboardList,
-  Eye,
   FileText,
   Flag,
   Handshake,
   MoreHorizontal,
   Play,
   Text,
-  Trash2,
   UserCheck,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -202,12 +197,12 @@ function DepartmentSiglaWithPartnerTooltip({
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="truncate cursor-help">
-          <Badge
-            variant="secondary"
-            className="text-xs mr-2 px-2 py-0.5 bg-blue-100 text-blue-500 border-blue-200 shrink-0"
-          >
-            Parceria
-          </Badge>
+        <Badge
+                    variant="secondary"
+                    className="text-xs mr-2 px-2 py-0.5 bg-blue-100 text-blue-500 border-blue-200 shrink-0"
+                  >
+                    Parceria
+                  </Badge>
           {sigla}
           {externalPartnerName && (
             <>
@@ -254,14 +249,6 @@ export default function Courses() {
   const [coursesPageCount, setCoursesPageCount] = React.useState(0)
   const [draftCoursesPageCount, setDraftCoursesPageCount] = React.useState(0)
 
-  // NOVO - Estado para cursos em revisão
-  const [inReviewCourses, setInReviewCourses] = React.useState<
-    CourseListItem[]
-  >([])
-  const [inReviewCoursesTotal, setInReviewCoursesTotal] = React.useState(0)
-  const [inReviewCoursesPageCount, setInReviewCoursesPageCount] =
-    React.useState(0)
-
   // Fetch courses data with pagination
   const fetchCourses = React.useCallback(
     async (pageIndex = 0, pageSize = 10, tab = activeTab, searchQuery = '') => {
@@ -287,24 +274,6 @@ export default function Courses() {
             setDraftCourses(data.courses || [])
             setDraftCoursesTotal(data.total || data.pagination?.total || 0)
             setDraftCoursesPageCount(
-              Math.ceil((data.total || data.pagination?.total || 0) / pageSize)
-            )
-          }
-        } else if (tab === 'in_review') {
-          // NOVO - Build URL para cursos em revisão
-          const url = new URL('/api/courses/in-review', window.location.origin)
-          url.searchParams.set('page', (pageIndex + 1).toString())
-          url.searchParams.set('per_page', pageSize.toString())
-          if (searchQuery.trim()) {
-            url.searchParams.set('search', searchQuery.trim())
-          }
-
-          const response = await fetch(url.toString())
-          if (response.ok) {
-            const data = await response.json()
-            setInReviewCourses(data.courses || [])
-            setInReviewCoursesTotal(data.total || data.pagination?.total || 0)
-            setInReviewCoursesPageCount(
               Math.ceil((data.total || data.pagination?.total || 0) / pageSize)
             )
           }
@@ -416,7 +385,6 @@ export default function Courses() {
   )
 
   // Filter data based on active tab
-  // ANTIGO: return activeTab === 'draft' ? draftCourses : courses
   const filteredData = React.useMemo(() => {
     if (activeTab === 'draft') {
       return draftCourses
@@ -425,17 +393,15 @@ export default function Courses() {
       return inReviewCourses
     }
     return courses
-  }, [activeTab, courses, draftCourses, inReviewCourses])
+  }, [activeTab, courses, draftCourses])
 
   // Get total count and page count based on active tab
-  // ANTIGO: return activeTab === 'draft' ? draftCoursesTotal : coursesTotal
   const totalCount = React.useMemo(() => {
     if (activeTab === 'draft') return draftCoursesTotal
     if (activeTab === 'in_review') return inReviewCoursesTotal
     return coursesTotal
   }, [activeTab, draftCoursesTotal, inReviewCoursesTotal, coursesTotal])
 
-  // ANTIGO: return activeTab === 'draft' ? draftCoursesPageCount : coursesPageCount
   const pageCount = React.useMemo(() => {
     if (activeTab === 'draft') return draftCoursesPageCount
     if (activeTab === 'in_review') return inReviewCoursesPageCount
@@ -510,7 +476,7 @@ export default function Courses() {
 
           // Determine if we should show handshake icon
           // Show handshake for external partnerships
-          const showHandshake =
+          const showHandshake = 
             courseManagementType === 'EXTERNAL_MANAGED_BY_ORG' ||
             courseManagementType === 'EXTERNAL_MANAGED_BY_PARTNER' ||
             (courseManagementType === undefined && isExternalPartner)
@@ -743,6 +709,14 @@ export default function Courses() {
                     Editar
                   </Link>
                 </DropdownMenuItem>
+                {/* {course.status === 'draft' && (
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => openConfirmDialog('delete_draft', course)}
+                  >
+                    Excluir rascunho
+                  </DropdownMenuItem>
+                )} */}
               </DropdownMenuContent>
             </DropdownMenu>
           )
@@ -769,6 +743,9 @@ export default function Courses() {
       cell: ({ cell }) => {
         const status = cell.getValue<CourseListItem['status']>()
         const config = statusConfig[status]
+        if (!config) {
+          return <Badge variant="outline">{status}</Badge>
+        }
         const Icon = config.icon
 
         return (
@@ -926,19 +903,6 @@ export default function Courses() {
               loading={loading}
               onRowClick={course => {
                 // Navigate to the course detail page in a new tab
-                window.open(`/gorio/courses/course/${course.id}`, '_blank')
-              }}
-            >
-              <DataTableToolbar table={table} />
-            </DataTable>
-          </TabsContent>
-
-          {/* NOVO - Tab para cursos em revisão */}
-          <TabsContent value="in_review" className="space-y-4">
-            <DataTable
-              table={table}
-              loading={loading}
-              onRowClick={course => {
                 window.open(`/gorio/courses/course/${course.id}`, '_blank')
               }}
             >

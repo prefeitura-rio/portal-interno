@@ -1,5 +1,5 @@
-import type { ModelsCNAE } from '@/http-rmi/models/modelsCNAE'
 import { useEffect, useState } from 'react'
+import type { ModelsCNAE } from '@/http-rmi/models/modelsCNAE'
 
 interface CNAEHierarchyOption {
   value: string

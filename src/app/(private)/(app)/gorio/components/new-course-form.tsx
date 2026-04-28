@@ -1868,7 +1868,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           type: 'save_changes',
         })
       } else {
-        // Creating a new course - show "Enviar para Aprovação" dialog
+        // Creating a new course - show "Criar Curso" dialog
         setConfirmDialog({
           open: true,
           type: 'create_course',
@@ -1919,10 +1919,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           if (onSubmit) {
             onSubmit(courseData)
           } else {
-            // ANTIGO: toast.success('Curso criado com sucesso!') + redirect to 'created' tab
-            // NOVO - Curso é automaticamente enviado para revisão após criação
-            toast.success('Curso enviado para aprovação com sucesso!')
-            router.push('/gorio/courses?tab=in_review')
+            toast.success('Curso criado com sucesso!')
+            // Redirect to courses page with 'created' tab active
+            router.push('/gorio/courses?tab=created')
           }
         }
       } catch (error) {

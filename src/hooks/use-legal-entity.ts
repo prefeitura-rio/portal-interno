@@ -57,3 +57,4 @@ export function useLegalEntity(): UseLegalEntityReturn {
     fetchLegalEntity,
   }
 }
+
