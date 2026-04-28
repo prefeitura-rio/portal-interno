@@ -34,6 +34,7 @@ import {
   FileText,
   Flag,
   Play,
+  RotateCcw,
   Save,
   Trash2,
   UserCheck,
