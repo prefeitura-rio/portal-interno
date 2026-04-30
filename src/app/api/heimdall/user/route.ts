@@ -26,7 +26,7 @@ export async function GET() {
     if (cachedUserCookie?.value) {
       try {
         const parsed = JSON.parse(cachedUserCookie.value) as HeimdallUser
-        if (parsed && parsed.id && parsed.cpf) {
+        if (parsed?.id && parsed.cpf) {
           return NextResponse.json(parsed, { status: 200 })
         }
       } catch {
