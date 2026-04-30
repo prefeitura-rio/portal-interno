@@ -145,7 +145,7 @@ export async function getUserFromHeimdallWithCache(
   if (userCookie?.value) {
     try {
       const parsed = JSON.parse(userCookie.value) as HeimdallUser
-      if (parsed && parsed.roles && Array.isArray(parsed.roles)) {
+      if (parsed?.roles && Array.isArray(parsed.roles)) {
         console.log(
           `[${cpf}] [MIDDLEWARE_HELPERS] Using Heimdall user from cookie with ${parsed.roles.length} roles`
         )
