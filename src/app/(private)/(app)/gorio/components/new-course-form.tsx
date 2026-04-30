@@ -807,6 +807,8 @@ interface NewCourseFormProps {
   onSubmit?: (data: BackendCourseData) => void
   onSaveDraft?: (data: BackendCourseData) => void
   onPublish?: (data: BackendCourseData) => void
+  onSendToReview?: () => void
+  onCancel?: () => void
   isDraft?: boolean
   courseStatus?: string
   onFormChangesDetected?: (hasChanges: boolean) => void
@@ -818,6 +820,7 @@ export interface NewCourseFormRef {
   triggerPublish: () => void
   triggerSaveDraft: () => void
   resetForm: () => void
+  validateFullForm: () => Promise<boolean>
 }
 
 export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
@@ -828,6 +831,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       onSubmit,
       onSaveDraft,
       onPublish,
+      onSendToReview,
+      onCancel,
       isDraft = false,
       courseStatus,
       onFormChangesDetected,
@@ -1113,6 +1118,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         | 'save_draft'
         | 'publish_course'
         | 'save_changes'
+        | 'cancel_creation'
         | null
     }>({
       open: false,
@@ -1711,6 +1717,42 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           keepIsValid: false,
           keepSubmitCount: false,
         })
+      },
+      validateFullForm: async () => {
+        // Sync formacao_link before validation
+        const modalidade = form.getValues('modalidade')
+        const externalPartnerUrl = form.getValues('external_partner_url')
+        if (
+          modalidade === 'LIVRE_FORMACAO_ONLINE' &&
+          externalPartnerUrl &&
+          externalPartnerUrl.trim() !== ''
+        ) {
+          form.setValue('formacao_link', externalPartnerUrl, {
+            shouldValidate: false,
+          })
+        }
+
+        try {
+          const currentValues = form.getValues()
+          if (
+            currentValues.modalidade === 'LIVRE_FORMACAO_ONLINE' &&
+            currentValues.external_partner_url &&
+            !currentValues.formacao_link
+          ) {
+            currentValues.formacao_link = currentValues.external_partner_url
+          }
+          fullFormSchema.parse(currentValues)
+          return true
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            const errorMessage = formatValidationErrors(error)
+            toast.error('Campos obrigatórios não preenchidos', {
+              description: errorMessage,
+              duration: 5000,
+            })
+          }
+          return false
+        }
       },
     }))
 
@@ -3465,7 +3507,17 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             </div>
           </div>
 
-          <div className="space-y-4 lg:mt-10">
+          <div className="space-y-4 lg:mt-10 pointer-events-auto">
+            {!initialData && onCancel && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={onCancel}
+                className="w-full py-6"
+              >
+                Cancelar
+              </Button>
+            )}
             {!initialData && (
               <Button
                 type="button"
@@ -3476,16 +3528,25 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 Salvar Rascunho
               </Button>
             )}
-            {isDraft && onPublish && (
+            {isDraft && isReadOnly && canPublishDirectly && onPublish && (
               <Button
                 type="button"
                 onClick={handlePublish}
                 className="w-full py-6"
               >
-                {canPublishDirectly ? 'Publicar' : 'Enviar para Aprovação'}
+                Publicar
               </Button>
             )}
-            {isDraft && (
+            {isDraft && isReadOnly && !canPublishDirectly && onSendToReview && (
+              <Button
+                type="button"
+                onClick={onSendToReview}
+                className="w-full py-6"
+              >
+                Enviar para Aprovação
+              </Button>
+            )}
+            {isDraft && !isReadOnly && (
               <Button
                 type="button"
                 variant="outline"
@@ -3530,52 +3591,64 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           open={confirmDialog.open}
           onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
           title={
-            confirmDialog.type === 'create_course'
-              ? canPublishDirectly
-                ? 'Publicar Curso'
-                : 'Enviar para Aprovação'
-              : confirmDialog.type === 'save_draft'
-                ? 'Salvar Rascunho'
-                : confirmDialog.type === 'save_changes'
-                  ? 'Salvar Alterações'
-                  : confirmDialog.type === 'publish_course'
-                    ? canPublishDirectly
-                      ? 'Publicar Curso'
-                      : 'Enviar para Aprovação'
-                    : 'Salvar Alterações'
+            confirmDialog.type === 'cancel_creation'
+              ? 'Cancelar criação'
+              : confirmDialog.type === 'create_course'
+                ? canPublishDirectly
+                  ? 'Publicar Curso'
+                  : 'Enviar para Aprovação'
+                : confirmDialog.type === 'save_draft'
+                  ? 'Salvar Rascunho'
+                  : confirmDialog.type === 'save_changes'
+                    ? 'Salvar Alterações'
+                    : confirmDialog.type === 'publish_course'
+                      ? canPublishDirectly
+                        ? 'Publicar Curso'
+                        : 'Enviar para Aprovação'
+                      : 'Salvar Alterações'
           }
           description={
-            confirmDialog.type === 'create_course'
-              ? canPublishDirectly
-                ? 'Tem certeza que deseja publicar este curso? O curso será publicado imediatamente.'
-                : 'Tem certeza que deseja enviar este curso para aprovação? O curso será enviado para revisão.'
-              : confirmDialog.type === 'save_draft'
-                ? 'Tem certeza que deseja salvar este rascunho? O curso não será publicado ainda.'
-                : confirmDialog.type === 'save_changes'
-                  ? 'Tem certeza que deseja salvar as alterações neste curso?'
-                  : confirmDialog.type === 'publish_course'
-                    ? canPublishDirectly
-                      ? 'Tem certeza que deseja publicar este curso? O curso será publicado imediatamente.'
-                      : 'Tem certeza que deseja enviar este curso para aprovação? O curso será revisado pela Casa Civil.'
-                    : 'Tem certeza que deseja salvar as alterações neste curso?'
+            confirmDialog.type === 'cancel_creation'
+              ? 'Deseja descartar as informações preenchidas? Esta ação não pode ser desfeita.'
+              : confirmDialog.type === 'create_course'
+                ? canPublishDirectly
+                  ? 'Tem certeza que deseja publicar este curso? O curso será publicado imediatamente.'
+                  : 'Tem certeza que deseja enviar este curso para aprovação? O curso será enviado para revisão.'
+                : confirmDialog.type === 'save_draft'
+                  ? 'Tem certeza que deseja salvar este rascunho? O curso não será publicado ainda.'
+                  : confirmDialog.type === 'save_changes'
+                    ? 'Tem certeza que deseja salvar as alterações neste curso?'
+                    : confirmDialog.type === 'publish_course'
+                      ? canPublishDirectly
+                        ? 'Tem certeza que deseja publicar este curso? O curso será publicado imediatamente.'
+                        : 'Tem certeza que deseja enviar este curso para aprovação? O curso será revisado pela Casa Civil.'
+                      : 'Tem certeza que deseja salvar as alterações neste curso?'
           }
           confirmText={
-            confirmDialog.type === 'create_course'
-              ? canPublishDirectly
-                ? 'Publicar'
-                : 'Enviar para Aprovação'
-              : confirmDialog.type === 'save_draft'
-                ? 'Salvar Rascunho'
-                : confirmDialog.type === 'save_changes'
-                  ? 'Salvar Alterações'
-                  : confirmDialog.type === 'publish_course'
-                    ? canPublishDirectly
-                      ? 'Publicar'
-                      : 'Enviar para Aprovação'
-                    : 'Salvar Alterações'
+            confirmDialog.type === 'cancel_creation'
+              ? 'Descartar'
+              : confirmDialog.type === 'create_course'
+                ? canPublishDirectly
+                  ? 'Publicar'
+                  : 'Enviar para Aprovação'
+                : confirmDialog.type === 'save_draft'
+                  ? 'Salvar Rascunho'
+                  : confirmDialog.type === 'save_changes'
+                    ? 'Salvar Alterações'
+                    : confirmDialog.type === 'publish_course'
+                      ? canPublishDirectly
+                        ? 'Publicar'
+                        : 'Enviar para Aprovação'
+                      : 'Salvar Alterações'
           }
-          variant="default"
+          variant={
+            confirmDialog.type === 'cancel_creation' ? 'destructive' : 'default'
+          }
           onConfirm={() => {
+            if (confirmDialog.type === 'cancel_creation') {
+              onCancel?.()
+              return
+            }
             const currentValues = form.getValues()
             if (confirmDialog.type === 'create_course') {
               confirmCreateCourse(currentValues)
