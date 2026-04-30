@@ -61,9 +61,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const responses = await Promise.all(
-      CREATED_TAB_STATUSES.map(fetchByStatus)
-    )
+    const responses = await Promise.all(CREATED_TAB_STATUSES.map(fetchByStatus))
 
     // Extract courses from each response
     const extractCourses = async (res: Response): Promise<any[]> => {
