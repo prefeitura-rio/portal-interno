@@ -32,6 +32,8 @@ interface DepartmentComboboxProps {
   placeholder?: string
   className?: string
   clearButtonSize?: string
+  /** When set, restricts the combobox to only these department cd_ua ids */
+  restrictToIds?: string[]
 }
 
 export function DepartmentCombobox({
@@ -41,7 +43,9 @@ export function DepartmentCombobox({
   placeholder = 'Selecione um órgão',
   className,
   clearButtonSize = 'h-9! w-9!',
+  restrictToIds,
 }: DepartmentComboboxProps) {
+  const isRestricted = restrictToIds && restrictToIds.length > 0
   const [open, setOpen] = React.useState(false)
   const [departments, setDepartments] = React.useState<Department[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -57,6 +61,51 @@ export function DepartmentCombobox({
     React.useState<Department | null>(null)
   const [selectedDepartmentLoaded, setSelectedDepartmentLoaded] =
     React.useState(false)
+
+  // Fetch restricted departments by id and auto-select if only one
+  React.useEffect(() => {
+    if (!isRestricted) return
+
+    let isCancelled = false
+
+    const fetchRestricted = async () => {
+      setLoading(true)
+      try {
+        const results = await Promise.all(
+          restrictToIds.map(async id => {
+            const res = await fetch(`/api/departments/${id}`)
+            if (res.ok) {
+              const data = await res.json()
+              return data.data as Department | null
+            }
+            return null
+          })
+        )
+        if (isCancelled) return
+
+        const valid = results.filter(Boolean) as Department[]
+        setDepartments(valid)
+        setHasMore(false)
+
+        // Auto-select if only one department
+        if (valid.length === 1 && !value) {
+          onValueChange(valid[0].cd_ua)
+          setSelectedDepartment(valid[0])
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Error fetching restricted departments:', error)
+        }
+      } finally {
+        if (!isCancelled) setLoading(false)
+      }
+    }
+
+    fetchRestricted()
+    return () => {
+      isCancelled = true
+    }
+  }, [isRestricted, restrictToIds, value, onValueChange])
 
   // Fetch departments
   const fetchDepartments = React.useCallback(
@@ -153,13 +202,14 @@ export function DepartmentCombobox({
     }
   }, [loading, hasMore, page, search, fetchDepartments])
 
-  // Initial load
+  // Initial load (skip if restricted — already fetched by restrictToIds effect)
   React.useEffect(() => {
+    if (isRestricted) return
     if (open) {
       setPage(1)
       fetchDepartments(1, '')
     }
-  }, [open, fetchDepartments])
+  }, [open, fetchDepartments, isRestricted])
 
   // Fetch selected department details when value changes
   React.useEffect(() => {
@@ -257,7 +307,7 @@ export function DepartmentCombobox({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            disabled={disabled}
+            disabled={disabled || (isRestricted && restrictToIds.length === 1)}
             className={cn(
               'truncate! relative! overflow-hidden! flex-1 justify-between text-left min-w-0 w-full',
               !value && 'text-muted-foreground',
@@ -355,7 +405,7 @@ export function DepartmentCombobox({
           </Command>
         </PopoverContent>
       </Popover>
-      {value && (
+      {value && !(isRestricted && restrictToIds.length === 1) && (
         <Button
           variant="outline"
           size="icon"
