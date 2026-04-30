@@ -21,7 +21,7 @@ export default function NewCourse() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
-  const { canPublishCourses } = useHeimdallUserContext()
+  const { canPublishCourses, userOrgaoIds } = useHeimdallUserContext()
 
   const handleCreateCourse = async (data: any) => {
     try {
@@ -175,6 +175,7 @@ export default function NewCourse() {
           }}
           onFormChangesDetected={setHasUnsavedChanges}
           canPublishDirectly={canPublishCourses}
+          userOrgaoIds={!canPublishCourses ? userOrgaoIds : undefined}
         />
       </div>
 

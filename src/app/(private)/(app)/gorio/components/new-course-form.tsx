@@ -813,6 +813,8 @@ interface NewCourseFormProps {
   courseStatus?: string
   onFormChangesDetected?: (hasChanges: boolean) => void
   canPublishDirectly?: boolean
+  /** Restrict orgao_id field to these department ids (for editors) */
+  userOrgaoIds?: string[]
 }
 
 export interface NewCourseFormRef {
@@ -837,6 +839,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       courseStatus,
       onFormChangesDetected,
       canPublishDirectly = false,
+      userOrgaoIds,
     },
     ref
   ) => {
@@ -2261,6 +2264,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         onValueChange={field.onChange}
                         disabled={isReadOnly}
                         placeholder="Selecione um órgão"
+                        restrictToIds={userOrgaoIds}
                       />
                     </FormControl>
                     <FormMessage />
