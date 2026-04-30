@@ -262,6 +262,15 @@ export default function Courses() {
   const [inReviewCoursesPageCount, setInReviewCoursesPageCount] =
     React.useState(0)
 
+  // Estado para cursos devolvidos para edição (tab "Em edição" - somente editor)
+  const [needsChangesCourses, setNeedsChangesCourses] = React.useState<
+    CourseListItem[]
+  >([])
+  const [needsChangesCoursesTotal, setNeedsChangesCoursesTotal] =
+    React.useState(0)
+  const [needsChangesCoursesPageCount, setNeedsChangesCoursesPageCount] =
+    React.useState(0)
+
   // Fetch courses data with pagination
   const fetchCourses = React.useCallback(
     async (pageIndex = 0, pageSize = 10, tab = activeTab, searchQuery = '') => {
@@ -305,6 +314,28 @@ export default function Courses() {
             setInReviewCourses(data.courses || [])
             setInReviewCoursesTotal(data.total || data.pagination?.total || 0)
             setInReviewCoursesPageCount(
+              Math.ceil((data.total || data.pagination?.total || 0) / pageSize)
+            )
+          }
+        } else if (tab === 'needs_changes') {
+          const url = new URL(
+            '/api/courses/needs-changes',
+            window.location.origin
+          )
+          url.searchParams.set('page', (pageIndex + 1).toString())
+          url.searchParams.set('per_page', pageSize.toString())
+          if (searchQuery.trim()) {
+            url.searchParams.set('search', searchQuery.trim())
+          }
+
+          const response = await fetch(url.toString())
+          if (response.ok) {
+            const data = await response.json()
+            setNeedsChangesCourses(data.courses || [])
+            setNeedsChangesCoursesTotal(
+              data.total || data.pagination?.total || 0
+            )
+            setNeedsChangesCoursesPageCount(
               Math.ceil((data.total || data.pagination?.total || 0) / pageSize)
             )
           }
@@ -424,26 +455,38 @@ export default function Courses() {
     if (activeTab === 'in_review') {
       return inReviewCourses
     }
+    if (activeTab === 'needs_changes') {
+      return needsChangesCourses
+    }
     return courses
-  }, [activeTab, courses, draftCourses, inReviewCourses])
+  }, [activeTab, courses, draftCourses, inReviewCourses, needsChangesCourses])
 
   // Get total count and page count based on active tab
   // ANTIGO: return activeTab === 'draft' ? draftCoursesTotal : coursesTotal
   const totalCount = React.useMemo(() => {
     if (activeTab === 'draft') return draftCoursesTotal
     if (activeTab === 'in_review') return inReviewCoursesTotal
+    if (activeTab === 'needs_changes') return needsChangesCoursesTotal
     return coursesTotal
-  }, [activeTab, draftCoursesTotal, inReviewCoursesTotal, coursesTotal])
+  }, [
+    activeTab,
+    draftCoursesTotal,
+    inReviewCoursesTotal,
+    needsChangesCoursesTotal,
+    coursesTotal,
+  ])
 
   // ANTIGO: return activeTab === 'draft' ? draftCoursesPageCount : coursesPageCount
   const pageCount = React.useMemo(() => {
     if (activeTab === 'draft') return draftCoursesPageCount
     if (activeTab === 'in_review') return inReviewCoursesPageCount
+    if (activeTab === 'needs_changes') return needsChangesCoursesPageCount
     return coursesPageCount
   }, [
     activeTab,
     draftCoursesPageCount,
     inReviewCoursesPageCount,
+    needsChangesCoursesPageCount,
     coursesPageCount,
   ])
 
@@ -912,11 +955,16 @@ export default function Courses() {
           onValueChange={handleTabChange}
           className="space-y-4"
         >
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList
+            className={`grid w-full ${canApproveCourses ? 'grid-cols-3' : 'grid-cols-4'}`}
+          >
             <TabsTrigger value="created">Cursos Criados</TabsTrigger>
             <TabsTrigger value="in_review">
               {canApproveCourses ? 'Pronto para aprovação' : 'Em aprovação'}
             </TabsTrigger>
+            {!canApproveCourses && (
+              <TabsTrigger value="needs_changes">Em edição</TabsTrigger>
+            )}
             <TabsTrigger value="draft">Rascunhos</TabsTrigger>
           </TabsList>
 
@@ -945,6 +993,20 @@ export default function Courses() {
               <DataTableToolbar table={table} />
             </DataTable>
           </TabsContent>
+
+          {!canApproveCourses && (
+            <TabsContent value="needs_changes" className="space-y-4">
+              <DataTable
+                table={table}
+                loading={loading}
+                onRowClick={course => {
+                  window.open(`/gorio/courses/course/${course.id}`, '_blank')
+                }}
+              >
+                <DataTableToolbar table={table} />
+              </DataTable>
+            </TabsContent>
+          )}
 
           <TabsContent value="draft" className="space-y-4">
             <DataTable

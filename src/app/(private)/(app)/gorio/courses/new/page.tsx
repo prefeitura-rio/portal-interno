@@ -170,6 +170,9 @@ export default function NewCourse() {
             canPublishCourses ? handlePublishDirectly : handleCreateCourse
           }
           onSaveDraft={handleCreateDraft}
+          onCancel={() => {
+            router.push('/gorio/courses')
+          }}
           onFormChangesDetected={setHasUnsavedChanges}
           canPublishDirectly={canPublishCourses}
         />

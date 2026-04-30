@@ -752,6 +752,16 @@ export default function CourseDetailPage({
   const confirmSendToReview = async () => {
     try {
       setIsLoading(true)
+
+      // Para rascunhos, validar campos obrigatórios antes de enviar
+      if (isDraft && draftFormRef.current) {
+        const isValid = await draftFormRef.current.validateFullForm()
+        if (!isValid) {
+          setIsLoading(false)
+          return
+        }
+      }
+
       const response = await fetch(`/api/courses/${courseId}/send-to-review`, {
         method: 'PUT',
       })
@@ -774,6 +784,16 @@ export default function CourseDetailPage({
   const confirmPublishDirectly = async () => {
     try {
       setIsLoading(true)
+
+      // Para rascunhos, validar campos obrigatórios antes de publicar
+      if (isDraft && draftFormRef.current) {
+        const isValid = await draftFormRef.current.validateFullForm()
+        if (!isValid) {
+          setIsLoading(false)
+          return
+        }
+      }
+
       const response = await fetch(
         `/api/courses/${courseId}/publish-directly`,
         {
@@ -1246,14 +1266,16 @@ export default function CourseDetailPage({
                         course={course as any}
                         disabled={isLoading}
                       />
-                      <Button
-                        variant="destructive"
-                        onClick={handleDeleteDraft}
-                        className="w-full md:w-auto"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir rascunho
-                      </Button>
+                      {canPublishCourses && (
+                        <Button
+                          variant="destructive"
+                          onClick={handleDeleteDraft}
+                          className="w-full md:w-auto"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir rascunho
+                        </Button>
+                      )}
                     </>
                   )}
 
@@ -1434,7 +1456,7 @@ export default function CourseDetailPage({
                   )}
 
                   {/* === LEGACY: closed, canceled === */}
-                  {canReopen && (
+                  {canReopen && canPublishCourses && (
                     <Button
                       variant="outline"
                       onClick={handleReopenCourse}
@@ -1494,9 +1516,16 @@ export default function CourseDetailPage({
                 isReadOnly={!isEditing}
                 onSubmit={handleSave}
                 onPublish={
-                  canPublishCourses
-                    ? handlePublishDirectlyFromForm
-                    : handleSendToReviewFromForm
+                  canPublishCourses ? handlePublishDirectlyFromForm : undefined
+                }
+                onSendToReview={
+                  !canPublishCourses
+                    ? () =>
+                        setConfirmDialog({
+                          open: true,
+                          type: 'send_to_review',
+                        })
+                    : undefined
                 }
                 isDraft={isDraft}
                 courseStatus={course.status as string}
