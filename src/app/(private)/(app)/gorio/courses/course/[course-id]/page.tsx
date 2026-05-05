@@ -1480,17 +1480,12 @@ export default function CourseDetailPage({
               ) : (
                 <>
                   <Button
-                    variant="outline"
                     onClick={handleSaveDraftFromHeader}
                     disabled={isLoading}
                     className="w-full md:w-auto"
                   >
                     <Save className="mr-2 h-4 w-4" />
-                    {isDraft
-                      ? 'Salvar Rascunho'
-                      : showPublishedActions && canPublishCourses
-                        ? 'Salvar e Publicar'
-                        : 'Salvar'}
+                    {isDraft ? 'Salvar Rascunho' : 'Salvar Alterações'}
                   </Button>
                   <Button
                     variant="outline"
