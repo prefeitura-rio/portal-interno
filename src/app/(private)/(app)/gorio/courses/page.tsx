@@ -767,6 +767,11 @@ export default function Courses() {
         id: 'actions',
         cell: function Cell({ row }) {
           const course = row.original
+          const showEditAction =
+            canApproveCourses ||
+            course.status === 'draft' ||
+            course.status === 'needs_changes'
+
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -781,11 +786,13 @@ export default function Courses() {
                     Visualizar
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/gorio/courses/course/${course.id}?edit=true`}>
-                    Editar
-                  </Link>
-                </DropdownMenuItem>
+                {showEditAction && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/gorio/courses/course/${course.id}?edit=true`}>
+                      Editar
+                    </Link>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )
@@ -793,7 +800,7 @@ export default function Courses() {
         size: 32,
       },
     ]
-  }, [])
+  }, [canApproveCourses])
 
   // Create columns based on active tab
   const columns = React.useMemo<ColumnDef<CourseListItem>[]>(() => {
