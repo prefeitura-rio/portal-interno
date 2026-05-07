@@ -78,14 +78,6 @@ export async function middleware(request: NextRequest) {
     return await handleUnauthorizedUser(request)
   }
 
-  // HOTFIX: Block all "Emprego e trabalho" routes while module is temporarily disabled
-  if (
-    (path.includes('empregabilidade') || path.includes('oportunidades-mei')) &&
-    process.env.NEXT_PUBLIC_FEATURE_FLAG_EMPREGO_TRABALHO === 'true'
-  ) {
-    return await handleUnauthorizedUser(request)
-  }
-
   if (!authToken && publicRoute) {
     return response
   }

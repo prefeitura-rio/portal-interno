@@ -53,7 +53,6 @@ jobs:
             --build-arg NEXT_PUBLIC_BUSCA_CARIOCA_DIGITAL_COLLECTION=carioca-digital \
             --build-arg NEXT_PUBLIC_INSTITUICAO_ID_DEFAULT=1 \
             --build-arg NEXT_PUBLIC_FEATURE_FLAG=true \
-            --build-arg NEXT_PUBLIC_FEATURE_FLAG_EMPREGO_TRABALHO=true \
             --build-arg NEXT_PUBLIC_BASE_URL_APP="https://pref.rio" \
             --build-arg NEXT_PUBLIC_ENVIRONMENT="production" \
             --tag $IMAGE_NAME:$VERSION \
