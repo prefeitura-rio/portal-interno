@@ -177,6 +177,11 @@ export function getMenuList(pathname: string): Group[] {
         })
         .filter(menu => {
           if (menu.label === 'Emprego e trabalho') {
+            if (
+              process.env.NEXT_PUBLIC_FEATURE_FLAG_EMPREGO_TRABALHO === 'true'
+            ) {
+              return false
+            }
             return !menu.submenus || menu.submenus.length > 0
           }
           return true
