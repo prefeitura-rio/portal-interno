@@ -95,8 +95,7 @@ export async function GET(request: NextRequest) {
     )
 
     const total = apiPagination.total ?? 0
-    const totalPages =
-      apiPagination.total_pages ?? Math.ceil(total / perPage)
+    const totalPages = apiPagination.total_pages ?? Math.ceil(total / perPage)
 
     return NextResponse.json({
       courses: transformedCourses,
