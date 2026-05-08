@@ -127,7 +127,7 @@ const statusConfig: Record<string, CourseStatusConfig> = {
   },
   in_review: {
     icon: ClipboardList,
-    label: 'Em Revisão',
+    label: 'Em análise',
     variant: 'outline',
     className: 'text-purple-600 border-purple-200 bg-purple-50',
   },

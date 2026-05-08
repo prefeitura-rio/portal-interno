@@ -144,7 +144,7 @@ const statusConfig: Record<CourseStatus, CourseStatusConfig> = {
   // NOVOS STATUS - Fluxo de Curadoria
   in_review: {
     icon: Eye,
-    label: 'Aguardando aprovação',
+    label: 'Em análise',
     variant: 'outline',
     className: 'text-purple-600 border-purple-200 bg-purple-50',
   },
