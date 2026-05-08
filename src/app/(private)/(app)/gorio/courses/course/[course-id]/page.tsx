@@ -50,7 +50,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-// Status configuration for badges - updated to match courses list page
+//Status configuration for badges-updated to match courses list page
 const statusConfig: Record<string, CourseStatusConfig> = {
   draft: {
     icon: FileText,
