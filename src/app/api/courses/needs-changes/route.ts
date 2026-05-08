@@ -3,10 +3,6 @@ import type { CourseListItem } from '@/types/course'
 import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 
-/**
- * Endpoint para listar cursos devolvidos para edição (status: needs_changes).
- * Usado pela tab "Em edição" exclusiva do perfil Editor.
- */
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies()
@@ -20,16 +16,16 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const page = searchParams.get('page') || '1'
-    const perPage = searchParams.get('per_page') || '10'
+    const page = Number.parseInt(searchParams.get('page') || '1', 10)
+    const perPage = Number.parseInt(searchParams.get('per_page') || '10', 10)
     const search = searchParams.get('search') || ''
 
     const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
 
     const params = new URLSearchParams({
-      page,
-      per_page: perPage,
       status: 'needs_changes',
+      page: page.toString(),
+      limit: perPage.toString(),
       ...(search && { search }),
     })
 
@@ -45,34 +41,29 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    const extractCourses = async (res: Response): Promise<any[]> => {
-      if (!res.ok) return []
-      const data = await res.json()
-      if (Array.isArray(data?.courses)) return data.courses
-      if (Array.isArray(data?.data?.courses)) return data.data.courses
-      if (Array.isArray(data)) return data
-      return []
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'Failed to fetch needs-changes courses' },
+        { status: response.status }
+      )
     }
 
-    const rawCourses = await extractCourses(response)
+    const data = await response.json()
+    const rawCourses: any[] = data?.data?.courses ?? data?.courses ?? []
+    const apiPagination = data?.data?.pagination ?? data?.pagination ?? {}
 
     const transformedCourses: CourseListItem[] = rawCourses.map(
       (course: any) => {
         try {
           return transformApiCourseToCourseListItem(course)
         } catch (error) {
-          console.error(
-            'Error transforming needs_changes course:',
-            course,
-            error
-          )
+          console.error('Error transforming needs_changes course:', course, error)
           return {
             id: course.id?.toString() || 'unknown',
             title: course.title || 'Sem título',
             duration: course.carga_horaria || 0,
             vacancies: course.numero_vagas || 0,
             status: 'needs_changes',
-            originalStatus: 'needs_changes',
             created_at: new Date(course.created_at || Date.now()),
             registration_start: course.enrollment_start_date
               ? new Date(course.enrollment_start_date)
@@ -90,11 +81,19 @@ export async function GET(request: NextRequest) {
       }
     )
 
+    const total = apiPagination.total ?? 0
+    const totalPages =
+      apiPagination.total_pages ?? Math.ceil(total / perPage)
+
     return NextResponse.json({
       courses: transformedCourses,
-      total: transformedCourses.length,
-      page: Number.parseInt(page, 10),
-      per_page: Number.parseInt(perPage, 10),
+      pagination: {
+        total,
+        page,
+        per_page: perPage,
+        total_pages: totalPages,
+      },
+      total,
       success: true,
     })
   } catch (error) {

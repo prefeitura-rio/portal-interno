@@ -3,18 +3,8 @@ import type { CourseListItem } from '@/types/course'
 import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 
-/**
- * Endpoint para listar cursos da tab "Cursos Criados".
- *
- * Busca cursos com status que pertencem a essa tab via fetches paralelos
- * ao backend, evitando filtro client-side que quebrava paginação.
- *
- * Status excluídos (têm tabs dedicadas): draft, in_review, needs_changes.
- */
-
-// Status que pertencem à tab "Cursos Criados"
 const CREATED_TAB_STATUSES = [
-  'opened', // legado
+  'opened',
   'closed',
   'canceled',
   'approved',
@@ -45,43 +35,37 @@ export async function GET(request: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
 
-    // Fetch all statuses in parallel with a high per_page to get all courses,
-    // then paginate server-side. This avoids the broken client-side filtering
-    // that caused pages to have fewer items than expected.
-    const fetchByStatus = (status: string) => {
-      const params = new URLSearchParams({
-        status,
-        page: '1',
-        per_page: '500',
-        ...(search && { search }),
-      })
-      return fetch(`${baseUrl}/api/v1/courses?${params.toString()}`, {
+    const params = new URLSearchParams({
+      status: CREATED_TAB_STATUSES.join(','),
+      page: page.toString(),
+      limit: perPage.toString(),
+      ...(search && { search }),
+    })
+
+    const response = await fetch(
+      `${baseUrl}/api/v1/courses?${params.toString()}`,
+      {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken.value}`,
         },
         cache: 'no-store',
-      })
+      }
+    )
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'Failed to fetch courses' },
+        { status: response.status }
+      )
     }
 
-    const responses = await Promise.all(CREATED_TAB_STATUSES.map(fetchByStatus))
+    const data = await response.json()
+    const rawCourses: any[] = data?.data?.courses ?? data?.courses ?? []
+    const apiPagination = data?.data?.pagination ?? data?.pagination ?? {}
 
-    // Extract courses from each response
-    const extractCourses = async (res: Response): Promise<any[]> => {
-      if (!res.ok) return []
-      const data = await res.json()
-      if (Array.isArray(data?.courses)) return data.courses
-      if (Array.isArray(data?.data?.courses)) return data.data.courses
-      if (Array.isArray(data)) return data
-      return []
-    }
-
-    const coursesArrays = await Promise.all(responses.map(extractCourses))
-    const allCourses = coursesArrays.flat()
-
-    // Transform to frontend format
-    const transformedCourses: CourseListItem[] = allCourses.map(
+    const transformedCourses: CourseListItem[] = rawCourses.map(
       (course: any) => {
         try {
           return transformApiCourseToCourseListItem(course)
@@ -110,31 +94,19 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    // Sort by created_at descending (newest first)
-    transformedCourses.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-
-    // Server-side pagination
-    const total = transformedCourses.length
-    const startIndex = (page - 1) * perPage
-    const paginatedCourses = transformedCourses.slice(
-      startIndex,
-      startIndex + perPage
-    )
+    const total = apiPagination.total ?? 0
+    const totalPages =
+      apiPagination.total_pages ?? Math.ceil(total / perPage)
 
     return NextResponse.json({
-      courses: paginatedCourses,
+      courses: transformedCourses,
       pagination: {
         total,
         page,
         per_page: perPage,
-        total_pages: Math.ceil(total / perPage),
+        total_pages: totalPages,
       },
       total,
-      page,
-      per_page: perPage,
       success: true,
     })
   } catch (error) {

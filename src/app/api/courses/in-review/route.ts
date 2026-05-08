@@ -3,13 +3,8 @@ import type { CourseListItem } from '@/types/course'
 import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 
-/**
- * Endpoint para listar cursos no fluxo de curadoria (status: in_review + needs_changes + pending_deletion).
- * Todos aparecem na tab "Em aprovação" / "Pronto para aprovação".
- */
 export async function GET(request: NextRequest) {
   try {
-    // Buscar token de autenticação
     const cookieStore = await cookies()
     const accessToken = cookieStore.get('access_token')
 
@@ -21,70 +16,48 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const page = searchParams.get('page') || '1'
-    const perPage = searchParams.get('per_page') || '10'
+    const page = Number.parseInt(searchParams.get('page') || '1', 10)
+    const perPage = Number.parseInt(searchParams.get('per_page') || '10', 10)
     const search = searchParams.get('search') || ''
 
     const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
 
-    // Fetch both in_review and needs_changes in parallel
-    const buildParams = (status: string) =>
-      new URLSearchParams({
-        page,
-        per_page: perPage,
-        status,
-        ...(search && { search }),
-      })
+    const params = new URLSearchParams({
+      status: 'in_review,needs_changes,pending_deletion',
+      page: page.toString(),
+      limit: perPage.toString(),
+      ...(search && { search }),
+    })
 
-    const fetchCoursesByStatus = (status: string) =>
-      fetch(`${baseUrl}/api/v1/courses?${buildParams(status).toString()}`, {
+    const response = await fetch(
+      `${baseUrl}/api/v1/courses?${params.toString()}`,
+      {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken.value}`,
         },
         cache: 'no-store',
-      })
+      }
+    )
 
-    const [inReviewRes, needsChangesRes, pendingDeletionRes] =
-      await Promise.all([
-        fetchCoursesByStatus('in_review'),
-        fetchCoursesByStatus('needs_changes'),
-        fetchCoursesByStatus('pending_deletion'),
-      ])
-
-    const extractCourses = async (res: Response): Promise<any[]> => {
-      if (!res.ok) return []
-      const data = await res.json()
-      if (Array.isArray(data?.courses)) return data.courses
-      if (Array.isArray(data?.data?.courses)) return data.data.courses
-      if (Array.isArray(data)) return data
-      return []
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'Failed to fetch in-review courses' },
+        { status: response.status }
+      )
     }
 
-    const [inReviewCourses, needsChangesCourses, pendingDeletionCourses] =
-      await Promise.all([
-        extractCourses(inReviewRes),
-        extractCourses(needsChangesRes),
-        extractCourses(pendingDeletionRes),
-      ])
+    const data = await response.json()
+    const rawCourses: any[] = data?.data?.courses ?? data?.courses ?? []
+    const apiPagination = data?.data?.pagination ?? data?.pagination ?? {}
 
-    const allRawCourses = [
-      ...inReviewCourses,
-      ...needsChangesCourses,
-      ...pendingDeletionCourses,
-    ]
-
-    const transformedCourses: CourseListItem[] = allRawCourses.map(
+    const transformedCourses: CourseListItem[] = rawCourses.map(
       (course: any) => {
         try {
           return transformApiCourseToCourseListItem(course)
         } catch (error) {
-          console.error(
-            'Error transforming in-review/needs-changes course:',
-            course,
-            error
-          )
+          console.error('Error transforming in-review course:', course, error)
           return {
             id: course.id?.toString() || 'unknown',
             title: course.title || 'Sem título',
@@ -108,11 +81,19 @@ export async function GET(request: NextRequest) {
       }
     )
 
+    const total = apiPagination.total ?? 0
+    const totalPages =
+      apiPagination.total_pages ?? Math.ceil(total / perPage)
+
     return NextResponse.json({
       courses: transformedCourses,
-      total: transformedCourses.length,
-      page: Number.parseInt(page, 10),
-      per_page: Number.parseInt(perPage, 10),
+      pagination: {
+        total,
+        page,
+        per_page: perPage,
+        total_pages: totalPages,
+      },
+      total,
       success: true,
     })
   } catch (error) {
