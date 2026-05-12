@@ -70,6 +70,14 @@ const etapaSchema = z.object({
   ordem: z.number(),
 })
 
+const etapasValidationSchema = z
+  .array(etapaSchema)
+  .optional()
+  .refine(
+    etapas => !etapas || etapas.every(e => e.descricao.trim().length > 0),
+    { message: 'Todas as etapas devem ter uma descrição preenchida.' }
+  )
+
 // Schema para informação complementar
 const informacaoComplementarOptionSchema = z.object({
   id: z.string(),
@@ -141,6 +149,7 @@ const draftValidationSchema = z.object({
   modelo_trabalho: z
     .string()
     .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+  etapas: etapasValidationSchema,
 })
 
 // Schema para validação de publicação (10 campos obrigatórios; valor_vaga opcional)
@@ -169,6 +178,7 @@ const publishValidationSchema = z.object({
   responsabilidades: z
     .string()
     .min(1, { message: 'Responsabilidades são obrigatórias.' }),
+  etapas: etapasValidationSchema,
 })
 
 // ============================================

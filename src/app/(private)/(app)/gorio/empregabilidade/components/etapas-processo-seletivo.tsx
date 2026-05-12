@@ -39,7 +39,13 @@ export function EtapasProcessoSeletivo({
 }: EtapasProcessoSeletivoProps) {
   const [newEtapaTitulo, setNewEtapaTitulo] = useState('')
   const [newEtapaDescricao, setNewEtapaDescricao] = useState('')
+  const [newEtapaDescricaoError, setNewEtapaDescricaoError] = useState<
+    string | null
+  >(null)
   const [editingEtapaId, setEditingEtapaId] = useState<string | null>(null)
+  const [editingDescricaoError, setEditingDescricaoError] = useState<
+    string | null
+  >(null)
   const [originalEtapa, setOriginalEtapa] =
     useState<EtapaProcessoSeletivo | null>(null)
   const [etapaToDelete, setEtapaToDelete] =
@@ -48,10 +54,16 @@ export function EtapasProcessoSeletivo({
   const resetForm = () => {
     setNewEtapaTitulo('')
     setNewEtapaDescricao('')
+    setNewEtapaDescricaoError(null)
   }
 
   const addEtapa = () => {
     if (!newEtapaTitulo.trim()) return
+
+    if (!newEtapaDescricao.trim()) {
+      setNewEtapaDescricaoError('Descrição é obrigatória.')
+      return
+    }
 
     const newEtapa: EtapaProcessoSeletivo = {
       id: uuidv4(),
@@ -107,11 +119,18 @@ export function EtapasProcessoSeletivo({
     }
     setEditingEtapaId(null)
     setOriginalEtapa(null)
+    setEditingDescricaoError(null)
   }
 
   const finishEditing = () => {
+    const currentEtapa = etapas.find(e => e.id === editingEtapaId)
+    if (currentEtapa && !currentEtapa.descricao.trim()) {
+      setEditingDescricaoError('Descrição é obrigatória.')
+      return
+    }
     setEditingEtapaId(null)
     setOriginalEtapa(null)
+    setEditingDescricaoError(null)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -197,20 +216,28 @@ export function EtapasProcessoSeletivo({
 
           <div>
             <Label className="text-sm font-medium text-muted-foreground">
-              Descrição
+              Descrição*
             </Label>
             <Textarea
               value={etapa.descricao}
-              onChange={e =>
+              onChange={e => {
                 updateEtapa(etapa.id, { descricao: e.target.value })
-              }
+                if (e.target.value.trim()) setEditingDescricaoError(null)
+              }}
               className={cn(
                 'mt-1 min-h-[80px]',
-                detectInvalidCharacters(etapa.descricao).length > 0 &&
-                  'border-orange-400/50'
+                editingDescricaoError
+                  ? 'border-destructive'
+                  : detectInvalidCharacters(etapa.descricao).length > 0 &&
+                      'border-orange-400/50'
               )}
               placeholder="Descreva os detalhes desta etapa..."
             />
+            {editingDescricaoError && (
+              <p className="text-sm text-destructive mt-1">
+                {editingDescricaoError}
+              </p>
+            )}
             <FieldWarningIndicator
               invalidChars={detectInvalidCharacters(etapa.descricao)}
             />
@@ -302,15 +329,26 @@ export function EtapasProcessoSeletivo({
 
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
-            Descrição
+            Descrição*
           </Label>
           <Textarea
             placeholder="Descreva os detalhes desta etapa..."
             value={newEtapaDescricao}
-            onChange={e => setNewEtapaDescricao(e.target.value)}
-            className="mt-1 min-h-[80px]"
+            onChange={e => {
+              setNewEtapaDescricao(e.target.value)
+              if (e.target.value.trim()) setNewEtapaDescricaoError(null)
+            }}
+            className={cn(
+              'mt-1 min-h-[80px]',
+              newEtapaDescricaoError && 'border-destructive'
+            )}
             disabled={disabled}
           />
+          {newEtapaDescricaoError && (
+            <p className="text-sm text-destructive mt-1">
+              {newEtapaDescricaoError}
+            </p>
+          )}
         </div>
 
         <Button
