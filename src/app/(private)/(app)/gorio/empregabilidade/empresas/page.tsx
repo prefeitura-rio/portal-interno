@@ -80,7 +80,7 @@ function formatCNPJ(cnpj: string): string {
  * - Create new empresa button
  *
  * PERMISSIONS:
- * - Route: admin, superadmin, go:admin, go:empregabilidade:admin, go:empregabilidade:editor_sem_curadoria (editor_com_curadoria blocked by middleware)
+ * - Route: admin, superadmin, go:admin, go:empregabilidade:admin, go:empregabilidade:editor_sem_curadoria, go:empregabilidade:editor_com_curadoria
  * - Edit/Delete/Create: canManageEmpresasInEmpregabilidade (same as route access)
  */
 

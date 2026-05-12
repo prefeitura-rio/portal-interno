@@ -37,7 +37,7 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
   // GO Rio - Empregabilidade (admin, superadmin, go:admin + 3 empregabilidade roles)
   '/gorio/empregabilidade': [...EMPREGO_TRABALHO_ROLES],
   '/gorio/empregabilidade/new': [...EMPREGO_TRABALHO_ROLES],
-  // Empresas: editor_com_curadoria cannot create/edit - list and new must be before /* so they match first
+  // Empresas: list and new must be before /* so they match first
   '/gorio/empregabilidade/empresas': [
     'admin',
     'superadmin',
@@ -52,6 +52,7 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:admin',
     'go:empregabilidade:admin',
     'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
   ],
   '/gorio/empregabilidade/empresas/*': [
     'admin',
