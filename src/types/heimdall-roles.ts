@@ -171,13 +171,20 @@ export function canFreezeOrDiscontinueVaga(
 
 /**
  * Can create/edit empresas within the empregabilidade module.
- * editor_com_curadoria cannot.
  */
 export function canManageEmpresasInEmpregabilidade(
   roles: string[] | undefined
 ): boolean {
   if (!roles) return false
-  return !hasEditorComCuradoriaRestrictions(roles)
+  const EMPRESA_ROLES = [
+    'admin',
+    'superadmin',
+    'go:admin',
+    'go:empregabilidade:admin',
+    'go:empregabilidade:editor_sem_curadoria',
+    'go:empregabilidade:editor_com_curadoria',
+  ]
+  return roles.some(r => EMPRESA_ROLES.includes(r))
 }
 
 /**
