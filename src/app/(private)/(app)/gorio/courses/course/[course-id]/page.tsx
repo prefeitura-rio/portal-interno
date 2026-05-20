@@ -166,6 +166,8 @@ export default function CourseDetailPage({
   const [hasFormChanges, setHasFormChanges] = useState(false)
   const [showTabChangeDialog, setShowTabChangeDialog] = useState(false)
   const [pendingTab, setPendingTab] = useState<string | null>(null)
+  const [pendingFinishedSaveData, setPendingFinishedSaveData] =
+    useState<any>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
   const [courseId, setCourseId] = useState<number | null>(null)
@@ -187,6 +189,8 @@ export default function CourseDetailPage({
       | 'confirm_delete_course'
       | 'agree_with_edit'
       | 'publish_directly'
+      | 'republish_finished'
+      | 'send_to_review_finished'
       | null
   }>({
     open: false,
@@ -205,6 +209,10 @@ export default function CourseDetailPage({
   const { course, loading, error, refetch } = useCourse(
     courseId?.toString() || null
   )
+
+  // Hoisted early so handlers (handleSave, etc.) can reference them before the render section
+  const actualStatus = (course?.status ?? '') as string
+  const isFinished = actualStatus === 'finished' || actualStatus === 'ENCERRADO'
 
   // Handle async params
   useEffect(() => {
@@ -276,7 +284,51 @@ export default function CourseDetailPage({
     updateTabInUrl('about')
   }
 
+  // Returns true if the relevant end date in the submitted data is in the future.
+  // Mirrors the backend DeriveStatus logic:
+  //   - LIVRE_FORMACAO_ONLINE: uses enrollment_end_date
+  //   - All other modalities: uses max(class_end_date) across all location/remote schedules
+  const hasFutureClassEndDate = (data: any): boolean => {
+    const now = new Date()
+
+    // Verifica enrollment_end_date (Fim das inscrições) — qualquer modalidade
+    if (data?.enrollment_end_date) {
+      const d = new Date(data.enrollment_end_date)
+      if (!Number.isNaN(d.getTime()) && d > now) return true
+    }
+
+    // Verifica class_end_date nos schedules (modalidades presencial/online)
+    for (const loc of data?.locations ?? []) {
+      for (const sched of loc?.schedules ?? []) {
+        if (sched?.class_end_date) {
+          const d = new Date(sched.class_end_date)
+          if (!Number.isNaN(d.getTime()) && d > now) return true
+        }
+      }
+    }
+    for (const sched of data?.remote_class?.schedules ?? []) {
+      if (sched?.class_end_date) {
+        const d = new Date(sched.class_end_date)
+        if (!Number.isNaN(d.getTime()) && d > now) return true
+      }
+    }
+    return false
+  }
+
   const handleSave = async (data: any) => {
+    // Intercept for finished courses: if a class end date was moved to the future,
+    // open a confirmation modal instead of doing a plain save.
+    if (isFinished && hasFutureClassEndDate(data)) {
+      setPendingFinishedSaveData(data)
+      setConfirmDialog({
+        open: true,
+        type: canPublishCourses
+          ? 'republish_finished'
+          : 'send_to_review_finished',
+      })
+      return
+    }
+
     try {
       setIsLoading(true)
 
@@ -286,7 +338,8 @@ export default function CourseDetailPage({
         title: data.title || course?.title,
         categorias: data.categorias || course?.categorias || [],
         modalidade: data.modalidade || course?.modalidade,
-        status: data.status || course?.status,
+        // finished é status derivado — banco armazena 'published'
+        status: isFinished ? 'published' : data.status || course?.status,
         orgao_id: data.orgao_id || course?.orgao_id,
       }
 
@@ -919,6 +972,135 @@ export default function CourseDetailPage({
     }
   }
 
+  // Handler for "Salvar e Reenviar para Aprovação" inside edit mode for finished courses.
+  // finished is a derived status — the DB stores 'published'. Flow:
+  //   Step 1: save form data (PUT course)
+  //   Step 2: request-changes (published → needs_changes)
+  //   Step 3: send-to-review  (needs_changes → in_review)
+  const handleSaveAndSendToReviewFinished = async (data: any) => {
+    try {
+      setIsLoading(true)
+
+      const updateData = {
+        ...data,
+        title: data.title || course?.title,
+        categorias: data.categorias || course?.categorias || [],
+        modalidade: data.modalidade || course?.modalidade,
+        status: 'published', // finished é status derivado — banco armazena 'published'
+        orgao_id: data.orgao_id || course?.orgao_id,
+      }
+
+      const saveResponse = await fetch(`/api/courses/${courseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      })
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json()
+        throw new Error(errorData.error || 'Erro ao salvar curso')
+      }
+
+      const requestChangesResponse = await fetch(
+        `/api/courses/${courseId}/request-changes`,
+        { method: 'PUT' }
+      )
+      if (!requestChangesResponse.ok) {
+        const errorData = await requestChangesResponse.json()
+        throw new Error(errorData.error || 'Erro ao processar curso')
+      }
+
+      const reviewResponse = await fetch(
+        `/api/courses/${courseId}/send-to-review`,
+        { method: 'PUT' }
+      )
+      if (!reviewResponse.ok) {
+        const errorData = await reviewResponse.json()
+        throw new Error(errorData.error || 'Erro ao enviar para aprovação')
+      }
+
+      toast.success('Curso enviado para aprovação com sucesso!')
+      setIsEditing(false)
+      if (refetch) refetch()
+    } catch (err) {
+      console.error('Error saving and sending to review:', err)
+      toast.error('Erro ao enviar para aprovação', {
+        description: err instanceof Error ? err.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+      setPendingFinishedSaveData(null)
+    }
+  }
+
+  // Handler for "Salvar e Publicar" inside edit mode for finished courses (admin only).
+  // finished is a derived status — the DB stores 'published'. Flow:
+  //   Step 1: save form data (PUT course)
+  //   Step 2: request-changes (published → needs_changes)
+  //   Step 3: send-to-review  (needs_changes → in_review)
+  //   Step 4: approve          (in_review → published)
+  const handleSaveAndPublishFinished = async (data: any) => {
+    try {
+      setIsLoading(true)
+
+      const updateData = {
+        ...data,
+        title: data.title || course?.title,
+        categorias: data.categorias || course?.categorias || [],
+        modalidade: data.modalidade || course?.modalidade,
+        status: 'published', // finished é status derivado — banco armazena 'published'
+        orgao_id: data.orgao_id || course?.orgao_id,
+      }
+
+      const saveResponse = await fetch(`/api/courses/${courseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      })
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json()
+        throw new Error(errorData.error || 'Erro ao salvar curso')
+      }
+
+      const requestChangesResponse = await fetch(
+        `/api/courses/${courseId}/request-changes`,
+        { method: 'PUT' }
+      )
+      if (!requestChangesResponse.ok) {
+        const errorData = await requestChangesResponse.json()
+        throw new Error(errorData.error || 'Erro ao processar curso')
+      }
+
+      const reviewResponse = await fetch(
+        `/api/courses/${courseId}/send-to-review`,
+        { method: 'PUT' }
+      )
+      if (!reviewResponse.ok) {
+        const errorData = await reviewResponse.json()
+        throw new Error(errorData.error || 'Erro ao processar curso')
+      }
+
+      const approveResponse = await fetch(`/api/courses/${courseId}/approve`, {
+        method: 'PUT',
+      })
+      if (!approveResponse.ok) {
+        const errorData = await approveResponse.json()
+        throw new Error(errorData.error || 'Erro ao publicar curso')
+      }
+
+      toast.success('Curso publicado com sucesso!')
+      setIsEditing(false)
+      if (refetch) refetch()
+    } catch (err) {
+      console.error('Error saving and publishing finished course:', err)
+      toast.error('Erro ao publicar curso', {
+        description: err instanceof Error ? err.message : 'Erro inesperado',
+      })
+    } finally {
+      setIsLoading(false)
+      setPendingFinishedSaveData(null)
+    }
+  }
+
   const confirmRequestChanges = async () => {
     try {
       setIsLoading(true)
@@ -1144,9 +1326,7 @@ export default function CourseDetailPage({
     statusConfig.draft
   const StatusIcon = config.icon
 
-  const actualStatus = course.status as string
-
-  // Status flags
+  // Status flags (actualStatus and isFinished are hoisted above the loading guards)
   const isDraft = actualStatus === 'draft'
   const isInReview = actualStatus === 'in_review'
   const isNeedsChanges = actualStatus === 'needs_changes'
@@ -1365,6 +1545,24 @@ export default function CourseDetailPage({
                     </>
                   )}
 
+                  {/* === FINISHED / ENCERRADO: Editar + Duplicar (ambos os papéis) === */}
+                  {isFinished && (
+                    <>
+                      <Button
+                        onClick={handleEdit}
+                        disabled={isLoading}
+                        className="w-full md:w-auto"
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </Button>
+                      <DuplicateCourseButton
+                        course={course as any}
+                        disabled={isLoading}
+                      />
+                    </>
+                  )}
+
                   {/* === PUBLISHED / OPENED: Editar (Casa Civil) + Propor edição + Propor exclusão === */}
                   {showPublishedActions && (
                     <>
@@ -1528,6 +1726,7 @@ export default function CourseDetailPage({
                 onFormChangesDetected={setHasFormChanges}
                 canPublishDirectly={canPublishCourses}
                 userOrgaoIds={!canPublishCourses ? userOrgaoIds : undefined}
+                skipSaveConfirm={isFinished}
               />
             </div>
           </div>
@@ -1566,6 +1765,7 @@ export default function CourseDetailPage({
                   courseStatus={course.status as string}
                   onFormChangesDetected={setHasFormChanges}
                   userOrgaoIds={!canPublishCourses ? userOrgaoIds : undefined}
+                  skipSaveConfirm={isFinished}
                 />
               </div>
             </TabsContent>
@@ -1597,7 +1797,10 @@ export default function CourseDetailPage({
       {/* Confirm Dialog */}
       <ConfirmDialog
         open={confirmDialog.open}
-        onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
+        onOpenChange={open => {
+          setConfirmDialog(prev => ({ ...prev, open }))
+          if (!open) setPendingFinishedSaveData(null)
+        }}
         title={
           confirmDialog.type === 'delete_draft'
             ? 'Excluir Rascunho'
@@ -1625,7 +1828,13 @@ export default function CourseDetailPage({
                                   ? 'Concordar com a Edição'
                                   : confirmDialog.type === 'publish_directly'
                                     ? 'Publicar Curso'
-                                    : 'Confirmar Ação'
+                                    : confirmDialog.type ===
+                                        'republish_finished'
+                                      ? 'Republicar Curso'
+                                      : confirmDialog.type ===
+                                          'send_to_review_finished'
+                                        ? 'Reenviar para Aprovação'
+                                        : 'Confirmar Ação'
         }
         description={
           confirmDialog.type === 'delete_draft'
@@ -1654,7 +1863,13 @@ export default function CourseDetailPage({
                                   ? `Tem certeza que deseja concordar com a edição e republicar o curso "${course.title}"?`
                                   : confirmDialog.type === 'publish_directly'
                                     ? `Tem certeza que deseja publicar o curso "${course.title}"? O curso será publicado imediatamente.`
-                                    : 'Tem certeza que deseja realizar esta ação?'
+                                    : confirmDialog.type ===
+                                        'republish_finished'
+                                      ? `As datas de encerramento foram atualizadas para datas futuras. O curso "${course.title}" será republicado automaticamente.`
+                                      : confirmDialog.type ===
+                                          'send_to_review_finished'
+                                        ? `As datas de encerramento foram atualizadas para datas futuras. O curso "${course.title}" será reenviado para aprovação.`
+                                        : 'Tem certeza que deseja realizar esta ação?'
         }
         confirmText={
           confirmDialog.type === 'delete_draft'
@@ -1683,7 +1898,13 @@ export default function CourseDetailPage({
                                   ? 'Concordar e Publicar'
                                   : confirmDialog.type === 'publish_directly'
                                     ? 'Publicar'
-                                    : 'Confirmar'
+                                    : confirmDialog.type ===
+                                        'republish_finished'
+                                      ? 'Republicar'
+                                      : confirmDialog.type ===
+                                          'send_to_review_finished'
+                                        ? 'Reenviar para Aprovação'
+                                        : 'Confirmar'
         }
         variant={
           confirmDialog.type === 'delete_draft' ||
@@ -1727,6 +1948,16 @@ export default function CourseDetailPage({
             confirmAgreeWithEdit()
           } else if (confirmDialog.type === 'publish_directly') {
             confirmPublishDirectly()
+          } else if (confirmDialog.type === 'republish_finished') {
+            if (pendingFinishedSaveData) {
+              handleSaveAndPublishFinished(pendingFinishedSaveData)
+              setPendingFinishedSaveData(null)
+            }
+          } else if (confirmDialog.type === 'send_to_review_finished') {
+            if (pendingFinishedSaveData) {
+              handleSaveAndSendToReviewFinished(pendingFinishedSaveData)
+              setPendingFinishedSaveData(null)
+            }
           }
         }}
       />

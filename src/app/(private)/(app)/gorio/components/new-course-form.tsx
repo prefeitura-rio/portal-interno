@@ -815,6 +815,8 @@ interface NewCourseFormProps {
   canPublishDirectly?: boolean
   /** Restrict orgao_id field to these department ids (for editors) */
   userOrgaoIds?: string[]
+  /** Skip the internal "Salvar Alterações" confirmation dialog and call onSubmit directly */
+  skipSaveConfirm?: boolean
 }
 
 export interface NewCourseFormRef {
@@ -840,6 +842,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       onFormChangesDetected,
       canPublishDirectly = false,
       userOrgaoIds,
+      skipSaveConfirm = false,
     },
     ref
   ) => {
@@ -1907,11 +1910,16 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     const handleSubmit = async (data: PartialFormData) => {
       // This is only called after validation has passed
       if (initialData) {
-        // Editing an existing course - show "Salvar Alterações" dialog
-        setConfirmDialog({
-          open: true,
-          type: 'save_changes',
-        })
+        if (skipSaveConfirm) {
+          // Bypass the internal dialog — caller handles confirmation
+          await confirmCreateCourse(data)
+        } else {
+          // Editing an existing course - show "Salvar Alterações" dialog
+          setConfirmDialog({
+            open: true,
+            type: 'save_changes',
+          })
+        }
       } else {
         // Creating a new course - show "Enviar para Aprovação" dialog
         setConfirmDialog({
