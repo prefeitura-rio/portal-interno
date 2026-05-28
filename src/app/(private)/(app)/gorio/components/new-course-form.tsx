@@ -8,6 +8,7 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
@@ -59,7 +60,9 @@ import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { Copy, Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { ClassDaysPicker } from './class-days-picker'
 import { type CustomField, FieldsCreator } from './fields-creator'
+import { ScheduleTimeBuilder } from './schedule-time-builder'
 
 export type Accessibility = 'ACESSIVEL' | 'EXCLUSIVO'
 const ACCESSIBILITY_OPTIONS: Accessibility[] = [
@@ -505,72 +508,91 @@ const fullFormSchema = z
     message: 'A data final deve ser igual ou posterior à data inicial.',
     path: ['enrollment_end_date'],
   })
-  .refine(
-    data => {
-      if (data.modalidade === 'ONLINE') {
-        return data.remote_class.every(schedule => {
-          const hasStartDate = !!schedule.classStartDate
-          const hasEndDate = !!schedule.classEndDate
-
-          // Both dates must be either filled or empty (not mixed)
-          if (hasStartDate !== hasEndDate) {
-            return false
-          }
-
-          // If both are empty, it's valid
-          if (!hasStartDate && !hasEndDate) {
-            return true
-          }
-
-          // If both are filled, validate the date range
-          if (
-            hasStartDate &&
-            hasEndDate &&
-            schedule.classStartDate &&
-            schedule.classEndDate
+  .superRefine((data, ctx) => {
+    if (data.modalidade === 'LIVRE_FORMACAO_ONLINE') return
+    const msg =
+      'A data final das aulas deve ser igual ou posterior à data inicial.'
+    if (data.modalidade === 'ONLINE') {
+      data.remote_class.forEach((schedule, i) => {
+        const hasStart = !!schedule.classStartDate
+        const hasEnd = !!schedule.classEndDate
+        if (hasStart !== hasEnd) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Preencha as duas datas de aula ou deixe ambas em branco.',
+            path: ['remote_class', i, 'classEndDate'],
+          })
+        } else if (
+          hasStart &&
+          hasEnd &&
+          schedule.classEndDate! < schedule.classStartDate!
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: msg,
+            path: ['remote_class', i, 'classEndDate'],
+          })
+        }
+      })
+    } else {
+      data.locations.forEach((location, li) => {
+        location.schedules.forEach((schedule, si) => {
+          const hasStart = !!schedule.classStartDate
+          const hasEnd = !!schedule.classEndDate
+          if (hasStart !== hasEnd) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message:
+                'Preencha as duas datas de aula ou deixe ambas em branco.',
+              path: ['locations', li, 'schedules', si, 'classEndDate'],
+            })
+          } else if (
+            hasStart &&
+            hasEnd &&
+            schedule.classEndDate < schedule.classStartDate
           ) {
-            return schedule.classEndDate >= schedule.classStartDate
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: msg,
+              path: ['locations', li, 'schedules', si, 'classEndDate'],
+            })
           }
-          return true
         })
-      }
-      if (data.modalidade === 'LIVRE_FORMACAO_ONLINE') {
-        return true // Não precisa validar datas para livre formação
-      }
-      return data.locations.every(location =>
-        location.schedules.every(schedule => {
-          const hasStartDate = !!schedule.classStartDate
-          const hasEndDate = !!schedule.classEndDate
-
-          // Both dates must be either filled or empty (not mixed)
-          if (hasStartDate !== hasEndDate) {
-            return false
-          }
-
-          // If both are empty, it's valid
-          if (!hasStartDate && !hasEndDate) {
-            return true
-          }
-
-          // If both are filled, validate the date range
-          if (
-            hasStartDate &&
-            hasEndDate &&
-            schedule.classStartDate &&
-            schedule.classEndDate
-          ) {
-            return schedule.classEndDate >= schedule.classStartDate
-          }
-          return true
-        })
-      )
-    },
-    {
-      message:
-        'A data final das aulas deve ser igual ou posterior à data inicial.',
-      path: ['modalidade'],
+      })
     }
-  )
+  })
+  .superRefine((data, ctx) => {
+    if (data.modalidade === 'LIVRE_FORMACAO_ONLINE') return
+    const msg =
+      'A data de início das aulas deve ser igual ou posterior ao início das inscrições.'
+    if (data.modalidade === 'ONLINE') {
+      data.remote_class.forEach((schedule, i) => {
+        if (
+          schedule.classStartDate &&
+          schedule.classStartDate < data.enrollment_start_date
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: msg,
+            path: ['remote_class', i, 'classStartDate'],
+          })
+        }
+      })
+    } else {
+      // PRESENCIAL
+      data.locations.forEach((location, li) => {
+        location.schedules.forEach((schedule, si) => {
+          if (schedule.classStartDate < data.enrollment_start_date) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: msg,
+              path: ['locations', li, 'schedules', si, 'classStartDate'],
+            })
+          }
+        })
+      })
+    }
+  })
   .refine(
     data => {
       if (data.course_management_type === 'OWN_ORG') return true
@@ -594,99 +616,202 @@ const fullFormSchema = z
   )
 
 // Create a minimal schema for draft validation (only basic field presence)
-const draftFormSchema = z.object({
-  title: z.string().optional(),
-  description: z.string().optional(),
-  category: z.array(z.number()).optional(),
-  enrollment_start_date: z.date().optional(),
-  enrollment_end_date: z.date().optional(),
-  orgao_id: z.string().optional(),
-  modalidade: z
-    .enum(['PRESENCIAL', 'ONLINE', 'LIVRE_FORMACAO_ONLINE'])
-    .optional(),
-  workload: z.string().optional(),
-  target_audience: z.string().optional(),
-  theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
-  institutional_logo: z
-    .string()
-    .refine(validateGoogleCloudStorageURL, {
-      message:
-        'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
-    })
-    .optional(),
-  cover_image: z
-    .string()
-    .refine(validateGoogleCloudStorageURL, {
-      message:
-        'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
-    })
-    .optional(),
-  pre_requisitos: z.string().optional(),
-  has_certificate: z.boolean().optional(),
+const draftFormSchema = z
+  .object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    category: z.array(z.number()).optional(),
+    enrollment_start_date: z.date().optional(),
+    enrollment_end_date: z.date().optional(),
+    orgao_id: z.string().optional(),
+    modalidade: z
+      .enum(['PRESENCIAL', 'ONLINE', 'LIVRE_FORMACAO_ONLINE'])
+      .optional(),
+    workload: z.string().optional(),
+    target_audience: z.string().optional(),
+    theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
+    institutional_logo: z
+      .string()
+      .refine(validateGoogleCloudStorageURL, {
+        message:
+          'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
+      })
+      .optional(),
+    cover_image: z
+      .string()
+      .refine(validateGoogleCloudStorageURL, {
+        message:
+          'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
+      })
+      .optional(),
+    pre_requisitos: z.string().optional(),
+    has_certificate: z.boolean().optional(),
 
-  // Course management type
-  course_management_type: z
-    .enum(['OWN_ORG', 'EXTERNAL_MANAGED_BY_ORG', 'EXTERNAL_MANAGED_BY_PARTNER'])
-    .optional(),
-  // External partner fields
-  external_partner_name: z.string().optional(),
-  external_partner_url: z.string().optional(),
-  external_partner_logo_url: z
-    .string()
-    .refine(validateGoogleCloudStorageURL, {
-      message:
-        'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
-    })
-    .optional(),
-  external_partner_contact: z.string().optional(),
+    // Course management type
+    course_management_type: z
+      .enum([
+        'OWN_ORG',
+        'EXTERNAL_MANAGED_BY_ORG',
+        'EXTERNAL_MANAGED_BY_PARTNER',
+      ])
+      .optional(),
+    // External partner fields
+    external_partner_name: z.string().optional(),
+    external_partner_url: z.string().optional(),
+    external_partner_logo_url: z
+      .string()
+      .refine(validateGoogleCloudStorageURL, {
+        message:
+          'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
+      })
+      .optional(),
+    external_partner_contact: z.string().optional(),
 
-  facilitator: z.string().optional(),
-  objectives: z.string().optional(),
-  expected_results: z.string().optional(),
-  program_content: z.string().optional(),
-  methodology: z.string().optional(),
-  resources_used: z.string().optional(),
-  material_used: z.string().optional(),
-  teaching_material: z.string().optional(),
-  is_visible: z.boolean().optional(),
-  auto_approve_enrollments: z.boolean().optional(),
-  formacao_link: z.string().url().optional().or(z.literal('')),
-  custom_fields: customFieldsSchema,
-  locations: z
-    .array(
-      z.object({
-        id: z.string().optional(),
-        address: z.string().optional(),
-        neighborhood: z.string().optional(),
-        zona: z.string().optional(),
-        schedules: z
-          .array(
-            z.object({
-              id: z.string().optional(),
-              vacancies: z.number().optional(),
-              classStartDate: z.date().optional(),
-              classEndDate: z.date().optional(),
-              classTime: z.string().optional(),
-              classDays: z.string().optional(),
+    facilitator: z.string().optional(),
+    objectives: z.string().optional(),
+    expected_results: z.string().optional(),
+    program_content: z.string().optional(),
+    methodology: z.string().optional(),
+    resources_used: z.string().optional(),
+    material_used: z.string().optional(),
+    teaching_material: z.string().optional(),
+    is_visible: z.boolean().optional(),
+    auto_approve_enrollments: z.boolean().optional(),
+    formacao_link: z.string().url().optional().or(z.literal('')),
+    custom_fields: customFieldsSchema,
+    locations: z
+      .array(
+        z.object({
+          id: z.string().optional(),
+          address: z.string().optional(),
+          neighborhood: z.string().optional(),
+          zona: z.string().optional(),
+          schedules: z
+            .array(
+              z.object({
+                id: z.string().optional(),
+                vacancies: z.number().optional(),
+                classStartDate: z.date().optional(),
+                classEndDate: z.date().optional(),
+                classTime: z.string().optional(),
+                classDays: z.string().optional(),
+              })
+            )
+            .optional(),
+        })
+      )
+      .optional(),
+    remote_class: z
+      .array(
+        z.object({
+          id: z.string().optional(),
+          vacancies: z.number().optional(),
+          classStartDate: z.date().optional().nullable(),
+          classEndDate: z.date().optional().nullable(),
+          classTime: z.string().optional().nullable(),
+          classDays: z.string().optional().nullable(),
+        })
+      )
+      .optional(),
+  })
+  .refine(
+    data => {
+      // Só valida se ambas as datas de inscrição estiverem presentes
+      if (!data.enrollment_start_date) return true
+
+      // Verifica turmas presenciais (locations)
+      if (data.locations) {
+        for (const location of data.locations) {
+          for (const schedule of location.schedules ?? []) {
+            if (
+              schedule.classStartDate &&
+              schedule.classStartDate < data.enrollment_start_date
+            ) {
+              return false
+            }
+          }
+        }
+      }
+
+      // Verifica turmas online (remote_class)
+      if (data.remote_class) {
+        for (const schedule of data.remote_class) {
+          if (
+            schedule.classStartDate &&
+            schedule.classStartDate < data.enrollment_start_date
+          ) {
+            return false
+          }
+        }
+      }
+
+      return true
+    },
+    {
+      message:
+        'A data de início das aulas deve ser igual ou posterior ao início das inscrições.',
+      path: ['modalidade'],
+    }
+  )
+  .superRefine((data, ctx) => {
+    if (!data.enrollment_start_date) return
+    const msgStart =
+      'A data de início das aulas deve ser igual ou posterior ao início das inscrições.'
+    const msgEnd =
+      'A data final das aulas deve ser igual ou posterior à data inicial.'
+    if (data.locations) {
+      data.locations.forEach((location, li) => {
+        ;(location.schedules ?? []).forEach((schedule, si) => {
+          if (
+            schedule.classStartDate &&
+            schedule.classStartDate < data.enrollment_start_date!
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: msgStart,
+              path: ['locations', li, 'schedules', si, 'classStartDate'],
             })
-          )
-          .optional(),
+          }
+          if (
+            schedule.classStartDate &&
+            schedule.classEndDate &&
+            schedule.classEndDate < schedule.classStartDate
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: msgEnd,
+              path: ['locations', li, 'schedules', si, 'classEndDate'],
+            })
+          }
+        })
       })
-    )
-    .optional(),
-  remote_class: z
-    .array(
-      z.object({
-        id: z.string().optional(),
-        vacancies: z.number().optional(),
-        classStartDate: z.date().optional().nullable(),
-        classEndDate: z.date().optional().nullable(),
-        classTime: z.string().optional().nullable(),
-        classDays: z.string().optional().nullable(),
+    }
+    if (data.remote_class) {
+      data.remote_class.forEach((schedule, i) => {
+        if (
+          schedule.classStartDate &&
+          schedule.classStartDate < data.enrollment_start_date!
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: msgStart,
+            path: ['remote_class', i, 'classStartDate'],
+          })
+        }
+        if (
+          schedule.classStartDate &&
+          schedule.classEndDate &&
+          schedule.classEndDate < schedule.classStartDate
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: msgEnd,
+            path: ['remote_class', i, 'classEndDate'],
+          })
+        }
       })
-    )
-    .optional(),
-})
+    }
+  })
 
 // Use the full schema as the main form schema for form validation display
 const formSchema = fullFormSchema
@@ -874,10 +999,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       const uniqueNeighborhoods = Array.from(
         new Set(neighborhoodZone.map(n => n.bairro))
       )
-      return uniqueNeighborhoods.sort().map(bairro => ({
-        value: bairro,
-        label: bairro,
-      }))
+      return uniqueNeighborhoods
+        .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+        .map(bairro => ({
+          value: bairro,
+          label: bairro,
+        }))
     }, [])
 
     const instituicaoId = Number(
@@ -1141,6 +1268,25 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     const modalidade = form.watch('modalidade')
     const courseManagementType = form.watch('course_management_type')
     const externalPartnerUrl = form.watch('external_partner_url')
+    const enrollmentStartDate = form.watch('enrollment_start_date')
+
+    // Reset form when initialData changes (e.g. after a save + refetch cycle).
+    // Skip the first render — defaultValues already consumed initialData at that point.
+    const prevInitialDataRef = useRef(initialData)
+    // biome-ignore lint/correctness/useExhaustiveDependencies: prevInitialDataRef is a stable ref; form.reset and prepareDefaultValues are stable (RHF + useCallback)
+    useEffect(() => {
+      if (prevInitialDataRef.current === initialData) return
+      prevInitialDataRef.current = initialData
+      if (!initialData) return
+      form.reset(prepareDefaultValues(initialData), {
+        keepErrors: false,
+        keepDirty: false,
+        keepIsSubmitted: false,
+        keepTouched: false,
+        keepIsValid: false,
+        keepSubmitCount: false,
+      })
+    }, [initialData])
 
     // Track form changes for unsaved changes guard
     const isDirty = form.formState.isDirty
@@ -1189,6 +1335,62 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         }
       }
     }, [modalidade, externalPartnerUrl, form])
+
+    // Quando enrollment_start_date muda, corrige automaticamente datas de aula que ficaram inválidas
+    useEffect(() => {
+      if (!enrollmentStartDate) return
+      const values = form.getValues()
+
+      values.locations?.forEach((loc, li) => {
+        ;(loc.schedules ?? []).forEach((sched, si) => {
+          if (
+            sched.classStartDate &&
+            sched.classStartDate < enrollmentStartDate
+          ) {
+            form.setValue(
+              `locations.${li}.schedules.${si}.classStartDate`,
+              enrollmentStartDate,
+              { shouldValidate: true }
+            )
+            // se classEndDate também ficou antes da nova data de inscrição
+            if (
+              sched.classEndDate &&
+              sched.classEndDate < enrollmentStartDate
+            ) {
+              form.setValue(
+                `locations.${li}.schedules.${si}.classEndDate`,
+                enrollmentStartDate,
+                { shouldValidate: true }
+              )
+            }
+          }
+        })
+      })
+
+      values.remote_class?.forEach((sched, i) => {
+        if (
+          sched.classStartDate &&
+          sched.classStartDate < enrollmentStartDate
+        ) {
+          form.setValue(
+            `remote_class.${i}.classStartDate`,
+            enrollmentStartDate,
+            {
+              shouldValidate: true,
+            }
+          )
+          if (sched.classEndDate && sched.classEndDate < enrollmentStartDate) {
+            form.setValue(
+              `remote_class.${i}.classEndDate`,
+              enrollmentStartDate,
+              {
+                shouldValidate: true,
+              }
+            )
+          }
+        }
+      })
+    }, [enrollmentStartDate, form])
 
     // UseFieldArray for locations (PRESENCIAL/HIBRIDO)
     const { fields, append, remove } = useFieldArray({
@@ -1466,8 +1668,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         vacancies: 1,
                         classStartDate: currentDate,
                         classEndDate: nextMonth,
-                        classTime: 'Horário em definição',
-                        classDays: 'Dias em definição',
+                        classTime: '',
+                        classDays: '',
                       },
                     ],
                   },
@@ -2036,9 +2238,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       } catch (error) {
         if (error instanceof z.ZodError) {
           console.error('Validation errors:', error.errors)
+          const errorMessage = formatValidationErrors(error)
           toast.error('Erro ao salvar rascunho', {
-            description:
-              'Ocorreu um erro de formato nos dados. Verifique os campos preenchidos e tente novamente.',
+            description: errorMessage,
             duration: 5000,
           })
           // Close dialog on validation error
@@ -2204,7 +2406,19 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       <FormControl>
                         <DateTimePicker
                           value={field.value || undefined}
-                          onChange={field.onChange}
+                          onChange={date => {
+                            field.onChange(date)
+                            if (date) {
+                              const endDate = form.getValues(
+                                'enrollment_end_date'
+                              )
+                              if (endDate && endDate < date) {
+                                form.setValue('enrollment_end_date', date, {
+                                  shouldValidate: true,
+                                })
+                              }
+                            }
+                          }}
                           placeholder="Selecionar data e hora de início"
                           disabled={isReadOnly}
                         />
@@ -2225,6 +2439,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                           onChange={field.onChange}
                           placeholder="Selecionar data e hora de fim"
                           disabled={isReadOnly}
+                          minDate={enrollmentStartDate || undefined}
                         />
                       </FormControl>
                       <FormMessage />
@@ -2721,9 +2936,26 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                     <FormControl>
                                       <DateTimePicker
                                         value={field.value || undefined}
-                                        onChange={field.onChange}
+                                        onChange={date => {
+                                          field.onChange(date)
+                                          if (date) {
+                                            const endDate = form.getValues(
+                                              `remote_class.${index}.classEndDate`
+                                            )
+                                            if (endDate && endDate < date) {
+                                              form.setValue(
+                                                `remote_class.${index}.classEndDate`,
+                                                date,
+                                                { shouldValidate: true }
+                                              )
+                                            }
+                                          }
+                                        }}
                                         placeholder="Selecionar data e hora de início"
                                         disabled={isReadOnly}
+                                        minDate={
+                                          enrollmentStartDate || undefined
+                                        }
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -2742,6 +2974,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                         onChange={field.onChange}
                                         placeholder="Selecionar data e hora de fim"
                                         disabled={isReadOnly}
+                                        minDate={
+                                          form.watch(
+                                            `remote_class.${index}.classStartDate`
+                                          ) || undefined
+                                        }
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -2752,15 +2989,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                             <FormField
                               control={form.control}
-                              name={`remote_class.${index}.classTime`}
+                              name={`remote_class.${index}.classDays`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Horário das aulas</FormLabel>
+                                  <FormLabel>Dias de aula</FormLabel>
                                   <FormControl>
-                                    <Input
-                                      placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
+                                    <ClassDaysPicker
                                       value={field.value || ''}
                                       onChange={field.onChange}
+                                      disabled={isReadOnly}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -2770,15 +3007,20 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                             <FormField
                               control={form.control}
-                              name={`remote_class.${index}.classDays`}
+                              name={`remote_class.${index}.classTime`}
                               render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Dias de aula</FormLabel>
+                                <FormItem className="pt-2">
+                                  <FormLabel>Horário das aulas</FormLabel>
                                   <FormControl>
-                                    <Input
-                                      placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
+                                    <ScheduleTimeBuilder
                                       value={field.value || ''}
                                       onChange={field.onChange}
+                                      classDays={
+                                        form.watch(
+                                          `remote_class.${index}.classDays`
+                                        ) || ''
+                                      }
+                                      disabled={isReadOnly}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -3039,9 +3281,31 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                             <FormControl>
                                               <DateTimePicker
                                                 value={field.value}
-                                                onChange={field.onChange}
+                                                onChange={date => {
+                                                  field.onChange(date)
+                                                  if (date) {
+                                                    const endDate =
+                                                      form.getValues(
+                                                        `locations.${index}.schedules.${scheduleIndex}.classEndDate`
+                                                      )
+                                                    if (
+                                                      endDate &&
+                                                      endDate < date
+                                                    ) {
+                                                      form.setValue(
+                                                        `locations.${index}.schedules.${scheduleIndex}.classEndDate`,
+                                                        date,
+                                                        { shouldValidate: true }
+                                                      )
+                                                    }
+                                                  }
+                                                }}
                                                 placeholder="Selecionar data e hora de início"
                                                 disabled={isReadOnly}
+                                                minDate={
+                                                  enrollmentStartDate ||
+                                                  undefined
+                                                }
                                               />
                                             </FormControl>
                                             <FormMessage />
@@ -3062,6 +3326,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                                 onChange={field.onChange}
                                                 placeholder="Selecionar data e hora de fim"
                                                 disabled={isReadOnly}
+                                                minDate={
+                                                  form.watch(
+                                                    `locations.${index}.schedules.${scheduleIndex}.classStartDate`
+                                                  ) || undefined
+                                                }
                                               />
                                             </FormControl>
                                             <FormMessage />
@@ -3072,16 +3341,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                                     <FormField
                                       control={form.control}
-                                      name={`locations.${index}.schedules.${scheduleIndex}.classTime`}
+                                      name={`locations.${index}.schedules.${scheduleIndex}.classDays`}
                                       render={({ field }) => (
                                         <FormItem>
-                                          <FormLabel>
-                                            Horário das aulas*
-                                          </FormLabel>
+                                          <FormLabel>Dias de aula*</FormLabel>
                                           <FormControl>
-                                            <Input
-                                              placeholder="Digite o horário das aulas (ex: 19:00 - 22:00, Manhã, Tarde, Noite, etc.)"
-                                              {...field}
+                                            <ClassDaysPicker
+                                              value={field.value || ''}
+                                              onChange={field.onChange}
+                                              disabled={isReadOnly}
                                             />
                                           </FormControl>
                                           <FormMessage />
@@ -3091,14 +3359,22 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
 
                                     <FormField
                                       control={form.control}
-                                      name={`locations.${index}.schedules.${scheduleIndex}.classDays`}
+                                      name={`locations.${index}.schedules.${scheduleIndex}.classTime`}
                                       render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Dias de aula*</FormLabel>
+                                        <FormItem className="pt-2">
+                                          <FormLabel>
+                                            Horário das aulas*
+                                          </FormLabel>
                                           <FormControl>
-                                            <Input
-                                              placeholder="Digite os dias das aulas (ex: Segunda, Quarta e Sexta, Segunda a Sexta, etc.)"
-                                              {...field}
+                                            <ScheduleTimeBuilder
+                                              value={field.value || ''}
+                                              onChange={field.onChange}
+                                              classDays={
+                                                form.watch(
+                                                  `locations.${index}.schedules.${scheduleIndex}.classDays`
+                                                ) || ''
+                                              }
+                                              disabled={isReadOnly}
                                             />
                                           </FormControl>
                                           <FormMessage />
