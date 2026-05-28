@@ -22,6 +22,7 @@ interface DateTimePickerProps {
   className?: string
   id?: string
   disablePastDates?: boolean
+  minDate?: Date
 }
 
 export function DateTimePicker({
@@ -32,6 +33,7 @@ export function DateTimePicker({
   className,
   id,
   disablePastDates = false,
+  minDate,
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
@@ -43,11 +45,6 @@ export function DateTimePicker({
     }
     return '23:59:59'
   })
-
-  // Calculate year range: 5 years back and 5 years forward from current year
-  const currentYear = new Date().getFullYear()
-  const fromYear = currentYear - 5
-  const toYear = currentYear + 5
 
   // Sync with external value changes
   React.useEffect(() => {
@@ -135,20 +132,21 @@ export function DateTimePicker({
               selected={selectedDate}
               captionLayout="dropdown"
               onSelect={handleDateSelect}
-              initialFocus
-              fromYear={fromYear}
-              toYear={toYear}
               disabled={date => {
+                const compareDate = new Date(date)
+                compareDate.setHours(0, 0, 0, 0)
                 if (disablePastDates) {
                   const today = new Date()
                   today.setHours(0, 0, 0, 0)
-                  const compareDate = new Date(date)
-                  compareDate.setHours(0, 0, 0, 0)
-                  return compareDate < today
+                  if (compareDate < today) return true
+                }
+                if (minDate) {
+                  const min = new Date(minDate)
+                  min.setHours(0, 0, 0, 0)
+                  if (compareDate < min) return true
                 }
                 return false
               }}
-              fromDate={disablePastDates ? new Date() : undefined}
             />
           </PopoverContent>
         </Popover>
