@@ -303,7 +303,7 @@ export const NewEmpregabilidadeForm = forwardRef<
       const uniqueNeighborhoods = Array.from(
         new Set(neighborhoodZone.map(n => n.bairro))
       )
-        .sort()
+        .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
         .map(bairro => ({
           value: bairro,
           label: bairro,

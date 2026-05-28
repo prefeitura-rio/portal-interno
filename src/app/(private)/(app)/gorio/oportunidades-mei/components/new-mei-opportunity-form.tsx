@@ -300,7 +300,7 @@ export const NewMEIOpportunityForm = forwardRef<
       const uniqueNeighborhoods = Array.from(
         new Set(neighborhoodZone.map(n => n.bairro))
       )
-      return uniqueNeighborhoods.sort().map(bairro => ({
+      return uniqueNeighborhoods.sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })).map(bairro => ({
         value: bairro,
         label: bairro,
       }))
