@@ -19,7 +19,10 @@ function validateCourseDates(courseData: any): string | null {
     for (const schedule of location?.schedules ?? []) {
       if (schedule?.class_start_date) {
         const classStart = new Date(schedule.class_start_date)
-        if (!Number.isNaN(classStart.getTime()) && classStart < enrollmentStartDate) {
+        if (
+          !Number.isNaN(classStart.getTime()) &&
+          classStart < enrollmentStartDate
+        ) {
           return 'A data de início das aulas deve ser igual ou posterior ao início das inscrições.'
         }
       }
@@ -32,7 +35,10 @@ function validateCourseDates(courseData: any): string | null {
     for (const schedule of remoteClass) {
       if (schedule?.class_start_date) {
         const classStart = new Date(schedule.class_start_date)
-        if (!Number.isNaN(classStart.getTime()) && classStart < enrollmentStartDate) {
+        if (
+          !Number.isNaN(classStart.getTime()) &&
+          classStart < enrollmentStartDate
+        ) {
           return 'A data de início das aulas deve ser igual ou posterior ao início das inscrições.'
         }
       }
@@ -41,7 +47,10 @@ function validateCourseDates(courseData: any): string | null {
     for (const schedule of remoteClass.schedules) {
       if (schedule?.class_start_date) {
         const classStart = new Date(schedule.class_start_date)
-        if (!Number.isNaN(classStart.getTime()) && classStart < enrollmentStartDate) {
+        if (
+          !Number.isNaN(classStart.getTime()) &&
+          classStart < enrollmentStartDate
+        ) {
           return 'A data de início das aulas deve ser igual ou posterior ao início das inscrições.'
         }
       }
