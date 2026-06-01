@@ -49,7 +49,7 @@ export function formatTimeToDisplay(timeStr: string): string {
   const [hRaw, mRaw] = timeStr.split(':')
   const h = Number.parseInt(hRaw, 10)
   const m = Number.parseInt(mRaw ?? '0', 10)
-  if (Number.isNaN(h)) return ''
+  if (Number.isNaN(h) || Number.isNaN(m)) return ''
   return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`
 }
 
