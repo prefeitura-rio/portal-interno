@@ -31,13 +31,37 @@ interface ScheduleTimeBuilderProps {
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
 const MINUTES = ['00', '15', '30', '45']
 
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
+}
+
+// Returns the earliest valid end time that is strictly after `start`.
+function clampEnd(start: string): string {
+  const [hS, mS] = start.split(':')
+  const m = Number(mS)
+  const nextM = MINUTES.find(min => Number(min) > m)
+  if (nextM !== undefined) return `${hS}:${nextM}`
+  // No available minute slot in the same hour — advance one hour at :00
+  const nextH = String(Number(hS) + 1).padStart(2, '0')
+  return `${nextH}:00`
+}
+
 interface TimeSelectProps {
   value: string // "HH:MM"
   onChange: (value: string) => void
   disabled?: boolean
+  minHour?: string // items with hour < minHour are disabled
+  disabledMinutes?: string[] // specific minute values to disable
 }
 
-function TimeSelect({ value, onChange, disabled }: TimeSelectProps) {
+function TimeSelect({
+  value,
+  onChange,
+  disabled,
+  minHour,
+  disabledMinutes,
+}: TimeSelectProps) {
   const parts = value ? value.split(':') : ['', '']
   const h = parts[0] || ''
   const m = parts[1] || '00'
@@ -54,7 +78,11 @@ function TimeSelect({ value, onChange, disabled }: TimeSelectProps) {
         </SelectTrigger>
         <SelectContent>
           {HOURS.map(hour => (
-            <SelectItem key={hour} value={hour}>
+            <SelectItem
+              key={hour}
+              value={hour}
+              disabled={minHour !== undefined && hour < minHour}
+            >
               {hour}
             </SelectItem>
           ))}
@@ -71,7 +99,11 @@ function TimeSelect({ value, onChange, disabled }: TimeSelectProps) {
         </SelectTrigger>
         <SelectContent>
           {MINUTES.map(min => (
-            <SelectItem key={min} value={min}>
+            <SelectItem
+              key={min}
+              value={min}
+              disabled={disabledMinutes?.includes(min)}
+            >
               {min}
             </SelectItem>
           ))}
@@ -80,6 +112,24 @@ function TimeSelect({ value, onChange, disabled }: TimeSelectProps) {
       <span className="text-xs font-medium text-muted-foreground">min</span>
     </div>
   )
+}
+
+function endHourConstraints(
+  start: string,
+  end: string
+): {
+  minHour: string | undefined
+  disabledMinutes: string[]
+} {
+  if (!start) return { minHour: undefined, disabledMinutes: [] }
+  const [hS, mS] = start.split(':')
+  const minHour = hS
+  const [hE] = end ? end.split(':') : ['']
+  const sameHour = hE === hS
+  const disabledMinutes = sameHour
+    ? MINUTES.filter(min => Number(min) <= Number(mS))
+    : []
+  return { minHour, disabledMinutes }
 }
 
 export function ScheduleTimeBuilder({
@@ -181,27 +231,54 @@ export function ScheduleTimeBuilder({
     onChange(serialized)
   }
 
+  function isValidTime(val: string): boolean {
+    const [h, m] = val.split(':')
+    return !!h && m !== undefined && m !== ''
+  }
+
   function handleSameStart(val: string) {
-    // val must be a full "HH:MM" string with a non-empty hour part
-    const [hPart] = val.split(':')
-    if (!hPart) return
+    if (!isValidTime(val)) return
+    let end = sameEnd
+    // Auto-correct end if it's no longer after the new start
+    if (end && toMinutes(end) <= toMinutes(val)) {
+      end = clampEnd(val)
+      setSameEnd(end)
+    }
     setSameStart(val)
-    emit('same', val, sameEnd, perDayTimes)
+    emit('same', val, end, perDayTimes)
   }
 
   function handleSameEnd(val: string) {
-    const [hPart] = val.split(':')
-    if (!hPart) return
+    if (!isValidTime(val)) return
+    // Reject if end would be at or before start
+    if (sameStart && toMinutes(val) <= toMinutes(sameStart)) return
     setSameEnd(val)
     emit('same', sameStart, val, perDayTimes)
   }
 
   function updateEntry(index: number, field: 'start' | 'end', val: string) {
-    const next = perDayTimes.map((e, i) =>
-      i === index ? { ...e, [field]: val } : e
-    )
-    setPerDayTimes(next)
-    emit('different', sameStart, sameEnd, next)
+    if (!isValidTime(val)) return
+    const entry = perDayTimes[index]
+
+    if (field === 'start') {
+      let end = entry.end
+      if (end && toMinutes(end) <= toMinutes(val)) {
+        end = clampEnd(val)
+      }
+      const next = perDayTimes.map((e, i) =>
+        i === index ? { ...e, start: val, end } : e
+      )
+      setPerDayTimes(next)
+      emit('different', sameStart, sameEnd, next)
+    } else {
+      // Reject if end would be at or before start
+      if (entry.start && toMinutes(val) <= toMinutes(entry.start)) return
+      const next = perDayTimes.map((e, i) =>
+        i === index ? { ...e, end: val } : e
+      )
+      setPerDayTimes(next)
+      emit('different', sameStart, sameEnd, next)
+    }
   }
 
   function handleModeChange(newMode: ScheduleMode) {
@@ -226,6 +303,8 @@ export function ScheduleTimeBuilder({
     mode === 'same'
       ? serializeSameTime(sameStart, sameEnd)
       : serializePerDayTimes(perDayTimes)
+
+  const endConstraints = endHourConstraints(sameStart, sameEnd)
 
   return (
     <div className="space-y-3">
@@ -308,7 +387,9 @@ export function ScheduleTimeBuilder({
             <TimeSelect
               value={sameEnd}
               onChange={handleSameEnd}
-              disabled={disabled}
+              disabled={disabled || !sameStart}
+              minHour={endConstraints.minHour}
+              disabledMinutes={endConstraints.disabledMinutes}
             />
           </div>
         </div>
@@ -321,44 +402,49 @@ export function ScheduleTimeBuilder({
           </p>
         ) : (
           <div className="space-y-2">
-            {perDayTimes.map((entry, i) => (
-              <div
-                key={entry.day}
-                className="flex items-center gap-4 rounded-md border border-border bg-muted/30 px-4 py-3"
-              >
-                {/* Coluna esquerda — dia */}
-                <span className="w-8 shrink-0 text-sm font-semibold">
-                  {entry.day}
-                </span>
+            {perDayTimes.map((entry, i) => {
+              const ec = endHourConstraints(entry.start, entry.end)
+              return (
+                <div
+                  key={entry.day}
+                  className="flex items-center gap-4 rounded-md border border-border bg-muted/30 px-4 py-3"
+                >
+                  {/* Coluna esquerda — dia */}
+                  <span className="w-8 shrink-0 text-sm font-semibold">
+                    {entry.day}
+                  </span>
 
-                {/* Divisor */}
-                <div className="h-10 w-px shrink-0 bg-border" />
+                  {/* Divisor */}
+                  <div className="h-10 w-px shrink-0 bg-border" />
 
-                {/* Coluna direita — Início e Fim empilhados */}
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-10 shrink-0 text-xs text-muted-foreground">
-                      Início
-                    </span>
-                    <TimeSelect
-                      value={entry.start}
-                      onChange={val => updateEntry(i, 'start', val)}
-                      disabled={disabled}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-10 shrink-0 text-xs text-muted-foreground">
-                      Fim
-                    </span>
-                    <TimeSelect
-                      value={entry.end}
-                      onChange={val => updateEntry(i, 'end', val)}
-                      disabled={disabled}
-                    />
+                  {/* Coluna direita — Início e Fim empilhados */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-10 shrink-0 text-xs text-muted-foreground">
+                        Início
+                      </span>
+                      <TimeSelect
+                        value={entry.start}
+                        onChange={val => updateEntry(i, 'start', val)}
+                        disabled={disabled}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-10 shrink-0 text-xs text-muted-foreground">
+                        Fim
+                      </span>
+                      <TimeSelect
+                        value={entry.end}
+                        onChange={val => updateEntry(i, 'end', val)}
+                        disabled={disabled || !entry.start}
+                        minHour={ec.minHour}
+                        disabledMinutes={ec.disabledMinutes}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ))}
     </div>
