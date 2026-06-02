@@ -215,7 +215,7 @@ const customFieldsSchema = z
   .optional()
 
 // Create the full schema for complete validation (used for publishing)
-const fullFormSchema = z
+export const fullFormSchema = z
   .discriminatedUnion('modalidade', [
     z.object({
       title: z
