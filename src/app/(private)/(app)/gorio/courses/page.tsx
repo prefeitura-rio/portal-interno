@@ -15,12 +15,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DepartmentName } from '@/components/ui/department-name'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Tooltip,
@@ -37,6 +31,7 @@ import type {
   CourseType,
 } from '@/types/course'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { CourseRowActions } from './components/course-row-actions'
 
 import {
   type Column,
@@ -62,7 +57,6 @@ import {
   FileText,
   Flag,
   Handshake,
-  MoreHorizontal,
   Play,
   Text,
   Trash2,
@@ -227,7 +221,7 @@ function DepartmentSiglaWithPartnerTooltip({
 export default function Courses() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { canApproveCourses } = useHeimdallUserContext()
+  const { canApproveCourses, canPublishCourses } = useHeimdallUserContext()
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'created_at', desc: true },
@@ -445,6 +439,21 @@ export default function Courses() {
     },
     [router, searchParams, pagination.pageSize]
   )
+
+  const refetchCurrentTab = React.useCallback(() => {
+    fetchCourses(
+      pagination.pageIndex,
+      pagination.pageSize,
+      activeTab,
+      searchQuery
+    )
+  }, [
+    fetchCourses,
+    pagination.pageIndex,
+    pagination.pageSize,
+    activeTab,
+    searchQuery,
+  ])
 
   // Filter data based on active tab
   // ANTIGO: return activeTab === 'draft' ? draftCourses : courses
@@ -766,41 +775,19 @@ export default function Courses() {
       {
         id: 'actions',
         cell: function Cell({ row }) {
-          const course = row.original
-          const showEditAction =
-            canApproveCourses ||
-            course.status === 'draft' ||
-            course.status === 'needs_changes'
-
           return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Abrir menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href={`/gorio/courses/course/${course.id}`}>
-                    Visualizar
-                  </Link>
-                </DropdownMenuItem>
-                {showEditAction && (
-                  <DropdownMenuItem asChild>
-                    <Link href={`/gorio/courses/course/${course.id}?edit=true`}>
-                      Editar
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <CourseRowActions
+              course={row.original}
+              canApproveCourses={canApproveCourses}
+              canPublishCourses={canPublishCourses}
+              onSuccess={refetchCurrentTab}
+            />
           )
         },
         size: 32,
       },
     ]
-  }, [canApproveCourses])
+  }, [canApproveCourses, canPublishCourses, refetchCurrentTab])
 
   // Create columns based on active tab
   const columns = React.useMemo<ColumnDef<CourseListItem>[]>(() => {
