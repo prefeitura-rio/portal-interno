@@ -106,6 +106,10 @@ export function DateTimePicker({
     return `${format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })} às ${timeValue}`
   }
 
+  const today = new Date()
+  const startMonth = new Date(today.getFullYear() - 10, 0, 1)
+  const endMonth = new Date(today.getFullYear() + 5, 11, 31)
+
   return (
     <div className={cn('flex gap-2', className)}>
       <div className="flex flex-col gap-2 flex-1">
@@ -131,6 +135,8 @@ export function DateTimePicker({
               mode="single"
               selected={selectedDate}
               captionLayout="dropdown"
+              startMonth={startMonth}
+              endMonth={endMonth}
               onSelect={handleDateSelect}
               disabled={date => {
                 const compareDate = new Date(date)
