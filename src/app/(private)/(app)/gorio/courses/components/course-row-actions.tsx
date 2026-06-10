@@ -14,6 +14,7 @@ import { MoreHorizontal } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useCourseListActions } from '../hooks/use-course-list-actions'
+import { useDuplicateCourse } from '../hooks/use-duplicate-course'
 
 type DialogType =
   | 'send_to_review'
@@ -115,6 +116,7 @@ export function CourseRowActions({
   })
 
   const actions = useCourseListActions(onSuccess)
+  const duplicate = useDuplicateCourse()
 
   const { status } = course
 
@@ -205,7 +207,7 @@ export function CourseRowActions({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" disabled={actions.isLoading}>
+          <Button variant="ghost" size="icon" disabled={actions.isLoading || duplicate.isLoading}>
             <MoreHorizontal className="h-4 w-4" />
             <span className="sr-only">Abrir menu</span>
           </Button>
@@ -244,10 +246,10 @@ export function CourseRowActions({
 
           {/* 3. Duplicar */}
           {showDuplicate && (
-            <DropdownMenuItem asChild>
-              <Link href={`/gorio/courses/course/${course.id}?duplicate=true`}>
-                Duplicar curso
-              </Link>
+            <DropdownMenuItem
+              onSelect={() => duplicate.openConfirm(course.id, course.title)}
+            >
+              Duplicar curso
             </DropdownMenuItem>
           )}
 
@@ -323,6 +325,16 @@ export function CourseRowActions({
           onConfirm={handleConfirm}
         />
       )}
+
+      <ConfirmDialog
+        open={!!duplicate.pending}
+        onOpenChange={open => !open && duplicate.closeConfirm()}
+        title="Duplicar curso"
+        description={`Tem certeza que deseja duplicar o curso "${duplicate.pending?.title}"? Uma cópia será criada como rascunho.`}
+        confirmText="Duplicar"
+        variant="default"
+        onConfirm={duplicate.handleConfirm}
+      />
     </>
   )
 }
