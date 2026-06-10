@@ -207,7 +207,11 @@ export function CourseRowActions({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" disabled={actions.isLoading || duplicate.isLoading}>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={actions.isLoading || duplicate.isLoading}
+          >
             <MoreHorizontal className="h-4 w-4" />
             <span className="sr-only">Abrir menu</span>
           </Button>

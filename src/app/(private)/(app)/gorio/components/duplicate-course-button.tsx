@@ -1,9 +1,9 @@
 'use client'
 
+import { useDuplicateCourse } from '@/app/(private)/(app)/gorio/courses/hooks/use-duplicate-course'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import type { Course } from '@/types/course'
-import { useDuplicateCourse } from '@/app/(private)/(app)/gorio/courses/hooks/use-duplicate-course'
 import { Copy } from 'lucide-react'
 
 interface DuplicateCourseButtonProps {
