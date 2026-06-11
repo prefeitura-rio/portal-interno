@@ -37,7 +37,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tailwindcss/postcss": "^4.3.0",
     "@tanstack/react-table": "^8.21.3",
-    "@tiptap/extension-character-count": "^3.10.1",
+    "@tiptap/extension-character-count": "^3.26.0",
     "@tiptap/extension-link": "^3.26.0",
     "@tiptap/extension-placeholder": "^3.10.1",
     "@tiptap/extension-task-item": "^3.10.1",
