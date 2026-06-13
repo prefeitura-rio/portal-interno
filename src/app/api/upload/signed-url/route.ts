@@ -1,5 +1,5 @@
-import { Storage } from '@google-cloud/storage'
 import { isJwtExpired } from '@/lib/jwt-utils'
+import { Storage } from '@google-cloud/storage'
 import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -10,7 +10,6 @@ const ALLOWED_CONTENT_TYPES: Record<string, string> = {
   'image/webp': 'webp',
   'image/svg+xml': 'svg',
 }
-
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies()

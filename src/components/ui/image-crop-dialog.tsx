@@ -48,11 +48,13 @@ async function cropImageToBlob(
         pixelCrop.height
       )
       canvas.toBlob(
-        blob => (blob ? resolve(blob) : reject(new Error('Falha ao gerar imagem'))),
+        blob =>
+          blob ? resolve(blob) : reject(new Error('Falha ao gerar imagem')),
         outputType
       )
     }
-    image.onerror = () => reject(new Error('Não foi possível carregar a imagem'))
+    image.onerror = () =>
+      reject(new Error('Não foi possível carregar a imagem'))
     image.src = imageSrc
   })
 }
@@ -79,7 +81,11 @@ export function ImageCropDialog({
     if (!croppedAreaPixels) return
     setProcessing(true)
     try {
-      const blob = await cropImageToBlob(imageSrc, croppedAreaPixels, outputType)
+      const blob = await cropImageToBlob(
+        imageSrc,
+        croppedAreaPixels,
+        outputType
+      )
       onConfirm(blob)
     } catch {
       // error handled by parent
@@ -119,7 +125,12 @@ export function ImageCropDialog({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel} disabled={processing}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={processing}
+          >
             Cancelar
           </Button>
           <Button type="button" onClick={handleConfirm} disabled={processing}>

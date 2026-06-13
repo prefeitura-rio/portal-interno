@@ -85,7 +85,9 @@ export function ImageUpload({
 
   // Crop dialog state
   const [cropSrc, setCropSrc] = React.useState<string | null>(null)
-  const [pendingFileType, setPendingFileType] = React.useState<'image/jpeg' | 'image/png' | 'image/webp'>('image/jpeg')
+  const [pendingFileType, setPendingFileType] = React.useState<
+    'image/jpeg' | 'image/png' | 'image/webp'
+  >('image/jpeg')
 
   // Revoke object URL when it changes or on unmount to prevent memory leaks
   useEffect(() => {
@@ -166,7 +168,11 @@ export function ImageUpload({
     // If crop is requested, open the crop dialog instead of uploading directly
     if (cropAspectRatio !== undefined) {
       const objectUrl = URL.createObjectURL(file)
-      setPendingFileType(file.type === 'image/svg+xml' ? 'image/png' : (file.type as 'image/jpeg' | 'image/png' | 'image/webp'))
+      setPendingFileType(
+        file.type === 'image/svg+xml'
+          ? 'image/png'
+          : (file.type as 'image/jpeg' | 'image/png' | 'image/webp')
+      )
       setCropSrc(objectUrl)
       return
     }
