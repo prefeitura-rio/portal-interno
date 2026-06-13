@@ -170,15 +170,16 @@ const remoteClassSchema = z
   .array(remoteScheduleSchema)
   .min(1, { message: 'Pelo menos uma turma deve ser informada.' })
 
+const DEFAULT_INSTITUTIONAL_LOGO_URL =
+  'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/portal-do-admin/cursos/logo_pref%20ciclo%20cursos.webp'
+
 // Custom validation function for Google Cloud Storage URLs
 const validateGoogleCloudStorageURL = (url: string | undefined) => {
   // Allow empty or undefined URLs for drafts
   if (!url || url.trim() === '') {
     return true
   }
-  return url.startsWith(
-    'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/'
-  )
+  return url.startsWith('https://storage.googleapis.com/')
 }
 
 // Shared custom_fields schema - used across all form schemas
@@ -253,14 +254,14 @@ export const fullFormSchema = z
       // Required image fields
       institutional_logo: z
         .string()
-        .url({ message: 'Logo institucional deve ser uma URL válida.' })
+        .url({ message: 'Logo institucional deve ser uma imagem válida.' })
         .refine(validateGoogleCloudStorageURL, {
           message:
             'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       cover_image: z
         .string()
-        .url({ message: 'Imagem de capa deve ser uma URL válida.' })
+        .url({ message: 'A imagem de capa é obrigatória.' })
         .refine(validateGoogleCloudStorageURL, {
           message:
             'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
@@ -346,14 +347,14 @@ export const fullFormSchema = z
       // Required image fields
       institutional_logo: z
         .string()
-        .url({ message: 'Logo institucional deve ser uma URL válida.' })
+        .url({ message: 'Logo institucional deve ser uma imagem válida.' })
         .refine(validateGoogleCloudStorageURL, {
           message:
             'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       cover_image: z
         .string()
-        .url({ message: 'Imagem de capa deve ser uma URL válida.' })
+        .url({ message: 'A imagem de capa é obrigatória.' })
         .refine(validateGoogleCloudStorageURL, {
           message:
             'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
@@ -441,14 +442,14 @@ export const fullFormSchema = z
       // Required image fields
       institutional_logo: z
         .string()
-        .url({ message: 'Logo institucional deve ser uma URL válida.' })
+        .url({ message: 'Logo institucional deve ser uma imagem válida.' })
         .refine(validateGoogleCloudStorageURL, {
           message:
             'Logo institucional deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       cover_image: z
         .string()
-        .url({ message: 'Imagem de capa deve ser uma URL válida.' })
+        .url({ message: 'A imagem de capa é obrigatória.' })
         .refine(validateGoogleCloudStorageURL, {
           message:
             'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
@@ -1061,7 +1062,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             resources_used: '',
             material_used: '',
             teaching_material: '',
-            institutional_logo: '',
+            institutional_logo: DEFAULT_INSTITUTIONAL_LOGO_URL,
             cover_image: '',
             is_visible: true,
             auto_approve_enrollments: false,
@@ -3716,6 +3717,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         onChange={field.onChange}
                         label="Logo institucional*"
                         previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
+                        defaultValue={DEFAULT_INSTITUTIONAL_LOGO_URL}
+                        maxSize={1 * 1024 * 1024}
+                        requireSquare
+                        disabled={isReadOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -3733,7 +3738,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         value={field.value}
                         onChange={field.onChange}
                         label="Imagem de capa*"
-                        previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
+                        previewClassName="max-h-[200px] max-w-full rounded-lg object-cover"
+                        cropAspectRatio={16 / 9}
+                        maxSize={5 * 1024 * 1024}
+                        disabled={isReadOnly}
                       />
                     </FormControl>
                     <FormMessage />
