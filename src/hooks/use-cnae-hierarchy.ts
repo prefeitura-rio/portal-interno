@@ -41,7 +41,9 @@ export function useCNAESecoes() {
               .filter((item: ModelsCNAE) => item.secao)
               .map((item: ModelsCNAE) => item.secao!)
           )
-        ).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })) as string[]
+        ).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+        ) as string[]
 
         setSecoes(
           uniqueSecoes.map(secao => ({
@@ -102,7 +104,9 @@ export function useCNAEDivisoes(options?: UseCNAEHierarchyOptions) {
               .filter((item: ModelsCNAE) => item.divisao)
               .map((item: ModelsCNAE) => item.divisao!)
           )
-        ).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })) as string[]
+        ).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+        ) as string[]
 
         setDivisoes(
           uniqueDivisoes.map(divisao => ({
@@ -164,7 +168,9 @@ export function useCNAEGrupos(options?: UseCNAEHierarchyOptions) {
               .filter((item: ModelsCNAE) => item.grupo)
               .map((item: ModelsCNAE) => item.grupo!)
           )
-        ).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })) as string[]
+        ).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+        ) as string[]
 
         setGrupos(
           uniqueGrupos.map(grupo => ({
@@ -227,7 +233,9 @@ export function useCNAEClasses(options?: UseCNAEHierarchyOptions) {
               .filter((item: ModelsCNAE) => item.classe)
               .map((item: ModelsCNAE) => item.classe!)
           )
-        ).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })) as string[]
+        ).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+        ) as string[]
 
         setClasses(
           uniqueClasses.map(classe => ({
