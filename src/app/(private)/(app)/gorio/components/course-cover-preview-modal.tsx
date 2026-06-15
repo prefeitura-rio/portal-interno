@@ -1,5 +1,6 @@
 'use client'
 
+import oportunidadesLogo from '@/../public/oportunidades-cariocas-rio-dark.png'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { ChevronLeft } from 'lucide-react'
-import oportunidadesLogo from '@/../public/oportunidades-cariocas-rio-dark.png'
 
 type Accessibility = 'ACESSIVEL' | 'EXCLUSIVO'
 
@@ -60,10 +60,7 @@ function CourseCoverHeaderPreview({
           <img
             src={oportunidadesLogo.src}
             alt="Oportunidades Cariocas"
-            className={cn(
-              'object-contain w-auto',
-              isMobile ? 'h-5' : 'h-6'
-            )}
+            className={cn('object-contain w-auto', isMobile ? 'h-5' : 'h-6')}
           />
         </div>
       </div>
