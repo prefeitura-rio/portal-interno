@@ -123,7 +123,15 @@ function endHourConstraints(
 } {
   if (!start) return { minHour: undefined, disabledMinutes: [] }
   const [hS, mS] = start.split(':')
-  const minHour = hS
+  // Only disable the start hour in Fim when no minute slot is available there
+  // (i.e. start minute is :45 — the last slot). Otherwise allow selecting the
+  // same hour and let disabledMinutes handle the invalid minute slots.
+  const hasAvailableMinuteInStartHour = MINUTES.some(
+    min => Number(min) > Number(mS)
+  )
+  const minHour = hasAvailableMinuteInStartHour
+    ? hS
+    : String(Number(hS) + 1).padStart(2, '0')
   const [hE] = end ? end.split(':') : ['']
   const sameHour = hE === hS
   const disabledMinutes = sameHour
@@ -250,10 +258,15 @@ export function ScheduleTimeBuilder({
 
   function handleSameEnd(val: string) {
     if (!isValidTime(val)) return
-    // Reject if end would be at or before start
-    if (sameStart && toMinutes(val) <= toMinutes(sameStart)) return
-    setSameEnd(val)
-    emit('same', sameStart, val, perDayTimes)
+    let corrected = val
+    // Auto-advance to the next valid slot instead of silently rejecting —
+    // this handles the case where the user picks the start hour in Fim
+    // while the current minute is still invalid (e.g. fim "14:00" when start is "14:00")
+    if (sameStart && toMinutes(corrected) <= toMinutes(sameStart)) {
+      corrected = clampEnd(sameStart)
+    }
+    setSameEnd(corrected)
+    emit('same', sameStart, corrected, perDayTimes)
   }
 
   function updateEntry(index: number, field: 'start' | 'end', val: string) {
@@ -271,10 +284,12 @@ export function ScheduleTimeBuilder({
       setPerDayTimes(next)
       emit('different', sameStart, sameEnd, next)
     } else {
-      // Reject if end would be at or before start
-      if (entry.start && toMinutes(val) <= toMinutes(entry.start)) return
+      let corrected = val
+      if (entry.start && toMinutes(corrected) <= toMinutes(entry.start)) {
+        corrected = clampEnd(entry.start)
+      }
       const next = perDayTimes.map((e, i) =>
-        i === index ? { ...e, end: val } : e
+        i === index ? { ...e, end: corrected } : e
       )
       setPerDayTimes(next)
       emit('different', sameStart, sameEnd, next)
