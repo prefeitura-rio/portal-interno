@@ -77,7 +77,9 @@ export function useOcupacoes() {
   const { data, isLoading, error } = useCNAEs({ pageSize: 1000 })
 
   const ocupacoes = data?.data
-    ? Array.from(new Set(data.data.map(cnae => cnae.ocupacao))).sort()
+    ? Array.from(new Set(data.data.map(cnae => cnae.ocupacao))).sort((a, b) =>
+        a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+      )
     : []
 
   return {

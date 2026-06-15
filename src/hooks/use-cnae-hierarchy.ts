@@ -36,12 +36,14 @@ export function useCNAESecoes() {
         const data = result?.cnaes || []
         // Extract unique seções
         const uniqueSecoes = Array.from(
-          new Set(
+          new Set<string>(
             data
               .filter((item: ModelsCNAE) => item.secao)
               .map((item: ModelsCNAE) => item.secao!)
           )
-        ).sort() as string[]
+        ).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+        ) as string[]
 
         setSecoes(
           uniqueSecoes.map(secao => ({
@@ -97,12 +99,14 @@ export function useCNAEDivisoes(options?: UseCNAEHierarchyOptions) {
         const data = result?.cnaes || []
         // Extract unique divisões for this seção
         const uniqueDivisoes = Array.from(
-          new Set(
+          new Set<string>(
             data
               .filter((item: ModelsCNAE) => item.divisao)
               .map((item: ModelsCNAE) => item.divisao!)
           )
-        ).sort() as string[]
+        ).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+        ) as string[]
 
         setDivisoes(
           uniqueDivisoes.map(divisao => ({
@@ -159,12 +163,14 @@ export function useCNAEGrupos(options?: UseCNAEHierarchyOptions) {
         const data = result?.cnaes || []
         // Extract unique grupos for this seção and divisão
         const uniqueGrupos = Array.from(
-          new Set(
+          new Set<string>(
             data
               .filter((item: ModelsCNAE) => item.grupo)
               .map((item: ModelsCNAE) => item.grupo!)
           )
-        ).sort() as string[]
+        ).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+        ) as string[]
 
         setGrupos(
           uniqueGrupos.map(grupo => ({
@@ -222,12 +228,14 @@ export function useCNAEClasses(options?: UseCNAEHierarchyOptions) {
         const data = result?.cnaes || []
         // Extract unique classes for this seção, divisão and grupo
         const uniqueClasses = Array.from(
-          new Set(
+          new Set<string>(
             data
               .filter((item: ModelsCNAE) => item.classe)
               .map((item: ModelsCNAE) => item.classe!)
           )
-        ).sort() as string[]
+        ).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+        ) as string[]
 
         setClasses(
           uniqueClasses.map(classe => ({

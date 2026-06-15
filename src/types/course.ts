@@ -248,6 +248,7 @@ export interface CustomField {
   title: string
   value?: string
   field_type?: CustomFieldType
+  format_type?: string
   required: boolean
   options?: CustomFieldOption[]
   created_at?: string
