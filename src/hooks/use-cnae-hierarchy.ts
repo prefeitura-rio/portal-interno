@@ -36,12 +36,12 @@ export function useCNAESecoes() {
         const data = result?.cnaes || []
         // Extract unique seções
         const uniqueSecoes = Array.from(
-          new Set(
+          new Set<string>(
             data
               .filter((item: ModelsCNAE) => item.secao)
               .map((item: ModelsCNAE) => item.secao!)
           )
-        ).sort((a: string, b: string) =>
+        ).sort((a, b) =>
           a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
         ) as string[]
 
@@ -99,12 +99,12 @@ export function useCNAEDivisoes(options?: UseCNAEHierarchyOptions) {
         const data = result?.cnaes || []
         // Extract unique divisões for this seção
         const uniqueDivisoes = Array.from(
-          new Set(
+          new Set<string>(
             data
               .filter((item: ModelsCNAE) => item.divisao)
               .map((item: ModelsCNAE) => item.divisao!)
           )
-        ).sort((a: string, b: string) =>
+        ).sort((a, b) =>
           a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
         ) as string[]
 
@@ -163,12 +163,12 @@ export function useCNAEGrupos(options?: UseCNAEHierarchyOptions) {
         const data = result?.cnaes || []
         // Extract unique grupos for this seção and divisão
         const uniqueGrupos = Array.from(
-          new Set(
+          new Set<string>(
             data
               .filter((item: ModelsCNAE) => item.grupo)
               .map((item: ModelsCNAE) => item.grupo!)
           )
-        ).sort((a: string, b: string) =>
+        ).sort((a, b) =>
           a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
         ) as string[]
 
@@ -228,12 +228,12 @@ export function useCNAEClasses(options?: UseCNAEHierarchyOptions) {
         const data = result?.cnaes || []
         // Extract unique classes for this seção, divisão and grupo
         const uniqueClasses = Array.from(
-          new Set(
+          new Set<string>(
             data
               .filter((item: ModelsCNAE) => item.classe)
               .map((item: ModelsCNAE) => item.classe!)
           )
-        ).sort((a: string, b: string) =>
+        ).sort((a, b) =>
           a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
         ) as string[]
 
