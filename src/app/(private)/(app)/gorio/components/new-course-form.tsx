@@ -202,6 +202,7 @@ const customFieldsSchema = z
           'multiselect',
         ])
         .default('text'),
+      format_type: z.string().optional(),
       options: z
         .array(
           z.object({
@@ -240,11 +241,7 @@ export const fullFormSchema = z
       theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.literal('ONLINE'),
-      workload: z
-        .string()
-        .min(1, { message: 'Carga horária é obrigatória.' })
-        .min(3, { message: 'Carga horária deve ter pelo menos 3 caracteres.' })
-        .max(50, { message: 'Carga horária não pode exceder 50 caracteres.' }),
+      workload: z.string().min(1, { message: 'Carga horária é obrigatória.' }),
       target_audience: z
         .string()
         .min(1, { message: 'Público-alvo é obrigatório.' })
@@ -333,11 +330,7 @@ export const fullFormSchema = z
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.literal('PRESENCIAL'),
       theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
-      workload: z
-        .string()
-        .min(1, { message: 'Carga horária é obrigatória.' })
-        .min(3, { message: 'Carga horária deve ter pelo menos 3 caracteres.' })
-        .max(50, { message: 'Carga horária não pode exceder 50 caracteres.' }),
+      workload: z.string().min(1, { message: 'Carga horária é obrigatória.' }),
       target_audience: z
         .string()
         .min(1, { message: 'Público-alvo é obrigatório.' })
@@ -428,11 +421,7 @@ export const fullFormSchema = z
       theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.literal('LIVRE_FORMACAO_ONLINE'),
-      workload: z
-        .string()
-        .min(1, { message: 'Carga horária é obrigatória.' })
-        .min(3, { message: 'Carga horária deve ter pelo menos 3 caracteres.' })
-        .max(50, { message: 'Carga horária não pode exceder 50 caracteres.' }),
+      workload: z.string().min(1, { message: 'Carga horária é obrigatória.' }),
       target_audience: z
         .string()
         .min(1, { message: 'Público-alvo é obrigatório.' })
@@ -942,6 +931,83 @@ interface NewCourseFormProps {
   userOrgaoIds?: string[]
   /** Skip the internal "Salvar Alterações" confirmation dialog and call onSubmit directly */
   skipSaveConfirm?: boolean
+}
+
+function WorkloadInput({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string
+  onChange: (val: string) => void
+  disabled?: boolean
+}) {
+  const legacyRef = useRef<string | null>(null)
+  const mountedRef = useRef(false)
+  const [legacyDetected, setLegacyDetected] = useState(false)
+
+  const initialValue = useRef(value)
+  useEffect(() => {
+    if (mountedRef.current) return
+    mountedRef.current = true
+    const initial = initialValue.current
+    if (!initial) return
+    const isNewFormat = /^\d+\s*hora/.test(initial)
+    if (!isNewFormat) {
+      legacyRef.current = initial
+      setLegacyDetected(true)
+    }
+  }, [])
+
+  const numericValue = value.match(/^(\d+)/)?.[1] ?? ''
+  const hours = Number.parseInt(numericValue || '0', 10)
+  const hasNewValue = numericValue !== ''
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/\D/g, '')
+    if (!raw) {
+      onChange('')
+      return
+    }
+    const n = Number.parseInt(raw, 10)
+    onChange(`${n} ${n === 1 ? 'hora' : 'horas'}`)
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Input
+          type="text"
+          inputMode="numeric"
+          placeholder="Ex: 20"
+          value={numericValue}
+          onChange={handleChange}
+          disabled={disabled}
+          className="w-32"
+        />
+        <span className="text-sm text-muted-foreground">
+          {hours === 1 ? 'hora' : 'horas'}
+        </span>
+      </div>
+
+      {legacyDetected && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-500/25 bg-amber-500/5 px-3 py-2">
+          <span className="shrink-0 text-xs font-medium text-amber-500/70">
+            Valor atual (formatação antiga)
+          </span>
+          <span className="truncate text-sm text-amber-200/60">
+            {legacyRef.current}
+          </span>
+        </div>
+      )}
+
+      {legacyDetected && hasNewValue && (
+        <p className="text-xs text-amber-500/70">
+          ⚠ Este novo valor substituirá a formatação antiga ao salvar.
+        </p>
+      )}
+    </div>
+  )
 }
 
 export interface NewCourseFormRef {
@@ -3410,9 +3476,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   <FormItem>
                     <FormLabel>Carga Horária*</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Digite a carga horária (ex: 40 horas, 80h, 2 meses, etc.)"
-                        {...field}
+                      <WorkloadInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        disabled={isReadOnly}
                       />
                     </FormControl>
                     <FormMessage />
