@@ -61,6 +61,7 @@ import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { Copy, Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { ClassDaysPicker } from './class-days-picker'
+import { CourseCoverPreviewModal } from './course-cover-preview-modal'
 import { type CustomField, FieldsCreator } from './fields-creator'
 import { ScheduleTimeBuilder } from './schedule-time-builder'
 
@@ -1258,6 +1259,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       open: false,
       type: null,
     })
+    const [showCoverPreview, setShowCoverPreview] = useState(false)
 
     const form = useForm<PartialFormData>({
       resolver: zodResolver(formSchema as any), // Type assertion needed due to discriminated union
@@ -1270,6 +1272,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     const courseManagementType = form.watch('course_management_type')
     const externalPartnerUrl = form.watch('external_partner_url')
     const enrollmentStartDate = form.watch('enrollment_start_date')
+    const watchedTitle = form.watch('title')
+    const watchedCoverImage = form.watch('cover_image')
+    const watchedAccessibility = form.watch('accessibility')
 
     // Reset form when initialData changes (e.g. after a save + refetch cycle).
     // Skip the first render — defaultValues already consumed initialData at that point.
@@ -3740,8 +3745,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                         label="Imagem de capa*"
                         previewClassName="max-h-[200px] max-w-full rounded-lg object-cover"
                         cropAspectRatio={16 / 9}
-                        maxSize={5 * 1024 * 1024}
+                        maxSize={1 * 1024 * 1024}
                         disabled={isReadOnly}
+                        onPreviewClick={() => setShowCoverPreview(true)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -3958,6 +3964,16 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             }
           }}
         />
+
+        {watchedCoverImage && (
+          <CourseCoverPreviewModal
+            open={showCoverPreview}
+            onOpenChange={setShowCoverPreview}
+            coverImage={watchedCoverImage}
+            title={watchedTitle}
+            accessibility={watchedAccessibility}
+          />
+        )}
       </Form>
     )
   }

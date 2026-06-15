@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { ImagePlus, Loader2, RotateCcw, X } from 'lucide-react'
+import { Eye, ImagePlus, Loader2, RotateCcw, X } from 'lucide-react'
 import React, { useEffect } from 'react'
 import { toast } from 'sonner'
 import { Button } from './button'
@@ -62,6 +62,8 @@ interface ImageUploadProps {
    * Example: 16/9 for widescreen, 1 for square.
    */
   cropAspectRatio?: number
+  /** When set, shows an eye button on the preview to open a custom preview modal. */
+  onPreviewClick?: () => void
 }
 
 export function ImageUpload({
@@ -77,6 +79,7 @@ export function ImageUpload({
   defaultValue,
   requireSquare = false,
   cropAspectRatio,
+  onPreviewClick,
 }: ImageUploadProps) {
   const id = React.useId()
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -250,12 +253,32 @@ export function ImageUpload({
         />
 
         {!isEmpty ? (
-          <div className="relative rounded-lg border p-4">
+          <div
+            className={cn(
+              'relative rounded-lg border p-4',
+              onPreviewClick && 'pointer-events-auto'
+            )}
+          >
             <img
               src={value}
               alt="Preview"
-              className={cn(previewClassName, 'w-full h-auto')}
+              className={cn(
+                previewClassName,
+                'w-full h-auto',
+                onPreviewClick && 'cursor-pointer'
+              )}
+              onClick={onPreviewClick}
             />
+            {onPreviewClick && (
+              <button
+                type="button"
+                onClick={onPreviewClick}
+                className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full border bg-background/95 shadow-sm transition-colors hover:bg-background"
+                aria-label="Visualizar capa"
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+            )}
             {!disabled && (
               <Button
                 type="button"
@@ -303,7 +326,7 @@ export function ImageUpload({
                     Clique para selecionar ou arraste uma imagem
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    PNG, JPG, WebP ou SVG — máx. {formatSize(maxSize)}
+                    PNG, JPG, WebP ou SVG - máx. {formatSize(maxSize)}
                   </p>
                 </>
               )}
