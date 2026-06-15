@@ -56,8 +56,19 @@ export interface CustomField {
   title: string
   required: boolean
   field_type: CustomFieldType
+  format_type?: string
   options?: CustomFieldOption[]
 }
+
+const FORMAT_TYPE_OPTIONS = [
+  { value: 'free', label: 'Texto livre' },
+  { value: 'number', label: 'Apenas números' },
+  { value: 'date', label: 'Data (DD/MM/AAAA)' },
+  { value: 'phone', label: 'Telefone' },
+  { value: 'cpf', label: 'CPF' },
+  { value: 'cep', label: 'CEP' },
+  { value: 'email', label: 'E-mail' },
+] as const
 
 interface FieldsCreatorProps {
   fields: CustomField[]
@@ -75,6 +86,7 @@ export function FieldsCreator({
   const [newFieldTitle, setNewFieldTitle] = useState('')
   const [newFieldRequired, setNewFieldRequired] = useState(false)
   const [newFieldType, setNewFieldType] = useState<CustomFieldType>('text')
+  const [newFieldFormatType, setNewFieldFormatType] = useState<string>('free')
   const [newFieldOptions, setNewFieldOptions] = useState<CustomFieldOption[]>([
     { id: uuidv4(), value: '' },
   ])
@@ -112,6 +124,7 @@ export function FieldsCreator({
     setNewFieldTitle('')
     setNewFieldRequired(false)
     setNewFieldType('text')
+    setNewFieldFormatType('free')
     setNewFieldOptions([{ id: uuidv4(), value: '' }])
   }
 
@@ -127,6 +140,7 @@ export function FieldsCreator({
       title: newFieldTitle.trim(),
       required: newFieldRequired,
       field_type: newFieldType,
+      format_type: newFieldType === 'text' ? newFieldFormatType : undefined,
       options: requiresOptions
         ? newFieldOptions.filter(opt => opt.value.trim())
         : undefined,
@@ -380,6 +394,32 @@ export function FieldsCreator({
             </Select>
           </div>
 
+          {/* Formatação para campos de texto */}
+          {field.field_type === 'text' && (
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">
+                Formatação
+              </Label>
+              <Select
+                value={field.format_type ?? 'free'}
+                onValueChange={(value: string) =>
+                  updateField(field.id, { format_type: value })
+                }
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FORMAT_TYPE_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Edição de opções para campos com seleção */}
           {fieldRequiresOptions && (
             <div className="space-y-3">
@@ -452,6 +492,14 @@ export function FieldsCreator({
                 Obrigatório
               </Badge>
             )}
+            {field.field_type === 'text' &&
+              field.format_type &&
+              field.format_type !== 'free' && (
+                <Badge variant="outline" className="text-xs">
+                  {FORMAT_TYPE_OPTIONS.find(o => o.value === field.format_type)
+                    ?.label ?? field.format_type}
+                </Badge>
+              )}
           </div>
           <div className="flex items-center gap-2">
             {!disabled && (
@@ -609,6 +657,31 @@ export function FieldsCreator({
               </p>
             )}
           </div>
+
+          {/* Format type for text fields */}
+          {newFieldType === 'text' && (
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">
+                Formatação
+              </Label>
+              <Select
+                value={newFieldFormatType}
+                onValueChange={setNewFieldFormatType}
+                disabled={disabled}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FORMAT_TYPE_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Options configuration for select/radio/multiselect fields */}
           {requiresOptions && (
