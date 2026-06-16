@@ -1627,7 +1627,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             : '',
         external_partner_logo_url:
           data.course_management_type !== 'OWN_ORG'
-            ? data.external_partner_logo_url || DEFAULT_EXTERNAL_PARTNER_LOGO_URL
+            ? data.external_partner_logo_url ||
+              DEFAULT_EXTERNAL_PARTNER_LOGO_URL
             : '',
         external_partner_contact:
           data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
@@ -1705,7 +1706,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             : '',
         external_partner_logo_url:
           data.course_management_type !== 'OWN_ORG'
-            ? data.external_partner_logo_url || DEFAULT_EXTERNAL_PARTNER_LOGO_URL
+            ? data.external_partner_logo_url ||
+              DEFAULT_EXTERNAL_PARTNER_LOGO_URL
             : '',
         external_partner_contact:
           data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
@@ -2689,7 +2691,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                   onChange={field.onChange}
                                   label="Logo do parceiro externo"
                                   previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
-                                  defaultValue={DEFAULT_EXTERNAL_PARTNER_LOGO_URL}
+                                  defaultValue={
+                                    DEFAULT_EXTERNAL_PARTNER_LOGO_URL
+                                  }
                                   defaultValueLabel="Usar logo padrão da Nave do Conhecimento"
                                   maxSize={1 * 1024 * 1024}
                                   requireSquare
