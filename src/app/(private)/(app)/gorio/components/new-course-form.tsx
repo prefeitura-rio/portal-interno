@@ -174,6 +174,9 @@ const remoteClassSchema = z
 const DEFAULT_INSTITUTIONAL_LOGO_URL =
   'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/portal-do-admin/cursos/logo_pref%20ciclo%20cursos.webp'
 
+const DEFAULT_EXTERNAL_PARTNER_LOGO_URL =
+  'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/portal-do-admin/cursos/logo%20nave%20123.png'
+
 // Custom validation function for Google Cloud Storage URLs
 const validateGoogleCloudStorageURL = (url: string | undefined) => {
   // Allow empty or undefined URLs for drafts
@@ -285,13 +288,11 @@ export const fullFormSchema = z
       external_partner_url: z.string().url().optional().or(z.literal('')),
       external_partner_logo_url: z
         .string()
-        .url()
-        .optional()
-        .or(z.literal(''))
         .refine(validateGoogleCloudStorageURL, {
           message:
             'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
-        }),
+        })
+        .optional(),
       external_partner_contact: z.string().optional(),
 
       accessibility: z
@@ -374,13 +375,11 @@ export const fullFormSchema = z
       external_partner_url: z.string().url().optional().or(z.literal('')),
       external_partner_logo_url: z
         .string()
-        .url()
-        .optional()
-        .or(z.literal(''))
         .refine(validateGoogleCloudStorageURL, {
           message:
             'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
-        }),
+        })
+        .optional(),
       external_partner_contact: z.string().optional(),
 
       accessibility: z
@@ -470,13 +469,11 @@ export const fullFormSchema = z
       external_partner_url: z.string().url().optional().or(z.literal('')),
       external_partner_logo_url: z
         .string()
-        .url()
-        .optional()
-        .or(z.literal(''))
         .refine(validateGoogleCloudStorageURL, {
           message:
             'Logo do parceiro externo deve ser uma URL do bucket do Google Cloud Storage.',
-        }),
+        })
+        .optional(),
       external_partner_contact: z.string().optional(),
 
       accessibility: z
@@ -1118,7 +1115,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             course_management_type: 'OWN_ORG',
             external_partner_name: '',
             external_partner_url: '',
-            external_partner_logo_url: '',
+            external_partner_logo_url: DEFAULT_EXTERNAL_PARTNER_LOGO_URL,
             external_partner_contact: '',
             accessibility: undefined,
             facilitator: '',
@@ -1165,7 +1162,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               : 'OWN_ORG'),
           external_partner_name: data.external_partner_name || '',
           external_partner_url: data.external_partner_url || '',
-          external_partner_logo_url: data.external_partner_logo_url || '',
+          external_partner_logo_url:
+            data.external_partner_logo_url || DEFAULT_EXTERNAL_PARTNER_LOGO_URL,
           external_partner_contact: data.external_partner_contact || '',
           accessibility:
             data.accessibility === '' ||
@@ -1629,7 +1627,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             : '',
         external_partner_logo_url:
           data.course_management_type !== 'OWN_ORG'
-            ? data.external_partner_logo_url
+            ? data.external_partner_logo_url || DEFAULT_EXTERNAL_PARTNER_LOGO_URL
             : '',
         external_partner_contact:
           data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
@@ -1707,7 +1705,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             : '',
         external_partner_logo_url:
           data.course_management_type !== 'OWN_ORG'
-            ? data.external_partner_logo_url
+            ? data.external_partner_logo_url || DEFAULT_EXTERNAL_PARTNER_LOGO_URL
             : '',
         external_partner_contact:
           data.course_management_type === 'EXTERNAL_MANAGED_BY_PARTNER'
@@ -2685,60 +2683,19 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                           name="external_partner_logo_url"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>
-                                URL para a logo do parceiro externo
-                              </FormLabel>
-                              <div className="flex items-start gap-4">
-                                <div className="flex-1">
-                                  <FormControl>
-                                    <Input
-                                      placeholder="https://"
-                                      type="url"
-                                      {...field}
-                                      disabled={isReadOnly}
-                                    />
-                                  </FormControl>
-                                </div>
-                                {field.value && (
-                                  <div className="flex-shrink-0">
-                                    <div className="w-16 h-16 border border-gray-200 rounded-md overflow-hidden bg-gray-50 flex items-center justify-center">
-                                      <img
-                                        key={field.value} // Force re-render when URL changes
-                                        src={field.value}
-                                        alt="Preview da logo do parceiro"
-                                        className="max-w-full max-h-full object-contain"
-                                        onError={e => {
-                                          const target =
-                                            e.target as HTMLImageElement
-                                          target.style.display = 'none'
-                                          const errorText =
-                                            target.nextElementSibling as HTMLElement
-                                          if (errorText) {
-                                            errorText.textContent =
-                                              'Erro ao carregar'
-                                            errorText.style.display = 'block'
-                                          }
-                                        }}
-                                        onLoad={e => {
-                                          const target =
-                                            e.target as HTMLImageElement
-                                          target.style.display = 'block'
-                                          const errorText =
-                                            target.nextElementSibling as HTMLElement
-                                          if (errorText)
-                                            errorText.style.display = 'none'
-                                        }}
-                                      />
-                                      <span
-                                        className="text-xs text-gray-500"
-                                        style={{ display: 'none' }}
-                                      >
-                                        Erro ao carregar
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                              <FormControl>
+                                <ImageUpload
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  label="Logo do parceiro externo"
+                                  previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
+                                  defaultValue={DEFAULT_EXTERNAL_PARTNER_LOGO_URL}
+                                  defaultValueLabel="Usar logo padrão da Nave do Conhecimento"
+                                  maxSize={1 * 1024 * 1024}
+                                  requireSquare
+                                  disabled={isReadOnly}
+                                />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}

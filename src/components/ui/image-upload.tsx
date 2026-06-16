@@ -55,6 +55,8 @@ interface ImageUploadProps {
   maxSize?: number
   /** If provided, shows a "Restaurar padrão" button when the field is empty. */
   defaultValue?: string
+  /** Custom label for the restore-default button. Defaults to "Usar logo padrão". */
+  defaultValueLabel?: string
   /** If true, only square images (width === height) are accepted. */
   requireSquare?: boolean
   /**
@@ -77,6 +79,7 @@ export function ImageUpload({
   disabled = false,
   maxSize = DEFAULT_MAX_SIZE,
   defaultValue,
+  defaultValueLabel = 'Usar logo padrão',
   requireSquare = false,
   cropAspectRatio,
   onPreviewClick,
@@ -341,7 +344,7 @@ export function ImageUpload({
                 className="w-full gap-2 text-muted-foreground"
               >
                 <RotateCcw className="h-4 w-4" />
-                Usar logo padrão
+                {defaultValueLabel}
               </Button>
             )}
           </div>
