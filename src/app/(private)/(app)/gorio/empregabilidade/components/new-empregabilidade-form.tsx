@@ -7,6 +7,7 @@ import { Combobox } from '@/components/ui/combobox'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { DateTimePicker } from '@/components/ui/datetime-picker'
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
+import { EmpresaCombobox } from '@/components/ui/empresa-combobox'
 import {
   Form,
   FormControl,
@@ -27,7 +28,6 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEmpregabilidadeValidation } from '@/hooks/use-empregabilidade-validation'
-import { useEmpresas } from '@/hooks/use-empresas'
 import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
 import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
 import { useTiposPcd } from '@/hooks/use-tipos-pcd'
@@ -322,12 +322,6 @@ export const NewEmpregabilidadeForm = forwardRef<
       loading: modelosLoading,
       error: modelosError,
     } = useModelosTrabalho()
-    const {
-      empresas,
-      loading: empresasLoading,
-      error: empresasError,
-    } = useEmpresas()
-
     // Transform API data to select options (UUID values)
     const regimeContratacaoOptions = useMemo(() => {
       return regimes.map(regime => ({
@@ -367,15 +361,6 @@ export const NewEmpregabilidadeForm = forwardRef<
         label: 'Exclusivo PcD',
       },
     ]
-
-    // Transform empresas API data to select options (CNPJ as value)
-    const empresasOptions = useMemo(() => {
-      return empresas.map(empresa => ({
-        value: empresa.cnpj || '',
-        label:
-          empresa.nome_fantasia || empresa.razao_social || 'Empresa sem nome',
-      }))
-    }, [empresas])
 
     // Helper para converter etapas de string (legado) para array
     const parseEtapas = (
@@ -693,39 +678,13 @@ export const NewEmpregabilidadeForm = forwardRef<
                   <FormItem>
                     <FormLabel>Contratante*</FormLabel>
                     <FormControl>
-                      <Select
+                      <EmpresaCombobox
+                        value={field.value || ''}
                         onValueChange={field.onChange}
-                        value={field.value || undefined}
-                        disabled={isReadOnly || empresasLoading}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              empresasLoading
-                                ? 'Carregando empresas...'
-                                : empresasOptions.length === 0
-                                  ? 'Nenhuma empresa cadastrada'
-                                  : 'Selecione a empresa'
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {empresasOptions.map(empresa => (
-                            <SelectItem
-                              key={empresa.value}
-                              value={empresa.value}
-                            >
-                              {empresa.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        disabled={isReadOnly}
+                        placeholder="Selecione a empresa"
+                      />
                     </FormControl>
-                    {empresasError && (
-                      <p className="text-sm text-destructive">
-                        Erro ao carregar empresas
-                      </p>
-                    )}
                     <FormMessage />
                   </FormItem>
                 )}
