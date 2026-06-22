@@ -116,8 +116,22 @@ export function adaptApiCourseToFormShape(
         : 'EXTERNAL_MANAGED_BY_ORG'
       : 'OWN_ORG')
 
+  const rawModalidade =
+    (apiCourse.modalidade as any)?.nome ?? apiCourse.modalidade
+  let modalidade: string | undefined
+  if (rawModalidade === 'Presencial' || rawModalidade === 'PRESENCIAL')
+    modalidade = 'PRESENCIAL'
+  else if (rawModalidade === 'Remoto' || rawModalidade === 'ONLINE')
+    modalidade = 'ONLINE'
+  else if (
+    rawModalidade === 'Livre formação (online)' ||
+    rawModalidade === 'LIVRE_FORMACAO_ONLINE'
+  )
+    modalidade = 'LIVRE_FORMACAO_ONLINE'
+  else modalidade = rawModalidade
+
   return {
-    modalidade: apiCourse.modalidade,
+    modalidade,
     title: apiCourse.title || '',
     description: apiCourse.description || '',
     category,
