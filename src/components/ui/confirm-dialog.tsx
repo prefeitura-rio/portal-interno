@@ -37,8 +37,9 @@ export function ConfirmDialog({
   children,
 }: ConfirmDialogProps) {
   const handleConfirm = () => {
-    onConfirm()
     onOpenChange(false)
+    // defer action so Radix finishes cleaning up pointer-events on body before re-renders
+    setTimeout(() => onConfirm(), 0)
   }
 
   const handleCancel = () => {
