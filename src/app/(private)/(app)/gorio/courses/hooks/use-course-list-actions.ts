@@ -28,6 +28,7 @@ export function useCourseListActions(onSuccess: () => void) {
       })
     } finally {
       setIsLoading(false)
+      document.body.style.pointerEvents = ''
     }
   }
 
@@ -39,7 +40,8 @@ export function useCourseListActions(onSuccess: () => void) {
       toast.error('Não foi possível verificar os dados do curso.')
       return false
     }
-    const apiCourse = await res.json()
+    const raw = await res.json()
+    const apiCourse = raw?.course?.data ?? raw?.course ?? raw
     const errors = validateCourseForSubmission(apiCourse)
     if (errors.length === 0) return true
 
@@ -51,6 +53,7 @@ export function useCourseListActions(onSuccess: () => void) {
 
     toast.error('O curso está incompleto.', {
       description,
+      duration: 8000,
       action: {
         label: 'Editar agora',
         onClick: () =>
@@ -72,6 +75,7 @@ export function useCourseListActions(onSuccess: () => void) {
       )
     } finally {
       setIsLoading(false)
+      document.body.style.pointerEvents = ''
     }
   }
 
@@ -87,6 +91,7 @@ export function useCourseListActions(onSuccess: () => void) {
       )
     } finally {
       setIsLoading(false)
+      document.body.style.pointerEvents = ''
     }
   }
 
@@ -101,6 +106,7 @@ export function useCourseListActions(onSuccess: () => void) {
       )
     } finally {
       setIsLoading(false)
+      document.body.style.pointerEvents = ''
     }
   }
 
@@ -139,6 +145,7 @@ export function useCourseListActions(onSuccess: () => void) {
       })
     } finally {
       setIsLoading(false)
+      document.body.style.pointerEvents = ''
     }
   }
 

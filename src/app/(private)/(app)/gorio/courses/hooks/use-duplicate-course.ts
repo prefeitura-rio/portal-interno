@@ -12,7 +12,7 @@ interface PendingDuplicate {
   courseData?: any
 }
 
-export function useDuplicateCourse() {
+export function useDuplicateCourse(onSuccess?: () => void) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [pending, setPending] = useState<PendingDuplicate | null>(null)
@@ -195,8 +195,12 @@ export function useDuplicateCourse() {
       }
 
       toast.success('Curso duplicado com sucesso!')
-      router.push('/gorio/courses?tab=draft')
-      router.refresh()
+      if (onSuccess) {
+        onSuccess()
+      } else {
+        router.push('/gorio/courses?tab=draft')
+        router.refresh()
+      }
     } catch (error) {
       toast.error('Erro ao duplicar curso', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
@@ -204,6 +208,10 @@ export function useDuplicateCourse() {
     } finally {
       setIsLoading(false)
       setPending(null)
+      // Defer cleanup so Radix finishes its dialog close animation before we reset
+      setTimeout(() => {
+        document.body.style.pointerEvents = ''
+      }, 300)
     }
   }
 

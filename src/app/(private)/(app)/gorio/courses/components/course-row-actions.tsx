@@ -12,7 +12,7 @@ import {
 import type { CourseListItem } from '@/types/course'
 import { MoreHorizontal } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useCourseListActions } from '../hooks/use-course-list-actions'
 import { useDuplicateCourse } from '../hooks/use-duplicate-course'
 
@@ -116,7 +116,17 @@ export function CourseRowActions({
   })
 
   const actions = useCourseListActions(onSuccess)
-  const duplicate = useDuplicateCourse()
+  const duplicate = useDuplicateCourse(onSuccess)
+
+  // Radix Dialog leaves pointer-events:none on body if it unmounts during an animation.
+  // Force-clean the body style after the confirm dialog closes (delay matches Radix animation).
+  useEffect(() => {
+    if (!dialog.open) {
+      setTimeout(() => {
+        document.body.style.pointerEvents = ''
+      }, 300)
+    }
+  }, [dialog.open])
 
   const { status } = course
 
