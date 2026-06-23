@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-const limit = 30 
+const limit = 30
 
 function getEmpresaDisplayName(empresa: EmpregabilidadeEmpresa): string {
   return (
