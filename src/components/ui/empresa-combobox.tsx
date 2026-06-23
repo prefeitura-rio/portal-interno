@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-const limit = 20
+const limit = 30 
 
 function getEmpresaDisplayName(empresa: EmpregabilidadeEmpresa): string {
   return (
@@ -266,7 +266,7 @@ export function EmpresaCombobox({
         >
           <Command shouldFilter={false}>
             <CommandInput
-              placeholder="Buscar por nome ou CNPJ..."
+              placeholder="Buscar por nome ou CNPJ (Completo)"
               value={search}
               onValueChange={handleSearchChange}
             />
