@@ -43,4 +43,5 @@ export interface EmpregabilidadeVaga {
   titulo?: string
   updated_at?: string
   valor_vaga?: number
+  quantidade_estimada_contratacoes?: number
 }
