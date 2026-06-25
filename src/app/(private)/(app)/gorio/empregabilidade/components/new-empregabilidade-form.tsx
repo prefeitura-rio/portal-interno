@@ -121,6 +121,7 @@ const formSchema = z.object({
     .optional(),
   tipo_pcd: z.array(z.string()).optional(),
   valor_vaga: z.number().nullish(),
+  quantidade_estimada_contratacoes: z.number().int().positive().nullish(),
   bairro: z.string().optional(),
   data_limite: z.date().optional(),
   requisitos: z.string().optional(),
@@ -410,6 +411,7 @@ export const NewEmpregabilidadeForm = forwardRef<
             acessibilidade_pcd: undefined,
             tipo_pcd: [],
             valor_vaga: undefined,
+            quantidade_estimada_contratacoes: undefined,
             bairro: '',
             data_limite: undefined,
             requisitos: '',
@@ -874,6 +876,38 @@ export const NewEmpregabilidadeForm = forwardRef<
                         id="valor_vaga"
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="quantidade_estimada_contratacoes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantidade Estimada de Contratações</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        step={1}
+                        placeholder="Ex: 300"
+                        value={field.value ?? ''}
+                        onChange={e => {
+                          const val = e.target.value
+                          field.onChange(
+                            val === '' ? undefined : Number.parseInt(val, 10)
+                          )
+                        }}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                    <p className="text-sm text-muted-foreground">
+                      Informe quantas pessoas poderão ser contratadas por esta
+                      oportunidade.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
