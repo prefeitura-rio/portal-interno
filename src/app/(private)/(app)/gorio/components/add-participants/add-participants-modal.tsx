@@ -28,6 +28,7 @@ export function AddParticipantsModal({
   const {
     step,
     finishStatus,
+    finishErrorMessage,
     jobResult,
     handleFinish,
     handleBack,
@@ -107,7 +108,11 @@ export function AddParticipantsModal({
               )}
 
               {step === 'finish' && (
-                <FinishStep status={finishStatus} onRetry={handleRetry} />
+                <FinishStep
+                  status={finishStatus}
+                  onRetry={handleRetry}
+                  errorMessage={finishErrorMessage}
+                />
               )}
             </AnimatePresence>
           </div>
