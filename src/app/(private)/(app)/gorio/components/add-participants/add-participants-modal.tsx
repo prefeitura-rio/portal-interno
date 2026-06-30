@@ -86,6 +86,9 @@ export function AddParticipantsModal({
                     onProcessingComplete={result => {
                       setJobResult(result)
                       setStep('results')
+                      if (result.success_count > 0 && onSuccess) {
+                        onSuccess()
+                      }
                     }}
                   />
                 </AnimatedStep>
@@ -99,15 +102,7 @@ export function AddParticipantsModal({
 
               {step === 'results' && jobResult && (
                 <AnimatedStep stepKey="results">
-                  <ResultsStep
-                    result={jobResult}
-                    onClose={() => {
-                      if (onSuccess) {
-                        onSuccess()
-                      }
-                      onClose()
-                    }}
-                  />
+                  <ResultsStep result={jobResult} onClose={onClose} />
                 </AnimatedStep>
               )}
 
