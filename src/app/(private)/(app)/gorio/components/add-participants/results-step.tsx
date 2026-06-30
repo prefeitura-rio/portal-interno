@@ -7,6 +7,7 @@ import type { ResultsStepProps } from './types'
  * Step showing results of the import job
  */
 export function ResultsStep({ result, onClose }: ResultsStepProps) {
+  const isEmpty = result.success_count === 0 && result.error_count === 0
   const hasErrors = result.error_count > 0
   const hasSuccess = result.success_count > 0
 
@@ -22,7 +23,9 @@ export function ResultsStep({ result, onClose }: ResultsStepProps) {
       {/* Summary */}
       <div className="space-y-4">
         <div className="flex items-center justify-center gap-3">
-          {hasErrors && !hasSuccess ? (
+          {isEmpty ? (
+            <AlertCircle className="h-12 w-12 text-yellow-600" />
+          ) : hasErrors && !hasSuccess ? (
             <XCircle className="h-12 w-12 text-red-600" />
           ) : hasErrors && hasSuccess ? (
             <AlertCircle className="h-12 w-12 text-yellow-600" />
@@ -33,12 +36,20 @@ export function ResultsStep({ result, onClose }: ResultsStepProps) {
 
         <div className="text-center space-y-1">
           <h3 className="text-lg font-semibold">
-            {hasErrors && !hasSuccess
-              ? 'Nenhum participante foi adicionado'
-              : hasErrors && hasSuccess
-                ? 'Importação concluída com avisos'
-                : 'Participantes adicionados com sucesso!'}
+            {isEmpty
+              ? 'Nenhum participante foi encontrado no arquivo'
+              : hasErrors && !hasSuccess
+                ? 'Nenhum participante foi adicionado'
+                : hasErrors && hasSuccess
+                  ? 'Importação concluída com avisos'
+                  : 'Participantes adicionados com sucesso!'}
           </h3>
+          {isEmpty && (
+            <p className="text-sm text-muted-foreground">
+              Verifique se o arquivo contém linhas de dados além do cabeçalho e
+              se as colunas obrigatórias (nome_completo, cpf) estão presentes.
+            </p>
+          )}
         </div>
 
         {/* Stats */}
