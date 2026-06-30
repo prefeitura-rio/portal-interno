@@ -161,12 +161,12 @@ export function ManualForm({
       }
     } catch (error) {
       console.error('Erro ao adicionar participante:', error)
-      toast.error(
+      const message =
         error instanceof Error
           ? error.message
           : 'Erro ao adicionar participante. Tente novamente.'
-      )
-      onFinish(false)
+      toast.error(message)
+      onFinish(false, message)
     }
   }
 

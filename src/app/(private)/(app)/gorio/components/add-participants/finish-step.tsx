@@ -3,7 +3,7 @@ import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { motion } from 'motion/react'
 import type { FinishStepProps } from './types'
 
-export function FinishStep({ status, onRetry }: FinishStepProps) {
+export function FinishStep({ status, onRetry, errorMessage }: FinishStepProps) {
   return (
     <motion.div
       key="finish"
@@ -34,8 +34,8 @@ export function FinishStep({ status, onRetry }: FinishStepProps) {
       {status === 'error' && (
         <>
           <XCircle className="h-12 w-12 text-red-600" />
-          <p className="text-base font-medium text-red-700">
-            Ocorreu um erro ao adicionar.
+          <p className="text-base font-medium text-red-700 text-center">
+            {errorMessage || 'Ocorreu um erro ao adicionar.'}
           </p>
           <Button onClick={onRetry} variant="destructive" className="mt-2">
             Tentar novamente
