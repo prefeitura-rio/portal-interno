@@ -92,7 +92,7 @@ export interface AddParticipantsModalProps {
 
 export interface StepComponentProps {
   onBack: () => void
-  onFinish: (success: boolean) => void
+  onFinish: (success: boolean, errorMessage?: string) => void
 }
 
 export interface ManualFormProps extends StepComponentProps {
@@ -114,6 +114,7 @@ export interface OptionsStepProps {
 export interface FinishStepProps {
   status: FinishStatus
   onRetry: () => void
+  errorMessage?: string
 }
 
 export interface ModalHeaderProps {
@@ -131,8 +132,9 @@ export interface ResultsStepProps {
 export interface UseAddParticipantsModalReturn {
   step: ModalStep
   finishStatus: FinishStatus
+  finishErrorMessage: string | undefined
   jobResult: JobResult | null
-  handleFinish: (success: boolean) => Promise<void>
+  handleFinish: (success: boolean, errorMessage?: string) => Promise<void>
   handleBack: () => void
   handleSelectMode: (mode: Extract<ModalStep, 'manual' | 'spreadsheet'>) => void
   handleRetry: () => void

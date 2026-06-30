@@ -20,16 +20,23 @@ export function useAddParticipantsModal({
 }: UseAddParticipantsModalProps): UseAddParticipantsModalReturn {
   const [step, setStep] = useState<ModalStep>('options')
   const [finishStatus, setFinishStatus] = useState<FinishStatus>('loading')
+  const [finishErrorMessage, setFinishErrorMessage] = useState<
+    string | undefined
+  >(undefined)
   const [jobResult, setJobResult] = useState<JobResult | null>(null)
 
-  const handleFinish = useCallback(async (success: boolean) => {
-    setStep('finish')
-    setFinishStatus('loading')
+  const handleFinish = useCallback(
+    async (success: boolean, errorMessage?: string) => {
+      setStep('finish')
+      setFinishStatus('loading')
+      setFinishErrorMessage(errorMessage)
 
-    await new Promise(resolve => setTimeout(resolve, 1500))
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
-    setFinishStatus(success ? 'success' : 'error')
-  }, [])
+      setFinishStatus(success ? 'success' : 'error')
+    },
+    []
+  )
 
   const handleBack = useCallback(() => {
     setStep('options')
@@ -50,6 +57,7 @@ export function useAddParticipantsModal({
   const resetModal = useCallback(() => {
     setStep('options')
     setFinishStatus('loading')
+    setFinishErrorMessage(undefined)
     setJobResult(null)
   }, [])
 
@@ -70,6 +78,7 @@ export function useAddParticipantsModal({
   return {
     step,
     finishStatus,
+    finishErrorMessage,
     jobResult,
     handleFinish,
     handleBack,
