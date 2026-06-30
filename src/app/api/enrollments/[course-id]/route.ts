@@ -588,14 +588,11 @@ export async function POST(
       return NextResponse.json(newEnrollment, { status: 201 })
     }
 
-    // Handle error responses
+    // Handle error responses — forward the backend error message when available
     console.error('[Enrollment POST] Backend error response:', response)
+    const backendError = (response.data as any)?.error
     return NextResponse.json(
-      {
-        error: 'Failed to create manual enrollment',
-        backendError: response.data,
-        status: response.status,
-      },
+      { error: backendError || 'Ocorreu um erro ao adicionar o participante' },
       { status: response.status }
     )
   } catch (error) {
