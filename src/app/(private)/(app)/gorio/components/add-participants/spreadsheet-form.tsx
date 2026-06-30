@@ -440,7 +440,7 @@ export function SpreadsheetForm({
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         <Button
-          // disabled={!file || !!error || missingFields.length > 0 || isUploading}
+          disabled={!file || !!error || missingFields.length > 0 || isUploading}
           className="gap-2"
           onClick={async () => {
             if (!file) return
