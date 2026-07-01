@@ -541,12 +541,9 @@ export async function POST(
       custom_fields,
     } = body
 
-    if (!name || !cpf || !age || !phone || !address || !neighborhood) {
+    if (!name || !cpf) {
       return NextResponse.json(
-        {
-          error:
-            'Required fields: name, cpf, age, phone, address, neighborhood',
-        },
+        { error: 'Os campos nome e CPF são obrigatórios' },
         { status: 400 }
       )
     }
