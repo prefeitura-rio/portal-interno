@@ -541,27 +541,25 @@ export async function POST(
       custom_fields,
     } = body
 
-    if (!name || !cpf || !age || !phone || !address || !neighborhood) {
+    if (!name || !cpf) {
       return NextResponse.json(
-        {
-          error:
-            'Required fields: name, cpf, age, phone, address, neighborhood',
-        },
+        { error: 'Os campos nome e CPF são obrigatórios' },
         { status: 400 }
       )
     }
 
-    // Prepare enrollment data
+    // Prepare enrollment data — optional fields omitted when falsy
+    // to avoid sending empty strings to Go (which expects int for age)
     const enrollmentData = {
       name,
       cpf,
-      age,
-      phone,
-      ...(email && { email }), // Only include email if provided
-      address,
-      neighborhood,
-      ...(schedule_id && { schedule_id }), // Only include schedule_id if provided
-      ...(custom_fields && { custom_fields }), // Include custom_fields if provided
+      ...(age != null && age !== '' && { age: Number(age) }),
+      ...(phone && { phone }),
+      ...(email && { email }),
+      ...(address && { address }),
+      ...(neighborhood && { neighborhood }),
+      ...(schedule_id && { schedule_id }),
+      ...(custom_fields && { custom_fields }),
     }
 
     // Fetch course data to get custom fields definitions

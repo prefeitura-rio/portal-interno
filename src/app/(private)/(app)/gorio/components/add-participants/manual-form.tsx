@@ -27,11 +27,18 @@ const baseManualSchema = z.object({
     .min(3, 'Informe um nome válido')
     .max(100, 'Nome muito longo'),
   cpf: z.string().length(11, 'CPF deve ter 11 dígitos sem pontuação'),
-  age: z.coerce.number().min(1, 'Idade inválida').max(150, 'Idade inválida'),
+  age: z.coerce
+    .number()
+    .min(1, 'Idade inválida')
+    .max(150, 'Idade inválida')
+    .optional()
+    .or(z.literal('')),
   phone: z
     .string()
     .min(10, 'Telefone inválido')
-    .max(11, 'Telefone deve ter 10 ou 11 dígitos'),
+    .max(11, 'Telefone deve ter 10 ou 11 dígitos')
+    .optional()
+    .or(z.literal('')),
   email: z
     .string()
     .email('E-mail inválido')
@@ -40,12 +47,16 @@ const baseManualSchema = z.object({
     .or(z.literal('')),
   address: z
     .string()
-    .min(3, 'Endereço obrigatório')
-    .max(200, 'Endereço muito longo'),
+    .min(3, 'Endereço muito curto')
+    .max(200, 'Endereço muito longo')
+    .optional()
+    .or(z.literal('')),
   neighborhood: z
     .string()
-    .min(2, 'Bairro obrigatório')
-    .max(50, 'Bairro muito longo'),
+    .min(2, 'Bairro muito curto')
+    .max(50, 'Bairro muito longo')
+    .optional()
+    .or(z.literal('')),
   schedule_id: z.string().optional(),
   custom_fields: z.record(z.any()).optional(),
 })
@@ -144,12 +155,22 @@ export function ManualForm({
         data.schedule_id = scheduleOptions[0].id
       }
 
+      // Strip optional fields when empty so the Go backend does not receive
+      // an empty string where it expects int (age) or an omitted field
+      const enrollmentData = {
+        ...data,
+        age: data.age !== '' && data.age != null ? Number(data.age) : undefined,
+        phone: data.phone || undefined,
+        address: data.address || undefined,
+        neighborhood: data.neighborhood || undefined,
+      }
+
       const response = await fetch(`/api/enrollments/${courseId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(enrollmentData),
       })
 
       if (response.ok) {
@@ -233,28 +254,28 @@ export function ManualForm({
         {[
           {
             name: 'name',
-            label: 'Nome Completo',
+            label: 'Nome Completo *',
             type: 'text',
             placeholder: 'Ex: João da Silva',
             maxLength: 100,
           },
           {
             name: 'cpf',
-            label: 'CPF',
+            label: 'CPF *',
             type: 'text',
             placeholder: '1234567891011',
             maxLength: 11,
           },
           {
             name: 'age',
-            label: 'Idade',
+            label: 'Idade (opcional)',
             type: 'number',
             placeholder: '18',
             max: 150,
           },
           {
             name: 'phone',
-            label: 'Telefone',
+            label: 'Telefone (opcional)',
             type: 'text',
             placeholder: '21999999999',
             maxLength: 11,
@@ -268,14 +289,14 @@ export function ManualForm({
           },
           {
             name: 'address',
-            label: 'Endereço',
+            label: 'Endereço (opcional)',
             type: 'text',
             placeholder: 'Rua, número, complemento',
             maxLength: 200,
           },
           {
             name: 'neighborhood',
-            label: 'Bairro',
+            label: 'Bairro (opcional)',
             type: 'text',
             placeholder: 'Ex: Centro',
             maxLength: 50,
