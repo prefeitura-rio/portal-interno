@@ -155,12 +155,22 @@ export function ManualForm({
         data.schedule_id = scheduleOptions[0].id
       }
 
+      // Strip optional fields when empty so the Go backend does not receive
+      // an empty string where it expects int (age) or an omitted field
+      const enrollmentData = {
+        ...data,
+        age: data.age !== '' && data.age != null ? Number(data.age) : undefined,
+        phone: data.phone || undefined,
+        address: data.address || undefined,
+        neighborhood: data.neighborhood || undefined,
+      }
+
       const response = await fetch(`/api/enrollments/${courseId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(enrollmentData),
       })
 
       if (response.ok) {
