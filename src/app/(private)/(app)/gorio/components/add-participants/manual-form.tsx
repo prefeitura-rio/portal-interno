@@ -27,11 +27,18 @@ const baseManualSchema = z.object({
     .min(3, 'Informe um nome válido')
     .max(100, 'Nome muito longo'),
   cpf: z.string().length(11, 'CPF deve ter 11 dígitos sem pontuação'),
-  age: z.coerce.number().min(1, 'Idade inválida').max(150, 'Idade inválida'),
+  age: z.coerce
+    .number()
+    .min(1, 'Idade inválida')
+    .max(150, 'Idade inválida')
+    .optional()
+    .or(z.literal('')),
   phone: z
     .string()
     .min(10, 'Telefone inválido')
-    .max(11, 'Telefone deve ter 10 ou 11 dígitos'),
+    .max(11, 'Telefone deve ter 10 ou 11 dígitos')
+    .optional()
+    .or(z.literal('')),
   email: z
     .string()
     .email('E-mail inválido')
@@ -40,12 +47,16 @@ const baseManualSchema = z.object({
     .or(z.literal('')),
   address: z
     .string()
-    .min(3, 'Endereço obrigatório')
-    .max(200, 'Endereço muito longo'),
+    .min(3, 'Endereço muito curto')
+    .max(200, 'Endereço muito longo')
+    .optional()
+    .or(z.literal('')),
   neighborhood: z
     .string()
-    .min(2, 'Bairro obrigatório')
-    .max(50, 'Bairro muito longo'),
+    .min(2, 'Bairro muito curto')
+    .max(50, 'Bairro muito longo')
+    .optional()
+    .or(z.literal('')),
   schedule_id: z.string().optional(),
   custom_fields: z.record(z.any()).optional(),
 })
