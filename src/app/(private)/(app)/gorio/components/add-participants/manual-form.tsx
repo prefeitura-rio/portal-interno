@@ -320,7 +320,9 @@ export function ManualForm({
             )}
           />
           {errors.cpf && (
-            <p className="text-xs text-red-500">{errors.cpf.message?.toString()}</p>
+            <p className="text-xs text-red-500">
+              {errors.cpf.message?.toString()}
+            </p>
           )}
         </div>
 

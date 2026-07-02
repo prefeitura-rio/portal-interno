@@ -138,8 +138,7 @@ export function toFormAcessibilidadePcd(
   value: EmpregabilidadeAcessibilidadePCD | undefined
 ): FormData['acessibilidade_pcd'] {
   if (
-    value ===
-      EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD ||
+    value === EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD ||
     value === EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD
   ) {
     return value

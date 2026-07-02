@@ -1,7 +1,7 @@
 'use client'
 
-import type { EnrollmentRmiDivergence } from '@/lib/enrollment-rmi-consistency'
 import { useAddParticipantsModal } from '@/hooks/use-add-participants-modal'
+import type { EnrollmentRmiDivergence } from '@/lib/enrollment-rmi-consistency'
 import * as Dialog from '@radix-ui/react-dialog'
 import { AnimatePresence } from 'motion/react'
 import { useEffect } from 'react'
