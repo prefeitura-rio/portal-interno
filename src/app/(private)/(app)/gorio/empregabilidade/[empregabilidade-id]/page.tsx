@@ -6,6 +6,7 @@ import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/
 import {
   NewEmpregabilidadeForm,
   type NewEmpregabilidadeFormRef,
+  toFormAcessibilidadePcd,
 } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-empregabilidade-form'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { Badge } from '@/components/ui/badge'
@@ -734,7 +735,7 @@ export default function EmpregabilidadeDetailPage({
       vaga.acessibilidade_pcd ||
       (vaga.tipos_pcd && vaga.tipos_pcd.length > 0)
     ),
-    acessibilidade_pcd: vaga.acessibilidade_pcd ?? undefined,
+    acessibilidade_pcd: toFormAcessibilidadePcd(vaga.acessibilidade_pcd),
     tipo_pcd: vaga.tipos_pcd?.map(t => t.id || '') || [],
     valor_vaga: vaga.valor_vaga,
     bairro: vaga.bairro,

@@ -1,3 +1,5 @@
+import type { EnrollmentRmiDivergence } from '@/lib/enrollment-rmi-consistency'
+
 export type ModalStep =
   | 'options'
   | 'manual'
@@ -5,6 +7,7 @@ export type ModalStep =
   | 'processing'
   | 'results'
   | 'finish'
+  | 'rmi-divergence'
 
 export type FinishStatus = 'loading' | 'success' | 'error'
 
@@ -93,6 +96,7 @@ export interface AddParticipantsModalProps {
 export interface StepComponentProps {
   onBack: () => void
   onFinish: (success: boolean, errorMessage?: string) => void
+  onRmiDivergence?: (divergences: EnrollmentRmiDivergence[]) => void
 }
 
 export interface ManualFormProps extends StepComponentProps {
@@ -104,7 +108,10 @@ export interface SpreadsheetFormProps extends StepComponentProps {
   courseId: string
   courseData?: CourseData | null
   onStartProcessing: () => void
-  onProcessingComplete: (result: JobResult) => void
+  onProcessingComplete: (
+    result: JobResult,
+    divergences?: EnrollmentRmiDivergence[]
+  ) => void
 }
 
 export interface OptionsStepProps {
@@ -126,7 +133,15 @@ export type ProcessingStepProps = Record<string, never>
 
 export interface ResultsStepProps {
   result: JobResult
+  rmiDivergenceCount?: number
   onClose: () => void
+  onViewRmiDivergences?: () => void
+}
+
+export interface RmiDivergenceStepProps {
+  divergences: EnrollmentRmiDivergence[]
+  courseId: string
+  onContinue: () => void
 }
 
 export interface UseAddParticipantsModalReturn {
@@ -134,6 +149,7 @@ export interface UseAddParticipantsModalReturn {
   finishStatus: FinishStatus
   finishErrorMessage: string | undefined
   jobResult: JobResult | null
+  rmiDivergences: EnrollmentRmiDivergence[]
   handleFinish: (success: boolean, errorMessage?: string) => Promise<void>
   handleBack: () => void
   handleSelectMode: (mode: Extract<ModalStep, 'manual' | 'spreadsheet'>) => void
@@ -141,4 +157,7 @@ export interface UseAddParticipantsModalReturn {
   resetModal: () => void
   setStep: (step: ModalStep) => void
   setJobResult: (result: JobResult) => void
+  setRmiDivergences: (divergences: EnrollmentRmiDivergence[]) => void
+  handleRmiDivergenceContinue: () => Promise<void>
+  handleClose: () => Promise<void>
 }

@@ -348,8 +348,12 @@ export interface Enrollment {
   id: string
   courseId: string
   candidateName: string
+  /** Autodeclared name stored on enrollment (before RMI display preference) */
+  declaredName?: string
   cpf: string
   email?: string
+  /** Autodeclared email stored on enrollment (before RMI display preference) */
+  declaredEmail?: string
   phone: string
   address?: string
   neighborhood?: string

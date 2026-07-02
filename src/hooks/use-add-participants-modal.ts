@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import type { EnrollmentRmiDivergence } from '@/lib/enrollment-rmi-consistency'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   FinishStatus,
   JobResult,
@@ -24,6 +25,37 @@ export function useAddParticipantsModal({
     string | undefined
   >(undefined)
   const [jobResult, setJobResult] = useState<JobResult | null>(null)
+  const [rmiDivergences, setRmiDivergences] = useState<
+    EnrollmentRmiDivergence[]
+  >([])
+  const skipFinishAutoClose = useRef(false)
+  const rmiDivergenceRefetchedRef = useRef(false)
+
+  const resetModal = useCallback(() => {
+    setStep('options')
+    setFinishStatus('loading')
+    setFinishErrorMessage(undefined)
+    setJobResult(null)
+    setRmiDivergences([])
+    skipFinishAutoClose.current = false
+    rmiDivergenceRefetchedRef.current = false
+  }, [])
+
+  const shouldRefetchOnClose = useCallback((): boolean => {
+    return (
+      step === 'rmi-divergence' ||
+      step === 'results' ||
+      (step === 'finish' && finishStatus === 'success')
+    )
+  }, [finishStatus, step])
+
+  const handleClose = useCallback(async () => {
+    if (shouldRefetchOnClose() && onSuccess) {
+      await onSuccess()
+    }
+    onClose()
+    resetModal()
+  }, [onClose, onSuccess, resetModal, shouldRefetchOnClose])
 
   const handleFinish = useCallback(
     async (success: boolean, errorMessage?: string) => {
@@ -52,18 +84,26 @@ export function useAddParticipantsModal({
   const handleRetry = useCallback(() => {
     setStep('options')
     setFinishStatus('loading')
+    skipFinishAutoClose.current = false
   }, [])
 
-  const resetModal = useCallback(() => {
-    setStep('options')
-    setFinishStatus('loading')
-    setFinishErrorMessage(undefined)
-    setJobResult(null)
-  }, [])
+  const handleRmiDivergenceContinue = useCallback(async () => {
+    if (onSuccess) {
+      await onSuccess()
+    }
+    onClose()
+    resetModal()
+  }, [onClose, onSuccess, resetModal])
 
   useEffect(() => {
     if (step === 'finish' && finishStatus === 'success') {
       const timer = setTimeout(async () => {
+        if (skipFinishAutoClose.current) {
+          setStep('rmi-divergence')
+          skipFinishAutoClose.current = false
+          return
+        }
+
         if (onSuccess) {
           await onSuccess()
         }
@@ -75,11 +115,33 @@ export function useAddParticipantsModal({
     }
   }, [step, finishStatus, onClose, resetModal, onSuccess])
 
+  useEffect(() => {
+    if (
+      step === 'rmi-divergence' &&
+      rmiDivergences.length > 0 &&
+      !rmiDivergenceRefetchedRef.current
+    ) {
+      rmiDivergenceRefetchedRef.current = true
+      void onSuccess?.()
+    }
+  }, [onSuccess, rmiDivergences.length, step])
+
+  const setRmiDivergencesWithSkip = useCallback(
+    (divergences: EnrollmentRmiDivergence[]) => {
+      setRmiDivergences(divergences)
+      if (divergences.length > 0) {
+        skipFinishAutoClose.current = true
+      }
+    },
+    []
+  )
+
   return {
     step,
     finishStatus,
     finishErrorMessage,
     jobResult,
+    rmiDivergences,
     handleFinish,
     handleBack,
     handleSelectMode,
@@ -87,5 +149,8 @@ export function useAddParticipantsModal({
     resetModal,
     setStep,
     setJobResult,
+    setRmiDivergences: setRmiDivergencesWithSkip,
+    handleRmiDivergenceContinue,
+    handleClose,
   }
 }

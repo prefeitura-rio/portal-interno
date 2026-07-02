@@ -1,6 +1,7 @@
 'use client'
 
 import { useAddParticipantsModal } from '@/hooks/use-add-participants-modal'
+import type { EnrollmentRmiDivergence } from '@/lib/enrollment-rmi-consistency'
 import * as Dialog from '@radix-ui/react-dialog'
 import { AnimatePresence } from 'motion/react'
 import { useEffect } from 'react'
@@ -11,8 +12,9 @@ import { ModalHeader } from './modal-header'
 import { OptionsStep } from './option-step'
 import { ProcessingStep } from './processing-step'
 import { ResultsStep } from './results-step'
+import { RmiDivergenceStep } from './rmi-divergence-step'
 import { SpreadsheetForm } from './spreadsheet-form'
-import type { AddParticipantsModalProps } from './types'
+import type { AddParticipantsModalProps, JobResult } from './types'
 
 /**
  * Modal for adding participants to a course
@@ -30,6 +32,7 @@ export function AddParticipantsModal({
     finishStatus,
     finishErrorMessage,
     jobResult,
+    rmiDivergences,
     handleFinish,
     handleBack,
     handleSelectMode,
@@ -37,6 +40,9 @@ export function AddParticipantsModal({
     resetModal,
     setStep,
     setJobResult,
+    setRmiDivergences,
+    handleRmiDivergenceContinue,
+    handleClose,
   } = useAddParticipantsModal({ onClose, onSuccess })
 
   useEffect(() => {
@@ -45,8 +51,22 @@ export function AddParticipantsModal({
     }
   }, [isOpen, resetModal])
 
+  const handleResultsClose = async () => {
+    if (rmiDivergences.length > 0) {
+      setStep('rmi-divergence')
+      return
+    }
+
+    await handleClose()
+  }
+
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose}>
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={open => {
+        if (!open) void handleClose()
+      }}
+    >
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[99999]" />
 
@@ -55,7 +75,12 @@ export function AddParticipantsModal({
                      rounded-xl bg-white dark:bg-zinc-900 shadow-xl z-[1000000]
                      max-h-[90vh] overflow-hidden flex flex-col p-6 space-y-6"
         >
-          <ModalHeader step={step} onClose={onClose} />
+          <ModalHeader
+            step={step}
+            onClose={() => {
+              void handleClose()
+            }}
+          />
 
           <div className="overflow-y-auto flex-1 -mx-6 px-6">
             <AnimatePresence mode="wait">
@@ -71,6 +96,7 @@ export function AddParticipantsModal({
                     courseId={courseId}
                     onBack={handleBack}
                     onFinish={handleFinish}
+                    onRmiDivergence={setRmiDivergences}
                     courseData={courseData}
                   />
                 </AnimatedStep>
@@ -82,10 +108,17 @@ export function AddParticipantsModal({
                     courseId={courseId}
                     onBack={handleBack}
                     onFinish={handleFinish}
+                    onRmiDivergence={setRmiDivergences}
                     courseData={courseData}
                     onStartProcessing={() => setStep('processing')}
-                    onProcessingComplete={result => {
+                    onProcessingComplete={(
+                      result: JobResult,
+                      divergences?: EnrollmentRmiDivergence[]
+                    ) => {
                       setJobResult(result)
+                      if (divergences && divergences.length > 0) {
+                        setRmiDivergences(divergences)
+                      }
                       setStep('results')
                       if (result.success_count > 0 && onSuccess) {
                         onSuccess()
@@ -103,7 +136,26 @@ export function AddParticipantsModal({
 
               {step === 'results' && jobResult && (
                 <AnimatedStep stepKey="results">
-                  <ResultsStep result={jobResult} onClose={onClose} />
+                  <ResultsStep
+                    result={jobResult}
+                    rmiDivergenceCount={rmiDivergences.length}
+                    onClose={handleResultsClose}
+                    onViewRmiDivergences={
+                      rmiDivergences.length > 0
+                        ? () => setStep('rmi-divergence')
+                        : undefined
+                    }
+                  />
+                </AnimatedStep>
+              )}
+
+              {step === 'rmi-divergence' && rmiDivergences.length > 0 && (
+                <AnimatedStep stepKey="rmi-divergence">
+                  <RmiDivergenceStep
+                    divergences={rmiDivergences}
+                    courseId={courseId}
+                    onContinue={handleRmiDivergenceContinue}
+                  />
                 </AnimatedStep>
               )}
 

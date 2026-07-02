@@ -10,6 +10,7 @@ const STEP_TITLES: Record<string, string> = {
   processing: 'Processando',
   results: 'Resultado da Importação',
   finish: '',
+  'rmi-divergence': 'Divergência com o RMI',
 }
 
 export function ModalHeader({ step, onClose }: ModalHeaderProps) {
