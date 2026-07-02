@@ -114,7 +114,6 @@ const formSchema = z.object({
   vaga_pcd: z.boolean().optional(),
   acessibilidade_pcd: z
     .enum([
-      EmpregabilidadeAcessibilidadePCD.AcessibilidadeParaPCD,
       EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD,
       EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD,
     ])
@@ -349,10 +348,6 @@ export const NewEmpregabilidadeForm = forwardRef<
     )
 
     const acessibilidadePcdOptions = [
-      {
-        value: EmpregabilidadeAcessibilidadePCD.AcessibilidadeParaPCD,
-        label: 'Para PcD',
-      },
       {
         value: EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD,
         label: 'Preferencial PcD',
