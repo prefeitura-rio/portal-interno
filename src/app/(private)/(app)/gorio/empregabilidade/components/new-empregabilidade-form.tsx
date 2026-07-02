@@ -133,6 +133,20 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>
 
+/** Maps API values to form-supported options; legacy `para_pcd` is excluded from the portal UI. */
+export function toFormAcessibilidadePcd(
+  value: EmpregabilidadeAcessibilidadePCD | undefined
+): FormData['acessibilidade_pcd'] {
+  if (
+    value ===
+      EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD ||
+    value === EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD
+  ) {
+    return value
+  }
+  return undefined
+}
+
 // ============================================
 // SCHEMAS DE VALIDAÇÃO
 // ============================================

@@ -7,6 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cleanCPF, formatCPF, validateCPF } from '@/lib/cpf-validator'
+import {
+  type SubmittedEnrollmentData,
+  fetchEnrollmentRmiDivergences,
+} from '@/lib/enrollment-rmi-consistency'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, UserPlus } from 'lucide-react'
 import { useMemo } from 'react'
@@ -26,7 +31,10 @@ const baseManualSchema = z.object({
     .string()
     .min(3, 'Informe um nome válido')
     .max(100, 'Nome muito longo'),
-  cpf: z.string().length(11, 'CPF deve ter 11 dígitos sem pontuação'),
+  cpf: z
+    .string()
+    .min(1, 'CPF é obrigatório')
+    .refine(validateCPF, 'CPF inválido. Verifique os dígitos.'),
   age: z.coerce.number().min(1, 'Idade inválida').max(150, 'Idade inválida'),
   phone: z
     .string()
@@ -62,6 +70,7 @@ export function ManualForm({
   courseId,
   onBack,
   onFinish,
+  onRmiDivergence,
   courseData,
 }: ManualFormProps) {
   // Check if course has multiple schedules
@@ -139,9 +148,12 @@ export function ManualForm({
 
   const onSubmit = async (data: any) => {
     try {
+      const cpf = cleanCPF(data.cpf)
+      const payload = { ...data, cpf }
+
       // If course has only 1 schedule and schedule_id wasn't selected, auto-assign it
-      if (!data.schedule_id && scheduleOptions.length === 1) {
-        data.schedule_id = scheduleOptions[0].id
+      if (!payload.schedule_id && scheduleOptions.length === 1) {
+        payload.schedule_id = scheduleOptions[0].id
       }
 
       const response = await fetch(`/api/enrollments/${courseId}`, {
@@ -149,11 +161,31 @@ export function ManualForm({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
         toast.success('Participante adicionado com sucesso!')
+
+        const submitted: SubmittedEnrollmentData = {
+          name: payload.name,
+          cpf,
+          age: payload.age,
+          phone: payload.phone,
+          email: payload.email || undefined,
+          address: payload.address,
+          neighborhood: payload.neighborhood,
+        }
+
+        if (onRmiDivergence) {
+          const divergences = await fetchEnrollmentRmiDivergences(courseId, [
+            submitted,
+          ])
+          if (divergences.length > 0) {
+            onRmiDivergence(divergences)
+          }
+        }
+
         onFinish(true)
       } else {
         const errorData = await response.json()
@@ -238,13 +270,61 @@ export function ManualForm({
             placeholder: 'Ex: João da Silva',
             maxLength: 100,
           },
-          {
-            name: 'cpf',
-            label: 'CPF',
-            type: 'text',
-            placeholder: '1234567891011',
-            maxLength: 11,
-          },
+        ].map(field => (
+          <div key={field.name} className="flex flex-col gap-1">
+            <label
+              className="text-sm font-medium text-foreground/80"
+              htmlFor={field.name}
+            >
+              {field.label}
+            </label>
+            <Input
+              id={field.name}
+              type={field.type}
+              placeholder={field.placeholder}
+              maxLength={field.maxLength}
+              {...register(field.name as keyof ManualFormData)}
+            />
+            {errors[field.name as keyof ManualFormData] && (
+              <p className="text-xs text-red-500">
+                {errors[
+                  field.name as keyof ManualFormData
+                ]?.message?.toString()}
+              </p>
+            )}
+          </div>
+        ))}
+
+        <div className="flex flex-col gap-1">
+          <label
+            className="text-sm font-medium text-foreground/80"
+            htmlFor="cpf"
+          >
+            CPF
+          </label>
+          <Controller
+            name="cpf"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                id="cpf"
+                type="text"
+                placeholder="000.000.000-00"
+                inputMode="numeric"
+                maxLength={14}
+                onChange={e => {
+                  field.onChange(formatCPF(e.target.value))
+                }}
+              />
+            )}
+          />
+          {errors.cpf && (
+            <p className="text-xs text-red-500">{errors.cpf.message?.toString()}</p>
+          )}
+        </div>
+
+        {[
           {
             name: 'age',
             label: 'Idade',

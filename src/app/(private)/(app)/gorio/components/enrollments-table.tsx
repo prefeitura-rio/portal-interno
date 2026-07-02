@@ -14,6 +14,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
+  AlertTriangle,
   Calendar,
   CheckCircle,
   Clock,
@@ -54,6 +55,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { useEnrollments } from '@/hooks/use-enrollments'
+import { getEnrollmentRmiDivergence } from '@/lib/enrollment-rmi-consistency'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -61,6 +63,8 @@ import * as XLSX from 'xlsx'
 import { AddParticipantsModal } from './add-participants'
 import type { CourseData } from './add-participants/types'
 import { getScheduleOptions } from './add-participants/utils/schedule-helpers'
+import { EnrollmentRmiCorrectionDialog } from './enrollment-rmi-correction-dialog'
+import { RmiDivergenceBadge } from './rmi-divergence-badge'
 
 // Constantes para validação de certificados
 const VALID_CERTIFICATE_EXTENSIONS = [
@@ -149,6 +153,9 @@ export function EnrollmentsTable({
   })
   const [isAddParticipantsModalOpen, setIsAddParticipantsModalOpen] =
     React.useState(false)
+  const [isRmiCorrectionOpen, setIsRmiCorrectionOpen] = React.useState(false)
+  const [rmiCorrectionEnrollment, setRmiCorrectionEnrollment] =
+    React.useState<Enrollment | null>(null)
 
   // Hook do formulário para validação do certificado
   const certificateForm = useForm<CertificateFormData>({
@@ -625,12 +632,13 @@ export function EnrollmentsTable({
         header: ({ column }: { column: Column<Enrollment, unknown> }) => (
           <DataTableColumnHeader column={column} title="Candidato" />
         ),
-        cell: ({ cell }) => (
+        cell: ({ cell, row }) => (
           <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
+            <User className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="font-medium">
               {cell.getValue<Enrollment['candidateName']>()}
             </span>
+            <RmiDivergenceBadge enrollment={row.original} />
           </div>
         ),
         meta: {
@@ -1512,6 +1520,49 @@ export function EnrollmentsTable({
               Informações completas do candidato
             </SheetDescription>
           </SheetHeader>
+          {selectedEnrollment &&
+            (() => {
+              const rmiDivergence =
+                getEnrollmentRmiDivergence(selectedEnrollment)
+              if (!rmiDivergence) return null
+
+              const fieldLabels = rmiDivergence.divergences
+                .map(d => d.label)
+                .join(', ')
+
+              return (
+                <div className="mx-4 mb-2 rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        Divergência com o Registro Municipal Integrado
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Os dados informados nesta inscrição diferem do Registro
+                        Municipal Integrado.
+                      </p>
+                      {fieldLabels && (
+                        <p className="text-xs text-amber-800 dark:text-amber-300">
+                          Campos divergentes: {fieldLabels}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      setRmiCorrectionEnrollment(selectedEnrollment)
+                      setIsRmiCorrectionOpen(true)
+                    }}
+                  >
+                    Corrigir divergências com o RMI
+                  </Button>
+                </div>
+              )
+            })()}
           {selectedEnrollment && (
             <>
               <div className="flex-1 overflow-y-auto py-6 pt-0 px-4">
@@ -2497,6 +2548,20 @@ export function EnrollmentsTable({
         courseId={courseId}
         onSuccess={refetch}
         courseData={course}
+      />
+
+      <EnrollmentRmiCorrectionDialog
+        enrollment={rmiCorrectionEnrollment}
+        courseId={courseId}
+        open={isRmiCorrectionOpen}
+        onOpenChange={open => {
+          setIsRmiCorrectionOpen(open)
+          if (!open) setRmiCorrectionEnrollment(null)
+        }}
+        onResolved={async () => {
+          await refetch()
+          setRmiCorrectionEnrollment(null)
+        }}
       />
     </div>
   )

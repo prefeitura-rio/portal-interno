@@ -8,8 +8,12 @@ import {
 import type {
   ModelsEnrollmentStatusUpdateRequest,
   ModelsInscricao,
-  ModelsStatusInscricao,
 } from '@/http-gorio/models'
+import {
+  convertApiEnrollmentToFrontend,
+  convertFrontendStatusToApi,
+  unwrapApiInscricao,
+} from '@/lib/enrollment-converters'
 import type {
   Enrollment,
   EnrollmentResponse,
@@ -17,221 +21,6 @@ import type {
   EnrollmentSummary,
 } from '@/types/course'
 import { type NextRequest, NextResponse } from 'next/server'
-
-// TEMPORARY: These emails are not valid and should be removed
-// TODO: Remove this once we have a valid email resolver
-const INVALID_PLACEHOLDER_EMAILS = ['naotem@email.com', '0@0.aa']
-
-function resolveEnrollmentEmail(
-  apiEnrollment: ModelsInscricao
-): string | undefined {
-  const personalEmail = (apiEnrollment.personal_info as any)?.email as
-    | string
-    | undefined
-  const enrollmentEmail = apiEnrollment.email as string | undefined
-
-  if (
-    personalEmail &&
-    !INVALID_PLACEHOLDER_EMAILS.includes(personalEmail.toLowerCase())
-  ) {
-    return personalEmail
-  }
-
-  return enrollmentEmail || undefined
-}
-
-// Helper function to convert API status to frontend status
-function convertApiStatusToFrontend(
-  status?: ModelsStatusInscricao
-): EnrollmentStatus {
-  switch (status) {
-    case 'approved':
-      return 'approved'
-    case 'pending':
-      return 'pending'
-    case 'cancelled':
-      return 'cancelled'
-    case 'rejected':
-      return 'rejected'
-    case 'concluded':
-      return 'concluded'
-    default:
-      return 'pending'
-  }
-}
-
-// Helper function to convert frontend status to API status
-function convertFrontendStatusToApi(
-  status: EnrollmentStatus
-): ModelsStatusInscricao {
-  switch (status) {
-    case 'approved':
-      return 'approved'
-    case 'pending':
-      return 'pending'
-    case 'rejected':
-      return 'rejected'
-    case 'cancelled':
-      return 'cancelled'
-    case 'concluded':
-      return 'concluded'
-    default:
-      return 'pending'
-  }
-}
-
-// Helper function to convert API enrollment to frontend enrollment
-function convertApiEnrollmentToFrontend(
-  apiEnrollment: ModelsInscricao,
-  courseCustomFields?: Array<{
-    id: string
-    title?: string
-    name?: string
-    required?: boolean
-    field_type?: string
-    options?: Array<{ id: string; value: string }>
-  }>
-): Enrollment {
-  const converted = {
-    id: (apiEnrollment.id as string) || '',
-    courseId: (apiEnrollment.course_id as number)?.toString() || '',
-    candidateName:
-      (apiEnrollment.personal_info as any)?.nome ||
-      (apiEnrollment.name as string) ||
-      '',
-    cpf: (apiEnrollment.cpf as string) || '',
-    email: resolveEnrollmentEmail(apiEnrollment),
-    phone: (apiEnrollment.phone as string) || '',
-    address: (apiEnrollment.address as string) || undefined,
-    neighborhood: (apiEnrollment.neighborhood as string) || undefined,
-    age: (apiEnrollment.age as number) || undefined,
-    enrollmentDate:
-      (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
-    status: convertApiStatusToFrontend(
-      apiEnrollment.status as ModelsStatusInscricao
-    ),
-    notes: apiEnrollment.admin_notes as string | undefined,
-    reason: apiEnrollment.reason as string | undefined,
-    customFields: (() => {
-      const fields = apiEnrollment.custom_fields as unknown
-      if (!fields) {
-        return []
-      }
-
-      if (Array.isArray(fields)) {
-        return fields.map((field, index) => {
-          const item = field as {
-            id?: string
-            title?: string
-            value?: unknown
-            required?: boolean
-          }
-
-          const generatedId =
-            item.title?.toLowerCase().replace(/\s+/g, '_') ??
-            `custom_field_${index}`
-
-          return {
-            id: item.id ?? generatedId,
-            title: item.title ?? item.id ?? 'Campo personalizado',
-            value:
-              item.value !== undefined && item.value !== null
-                ? String(item.value)
-                : '',
-            required: Boolean(item.required),
-          }
-        })
-      }
-
-      if (typeof fields === 'object') {
-        // fields is an object where keys are UUIDs and values are the responses
-        const convertedFields = Object.entries(
-          fields as Record<string, unknown>
-        ).map(([fieldId, fieldData]) => {
-          // Try to find the field definition in course custom fields
-          const fieldDefinition = courseCustomFields?.find(
-            cf => cf.id === fieldId
-          )
-
-          // Handle the case where fieldData is an object with {id, title, value, required}
-          let title = fieldId
-          let value = ''
-          let required = false
-
-          if (
-            fieldData &&
-            typeof fieldData === 'object' &&
-            !Array.isArray(fieldData)
-          ) {
-            const fieldObj = fieldData as {
-              id?: string
-              title?: string
-              value?: unknown
-              required?: boolean
-            }
-
-            // Extract title, preferring the one from fieldData, then from definition, then fallback to fieldId
-            title =
-              fieldObj.title ||
-              fieldDefinition?.title ||
-              fieldDefinition?.name ||
-              fieldId
-
-            // Extract value - handle different types
-            if (fieldObj.value !== undefined && fieldObj.value !== null) {
-              if (Array.isArray(fieldObj.value)) {
-                value = fieldObj.value.join(', ')
-              } else if (typeof fieldObj.value === 'object') {
-                // If value is an object, try to stringify it or get a meaningful representation
-                value = JSON.stringify(fieldObj.value)
-              } else {
-                value = String(fieldObj.value)
-              }
-            }
-
-            // Extract required flag
-            required = Boolean(
-              fieldObj.required ?? fieldDefinition?.required ?? false
-            )
-          } else {
-            // Fallback: if fieldData is not an object, treat it as a direct value
-            title = fieldDefinition?.title || fieldDefinition?.name || fieldId
-            value =
-              fieldData !== undefined && fieldData !== null
-                ? Array.isArray(fieldData)
-                  ? fieldData.join(', ')
-                  : String(fieldData)
-                : ''
-            required = Boolean(fieldDefinition?.required ?? false)
-          }
-
-          return {
-            id: fieldId,
-            title,
-            value,
-            required,
-            field_type: fieldDefinition?.field_type,
-            options: fieldDefinition?.options,
-          }
-        })
-
-        return convertedFields
-      }
-
-      return []
-    })(),
-    personal_info: apiEnrollment.personal_info as any,
-    certificateUrl: apiEnrollment.certificate_url as string | undefined,
-    schedule_id: (apiEnrollment as any).schedule_id as string | undefined,
-    created_at:
-      (apiEnrollment.enrolled_at as string) || new Date().toISOString(),
-    updated_at:
-      (apiEnrollment.updated_at as string) || new Date().toISOString(),
-    enrolled_unit: apiEnrollment.enrolled_unit as any,
-  }
-
-  return converted
-}
 
 export async function GET(
   request: NextRequest,
@@ -422,7 +211,13 @@ export async function PATCH(
     )
 
     if (response.status === 200) {
-      const apiEnrollment = response.data as ModelsInscricao
+      const apiEnrollment = unwrapApiInscricao(response.data)
+      if (!apiEnrollment) {
+        return NextResponse.json(
+          { error: 'Invalid enrollment response from external API' },
+          { status: 502 }
+        )
+      }
       const updatedEnrollment = convertApiEnrollmentToFrontend(
         apiEnrollment,
         courseCustomFields
@@ -579,7 +374,13 @@ export async function POST(
       enrollmentData
     )
     if (response.status === 201) {
-      const apiEnrollment = response.data as ModelsInscricao
+      const apiEnrollment = unwrapApiInscricao(response.data)
+      if (!apiEnrollment) {
+        return NextResponse.json(
+          { error: 'Invalid enrollment response from external API' },
+          { status: 502 }
+        )
+      }
       const newEnrollment = convertApiEnrollmentToFrontend(
         apiEnrollment,
         courseCustomFields

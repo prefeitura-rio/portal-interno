@@ -1,6 +1,11 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import {
+  type EnrollmentRmiDivergence,
+  type SubmittedEnrollmentData,
+  fetchEnrollmentRmiDivergences,
+} from '@/lib/enrollment-rmi-consistency'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -16,7 +21,7 @@ import {
 import { type DragEvent, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
-import type { SpreadsheetFormProps } from './types'
+import type { JobError, SpreadsheetFormProps } from './types'
 import {
   getScheduleOptions,
   hasMultipleSchedules,
@@ -26,6 +31,74 @@ import { normalizeString } from './utils/string-utils'
 interface ExpectedField {
   name: string
   required: boolean
+}
+
+interface SpreadsheetRow extends SubmittedEnrollmentData {
+  line: number
+}
+
+const SPREADSHEET_FIELD_MAP: Record<string, keyof SubmittedEnrollmentData> = {
+  nome_completo: 'name',
+  cpf: 'cpf',
+  idade: 'age',
+  telefone: 'phone',
+  email: 'email',
+  endereco: 'address',
+  bairro: 'neighborhood',
+}
+
+function parseSpreadsheetRows(rows: string[][]): SpreadsheetRow[] {
+  const headerRow = rows[0]?.map(cell => normalizeString(String(cell || '')))
+  if (!headerRow?.length) return []
+
+  const columnIndex: Record<string, number> = {}
+  for (const [fieldName] of Object.entries(SPREADSHEET_FIELD_MAP)) {
+    const normalizedField = normalizeString(fieldName)
+    const index = headerRow.findIndex(col => col === normalizedField)
+    if (index >= 0) columnIndex[fieldName] = index
+  }
+
+  const parsed: SpreadsheetRow[] = []
+
+  for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex]
+    if (!row || row.every(cell => !String(cell || '').trim())) continue
+
+    const entry: SpreadsheetRow = { line: rowIndex + 1 }
+
+    for (const [columnName, fieldKey] of Object.entries(
+      SPREADSHEET_FIELD_MAP
+    )) {
+      const colIndex = columnIndex[columnName]
+      if (colIndex === undefined) continue
+
+      const rawValue = String(row[colIndex] ?? '').trim()
+      if (!rawValue) continue
+
+      if (fieldKey === 'cpf') {
+        entry.cpf = rawValue.replace(/\D/g, '')
+      } else if (fieldKey === 'age') {
+        const age = Number.parseInt(rawValue, 10)
+        if (!Number.isNaN(age)) entry.age = age
+      } else if (fieldKey === 'name') {
+        entry.name = rawValue
+      } else if (fieldKey === 'phone') {
+        entry.phone = rawValue
+      } else if (fieldKey === 'email') {
+        entry.email = rawValue
+      } else if (fieldKey === 'address') {
+        entry.address = rawValue
+      } else if (fieldKey === 'neighborhood') {
+        entry.neighborhood = rawValue
+      }
+    }
+
+    if (entry.cpf && entry.cpf.length === 11) {
+      parsed.push(entry)
+    }
+  }
+
+  return parsed
 }
 
 /**
@@ -47,6 +120,7 @@ export function SpreadsheetForm({
   >({})
   const [missingFields, setMissingFields] = useState<string[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [parsedRows, setParsedRows] = useState<SpreadsheetRow[]>([])
   const [copiedScheduleId, setCopiedScheduleId] = useState<string | null>(null)
   const dragCounter = useRef(0)
 
@@ -149,6 +223,7 @@ export function SpreadsheetForm({
     setError(null)
     setValidation({})
     setMissingFields([])
+    setParsedRows([])
   }
 
   const handleReadFile = async (uploaded: File) => {
@@ -185,6 +260,7 @@ export function SpreadsheetForm({
 
     setValidation(status)
     setMissingFields(missing)
+    setParsedRows(parseSpreadsheetRows(rows as string[][]))
   }
 
   const handleCopyScheduleId = async (scheduleId: string) => {
@@ -530,13 +606,33 @@ export function SpreadsheetForm({
 
               // Step 5: Show results
               if (finalStatusData) {
-                onProcessingComplete({
+                const jobResult = {
                   success_count: finalStatusData.success_count || 0,
                   error_count: finalStatusData.error_count || 0,
                   duplicate_count: finalStatusData.result?.duplicate_count || 0,
                   total_records: finalStatusData.total_records || 0,
                   errors: finalStatusData.errors || [],
-                })
+                }
+
+                let divergences: EnrollmentRmiDivergence[] = []
+
+                if (jobResult.success_count > 0 && parsedRows.length > 0) {
+                  const errorLines = new Set(
+                    (jobResult.errors || []).map((e: JobError) => e.line)
+                  )
+                  const entriesToCheck = parsedRows.filter(
+                    row => !errorLines.has(row.line)
+                  )
+
+                  if (entriesToCheck.length > 0) {
+                    divergences = await fetchEnrollmentRmiDivergences(
+                      courseId,
+                      entriesToCheck
+                    )
+                  }
+                }
+
+                onProcessingComplete(jobResult, divergences)
               }
             } catch (error) {
               console.error('Erro ao enviar planilha:', error)

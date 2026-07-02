@@ -6,7 +6,12 @@ import type { ResultsStepProps } from './types'
 /**
  * Step showing results of the import job
  */
-export function ResultsStep({ result, onClose }: ResultsStepProps) {
+export function ResultsStep({
+  result,
+  rmiDivergenceCount = 0,
+  onClose,
+  onViewRmiDivergences,
+}: ResultsStepProps) {
   const hasErrors = result.error_count > 0
   const hasSuccess = result.success_count > 0
 
@@ -94,9 +99,33 @@ export function ResultsStep({ result, onClose }: ResultsStepProps) {
         </div>
       )}
 
+      {/* RMI divergence warning */}
+      {rmiDivergenceCount > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-3 space-y-2">
+          <p className="text-sm text-amber-800 dark:text-amber-300">
+            {rmiDivergenceCount === 1
+              ? '1 participante possui dados divergentes do Registro Municipal Integrado.'
+              : `${rmiDivergenceCount} participantes possuem dados divergentes do Registro Municipal Integrado.`}
+          </p>
+          {onViewRmiDivergences && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onViewRmiDivergences}
+              className="w-full"
+            >
+              Ver divergências com o RMI
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Close button */}
       <div className="flex justify-end pt-4 border-t">
-        <Button onClick={onClose}>Fechar</Button>
+        <Button onClick={onClose}>
+          {rmiDivergenceCount > 0 ? 'Continuar' : 'Fechar'}
+        </Button>
       </div>
     </motion.div>
   )
