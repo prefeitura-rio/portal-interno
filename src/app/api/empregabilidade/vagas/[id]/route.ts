@@ -3,7 +3,7 @@ import {
   getApiV1EmpregabilidadeVagasId,
   putApiV1EmpregabilidadeVagasId,
 } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
-import type { EmpregabilidadeVagaBody } from '@/http-gorio/models/empregabilidadeVagaBody'
+import type { EmpregabilidadeVaga } from '@/http-gorio/models/empregabilidadeVaga'
 import { toApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
@@ -73,7 +73,7 @@ export async function PUT(
       ? toApiInformacaoComplementar(bodyWithoutFlag.informacoes_complementares)
       : undefined
 
-    const body: EmpregabilidadeVagaBody = {
+    const body: EmpregabilidadeVaga = {
       ...bodyWithoutFlag,
       informacoes_complementares: convertedInfos,
       // valor_vaga is optional; send undefined instead of null for the API

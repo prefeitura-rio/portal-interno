@@ -3,7 +3,7 @@ import {
   getApiV1EmpregabilidadeEmpresasCnpj,
   putApiV1EmpregabilidadeEmpresasCnpj,
 } from '@/http-gorio/empregabilidade-empresas/empregabilidade-empresas'
-import type { EmpregabilidadeEmpresaBody } from '@/http-gorio/models/empregabilidadeEmpresaBody'
+import type { EmpregabilidadeEmpresa } from '@/http-gorio/models/empregabilidadeEmpresa'
 import { revalidateTag } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -179,7 +179,7 @@ export async function PUT(
     }
 
     // Step 5: Parse request body
-    const body: EmpregabilidadeEmpresaBody = await request.json()
+    const body: EmpregabilidadeEmpresa = await request.json()
 
     // Step 6: Validate required fields
     if (!body.razao_social || body.razao_social.trim() === '') {
@@ -209,7 +209,7 @@ export async function PUT(
 
     // Step 8: Ensure body.cnpj is set to param cnpj (stripped)
     // This ensures consistency with the URL parameter
-    const updateBody: EmpregabilidadeEmpresaBody = {
+    const updateBody: EmpregabilidadeEmpresa = {
       ...body,
       cnpj: cnpjNumbers, // Use param CNPJ as source of truth
     }

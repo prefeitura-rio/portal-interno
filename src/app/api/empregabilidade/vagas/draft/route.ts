@@ -1,11 +1,11 @@
 import { postApiV1EmpregabilidadeVagas } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
-import type { EmpregabilidadeVagaBody } from '@/http-gorio/models/empregabilidadeVagaBody'
+import type { EmpregabilidadeVaga } from '@/http-gorio/models/empregabilidadeVaga'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const body: EmpregabilidadeVagaBody = await request.json()
+    const body: EmpregabilidadeVaga = await request.json()
 
     // Validate required fields for draft
     if (
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     }
 
     // Force status as draft
-    const draftData: EmpregabilidadeVagaBody = {
+    const draftData: EmpregabilidadeVaga = {
       ...body,
       status: 'em_edicao',
     }
