@@ -4,14 +4,14 @@
 
 // ANTIGO: import { postApiV1Courses } from '@/http-gorio/courses/courses'
 import { postApiV1CoursesDraft } from '@/http-gorio/courses/courses'
-import type { ModelsCursoBody } from '@/http-gorio/models/modelsCursoBody'
+import type { ModelsCurso } from '@/http-gorio/models/modelsCurso'
 import { revalidateTag } from 'next/cache'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const body: ModelsCursoBody = await request.json()
+    const body: ModelsCurso = await request.json()
 
     // Validate required fields
     if (!body.title || !body.orgao_id) {

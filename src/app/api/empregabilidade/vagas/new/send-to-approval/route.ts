@@ -2,7 +2,7 @@ import {
   postApiV1EmpregabilidadeVagas,
   putApiV1EmpregabilidadeVagasIdSendToApproval,
 } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
-import type { EmpregabilidadeVagaBody } from '@/http-gorio/models/empregabilidadeVagaBody'
+import type { EmpregabilidadeVaga } from '@/http-gorio/models/empregabilidadeVaga'
 import { toApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       ? toApiInformacaoComplementar(rawBody.informacoes_complementares)
       : undefined
 
-    const body: EmpregabilidadeVagaBody = {
+    const body: EmpregabilidadeVaga = {
       ...rawBody,
       informacoes_complementares: convertedInfos,
     }

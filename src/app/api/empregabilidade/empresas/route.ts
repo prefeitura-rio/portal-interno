@@ -2,7 +2,7 @@ import {
   getApiV1EmpregabilidadeEmpresas,
   postApiV1EmpregabilidadeEmpresas,
 } from '@/http-gorio/empregabilidade-empresas/empregabilidade-empresas'
-import type { EmpregabilidadeEmpresaBody } from '@/http-gorio/models/empregabilidadeEmpresaBody'
+import type { EmpregabilidadeEmpresa } from '@/http-gorio/models/empregabilidadeEmpresa'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body: EmpregabilidadeEmpresaBody = await request.json()
+    const body: EmpregabilidadeEmpresa = await request.json()
 
     // Validate required fields
     if (!body.cnpj || !body.razao_social) {
