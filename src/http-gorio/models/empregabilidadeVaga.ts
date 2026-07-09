@@ -35,6 +35,8 @@ export interface EmpregabilidadeVaga {
   informacoes_complementares?: EmpregabilidadeInformacaoComplementar[]
   modelo_trabalho?: EmpregabilidadeModeloTrabalho
   orgao_parceiro?: ModelsOrgaoSnapshot
+  // FORCED ADDED - TODO: REMOVE THIS WHEN SWAGGER IS UPDATED
+  quantidade_estimada_contratacoes?: number
   regime_contratacao?: EmpregabilidadeRegimeContratacao
   requisitos?: string
   responsabilidades?: string
