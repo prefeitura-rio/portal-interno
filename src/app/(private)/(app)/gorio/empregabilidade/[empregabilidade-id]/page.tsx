@@ -738,6 +738,7 @@ export default function EmpregabilidadeDetailPage({
     acessibilidade_pcd: toFormAcessibilidadePcd(vaga.acessibilidade_pcd),
     tipo_pcd: vaga.tipos_pcd?.map(t => t.id || '') || [],
     valor_vaga: vaga.valor_vaga,
+    quantidade_estimada_contratacoes: vaga.quantidade_estimada_contratacoes,
     bairro: vaga.bairro,
     data_limite: vaga.data_limite ? new Date(vaga.data_limite) : undefined,
     requisitos: vaga.requisitos,
