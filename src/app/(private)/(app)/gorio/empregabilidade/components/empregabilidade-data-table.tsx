@@ -484,7 +484,8 @@ export function EmpregabilidadeDataTable() {
           id_modelo_trabalho: vaga.id_modelo_trabalho,
           id_orgao_parceiro: vaga.id_orgao_parceiro,
           valor_vaga: vaga.valor_vaga,
-          quantidade_estimada_contratacoes: vaga.quantidade_estimada_contratacoes,
+          quantidade_estimada_contratacoes:
+            vaga.quantidade_estimada_contratacoes,
           bairro: vaga.bairro,
           data_limite: vaga.data_limite,
           requisitos: vaga.requisitos,
