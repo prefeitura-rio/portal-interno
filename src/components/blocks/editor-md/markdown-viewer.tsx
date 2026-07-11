@@ -19,7 +19,8 @@ export function MarkdownViewer({ content, className }: MarkdownViewerProps) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      // Disable StarterKit's bundled Link; we register our own below.
+      StarterKit.configure({ link: false }),
       Link.configure({
         openOnClick: true,
         HTMLAttributes: {
