@@ -50,6 +50,9 @@ export function MarkdownEditor({
             horizontalRule: false,
             bulletList: false,
             orderedList: false,
+            // Link is provided by our custom Link.configure() below; disable
+            // StarterKit's bundled Link to avoid a duplicate 'link' extension.
+            link: false,
           }),
           Link.configure({
             openOnClick: false,
@@ -77,6 +80,9 @@ export function MarkdownEditor({
               keepMarks: true,
               keepAttributes: false,
             },
+            // Link is provided by our custom Link.configure() below; disable
+            // StarterKit's bundled Link to avoid a duplicate 'link' extension.
+            link: false,
           }),
           Link.configure({
             openOnClick: false,
