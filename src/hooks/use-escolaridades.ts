@@ -26,7 +26,7 @@ export function useEscolaridades(): UseEscolaridadesResult {
       const data = await response.json()
       const sorted = (data.data || []).sort(
         (a: EmpregabilidadeEscolaridade, b: EmpregabilidadeEscolaridade) =>
-          (a.ordem ?? 0) - (b.ordem ?? 0)
+          ((a as any).ordem ?? 0) - ((b as any).ordem ?? 0)
       )
       setEscolaridades(sorted)
     } catch (err) {

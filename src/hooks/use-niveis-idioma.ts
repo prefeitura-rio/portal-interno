@@ -26,7 +26,7 @@ export function useNiveisIdioma(): UseNiveisIdiomaResult {
       const data = await response.json()
       const sorted = (data.data || []).sort(
         (a: EmpregabilidadeNivelIdioma, b: EmpregabilidadeNivelIdioma) =>
-          (a.ordem ?? 0) - (b.ordem ?? 0)
+          ((a as any).ordem ?? 0) - ((b as any).ordem ?? 0)
       )
       setNiveisIdioma(sorted)
     } catch (err) {
