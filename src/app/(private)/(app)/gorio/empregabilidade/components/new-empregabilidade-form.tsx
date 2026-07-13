@@ -28,7 +28,10 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEmpregabilidadeValidation } from '@/hooks/use-empregabilidade-validation'
+import { useEscolaridades } from '@/hooks/use-escolaridades'
+import { useIdiomas } from '@/hooks/use-idiomas'
 import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
+import { useNiveisIdioma } from '@/hooks/use-niveis-idioma'
 import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
 import { useTiposPcd } from '@/hooks/use-tipos-pcd'
 import { EmpregabilidadeAcessibilidadePCD } from '@/http-gorio/models/empregabilidadeAcessibilidadePCD'
@@ -51,6 +54,10 @@ import React, {
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import {
+  CriteriosElegibilidade,
+  type IdiomaRequisito,
+} from './criterios-elegibilidade'
 import {
   type EtapaProcessoSeletivo,
   EtapasProcessoSeletivo,
@@ -130,6 +137,16 @@ const formSchema = z.object({
   etapas: z.array(etapaSchema).optional(),
   informacoes_complementares: z.array(informacaoComplementarSchema).optional(),
   id_orgao_parceiro: z.string().optional(),
+  idade_minima_ativa: z.boolean().optional(),
+  id_escolaridade_minima: z.string().optional(),
+  idiomas_requisito: z
+    .array(
+      z.object({
+        id_idioma: z.string(),
+        id_nivel_minimo: z.string(),
+      })
+    )
+    .optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -351,6 +368,9 @@ export const NewEmpregabilidadeForm = forwardRef<
     }, [modelos])
 
     const { tiposPcd } = useTiposPcd()
+    const { escolaridades, loading: loadingEscolaridades } = useEscolaridades()
+    const { idiomas, loading: loadingIdiomas } = useIdiomas()
+    const { niveisIdioma, loading: loadingNiveis } = useNiveisIdioma()
     const tipoPcdOptions = useMemo(
       () =>
         tiposPcd.map(t => ({
@@ -399,6 +419,21 @@ export const NewEmpregabilidadeForm = forwardRef<
       }
     }
 
+    // Valores originais salvos no backend — usados para restaurar ao religar o master toggle
+    const savedCriteriosValues = initialData
+      ? {
+          idadeMinima: !!(initialData as any).idade_minima,
+          idEscolaridadeMinima:
+            (initialData as any).id_escolaridade_minima ?? undefined,
+          idiomasRequisito: ((initialData as any).idiomas_requisito ?? []).map(
+            (i: IdiomaRequisito) => ({
+              id_idioma: i.id_idioma,
+              id_nivel_minimo: i.id_nivel_minimo,
+            })
+          ),
+        }
+      : undefined
+
     const form = useForm<FormData>({
       resolver: zodResolver(formSchema),
       defaultValues: initialData
@@ -408,6 +443,15 @@ export const NewEmpregabilidadeForm = forwardRef<
             informacoes_complementares: parseInformacoesComplementares(
               initialData.informacoes_complementares as any
             ),
+            idade_minima_ativa: !!(initialData as any).idade_minima,
+            id_escolaridade_minima:
+              (initialData as any).id_escolaridade_minima ?? undefined,
+            idiomas_requisito: (
+              (initialData as any).idiomas_requisito ?? []
+            ).map((i: IdiomaRequisito) => ({
+              id_idioma: i.id_idioma,
+              id_nivel_minimo: i.id_nivel_minimo,
+            })),
           }
         : {
             titulo: '',
@@ -429,6 +473,9 @@ export const NewEmpregabilidadeForm = forwardRef<
             etapas: [],
             informacoes_complementares: [],
             id_orgao_parceiro: '',
+            idade_minima_ativa: false,
+            id_escolaridade_minima: undefined,
+            idiomas_requisito: [],
           },
       mode: 'onChange',
     })
@@ -1147,6 +1194,29 @@ export const NewEmpregabilidadeForm = forwardRef<
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+
+              <CriteriosElegibilidade
+                idadeMinima={form.watch('idade_minima_ativa') ?? false}
+                onIdadeMinimaChange={v =>
+                  form.setValue('idade_minima_ativa', v)
+                }
+                idEscolaridadeMinima={form.watch('id_escolaridade_minima')}
+                onEscolaridadeChange={v =>
+                  form.setValue('id_escolaridade_minima', v)
+                }
+                idiomasRequisito={
+                  (form.watch('idiomas_requisito') ?? []) as IdiomaRequisito[]
+                }
+                onIdiomasChange={v => form.setValue('idiomas_requisito', v)}
+                escolaridades={escolaridades}
+                idiomas={idiomas}
+                niveisIdioma={niveisIdioma}
+                loadingEscolaridades={loadingEscolaridades}
+                loadingIdiomas={loadingIdiomas}
+                loadingNiveis={loadingNiveis}
+                disabled={isReadOnly}
+                savedValues={savedCriteriosValues}
               />
             </div>
           </div>

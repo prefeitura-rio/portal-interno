@@ -469,6 +469,9 @@ export default function EmpregabilidadeDetailPage({
         tipo_pcd,
         vaga_pcd,
         acessibilidade_pcd,
+        idade_minima_ativa,
+        id_escolaridade_minima,
+        idiomas_requisito,
         ...rest
       } = data
 
@@ -486,9 +489,39 @@ export default function EmpregabilidadeDetailPage({
         id_modelo_trabalho: modelo_trabalho || vaga?.id_modelo_trabalho,
         acessibilidade_pcd: vaga_pcd ? acessibilidade_pcd : undefined,
         tipos_pcd: tiposPcdForApi,
+        idade_minima: idade_minima_ativa ? 18 : null,
+        id_escolaridade_minima: id_escolaridade_minima ?? null,
       }
     },
     [vaga]
+  )
+
+  // Salva idiomas-requisito em endpoint separado
+  const saveIdiomasRequisito = useCallback(
+    async (
+      vagaId: string,
+      idiomas: { id_idioma: string; id_nivel_minimo: string }[]
+    ) => {
+      const res = await fetch(
+        `/api/empregabilidade/vagas/${vagaId}/idiomas-requisito`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requisitos: idiomas.map(item => ({
+              id_vaga: vagaId,
+              id_idioma: item.id_idioma,
+              id_nivel_minimo: item.id_nivel_minimo,
+            })),
+          }),
+        }
+      )
+      if (!res.ok) {
+        const err = await res.json().catch(() => null)
+        throw new Error(err?.error || 'Erro ao salvar requisitos de idioma')
+      }
+    },
+    []
   )
 
   // Helper to persist form data (for published vagas - validação já feita no form)
@@ -512,6 +545,8 @@ export default function EmpregabilidadeDetailPage({
           throw new Error(errorData.error || 'Erro ao salvar vaga')
         }
 
+        await saveIdiomasRequisito(vaga.id, data.idiomas_requisito ?? [])
+
         toast.success('Vaga atualizada com sucesso!')
         setIsEditing(false)
         setHasUnsavedChanges(false)
@@ -525,7 +560,7 @@ export default function EmpregabilidadeDetailPage({
         setIsLoading(false)
       }
     },
-    [vaga, refetch, mapFormToApiData]
+    [vaga, refetch, mapFormToApiData, saveIdiomasRequisito]
   )
 
   // Get status config and read-only flag for editor_com_curadoria
@@ -596,6 +631,8 @@ export default function EmpregabilidadeDetailPage({
           throw new Error(errorData.error || 'Erro ao salvar rascunho')
         }
 
+        await saveIdiomasRequisito(vaga.id, data.idiomas_requisito ?? [])
+
         toast.success('Rascunho salvo com sucesso!')
         setIsEditing(false)
         setHasUnsavedChanges(false)
@@ -609,7 +646,7 @@ export default function EmpregabilidadeDetailPage({
         setIsLoading(false)
       }
     },
-    [vaga, refetch, mapFormToApiData]
+    [vaga, refetch, mapFormToApiData, saveIdiomasRequisito]
   )
 
   // Handle save and publish (validates 11 fields, saves then publishes)
@@ -637,6 +674,8 @@ export default function EmpregabilidadeDetailPage({
           throw new Error(errorData.error || 'Erro ao salvar vaga')
         }
 
+        await saveIdiomasRequisito(vaga.id, data.idiomas_requisito ?? [])
+
         // Then publish
         const publishResponse = await fetch(
           `/api/empregabilidade/vagas/${vaga.id}/publish`,
@@ -663,7 +702,7 @@ export default function EmpregabilidadeDetailPage({
         setIsLoading(false)
       }
     },
-    [vaga, refetch, mapFormToApiData]
+    [vaga, refetch, mapFormToApiData, saveIdiomasRequisito]
   )
 
   // Auto-enable edit mode if edit=true query parameter is present
@@ -750,6 +789,9 @@ export default function EmpregabilidadeDetailPage({
       vaga.informacoes_complementares
     ),
     id_orgao_parceiro: vaga.id_orgao_parceiro,
+    idade_minima: (vaga as any).idade_minima,
+    id_escolaridade_minima: (vaga as any).id_escolaridade_minima,
+    idiomas_requisito: (vaga as any).idiomas_requisito,
   }
 
   return (

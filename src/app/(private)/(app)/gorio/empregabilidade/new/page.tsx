@@ -16,6 +16,60 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+function mapCriteriosToApiData(data: any) {
+  const {
+    contratante,
+    regime_contratacao,
+    modelo_trabalho,
+    tipo_pcd,
+    vaga_pcd,
+    acessibilidade_pcd,
+    idade_minima_ativa,
+    id_escolaridade_minima,
+    idiomas_requisito: _idiomas,
+    ...rest
+  } = data
+
+  const tiposPcdForApi =
+    (tipo_pcd?.length ?? 0) > 0
+      ? (tipo_pcd ?? []).map((id: string) => ({ id }))
+      : undefined
+
+  return {
+    apiData: {
+      ...rest,
+      id_contratante: contratante,
+      id_regime_contratacao: regime_contratacao,
+      id_modelo_trabalho: modelo_trabalho,
+      acessibilidade_pcd: vaga_pcd ? acessibilidade_pcd : undefined,
+      tipos_pcd: tiposPcdForApi,
+      idade_minima: idade_minima_ativa ? 18 : null,
+      id_escolaridade_minima: id_escolaridade_minima ?? null,
+    },
+    idiomasRequisito: (data.idiomas_requisito ?? []) as {
+      id_idioma: string
+      id_nivel_minimo: string
+    }[],
+  }
+}
+
+async function saveIdiomasRequisito(
+  vagaId: string,
+  idiomas: { id_idioma: string; id_nivel_minimo: string }[]
+) {
+  await fetch(`/api/empregabilidade/vagas/${vagaId}/idiomas-requisito`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      requisitos: idiomas.map(item => ({
+        id_vaga: vagaId,
+        id_idioma: item.id_idioma,
+        id_nivel_minimo: item.id_nivel_minimo,
+      })),
+    }),
+  })
+}
+
 export default function NewEmpregabilidadePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -23,63 +77,22 @@ export default function NewEmpregabilidadePage() {
 
   const handleCreateVaga = async (data: any) => {
     try {
-      console.log('🔵 [handleCreateVaga] Form data received:', data)
-
-      // Mark as submitting to prevent guard from blocking
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
 
-      // Map form data to API expected format
-      const {
-        contratante,
-        regime_contratacao,
-        modelo_trabalho,
-        tipo_pcd,
-        vaga_pcd,
-        acessibilidade_pcd,
-        ...rest
-      } = data
-
-      const tiposPcdForApi =
-        (tipo_pcd?.length ?? 0) > 0
-          ? (tipo_pcd ?? []).map((id: string) => ({ id }))
-          : undefined
-
-      const apiData = {
-        ...rest,
-        id_contratante: contratante,
-        id_regime_contratacao: regime_contratacao,
-        id_modelo_trabalho: modelo_trabalho,
-        acessibilidade_pcd: vaga_pcd ? acessibilidade_pcd : undefined,
-        tipos_pcd: tiposPcdForApi,
-      }
-
-      console.log('🔵 [handleCreateVaga] Mapped API data:', apiData)
-      console.log('🔵 [handleCreateVaga] Required fields check:', {
-        titulo: apiData.titulo,
-        descricao: apiData.descricao,
-        id_contratante: apiData.id_contratante,
-        id_regime_contratacao: apiData.id_regime_contratacao,
-        id_modelo_trabalho: apiData.id_modelo_trabalho,
-      })
+      const { apiData, idiomasRequisito } = mapCriteriosToApiData(data)
 
       const response = await fetch('/api/empregabilidade/vagas/new', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiData),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-
-        // Try to extract field-specific errors
         let errorMessage = 'Falha ao criar vaga'
         let errorDescription = undefined
-
         if (errorData.error && typeof errorData.error === 'string') {
-          // Check if error contains field names
           const fieldPattern = /(titulo|descricao|contratante|regime|modelo)/i
           if (fieldPattern.test(errorData.error)) {
             errorDescription = errorData.error
@@ -87,29 +100,24 @@ export default function NewEmpregabilidadePage() {
             errorMessage = errorData.error
           }
         }
-
-        toast.error(errorMessage, {
-          description: errorDescription,
-        })
-
+        toast.error(errorMessage, { description: errorDescription })
         throw new Error(errorData.error || 'Failed to create vaga')
       }
 
       const result = await response.json()
-      console.log('Vaga created successfully:', result)
+      const vagaId = result.vaga?.id
+      if (vagaId && idiomasRequisito.length > 0) {
+        await saveIdiomasRequisito(vagaId, idiomasRequisito)
+      }
 
-      // Show success toast and redirect to vagas list (active tab for published vagas)
       toast.success('Vaga publicada com sucesso!')
       router.push('/gorio/empregabilidade?tab=active')
-
-      // Trigger cache revalidation
       router.refresh()
     } catch (error) {
       console.error('Error creating vaga:', error)
       toast.error('Erro ao criar vaga', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
       })
-      // If there's an error, re-enable the guard
       setIsSubmitting(false)
       setHasUnsavedChanges(true)
     }
@@ -117,67 +125,33 @@ export default function NewEmpregabilidadePage() {
 
   const handleCreateAndSendToApproval = async (data: any) => {
     try {
-      console.log(
-        '🟡 [handleCreateAndSendToApproval] Form data received:',
-        data
-      )
-
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
 
-      const {
-        contratante,
-        regime_contratacao,
-        modelo_trabalho,
-        tipo_pcd,
-        vaga_pcd,
-        acessibilidade_pcd,
-        ...rest
-      } = data
-
-      const tiposPcdForApi =
-        (tipo_pcd?.length ?? 0) > 0
-          ? (tipo_pcd ?? []).map((id: string) => ({ id }))
-          : undefined
-
-      const apiData = {
-        ...rest,
-        id_contratante: contratante,
-        id_regime_contratacao: regime_contratacao,
-        id_modelo_trabalho: modelo_trabalho,
-        acessibilidade_pcd: vaga_pcd ? acessibilidade_pcd : undefined,
-        tipos_pcd: tiposPcdForApi,
-      }
-
-      console.log(
-        '🟡 [handleCreateAndSendToApproval] Mapped API data:',
-        apiData
-      )
+      const { apiData, idiomasRequisito } = mapCriteriosToApiData(data)
 
       const response = await fetch(
         '/api/empregabilidade/vagas/new/send-to-approval',
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiData),
         }
       )
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)
-
         const errorMessage =
           errorData?.error || 'Falha ao enviar vaga para aprovação'
-
         toast.error(errorMessage)
-
         throw new Error(errorMessage)
       }
 
       const result = await response.json()
-      console.log('Vaga created and sent to approval successfully:', result)
+      const vagaId = result.vaga?.id
+      if (vagaId && idiomasRequisito.length > 0) {
+        await saveIdiomasRequisito(vagaId, idiomasRequisito)
+      }
 
       toast.success('Vaga enviada para aprovação com sucesso!')
       router.push('/gorio/empregabilidade?tab=awaiting_approval')
@@ -194,51 +168,20 @@ export default function NewEmpregabilidadePage() {
 
   const handleCreateDraft = async (data: any) => {
     try {
-      console.log('🟢 [handleCreateDraft] Form data received:', data)
-
-      // Mark as submitting to prevent guard from blocking
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
 
-      // Map form data to API expected format
-      const {
-        contratante,
-        regime_contratacao,
-        modelo_trabalho,
-        tipo_pcd,
-        vaga_pcd,
-        acessibilidade_pcd,
-        ...rest
-      } = data
-
-      const tiposPcdForApi =
-        (tipo_pcd?.length ?? 0) > 0
-          ? (tipo_pcd ?? []).map((id: string) => ({ id }))
-          : undefined
-
-      const apiData = {
-        ...rest,
-        id_contratante: contratante,
-        id_regime_contratacao: regime_contratacao,
-        id_modelo_trabalho: modelo_trabalho,
-        acessibilidade_pcd: vaga_pcd ? acessibilidade_pcd : undefined,
-        tipos_pcd: tiposPcdForApi,
-      }
-
-      console.log('🟢 [handleCreateDraft] Mapped draft API data:', apiData)
+      const { apiData, idiomasRequisito } = mapCriteriosToApiData(data)
 
       const response = await fetch('/api/empregabilidade/vagas/draft', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiData),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
 
-        // Try to extract field-specific errors from backend response
         let errorMessage = 'Falha ao criar rascunho'
         let errorDescription = undefined
 
@@ -246,7 +189,6 @@ export default function NewEmpregabilidadePage() {
           errorMessage = errorData.error
         }
 
-        // Check if error is about UUID (missing required fields)
         if (errorData.message && typeof errorData.message === 'object') {
           const backendError = errorData.message.error || ''
           if (
@@ -258,28 +200,24 @@ export default function NewEmpregabilidadePage() {
           }
         }
 
-        toast.error(errorMessage, {
-          description: errorDescription,
-        })
-
+        toast.error(errorMessage, { description: errorDescription })
         throw new Error(errorMessage)
       }
 
       const result = await response.json()
-      console.log('Draft vaga created successfully:', result)
+      const vagaId = result.vaga?.id
+      if (vagaId && idiomasRequisito.length > 0) {
+        await saveIdiomasRequisito(vagaId, idiomasRequisito)
+      }
 
-      // Show success toast and redirect to vagas with 'draft' tab
       toast.success('Rascunho salvo com sucesso!')
       router.push('/gorio/empregabilidade?tab=draft')
-
-      // Trigger cache revalidation
       router.refresh()
     } catch (error) {
       console.error('Error creating draft vaga:', error)
       toast.error('Erro ao salvar rascunho', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
       })
-      // If there's an error, re-enable the guard
       setIsSubmitting(false)
       setHasUnsavedChanges(true)
     }
