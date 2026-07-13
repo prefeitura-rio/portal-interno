@@ -37,6 +37,12 @@ export interface EmpregabilidadeVaga {
   orgao_parceiro?: ModelsOrgaoSnapshot
   // FORCED ADDED - TODO: REMOVE THIS WHEN SWAGGER IS UPDATED
   quantidade_estimada_contratacoes?: number
+  // FORCED ADDED - TODO: REMOVE THIS WHEN SWAGGER IS UPDATED
+  idade_minima?: number | null
+  // FORCED ADDED - TODO: REMOVE THIS WHEN SWAGGER IS UPDATED
+  id_escolaridade_minima?: string | null
+  // FORCED ADDED - TODO: REMOVE THIS WHEN SWAGGER IS UPDATED
+  idiomas_requisito?: { id_idioma: string; id_nivel_minimo: string }[]
   regime_contratacao?: EmpregabilidadeRegimeContratacao
   requisitos?: string
   responsabilidades?: string

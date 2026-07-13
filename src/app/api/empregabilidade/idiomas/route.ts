@@ -1,0 +1,34 @@
+import { getApiV1EmpregabilidadeIdiomas } from '@/http-gorio/empregabilidade-idiomas/empregabilidade-idiomas'
+import { NextResponse } from 'next/server'
+
+export async function GET() {
+  try {
+    const response = await getApiV1EmpregabilidadeIdiomas({
+      page: 1,
+      pageSize: 100,
+    })
+
+    if (response.status === 200) {
+      const data = response.data as any
+      return NextResponse.json({
+        data: data.data || [],
+        meta: data.meta || { page: 1, page_size: 100, total: 0 },
+        success: true,
+      })
+    }
+
+    return NextResponse.json(
+      { error: 'Erro ao buscar idiomas' },
+      { status: response.status }
+    )
+  } catch (error) {
+    console.error('[GET /api/empregabilidade/idiomas] Error:', error)
+    return NextResponse.json(
+      {
+        error: 'Erro interno do servidor',
+        message: error instanceof Error ? error.message : 'Erro desconhecido',
+      },
+      { status: 500 }
+    )
+  }
+}
