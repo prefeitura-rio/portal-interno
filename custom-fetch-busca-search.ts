@@ -20,9 +20,7 @@ const getUrl = (contextUrl: string): string => {
   const baseUrl = process.env.BUSCA_SEARCH_API_URL
 
   if (!baseUrl) {
-    throw new Error(
-      'BUSCA_SEARCH_API_URL environment variable is not set.'
-    )
+    throw new Error('BUSCA_SEARCH_API_URL environment variable is not set.')
   }
 
   // Ensure baseUrl ends with '/' and contextUrl doesn't start with '/'
