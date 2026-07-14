@@ -82,7 +82,7 @@ export async function PUT(
       )
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
+    const baseUrl = process.env.COURSES_BASE_API_URL
 
     // Buscar dados atuais do curso para validar datas antes de aprovar
     const courseResponse = await fetch(

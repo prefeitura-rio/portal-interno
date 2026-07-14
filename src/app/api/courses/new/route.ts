@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           const accessToken = cookieStore.get('access_token')
 
           if (accessToken) {
-            const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
+            const baseUrl = process.env.COURSES_BASE_API_URL
             await fetch(
               `${baseUrl}/api/v1/courses/${courseId}/send-to-review`,
               {

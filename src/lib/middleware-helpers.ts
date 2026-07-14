@@ -42,12 +42,10 @@ async function fetchHeimdallUserFromApi(
   const requestId = Math.random().toString(36).substring(7)
 
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_HEIMDALL_BASE_API_URL
+    const baseUrl = process.env.HEIMDALL_BASE_API_URL
 
     if (!baseUrl) {
-      console.error(
-        `[${cpf}] [${requestId}] NEXT_PUBLIC_HEIMDALL_BASE_API_URL is not set`
-      )
+      console.error(`[${cpf}] [${requestId}] HEIMDALL_BASE_API_URL is not set`)
       return null
     }
 

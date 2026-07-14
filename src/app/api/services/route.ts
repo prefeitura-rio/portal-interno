@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     console.log('🌐 External API URL (relative path):', externalApiUrl)
 
     // Show what the complete URL will be (baseUrl + path)
-    const baseUrl = process.env.NEXT_PUBLIC_BUSCA_SEARCH_API_URL
+    const baseUrl = process.env.BUSCA_SEARCH_API_URL
     console.log('🔗 Base URL from env:', baseUrl)
 
     if (baseUrl) {

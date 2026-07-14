@@ -17,12 +17,10 @@ const getBody = <T>(c: Response | Request): Promise<T> => {
 
 // NOTE: Update just base url
 const getUrl = (contextUrl: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_HEIMDALL_BASE_API_URL
+  const baseUrl = process.env.HEIMDALL_BASE_API_URL
 
   if (!baseUrl) {
-    throw new Error(
-      'NEXT_PUBLIC_HEIMDALL_BASE_API_URL environment variable is not set.'
-    )
+    throw new Error('HEIMDALL_BASE_API_URL environment variable is not set.')
   }
 
   // Ensure baseUrl ends with '/' and contextUrl doesn't start with '/'
