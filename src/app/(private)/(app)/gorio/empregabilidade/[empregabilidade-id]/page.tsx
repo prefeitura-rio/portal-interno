@@ -1226,6 +1226,52 @@ export default function EmpregabilidadeDetailPage({
                 onSaveAndPublish={handleFormSaveAndPublish}
               />
             </div>
+
+            {isEditing && (
+              <div className="flex flex-col gap-2 mt-6">
+                {vaga.status === 'em_edicao' ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleSaveDraft}
+                      disabled={isLoading}
+                      className="w-full"
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      {isLoading ? 'Salvando...' : 'Salvar Rascunho'}
+                    </Button>
+                    {canPublishVagaAsAtivo && (
+                      <Button
+                        onClick={handleSaveAndPublish}
+                        disabled={isLoading}
+                        className="w-full"
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        {isLoading ? 'Publicando...' : 'Salvar e Publicar'}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Button
+                    onClick={handleSave}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {isLoading ? 'Salvando...' : 'Salvar'}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={isLoading}
+                  className="w-full"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Cancelar
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="candidates" className="mt-6">
