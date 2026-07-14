@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
+    const baseUrl = process.env.COURSES_BASE_API_URL
 
     if (!baseUrl) {
       return NextResponse.json(

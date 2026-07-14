@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const perPage = Number.parseInt(searchParams.get('per_page') || '10', 10)
     const search = searchParams.get('search') || ''
 
-    const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
+    const baseUrl = process.env.COURSES_BASE_API_URL
 
     const params = new URLSearchParams({
       status: 'in_review,needs_changes,pending_deletion',

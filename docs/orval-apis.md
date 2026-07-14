@@ -27,7 +27,7 @@
       biome: true,
       httpClient: 'fetch',
       clean: true,
-      baseUrl: process.env.NEXT_PUBLIC_BUSCA_SEARCH_API_URL,
+      baseUrl: process.env.BUSCA_SEARCH_API_URL,
       override: {
         mutator: {
           path: './custom-fetch-busca-search.ts',
@@ -54,7 +54,7 @@
       biome: true,
       httpClient: 'fetch',
       clean: true,
-      baseUrl: process.env.NEXT_PUBLIC_COURSES_BASE_API_URL,
+      baseUrl: process.env.COURSES_BASE_API_URL,
       override: {
         mutator: {
           path: './custom-fetch-gorio.ts',
@@ -82,7 +82,7 @@
       biome: true,
       httpClient: 'fetch',
       clean: true,
-      baseUrl: process.env.NEXT_PUBLIC_HEIMDALL_BASE_API_URL,
+      baseUrl: process.env.HEIMDALL_BASE_API_URL,
       override: {
         mutator: {
           path: './custom-fetch-heimdall.ts',
@@ -109,7 +109,7 @@
       biome: true,
       httpClient: 'fetch',
       clean: true,
-      baseUrl: process.env.NEXT_PUBLIC_RMI_BASE_API_URL,
+      baseUrl: process.env.RMI_BASE_API_URL,
       override: {
         mutator: {
           path: './custom-fetch-rmi.ts',

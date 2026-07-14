@@ -25,7 +25,7 @@ export async function PUT(
     }
 
     // Chamar backend API
-    const baseUrl = process.env.NEXT_PUBLIC_COURSES_BASE_API_URL
+    const baseUrl = process.env.COURSES_BASE_API_URL
     const response = await fetch(
       `${baseUrl}/api/v1/courses/${courseId}/request-deletion`,
       {
