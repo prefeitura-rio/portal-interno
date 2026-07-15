@@ -64,9 +64,11 @@ export function DuplicateJobButton({
         responsabilidades: vaga.responsabilidades,
         beneficios: vaga.beneficios,
         acessibilidade_pcd: vaga.acessibilidade_pcd,
-        tipos_pcd: vaga.tipos_pcd, // Keep as is (reference IDs)
+        tipos_pcd: vaga.tipos_pcd,
         etapas: transformedEtapas,
         informacoes_complementares: transformedInformacoesComplementares,
+        idade_minima: (vaga as any).idade_minima ?? null,
+        id_escolaridade_minima: (vaga as any).id_escolaridade_minima ?? null,
         status: 'em_edicao',
       }
 
@@ -84,7 +86,29 @@ export function DuplicateJobButton({
         throw new Error(errorData.error || 'Failed to duplicate vaga')
       }
 
-      const _result = await response.json()
+      const result = await response.json()
+
+      const novaVagaId = result?.vaga?.id
+      const idiomasRequisito = (vaga as any).idiomas_requisito as
+        | { id_idioma: string; id_nivel_minimo: string }[]
+        | undefined
+
+      if (novaVagaId && idiomasRequisito && idiomasRequisito.length > 0) {
+        await fetch(
+          `/api/empregabilidade/vagas/${novaVagaId}/idiomas-requisito`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requisitos: idiomasRequisito.map(item => ({
+                id_vaga: novaVagaId,
+                id_idioma: item.id_idioma,
+                id_nivel_minimo: item.id_nivel_minimo,
+              })),
+            }),
+          }
+        )
+      }
 
       toast.success('Vaga duplicada com sucesso!')
 
