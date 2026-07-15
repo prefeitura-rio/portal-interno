@@ -6,6 +6,7 @@ import {
   LayoutGrid,
   type LucideIcon,
   Settings,
+  Shield,
 } from 'lucide-react'
 
 export type Submenu = {
@@ -215,6 +216,29 @@ export function getMenuList(pathname: string): Group[] {
                 'busca:services:admin',
                 'busca:services:editor',
               ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      groupLabel: 'Acesso restrito',
+      menus: [
+        {
+          href: '',
+          label: 'Superadmin',
+          icon: Shield,
+          allowedRoles: ['admin', 'superadmin'],
+          submenus: [
+            {
+              href: '/superadmin/vinculos-secretaria/adicionar',
+              label: 'Adicionar vínculo de secretaria',
+              allowedRoles: ['admin', 'superadmin'],
+            },
+            {
+              href: '/superadmin/vinculos-secretaria/consultar',
+              label: 'Consultar vínculos de secretaria',
+              allowedRoles: ['admin', 'superadmin'],
             },
           ],
         },
