@@ -97,6 +97,10 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:empregabilidade:editor_sem_curadoria',
     'go:empregabilidade:editor_com_curadoria',
   ],
+
+  // Superadmin - vínculos CPF-Secretaria
+  '/superadmin/vinculos-secretaria/adicionar': ['admin', 'superadmin'],
+  '/superadmin/vinculos-secretaria/consultar': ['admin', 'superadmin'],
 } as const
 
 /**
