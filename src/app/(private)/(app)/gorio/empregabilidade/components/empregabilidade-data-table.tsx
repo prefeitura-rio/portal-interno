@@ -456,8 +456,13 @@ export function EmpregabilidadeDataTable() {
   const handleDuplicate = React.useCallback(
     async (vaga: EmpregabilidadeVaga) => {
       try {
-        const transformedEtapas = vaga.etapas
-          ? vaga.etapas.map(etapa => ({
+        // Fetch full vaga details to get idiomas_requisito (not included in list response)
+        const detailRes = await fetch(`/api/empregabilidade/vagas/${vaga.id}`)
+        const detailData = detailRes.ok ? await detailRes.json() : null
+        const fullVaga = detailData?.vaga ?? vaga
+
+        const transformedEtapas = fullVaga.etapas
+          ? fullVaga.etapas.map((etapa: any) => ({
               titulo: etapa.titulo,
               descricao: etapa.descricao,
               ordem: etapa.ordem,
@@ -465,8 +470,8 @@ export function EmpregabilidadeDataTable() {
           : []
 
         const transformedInformacoesComplementares =
-          vaga.informacoes_complementares
-            ? vaga.informacoes_complementares.map(info => ({
+          fullVaga.informacoes_complementares
+            ? fullVaga.informacoes_complementares.map((info: any) => ({
                 titulo: info.titulo,
                 tipo_campo: info.tipo_campo,
                 obrigatorio: info.obrigatorio,
@@ -477,25 +482,27 @@ export function EmpregabilidadeDataTable() {
             : []
 
         const draftData = {
-          titulo: `${vaga.titulo} - Cópia`,
-          descricao: vaga.descricao,
-          id_contratante: vaga.id_contratante,
-          id_regime_contratacao: vaga.id_regime_contratacao,
-          id_modelo_trabalho: vaga.id_modelo_trabalho,
-          id_orgao_parceiro: vaga.id_orgao_parceiro,
-          valor_vaga: vaga.valor_vaga,
+          titulo: `${fullVaga.titulo} - Cópia`,
+          descricao: fullVaga.descricao,
+          id_contratante: fullVaga.id_contratante,
+          id_regime_contratacao: fullVaga.id_regime_contratacao,
+          id_modelo_trabalho: fullVaga.id_modelo_trabalho,
+          id_orgao_parceiro: fullVaga.id_orgao_parceiro,
+          valor_vaga: fullVaga.valor_vaga,
           quantidade_estimada_contratacoes:
-            vaga.quantidade_estimada_contratacoes,
-          bairro: vaga.bairro,
-          data_limite: vaga.data_limite,
-          requisitos: vaga.requisitos,
-          diferenciais: vaga.diferenciais,
-          responsabilidades: vaga.responsabilidades,
-          beneficios: vaga.beneficios,
-          acessibilidade_pcd: vaga.acessibilidade_pcd,
-          tipos_pcd: vaga.tipos_pcd,
+            fullVaga.quantidade_estimada_contratacoes,
+          bairro: fullVaga.bairro,
+          data_limite: fullVaga.data_limite,
+          requisitos: fullVaga.requisitos,
+          diferenciais: fullVaga.diferenciais,
+          responsabilidades: fullVaga.responsabilidades,
+          beneficios: fullVaga.beneficios,
+          acessibilidade_pcd: fullVaga.acessibilidade_pcd,
+          tipos_pcd: fullVaga.tipos_pcd,
           etapas: transformedEtapas,
           informacoes_complementares: transformedInformacoesComplementares,
+          idade_minima: fullVaga.idade_minima ?? null,
+          id_escolaridade_minima: fullVaga.id_escolaridade_minima ?? null,
           status: 'em_edicao',
         }
 
@@ -508,6 +515,30 @@ export function EmpregabilidadeDataTable() {
         if (!response.ok) {
           const errorData = await response.json()
           throw new Error(errorData.error || 'Failed to duplicate vaga')
+        }
+
+        const result = await response.json()
+
+        const novaVagaId = result?.vaga?.id
+        const idiomasRequisito = fullVaga.idiomas_requisito as
+          | { id_idioma: string; id_nivel_minimo: string }[]
+          | undefined
+
+        if (novaVagaId && idiomasRequisito && idiomasRequisito.length > 0) {
+          await fetch(
+            `/api/empregabilidade/vagas/${novaVagaId}/idiomas-requisito`,
+            {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                requisitos: idiomasRequisito.map(item => ({
+                  id_vaga: novaVagaId,
+                  id_idioma: item.id_idioma,
+                  id_nivel_minimo: item.id_nivel_minimo,
+                })),
+              }),
+            }
+          )
         }
 
         toast.success('Vaga duplicada com sucesso!')
