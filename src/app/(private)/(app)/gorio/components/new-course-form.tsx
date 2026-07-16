@@ -1293,7 +1293,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           setLoadingCategories(true)
           const response = await fetch('/api/categorias?page=1&pageSize=100')
           const data = await response.json()
-          const categoriesData = data || []
+          const categoriesData = Array.isArray(data) ? data : []
 
           // Update state and cache
           setCategories(categoriesData)
