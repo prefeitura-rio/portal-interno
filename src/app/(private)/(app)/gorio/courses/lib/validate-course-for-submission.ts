@@ -10,6 +10,15 @@ export type CourseValidationError = {
 export function adaptApiCourseToFormShape(
   apiCourse: Record<string, unknown>
 ): Record<string, unknown> {
+  // Course-level enrollment dates double as the fallback for legacy turmas that
+  // predate per-turma enrollment periods.
+  const enrollmentStart = apiCourse.enrollment_start_date
+    ? new Date(apiCourse.enrollment_start_date as string)
+    : new Date()
+  const enrollmentEnd = apiCourse.enrollment_end_date
+    ? new Date(apiCourse.enrollment_end_date as string)
+    : new Date()
+
   const locations = ((apiCourse.locations as any[]) || []).map(
     (location: any) => {
       if (
@@ -25,6 +34,16 @@ export function adaptApiCourseToFormShape(
           schedules: location.schedules.map((s: any) => ({
             id: s.id,
             vacancies: s.vacancies,
+            enrollmentStartDate: s.enrollment_start_date
+              ? new Date(s.enrollment_start_date)
+              : s.enrollmentStartDate
+                ? new Date(s.enrollmentStartDate)
+                : enrollmentStart,
+            enrollmentEndDate: s.enrollment_end_date
+              ? new Date(s.enrollment_end_date)
+              : s.enrollmentEndDate
+                ? new Date(s.enrollmentEndDate)
+                : enrollmentEnd,
             classStartDate: s.class_start_date
               ? new Date(s.class_start_date)
               : s.classStartDate
@@ -49,6 +68,12 @@ export function adaptApiCourseToFormShape(
           {
             id: location.schedule_id || '00000000-0000-0000-0000-000000000000',
             vacancies: location.vacancies || 1,
+            enrollmentStartDate: location.enrollmentStartDate
+              ? new Date(location.enrollmentStartDate)
+              : enrollmentStart,
+            enrollmentEndDate: location.enrollmentEndDate
+              ? new Date(location.enrollmentEndDate)
+              : enrollmentEnd,
             classStartDate: location.classStartDate
               ? new Date(location.classStartDate)
               : new Date(),
@@ -70,6 +95,12 @@ export function adaptApiCourseToFormShape(
       remote_class = remoteClassRaw.schedules.map((s: any) => ({
         id: s.id,
         vacancies: s.vacancies,
+        enrollmentStartDate: s.enrollment_start_date
+          ? new Date(s.enrollment_start_date)
+          : enrollmentStart,
+        enrollmentEndDate: s.enrollment_end_date
+          ? new Date(s.enrollment_end_date)
+          : enrollmentEnd,
         classStartDate: s.class_start_date
           ? new Date(s.class_start_date)
           : null,
@@ -83,6 +114,12 @@ export function adaptApiCourseToFormShape(
         {
           id: remoteClassRaw.id,
           vacancies: remoteClassRaw.vacancies,
+          enrollmentStartDate: remoteClassRaw.enrollment_start_date
+            ? new Date(remoteClassRaw.enrollment_start_date)
+            : enrollmentStart,
+          enrollmentEndDate: remoteClassRaw.enrollment_end_date
+            ? new Date(remoteClassRaw.enrollment_end_date)
+            : enrollmentEnd,
           classStartDate: remoteClassRaw.class_start_date
             ? new Date(remoteClassRaw.class_start_date)
             : null,
@@ -100,13 +137,6 @@ export function adaptApiCourseToFormShape(
   const category = Array.isArray(apiCourse.category)
     ? (apiCourse.category as number[])
     : (categorias?.map(c => c.id) ?? [])
-
-  const enrollmentStart = apiCourse.enrollment_start_date
-    ? new Date(apiCourse.enrollment_start_date as string)
-    : new Date()
-  const enrollmentEnd = apiCourse.enrollment_end_date
-    ? new Date(apiCourse.enrollment_end_date as string)
-    : new Date()
 
   const managementType =
     (apiCourse.course_management_type as string | undefined) ||
