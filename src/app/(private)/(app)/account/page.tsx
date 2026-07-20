@@ -7,8 +7,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { DepartmentName } from '@/components/ui/department-name'
 import { Separator } from '@/components/ui/separator'
 import { getCurrentUserInfoApiV1UsersMeGet } from '@/http-heimdall/users/users'
+import { getAdminCpfSecretariaCpf } from '@/http-rmi/admin/admin'
+import type { ModelsCPFSecretariaResponse } from '@/http-rmi/models/modelsCPFSecretariaResponse'
 import { getUserInfoFromToken } from '@/lib/user-info'
 import { Shield, ShieldCheck, Users } from 'lucide-react'
 
@@ -127,6 +130,20 @@ export default async function Account() {
     console.error('Error fetching user from Heimdall:', error)
   }
 
+  // Fetch secretaria vínculos from RMI (may fail if user lacks permission)
+  let secretariaMappings: ModelsCPFSecretariaResponse[] = []
+  const cpf = heimdallUser?.cpf || userInfo.cpf
+  if (cpf) {
+    try {
+      const response = await getAdminCpfSecretariaCpf(cpf.replace(/\D/g, ''))
+      if (response.status === 200) {
+        secretariaMappings = response.data.mappings ?? []
+      }
+    } catch (error) {
+      console.error('Error fetching secretaria vínculos from RMI:', error)
+    }
+  }
+
   const moduleAccess = getModuleAccess(heimdallUser?.roles)
 
   return (
@@ -178,6 +195,27 @@ export default async function Account() {
                 <p className="text-lg font-semibold font-mono">
                   {heimdallUser?.id || 'N/A'}
                 </p>
+              </div>
+              <div className="md:col-span-2">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  Secretaria
+                </p>
+                {secretariaMappings.length > 0 ? (
+                  <ul className="space-y-1">
+                    {secretariaMappings.map(mapping => (
+                      <li
+                        key={mapping.id ?? mapping.cd_ua}
+                        className="text-lg font-semibold"
+                      >
+                        <DepartmentName cd_ua={mapping.cd_ua} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-lg font-semibold text-muted-foreground">
+                    Não disponível
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>

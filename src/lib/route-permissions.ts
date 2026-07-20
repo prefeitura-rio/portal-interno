@@ -101,6 +101,10 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
   // Superadmin - vínculos CPF-Secretaria
   '/superadmin/vinculos-secretaria/adicionar': ['admin', 'superadmin'],
   '/superadmin/vinculos-secretaria/consultar': ['admin', 'superadmin'],
+
+  // Heimdall admin - gestão de usuários, grupos, papéis, ações e mapeamentos
+  '/heimdall': ['admin', 'superadmin'],
+  '/heimdall/*': ['admin', 'superadmin'],
 } as const
 
 /**

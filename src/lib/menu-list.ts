@@ -3,6 +3,7 @@ import {
   Briefcase,
   FolderKanban,
   GraduationCap,
+  KeyRound,
   LayoutGrid,
   type LucideIcon,
   Settings,
@@ -226,7 +227,7 @@ export function getMenuList(pathname: string): Group[] {
       menus: [
         {
           href: '',
-          label: 'Superadmin',
+          label: 'RBAC Secretaria',
           icon: Shield,
           allowedRoles: ['admin', 'superadmin'],
           submenus: [
@@ -238,6 +239,54 @@ export function getMenuList(pathname: string): Group[] {
             {
               href: '/superadmin/vinculos-secretaria/consultar',
               label: 'Consultar vínculos de secretaria',
+              allowedRoles: ['admin', 'superadmin'],
+            },
+          ],
+        },
+        {
+          href: '/heimdall',
+          label: 'Heimdall admin',
+          icon: KeyRound,
+          allowedRoles: ['admin', 'superadmin'],
+          submenus: [
+            {
+              href: '/heimdall',
+              label: 'Dashboard',
+              allowedRoles: ['admin', 'superadmin'],
+            },
+            {
+              href: '/heimdall/usuarios',
+              label: 'Usuários',
+              allowedRoles: ['admin', 'superadmin'],
+            },
+            {
+              href: '/heimdall/grupos',
+              label: 'Grupos',
+              allowedRoles: ['admin', 'superadmin'],
+            },
+            {
+              href: '/heimdall/papeis',
+              label: 'Papéis',
+              allowedRoles: ['admin', 'superadmin'],
+            },
+            {
+              href: '/heimdall/acoes',
+              label: 'Ações',
+              allowedRoles: ['admin', 'superadmin'],
+            },
+            {
+              href: '/heimdall/mapeamentos',
+              label: 'Mapeamentos',
+              allowedRoles: ['admin', 'superadmin'],
+            },
+            {
+              href: '/heimdall/health',
+              label: 'Health',
+              allowedRoles: ['admin', 'superadmin'],
+            },
+            {
+              href: '/heimdall/documentacao',
+              label: 'Documentação',
               allowedRoles: ['admin', 'superadmin'],
             },
           ],

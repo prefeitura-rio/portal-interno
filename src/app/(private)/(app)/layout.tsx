@@ -1,5 +1,6 @@
 //layout.tsx
 import AdminPanelLayout from '@/components/admin-panel/admin-panel-layout'
+import { QueryProvider } from '@/components/providers/query-provider'
 import { UserProvider } from '@/components/providers/user-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { HeimdallUserProvider } from '@/contexts/heimdall-user-context'
@@ -18,10 +19,12 @@ export default async function Layout({
     <>
       <UserProvider userInfo={userInfo}>
         <HeimdallUserProvider>
-          <Toaster />
-          <AdminPanelLayout>
-            <NuqsAdapter>{children}</NuqsAdapter>
-          </AdminPanelLayout>
+          <QueryProvider>
+            <Toaster />
+            <AdminPanelLayout>
+              <NuqsAdapter>{children}</NuqsAdapter>
+            </AdminPanelLayout>
+          </QueryProvider>
         </HeimdallUserProvider>
       </UserProvider>
     </>
