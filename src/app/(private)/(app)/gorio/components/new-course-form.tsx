@@ -126,6 +126,12 @@ const scheduleSchema = z.object({
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
     .max(1000, { message: 'Número de vagas não pode exceder 1000.' }),
+  enrollmentStartDate: z.date({
+    required_error: 'Data de início das inscrições é obrigatória.',
+  }),
+  enrollmentEndDate: z.date({
+    required_error: 'Data de fim das inscrições é obrigatória.',
+  }),
   classStartDate: z.date({
     required_error: 'Data de início das aulas é obrigatória.',
   }),
@@ -160,6 +166,12 @@ const remoteScheduleSchema = z.object({
     .number()
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
     .max(1000, { message: 'Número de vagas não pode exceder 1000.' }),
+  enrollmentStartDate: z.date({
+    required_error: 'Data de início das inscrições é obrigatória.',
+  }),
+  enrollmentEndDate: z.date({
+    required_error: 'Data de fim das inscrições é obrigatória.',
+  }),
   classStartDate: z.date().optional().nullable(),
   classEndDate: z.date().optional().nullable(),
   classTime: z.string().optional().nullable(),
@@ -170,6 +182,44 @@ const remoteScheduleSchema = z.object({
 const remoteClassSchema = z
   .array(remoteScheduleSchema)
   .min(1, { message: 'Pelo menos uma turma deve ser informada.' })
+
+// Enrollment period lives on each turma. The course-level period is DERIVED:
+// start = earliest turma opening, end = latest turma closing. Used for
+// modalidades that have turmas (PRESENCIAL/ONLINE); LIVRE_FORMACAO_ONLINE keeps
+// its own course-level enrollment dates since it has no turmas.
+type EnrollmentWindow = {
+  enrollmentStartDate?: Date | null
+  enrollmentEndDate?: Date | null
+}
+
+const deriveCourseEnrollmentPeriod = (
+  turmas: EnrollmentWindow[] | undefined
+): { start?: Date; end?: Date } => {
+  const starts = (turmas ?? [])
+    .map(t => t.enrollmentStartDate)
+    .filter((d): d is Date => d instanceof Date)
+  const ends = (turmas ?? [])
+    .map(t => t.enrollmentEndDate)
+    .filter((d): d is Date => d instanceof Date)
+  return {
+    start: starts.length
+      ? new Date(Math.min(...starts.map(d => d.getTime())))
+      : undefined,
+    end: ends.length
+      ? new Date(Math.max(...ends.map(d => d.getTime())))
+      : undefined,
+  }
+}
+
+// All turmas of a course, regardless of modalidade, as a flat list.
+const collectTurmas = (data: {
+  modalidade?: string
+  locations?: { schedules?: EnrollmentWindow[] }[]
+  remote_class?: EnrollmentWindow[]
+}): EnrollmentWindow[] => {
+  if (data.modalidade === 'ONLINE') return data.remote_class ?? []
+  return (data.locations ?? []).flatMap(l => l.schedules ?? [])
+}
 
 const DEFAULT_INSTITUTIONAL_LOGO_URL =
   'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/portal-do-admin/cursos/logo_pref%20ciclo%20cursos.webp'
@@ -551,17 +601,34 @@ export const fullFormSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.modalidade === 'LIVRE_FORMACAO_ONLINE') return
-    const msg =
+    // Enrollment period is now per-turma: class start must be on/after the
+    // turma's own enrollment opening, and the turma's enrollment end must be
+    // on/after its opening.
+    const msgClass =
       'A data de início das aulas deve ser igual ou posterior ao início das inscrições.'
+    const msgEnrollment =
+      'O fim das inscrições deve ser igual ou posterior ao início das inscrições.'
     if (data.modalidade === 'ONLINE') {
       data.remote_class.forEach((schedule, i) => {
         if (
-          schedule.classStartDate &&
-          schedule.classStartDate < data.enrollment_start_date
+          schedule.enrollmentStartDate &&
+          schedule.enrollmentEndDate &&
+          schedule.enrollmentEndDate < schedule.enrollmentStartDate
         ) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: msg,
+            message: msgEnrollment,
+            path: ['remote_class', i, 'enrollmentEndDate'],
+          })
+        }
+        if (
+          schedule.classStartDate &&
+          schedule.enrollmentStartDate &&
+          schedule.classStartDate < schedule.enrollmentStartDate
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: msgClass,
             path: ['remote_class', i, 'classStartDate'],
           })
         }
@@ -570,10 +637,24 @@ export const fullFormSchema = z
       // PRESENCIAL
       data.locations.forEach((location, li) => {
         location.schedules.forEach((schedule, si) => {
-          if (schedule.classStartDate < data.enrollment_start_date) {
+          if (
+            schedule.enrollmentStartDate &&
+            schedule.enrollmentEndDate &&
+            schedule.enrollmentEndDate < schedule.enrollmentStartDate
+          ) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: msg,
+              message: msgEnrollment,
+              path: ['locations', li, 'schedules', si, 'enrollmentEndDate'],
+            })
+          }
+          if (
+            schedule.enrollmentStartDate &&
+            schedule.classStartDate < schedule.enrollmentStartDate
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: msgClass,
               path: ['locations', li, 'schedules', si, 'classStartDate'],
             })
           }
@@ -679,6 +760,8 @@ const draftFormSchema = z
               z.object({
                 id: z.string().optional(),
                 vacancies: z.number().optional(),
+                enrollmentStartDate: z.date().optional().nullable(),
+                enrollmentEndDate: z.date().optional().nullable(),
                 classStartDate: z.date().optional(),
                 classEndDate: z.date().optional(),
                 classTime: z.string().optional(),
@@ -694,6 +777,8 @@ const draftFormSchema = z
         z.object({
           id: z.string().optional(),
           vacancies: z.number().optional(),
+          enrollmentStartDate: z.date().optional().nullable(),
+          enrollmentEndDate: z.date().optional().nullable(),
           classStartDate: z.date().optional().nullable(),
           classEndDate: z.date().optional().nullable(),
           classTime: z.string().optional().nullable(),
@@ -702,101 +787,66 @@ const draftFormSchema = z
       )
       .optional(),
   })
-  .refine(
-    data => {
-      // Só valida se ambas as datas de inscrição estiverem presentes
-      if (!data.enrollment_start_date) return true
-
-      // Verifica turmas presenciais (locations)
-      if (data.locations) {
-        for (const location of data.locations) {
-          for (const schedule of location.schedules ?? []) {
-            if (
-              schedule.classStartDate &&
-              schedule.classStartDate < data.enrollment_start_date
-            ) {
-              return false
-            }
-          }
-        }
-      }
-
-      // Verifica turmas online (remote_class)
-      if (data.remote_class) {
-        for (const schedule of data.remote_class) {
-          if (
-            schedule.classStartDate &&
-            schedule.classStartDate < data.enrollment_start_date
-          ) {
-            return false
-          }
-        }
-      }
-
-      return true
-    },
-    {
-      message:
-        'A data de início das aulas deve ser igual ou posterior ao início das inscrições.',
-      path: ['modalidade'],
-    }
-  )
   .superRefine((data, ctx) => {
-    if (!data.enrollment_start_date) return
     const msgStart =
       'A data de início das aulas deve ser igual ou posterior ao início das inscrições.'
     const msgEnd =
       'A data final das aulas deve ser igual ou posterior à data inicial.'
+    const msgEnrollment =
+      'O fim das inscrições deve ser igual ou posterior ao início das inscrições.'
+    const validateTurma = (
+      schedule: {
+        enrollmentStartDate?: Date | null
+        enrollmentEndDate?: Date | null
+        classStartDate?: Date | null
+        classEndDate?: Date | null
+      },
+      path: (string | number)[]
+    ) => {
+      if (
+        schedule.enrollmentStartDate &&
+        schedule.enrollmentEndDate &&
+        schedule.enrollmentEndDate < schedule.enrollmentStartDate
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: msgEnrollment,
+          path: [...path, 'enrollmentEndDate'],
+        })
+      }
+      if (
+        schedule.classStartDate &&
+        schedule.enrollmentStartDate &&
+        schedule.classStartDate < schedule.enrollmentStartDate
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: msgStart,
+          path: [...path, 'classStartDate'],
+        })
+      }
+      if (
+        schedule.classStartDate &&
+        schedule.classEndDate &&
+        schedule.classEndDate < schedule.classStartDate
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: msgEnd,
+          path: [...path, 'classEndDate'],
+        })
+      }
+    }
     if (data.locations) {
       data.locations.forEach((location, li) => {
         ;(location.schedules ?? []).forEach((schedule, si) => {
-          if (
-            schedule.classStartDate &&
-            schedule.classStartDate < data.enrollment_start_date!
-          ) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: msgStart,
-              path: ['locations', li, 'schedules', si, 'classStartDate'],
-            })
-          }
-          if (
-            schedule.classStartDate &&
-            schedule.classEndDate &&
-            schedule.classEndDate < schedule.classStartDate
-          ) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: msgEnd,
-              path: ['locations', li, 'schedules', si, 'classEndDate'],
-            })
-          }
+          validateTurma(schedule, ['locations', li, 'schedules', si])
         })
       })
     }
     if (data.remote_class) {
       data.remote_class.forEach((schedule, i) => {
-        if (
-          schedule.classStartDate &&
-          schedule.classStartDate < data.enrollment_start_date!
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: msgStart,
-            path: ['remote_class', i, 'classStartDate'],
-          })
-        }
-        if (
-          schedule.classStartDate &&
-          schedule.classEndDate &&
-          schedule.classEndDate < schedule.classStartDate
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: msgEnd,
-            path: ['remote_class', i, 'classEndDate'],
-          })
-        }
+        validateTurma(schedule, ['remote_class', i])
       })
     }
   })
@@ -892,6 +942,8 @@ type BackendCourseData = {
     neighborhood_zone?: string
     schedules: Array<{
       vacancies: number
+      enrollment_start_date: string | undefined
+      enrollment_end_date: string | undefined
       class_start_date: string | undefined
       class_end_date: string | undefined
       class_time: string
@@ -901,6 +953,8 @@ type BackendCourseData = {
   remote_class?: {
     schedules: Array<{
       vacancies: number
+      enrollment_start_date: string | undefined
+      enrollment_end_date: string | undefined
       class_start_date: string | undefined
       class_end_date: string | undefined
       class_time: string
@@ -1099,6 +1153,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   {
                     id: '00000000-0000-0000-0000-000000000000',
                     vacancies: 1,
+                    enrollmentStartDate: new Date(),
+                    enrollmentEndDate: new Date(),
                     classStartDate: new Date(),
                     classEndDate: new Date(),
                     classTime: '',
@@ -1207,6 +1263,20 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 schedules: location.schedules.map((schedule: any) => ({
                   id: schedule.id,
                   vacancies: schedule.vacancies,
+                  // Fall back to the course-level period for legacy turmas that
+                  // predate per-turma enrollment dates.
+                  enrollmentStartDate: schedule.enrollment_start_date
+                    ? new Date(schedule.enrollment_start_date)
+                    : schedule.enrollmentStartDate ||
+                      (data.enrollment_start_date
+                        ? new Date(data.enrollment_start_date)
+                        : new Date()),
+                  enrollmentEndDate: schedule.enrollment_end_date
+                    ? new Date(schedule.enrollment_end_date)
+                    : schedule.enrollmentEndDate ||
+                      (data.enrollment_end_date
+                        ? new Date(data.enrollment_end_date)
+                        : new Date()),
                   classStartDate: schedule.class_start_date
                     ? new Date(schedule.class_start_date)
                     : schedule.classStartDate || new Date(),
@@ -1227,6 +1297,16 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     (location as any).schedule_id ||
                     '00000000-0000-0000-0000-000000000000',
                   vacancies: location.vacancies || 1,
+                  enrollmentStartDate:
+                    location.enrollmentStartDate ||
+                    (data.enrollment_start_date
+                      ? new Date(data.enrollment_start_date)
+                      : new Date()),
+                  enrollmentEndDate:
+                    location.enrollmentEndDate ||
+                    (data.enrollment_end_date
+                      ? new Date(data.enrollment_end_date)
+                      : new Date()),
                   classStartDate: location.classStartDate || new Date(),
                   classEndDate: location.classEndDate || new Date(),
                   classTime: location.classTime || '',
@@ -1256,6 +1336,18 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
               return remoteClassData.schedules.map((schedule: any) => ({
                 id: schedule.id,
                 vacancies: schedule.vacancies,
+                enrollmentStartDate: schedule.enrollment_start_date
+                  ? new Date(schedule.enrollment_start_date)
+                  : schedule.enrollmentStartDate ||
+                    (data.enrollment_start_date
+                      ? new Date(data.enrollment_start_date)
+                      : new Date()),
+                enrollmentEndDate: schedule.enrollment_end_date
+                  ? new Date(schedule.enrollment_end_date)
+                  : schedule.enrollmentEndDate ||
+                    (data.enrollment_end_date
+                      ? new Date(data.enrollment_end_date)
+                      : new Date()),
                 classStartDate: schedule.class_start_date
                   ? new Date(schedule.class_start_date)
                   : null,
@@ -1339,6 +1431,21 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     const watchedTitle = form.watch('title')
     const watchedCoverImage = form.watch('cover_image')
     const watchedAccessibility = form.watch('accessibility')
+    const watchedLocations = form.watch('locations')
+    const watchedRemoteClass = form.watch('remote_class')
+
+    // Course-level enrollment period, derived from the turmas (earliest
+    // opening → latest closing). Null for LIVRE_FORMACAO_ONLINE, which has no
+    // turmas and keeps its own course-level dates.
+    const derivedCourseEnrollment = useMemo(() => {
+      if (modalidade === 'LIVRE_FORMACAO_ONLINE') return null
+      const turmas = collectTurmas({
+        modalidade,
+        locations: watchedLocations,
+        remote_class: watchedRemoteClass,
+      })
+      return deriveCourseEnrollmentPeriod(turmas)
+    }, [modalidade, watchedLocations, watchedRemoteClass])
 
     // Reset form when initialData changes (e.g. after a save + refetch cycle).
     // Skip the first render — defaultValues already consumed initialData at that point.
@@ -1406,61 +1513,10 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       }
     }, [modalidade, externalPartnerUrl, form])
 
-    // Quando enrollment_start_date muda, corrige automaticamente datas de aula que ficaram inválidas
-    useEffect(() => {
-      if (!enrollmentStartDate) return
-      const values = form.getValues()
-
-      values.locations?.forEach((loc, li) => {
-        ;(loc.schedules ?? []).forEach((sched, si) => {
-          if (
-            sched.classStartDate &&
-            sched.classStartDate < enrollmentStartDate
-          ) {
-            form.setValue(
-              `locations.${li}.schedules.${si}.classStartDate`,
-              enrollmentStartDate,
-              { shouldValidate: true }
-            )
-            // se classEndDate também ficou antes da nova data de inscrição
-            if (
-              sched.classEndDate &&
-              sched.classEndDate < enrollmentStartDate
-            ) {
-              form.setValue(
-                `locations.${li}.schedules.${si}.classEndDate`,
-                enrollmentStartDate,
-                { shouldValidate: true }
-              )
-            }
-          }
-        })
-      })
-
-      values.remote_class?.forEach((sched, i) => {
-        if (
-          sched.classStartDate &&
-          sched.classStartDate < enrollmentStartDate
-        ) {
-          form.setValue(
-            `remote_class.${i}.classStartDate`,
-            enrollmentStartDate,
-            {
-              shouldValidate: true,
-            }
-          )
-          if (sched.classEndDate && sched.classEndDate < enrollmentStartDate) {
-            form.setValue(
-              `remote_class.${i}.classEndDate`,
-              enrollmentStartDate,
-              {
-                shouldValidate: true,
-              }
-            )
-          }
-        }
-      })
-    }, [enrollmentStartDate, form])
+    // Enrollment period now lives on each turma. The course-level enrollment
+    // dates are derived from the turmas at submit time (see
+    // transformFormDataToSnakeCase); no auto-correction of class dates against a
+    // course-wide enrollment start is needed anymore.
 
     // UseFieldArray for locations (PRESENCIAL/HIBRIDO)
     const { fields, append, remove } = useFieldArray({
@@ -1493,6 +1549,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         {
           id: '00000000-0000-0000-0000-000000000000',
           vacancies: 1,
+          enrollmentStartDate: new Date(),
+          enrollmentEndDate: new Date(),
           classStartDate: new Date(),
           classEndDate: new Date(),
           classTime: '',
@@ -1518,6 +1576,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       appendRemoteSchedule({
         id: '00000000-0000-0000-0000-000000000000',
         vacancies: 1,
+        enrollmentStartDate: new Date(),
+        enrollmentEndDate: new Date(),
         classStartDate: null,
         classEndDate: null,
         classTime: null,
@@ -1537,6 +1597,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   (schedule as any).id ||
                   '00000000-0000-0000-0000-000000000000',
                 vacancies: schedule.vacancies,
+                enrollment_start_date: schedule.enrollmentStartDate
+                  ? formatDateTimeToUTC(schedule.enrollmentStartDate)
+                  : undefined,
+                enrollment_end_date: schedule.enrollmentEndDate
+                  ? formatDateTimeToUTC(schedule.enrollmentEndDate)
+                  : undefined,
                 class_start_date: schedule.classStartDate
                   ? formatDateTimeToUTC(schedule.classStartDate)
                   : undefined,
@@ -1555,6 +1621,18 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     (data.remote_class as any).id ||
                     '00000000-0000-0000-0000-000000000000',
                   vacancies: (data.remote_class as any).vacancies,
+                  enrollment_start_date: (data.remote_class as any)
+                    .enrollmentStartDate
+                    ? formatDateTimeToUTC(
+                        (data.remote_class as any).enrollmentStartDate
+                      )
+                    : undefined,
+                  enrollment_end_date: (data.remote_class as any)
+                    .enrollmentEndDate
+                    ? formatDateTimeToUTC(
+                        (data.remote_class as any).enrollmentEndDate
+                      )
+                    : undefined,
                   class_start_date: (data.remote_class as any).classStartDate
                     ? formatDateTimeToUTC(
                         (data.remote_class as any).classStartDate
@@ -1581,6 +1659,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         schedules: location.schedules.map(schedule => ({
           id: (schedule as any).id || '00000000-0000-0000-0000-000000000000',
           vacancies: schedule.vacancies,
+          enrollment_start_date: schedule.enrollmentStartDate
+            ? formatDateTimeToUTC(schedule.enrollmentStartDate)
+            : undefined,
+          enrollment_end_date: schedule.enrollmentEndDate
+            ? formatDateTimeToUTC(schedule.enrollmentEndDate)
+            : undefined,
           class_start_date: schedule.classStartDate
             ? formatDateTimeToUTC(schedule.classStartDate)
             : undefined,
@@ -1592,15 +1676,26 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         })),
       }))
 
+      // Course-level enrollment period is derived from the turmas for
+      // modalidades that have them (earliest opening → latest closing).
+      // LIVRE_FORMACAO_ONLINE has no turmas, so it keeps its own dates.
+      const derivedPeriod =
+        data.modalidade === 'LIVRE_FORMACAO_ONLINE'
+          ? {
+              start: data.enrollment_start_date,
+              end: data.enrollment_end_date,
+            }
+          : deriveCourseEnrollmentPeriod(collectTurmas(data))
+
       return {
         title: data.title,
         description: data.description,
         categorias: data.category ? data.category.map(id => ({ id })) : [],
-        enrollment_start_date: data.enrollment_start_date
-          ? formatDateTimeToUTC(data.enrollment_start_date)
+        enrollment_start_date: derivedPeriod.start
+          ? formatDateTimeToUTC(derivedPeriod.start)
           : undefined,
-        enrollment_end_date: data.enrollment_end_date
-          ? formatDateTimeToUTC(data.enrollment_end_date)
+        enrollment_end_date: derivedPeriod.end
+          ? formatDateTimeToUTC(derivedPeriod.end)
           : undefined,
         theme: data.theme || undefined,
         orgao_id: data.orgao_id || null,
@@ -1738,6 +1833,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       {
                         id: '00000000-0000-0000-0000-000000000000',
                         vacancies: 1,
+                        enrollmentStartDate: currentDate,
+                        enrollmentEndDate: nextMonth,
                         classStartDate: currentDate,
                         classEndDate: nextMonth,
                         classTime: '',
@@ -1755,6 +1852,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   {
                     id: '00000000-0000-0000-0000-000000000000',
                     vacancies: 1,
+                    enrollmentStartDate: currentDate,
+                    enrollmentEndDate: nextMonth,
                     classStartDate: null,
                     classEndDate: null,
                     classTime: null,
@@ -1797,8 +1896,15 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
             'locations.0.address': 'Endereço da unidade',
             'locations.0.neighborhood': 'Bairro',
             'locations.0.schedules': 'Turmas',
+            'locations.0.schedules.0.enrollmentStartDate':
+              'Início das inscrições da turma',
+            'locations.0.schedules.0.enrollmentEndDate':
+              'Fim das inscrições da turma',
             remote_class: 'Turmas online',
             'remote_class.0.vacancies': 'Número de vagas',
+            'remote_class.0.enrollmentStartDate':
+              'Início das inscrições da turma',
+            'remote_class.0.enrollmentEndDate': 'Fim das inscrições da turma',
             'remote_class.0.classStartDate': 'Data de início das aulas',
             'remote_class.0.classEndDate': 'Data de fim das aulas',
             'remote_class.0.classTime': 'Horário das aulas',
@@ -2045,6 +2151,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
           form.setValue('remote_class', [
             {
               vacancies: 1,
+              enrollmentStartDate: new Date(),
+              enrollmentEndDate: new Date(),
               classStartDate: null,
               classEndDate: null,
               classTime: null,
@@ -2067,6 +2175,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 schedules: [
                   {
                     vacancies: 1,
+                    enrollmentStartDate: new Date(),
+                    enrollmentEndDate: new Date(),
                     classStartDate: new Date(),
                     classEndDate: new Date(),
                     classTime: '',
@@ -2115,6 +2225,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         schedules: [
           {
             vacancies: 1,
+            enrollmentStartDate: new Date(),
+            enrollmentEndDate: new Date(),
             classStartDate: new Date(),
             classEndDate: new Date(),
             classTime: '',
@@ -2468,57 +2580,78 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 )}
               />
 
-              <div className="flex flex-wrap items-start gap-4">
-                <FormField
-                  control={form.control}
-                  name="enrollment_start_date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                      <FormLabel>Início das inscrições*</FormLabel>
-                      <FormControl>
-                        <DateTimePicker
-                          value={field.value || undefined}
-                          onChange={date => {
-                            field.onChange(date)
-                            if (date) {
-                              const endDate = form.getValues(
-                                'enrollment_end_date'
-                              )
-                              if (endDate && endDate < date) {
-                                form.setValue('enrollment_end_date', date, {
-                                  shouldValidate: true,
-                                })
+              {modalidade === 'LIVRE_FORMACAO_ONLINE' ? (
+                <div className="flex flex-wrap items-start gap-4">
+                  <FormField
+                    control={form.control}
+                    name="enrollment_start_date"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                        <FormLabel>Início das inscrições*</FormLabel>
+                        <FormControl>
+                          <DateTimePicker
+                            value={field.value || undefined}
+                            onChange={date => {
+                              field.onChange(date)
+                              if (date) {
+                                const endDate = form.getValues(
+                                  'enrollment_end_date'
+                                )
+                                if (endDate && endDate < date) {
+                                  form.setValue('enrollment_end_date', date, {
+                                    shouldValidate: true,
+                                  })
+                                }
                               }
-                            }
-                          }}
-                          placeholder="Selecionar data e hora de início"
-                          disabled={isReadOnly}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="enrollment_end_date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                      <FormLabel>Fim das inscrições*</FormLabel>
-                      <FormControl>
-                        <DateTimePicker
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder="Selecionar data e hora de fim"
-                          disabled={isReadOnly}
-                          minDate={enrollmentStartDate || undefined}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                            }}
+                            placeholder="Selecionar data e hora de início"
+                            disabled={isReadOnly}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="enrollment_end_date"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                        <FormLabel>Fim das inscrições*</FormLabel>
+                        <FormControl>
+                          <DateTimePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Selecionar data e hora de fim"
+                            disabled={isReadOnly}
+                            minDate={enrollmentStartDate || undefined}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border bg-muted/40 p-4">
+                  <p className="text-sm font-medium">Período de inscrições</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {derivedCourseEnrollment?.start &&
+                    derivedCourseEnrollment?.end
+                      ? `${derivedCourseEnrollment.start.toLocaleDateString(
+                          'pt-BR'
+                        )} até ${derivedCourseEnrollment.end.toLocaleDateString(
+                          'pt-BR'
+                        )}`
+                      : 'Definido automaticamente a partir das inscrições das turmas.'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    O período de inscrições do curso é calculado a partir das
+                    datas de cada turma (abertura mais antiga até o encerramento
+                    mais distante). Configure as datas em cada turma abaixo.
+                  </p>
+                </div>
+              )}
 
               {/* Aprovação Automática */}
               <FormField
@@ -2872,6 +3005,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       form.setValue('remote_class', [
                         {
                           vacancies: 1,
+                          enrollmentStartDate: new Date(),
+                          enrollmentEndDate: new Date(),
                           classStartDate: null,
                           classEndDate: null,
                           classTime: null,
@@ -2962,6 +3097,66 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                             <div className="flex flex-wrap items-start gap-4">
                               <FormField
                                 control={form.control}
+                                name={`remote_class.${index}.enrollmentStartDate`}
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                                    <FormLabel>
+                                      Início das inscrições*
+                                    </FormLabel>
+                                    <FormControl>
+                                      <DateTimePicker
+                                        value={field.value || undefined}
+                                        onChange={date => {
+                                          field.onChange(date)
+                                          if (date) {
+                                            const endDate = form.getValues(
+                                              `remote_class.${index}.enrollmentEndDate`
+                                            )
+                                            if (endDate && endDate < date) {
+                                              form.setValue(
+                                                `remote_class.${index}.enrollmentEndDate`,
+                                                date,
+                                                { shouldValidate: true }
+                                              )
+                                            }
+                                          }
+                                        }}
+                                        placeholder="Selecionar data e hora de início"
+                                        disabled={isReadOnly}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`remote_class.${index}.enrollmentEndDate`}
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                                    <FormLabel>Fim das inscrições*</FormLabel>
+                                    <FormControl>
+                                      <DateTimePicker
+                                        value={field.value || undefined}
+                                        onChange={field.onChange}
+                                        placeholder="Selecionar data e hora de fim"
+                                        disabled={isReadOnly}
+                                        minDate={
+                                          form.watch(
+                                            `remote_class.${index}.enrollmentStartDate`
+                                          ) || undefined
+                                        }
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            <div className="flex flex-wrap items-start gap-4">
+                              <FormField
+                                control={form.control}
                                 name={`remote_class.${index}.classStartDate`}
                                 render={({ field }) => (
                                   <FormItem className="flex flex-col flex-1 min-w-[280px]">
@@ -2987,7 +3182,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                         placeholder="Selecionar data e hora de início"
                                         disabled={isReadOnly}
                                         minDate={
-                                          enrollmentStartDate || undefined
+                                          form.watch(
+                                            `remote_class.${index}.enrollmentStartDate`
+                                          ) || undefined
                                         }
                                       />
                                     </FormControl>
@@ -3203,6 +3400,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                 {
                                   id: '00000000-0000-0000-0000-000000000000',
                                   vacancies: 1,
+                                  enrollmentStartDate: new Date(),
+                                  enrollmentEndDate: new Date(),
                                   classStartDate: new Date(),
                                   classEndDate: new Date(),
                                   classTime: '',
@@ -3305,6 +3504,72 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                     <div className="flex flex-wrap items-start gap-4">
                                       <FormField
                                         control={form.control}
+                                        name={`locations.${index}.schedules.${scheduleIndex}.enrollmentStartDate`}
+                                        render={({ field }) => (
+                                          <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                                            <FormLabel>
+                                              Início das inscrições*
+                                            </FormLabel>
+                                            <FormControl>
+                                              <DateTimePicker
+                                                value={field.value || undefined}
+                                                onChange={date => {
+                                                  field.onChange(date)
+                                                  if (date) {
+                                                    const endDate =
+                                                      form.getValues(
+                                                        `locations.${index}.schedules.${scheduleIndex}.enrollmentEndDate`
+                                                      )
+                                                    if (
+                                                      endDate &&
+                                                      endDate < date
+                                                    ) {
+                                                      form.setValue(
+                                                        `locations.${index}.schedules.${scheduleIndex}.enrollmentEndDate`,
+                                                        date,
+                                                        { shouldValidate: true }
+                                                      )
+                                                    }
+                                                  }
+                                                }}
+                                                placeholder="Selecionar data e hora de início"
+                                                disabled={isReadOnly}
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name={`locations.${index}.schedules.${scheduleIndex}.enrollmentEndDate`}
+                                        render={({ field }) => (
+                                          <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                                            <FormLabel>
+                                              Fim das inscrições*
+                                            </FormLabel>
+                                            <FormControl>
+                                              <DateTimePicker
+                                                value={field.value || undefined}
+                                                onChange={field.onChange}
+                                                placeholder="Selecionar data e hora de fim"
+                                                disabled={isReadOnly}
+                                                minDate={
+                                                  form.watch(
+                                                    `locations.${index}.schedules.${scheduleIndex}.enrollmentStartDate`
+                                                  ) || undefined
+                                                }
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    </div>
+
+                                    <div className="flex flex-wrap items-start gap-4">
+                                      <FormField
+                                        control={form.control}
                                         name={`locations.${index}.schedules.${scheduleIndex}.classStartDate`}
                                         render={({ field }) => (
                                           <FormItem className="flex flex-col flex-1 min-w-[280px]">
@@ -3336,8 +3601,9 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                                 placeholder="Selecionar data e hora de início"
                                                 disabled={isReadOnly}
                                                 minDate={
-                                                  enrollmentStartDate ||
-                                                  undefined
+                                                  form.watch(
+                                                    `locations.${index}.schedules.${scheduleIndex}.enrollmentStartDate`
+                                                  ) || undefined
                                                 }
                                               />
                                             </FormControl>

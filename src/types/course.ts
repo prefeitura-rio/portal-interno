@@ -180,6 +180,8 @@ export interface Course {
     schedules?: Array<{
       id?: string
       vacancies: number
+      enrollmentStartDate?: Date
+      enrollmentEndDate?: Date
       classStartDate: Date
       classEndDate: Date
       classTime: string
@@ -259,6 +261,8 @@ export interface RemoteClass {
   id?: string
   curso_id?: number
   vacancies: number
+  enrollment_start_date?: string
+  enrollment_end_date?: string
   class_start_date: string
   class_end_date: string
   class_time: string
@@ -266,6 +270,8 @@ export interface RemoteClass {
   created_at?: string
   updated_at?: string
   // For form usage - using camelCase for form compatibility
+  enrollmentStartDate?: Date
+  enrollmentEndDate?: Date
   classStartDate?: Date
   classEndDate?: Date
   classTime?: string
@@ -326,6 +332,8 @@ export interface EnrollmentSchedule {
   id: string
   location_id: string
   vacancies: number
+  enrollment_start_date?: string
+  enrollment_end_date?: string
   class_start_date: string
   class_end_date: string
   class_time: string
