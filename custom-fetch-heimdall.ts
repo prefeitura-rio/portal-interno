@@ -1,11 +1,24 @@
 import { cookies } from 'next/headers'
 
 // NOTE: Supports cases where `content-type` is other than `json`
-const getBody = <T>(c: Response | Request): Promise<T> => {
+const getBody = async <T>(c: Response): Promise<T> => {
+  // 204/205 and empty bodies must not call c.json()
+  if (
+    c.status === 204 ||
+    c.status === 205 ||
+    c.headers.get('content-length') === '0'
+  ) {
+    return null as T
+  }
+
   const contentType = c.headers.get('content-type')
 
   if (contentType?.includes('application/json')) {
-    return c.json()
+    const text = await c.text()
+    if (!text.trim()) {
+      return null as T
+    }
+    return JSON.parse(text) as T
   }
 
   if (contentType?.includes('application/pdf')) {
