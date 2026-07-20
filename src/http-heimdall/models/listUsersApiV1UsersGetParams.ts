@@ -31,4 +31,8 @@ export type ListUsersApiV1UsersGetParams = {
    * @maximum 100
    */
   limit?: number
+  /**
+   * When true, only return users that belong to at least one group
+   */
+  has_groups?: boolean
 }
