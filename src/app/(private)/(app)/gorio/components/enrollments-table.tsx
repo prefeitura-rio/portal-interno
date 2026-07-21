@@ -1760,7 +1760,9 @@ export function EnrollmentsTable({
                                     </Label>
                                     <p className="text-sm">
                                       {enrollStart
-                                        ? enrollStart.toLocaleDateString('pt-BR')
+                                        ? enrollStart.toLocaleDateString(
+                                            'pt-BR'
+                                          )
                                         : '—'}{' '}
                                       até{' '}
                                       {enrollEnd
