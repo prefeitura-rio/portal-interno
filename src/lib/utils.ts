@@ -155,6 +155,10 @@ export function transformApiCourseToCourse(apiCourse: any): any {
           schedules: location.schedules.map((schedule: any) => ({
             id: schedule.id || '',
             vacancies: schedule.vacancies || 0,
+            enrollmentStartDate:
+              safeParseDate(schedule.enrollment_start_date) || undefined,
+            enrollmentEndDate:
+              safeParseDate(schedule.enrollment_end_date) || undefined,
             classStartDate:
               safeParseDate(schedule.class_start_date) || new Date(),
             classEndDate: safeParseDate(schedule.class_end_date) || new Date(),

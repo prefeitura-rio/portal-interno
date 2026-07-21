@@ -1706,19 +1706,74 @@ export function EnrollmentsTable({
                           const selectedSchedule = scheduleOptions.find(
                             opt => opt.id === selectedEnrollment.schedule_id
                           )
-                          return selectedSchedule ? (
-                            <div className="flex items-start gap-3">
-                              <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                              <div>
-                                <Label className="text-xs text-muted-foreground">
-                                  Turma/Horário
-                                </Label>
-                                <p className="text-sm">
-                                  {selectedSchedule.label}
-                                </p>
-                              </div>
-                            </div>
-                          ) : null
+
+                          // Resolve a janela de inscrição DA TURMA em que o
+                          // candidato está inscrito (presencial usa camelCase;
+                          // remoto usa snake_case).
+                          let enrollStart: Date | null = null
+                          let enrollEnd: Date | null = null
+                          for (const location of course.locations || []) {
+                            const s: any = location.schedules?.find(
+                              x => x.id === selectedEnrollment.schedule_id
+                            )
+                            if (s) {
+                              if (s.enrollmentStartDate)
+                                enrollStart = new Date(s.enrollmentStartDate)
+                              if (s.enrollmentEndDate)
+                                enrollEnd = new Date(s.enrollmentEndDate)
+                              break
+                            }
+                          }
+                          if (!enrollStart && course.remote_class?.schedules) {
+                            const s: any = course.remote_class.schedules.find(
+                              x => x.id === selectedEnrollment.schedule_id
+                            )
+                            if (s) {
+                              if (s.enrollment_start_date)
+                                enrollStart = new Date(s.enrollment_start_date)
+                              if (s.enrollment_end_date)
+                                enrollEnd = new Date(s.enrollment_end_date)
+                            }
+                          }
+
+                          return (
+                            <>
+                              {selectedSchedule && (
+                                <div className="flex items-start gap-3">
+                                  <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Turma/Horário
+                                    </Label>
+                                    <p className="text-sm">
+                                      {selectedSchedule.label}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                              {(enrollStart || enrollEnd) && (
+                                <div className="flex items-start gap-3">
+                                  <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Inscrições da turma
+                                    </Label>
+                                    <p className="text-sm">
+                                      {enrollStart
+                                        ? enrollStart.toLocaleDateString(
+                                            'pt-BR'
+                                          )
+                                        : '—'}{' '}
+                                      até{' '}
+                                      {enrollEnd
+                                        ? enrollEnd.toLocaleDateString('pt-BR')
+                                        : '—'}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )
                         })()}
                       <div className="flex items-center gap-3">
                         <div>

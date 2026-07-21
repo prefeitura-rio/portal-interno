@@ -486,6 +486,12 @@ export default function CourseDetailPage({
               return {
                 id: schedule.id || '00000000-0000-0000-0000-000000000000',
                 vacancies: schedule.vacancies,
+                enrollment_start_date:
+                  normalizeDateToISO(schedule.enrollmentStartDate) ||
+                  normalizeDateToISO(schedule.enrollment_start_date),
+                enrollment_end_date:
+                  normalizeDateToISO(schedule.enrollmentEndDate) ||
+                  normalizeDateToISO(schedule.enrollment_end_date),
                 class_start_date: startDate,
                 class_end_date: endDate,
                 class_time: schedule.classTime || schedule.class_time || '',
@@ -558,6 +564,12 @@ export default function CourseDetailPage({
           return {
             id: schedule.id || '00000000-0000-0000-0000-000000000000',
             vacancies: schedule.vacancies,
+            enrollment_start_date:
+              normalizeDateToISO(schedule.enrollmentStartDate) ||
+              normalizeDateToISO(schedule.enrollment_start_date),
+            enrollment_end_date:
+              normalizeDateToISO(schedule.enrollmentEndDate) ||
+              normalizeDateToISO(schedule.enrollment_end_date),
             class_start_date: startDate,
             class_end_date: endDate,
             class_time: schedule.classTime || schedule.class_time || '',

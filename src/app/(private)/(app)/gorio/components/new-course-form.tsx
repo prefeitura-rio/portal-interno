@@ -2580,79 +2580,6 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                 )}
               />
 
-              {modalidade === 'LIVRE_FORMACAO_ONLINE' ? (
-                <div className="flex flex-wrap items-start gap-4">
-                  <FormField
-                    control={form.control}
-                    name="enrollment_start_date"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                        <FormLabel>Início das inscrições*</FormLabel>
-                        <FormControl>
-                          <DateTimePicker
-                            value={field.value || undefined}
-                            onChange={date => {
-                              field.onChange(date)
-                              if (date) {
-                                const endDate = form.getValues(
-                                  'enrollment_end_date'
-                                )
-                                if (endDate && endDate < date) {
-                                  form.setValue('enrollment_end_date', date, {
-                                    shouldValidate: true,
-                                  })
-                                }
-                              }
-                            }}
-                            placeholder="Selecionar data e hora de início"
-                            disabled={isReadOnly}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="enrollment_end_date"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col flex-1 min-w-[280px]">
-                        <FormLabel>Fim das inscrições*</FormLabel>
-                        <FormControl>
-                          <DateTimePicker
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Selecionar data e hora de fim"
-                            disabled={isReadOnly}
-                            minDate={enrollmentStartDate || undefined}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              ) : (
-                <div className="rounded-lg border bg-muted/40 p-4">
-                  <p className="text-sm font-medium">Período de inscrições</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {derivedCourseEnrollment?.start &&
-                    derivedCourseEnrollment?.end
-                      ? `${derivedCourseEnrollment.start.toLocaleDateString(
-                          'pt-BR'
-                        )} até ${derivedCourseEnrollment.end.toLocaleDateString(
-                          'pt-BR'
-                        )}`
-                      : 'Definido automaticamente a partir das inscrições das turmas.'}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    O período de inscrições do curso é calculado a partir das
-                    datas de cada turma (abertura mais antiga até o encerramento
-                    mais distante). Configure as datas em cada turma abaixo.
-                  </p>
-                </div>
-              )}
-
               {/* Aprovação Automática */}
               <FormField
                 control={form.control}
@@ -2942,6 +2869,81 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                   )
                 }}
               />
+
+              {/* Período de inscrições — exibido logo antes das turmas, pois o
+                  período do curso é derivado das datas de cada turma */}
+              {modalidade === 'LIVRE_FORMACAO_ONLINE' ? (
+                <div className="flex flex-wrap items-start gap-4">
+                  <FormField
+                    control={form.control}
+                    name="enrollment_start_date"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                        <FormLabel>Início das inscrições*</FormLabel>
+                        <FormControl>
+                          <DateTimePicker
+                            value={field.value || undefined}
+                            onChange={date => {
+                              field.onChange(date)
+                              if (date) {
+                                const endDate = form.getValues(
+                                  'enrollment_end_date'
+                                )
+                                if (endDate && endDate < date) {
+                                  form.setValue('enrollment_end_date', date, {
+                                    shouldValidate: true,
+                                  })
+                                }
+                              }
+                            }}
+                            placeholder="Selecionar data e hora de início"
+                            disabled={isReadOnly}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="enrollment_end_date"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col flex-1 min-w-[280px]">
+                        <FormLabel>Fim das inscrições*</FormLabel>
+                        <FormControl>
+                          <DateTimePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Selecionar data e hora de fim"
+                            disabled={isReadOnly}
+                            minDate={enrollmentStartDate || undefined}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border bg-muted/40 p-4">
+                  <p className="text-sm font-medium">Período de inscrições</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {derivedCourseEnrollment?.start &&
+                    derivedCourseEnrollment?.end
+                      ? `${derivedCourseEnrollment.start.toLocaleDateString(
+                          'pt-BR'
+                        )} até ${derivedCourseEnrollment.end.toLocaleDateString(
+                          'pt-BR'
+                        )}`
+                      : 'Definido automaticamente a partir das inscrições das turmas.'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    O período de inscrições do curso é calculado a partir das
+                    datas de cada turma (abertura mais antiga até o encerramento
+                    mais distante). Configure as datas em cada turma abaixo.
+                  </p>
+                </div>
+              )}
 
               {/* Conditional rendering based on modalidade */}
               {modalidade === 'LIVRE_FORMACAO_ONLINE' && (
