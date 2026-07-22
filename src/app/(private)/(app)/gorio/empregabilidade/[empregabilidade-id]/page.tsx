@@ -28,6 +28,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useVaga } from '@/hooks/use-vaga'
@@ -46,6 +51,7 @@ import {
   Ban,
   Edit,
   EllipsisVertical,
+  Link as LinkIcon,
   Pause,
   Play,
   RefreshCw,
@@ -824,9 +830,35 @@ export default function EmpregabilidadeDetailPage({
           {/* Header */}
           <div className="flex items-start justify-between gap-6">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold tracking-tight">
-                {vaga.titulo || 'Vaga de Emprego'}
-              </h1>
+              {vaga.status === 'publicado_ativo' && vaga.id ? (
+                <h1 className="text-3xl font-bold tracking-tight break-words">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={`${process.env.NEXT_PUBLIC_BASE_URL_APP || ''}/servicos/trabalho/${vaga.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline group"
+                      >
+                        <span>
+                          {vaga.titulo || 'Vaga de Emprego'}{' '}
+                          <LinkIcon
+                            strokeWidth={1.5}
+                            className="inline h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors align-middle ml-1"
+                          />
+                        </span>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p className="font-medium">Acesse a vaga no pref.rio</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </h1>
+              ) : (
+                <h1 className="text-3xl font-bold tracking-tight break-words">
+                  {vaga.titulo || 'Vaga de Emprego'}
+                </h1>
+              )}
               <div className="flex items-center gap-4 mt-2 flex-wrap">
                 {statusData && (
                   <Badge

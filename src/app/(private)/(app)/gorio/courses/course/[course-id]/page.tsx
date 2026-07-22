@@ -21,6 +21,11 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { formatDateTimeToUTC } from '@/components/ui/datetime-picker'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useCourse } from '@/hooks/use-course'
@@ -36,6 +41,7 @@ import {
   Edit,
   FileText,
   Flag,
+  Link as LinkIcon,
   Play,
   RotateCcw,
   Save,
@@ -49,6 +55,17 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+const COURSE_PUBLIC_URL_STATUSES = new Set([
+  'opened',
+  'published',
+  'scheduled',
+  'accepting_enrollments',
+  'in_progress',
+  'finished',
+  'closed',
+  'canceled',
+])
 
 //Status configuration for badges-updated to match courses list page
 const statusConfig: Record<string, CourseStatusConfig> = {
@@ -1386,9 +1403,36 @@ export default function CourseDetailPage({
           {/* Header */}
           <div className="flex items-center justify-between md:flex-row flex-col gap-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {course.title as string}
-              </h1>
+              {COURSE_PUBLIC_URL_STATUSES.has(course.status as string) &&
+              course.id ? (
+                <h1 className="text-3xl font-bold tracking-tight break-words">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={`${process.env.NEXT_PUBLIC_BASE_URL_APP || ''}/servicos/cursos/${course.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline group"
+                      >
+                        <span>
+                          {course.title as string}{' '}
+                          <LinkIcon
+                            strokeWidth={1.5}
+                            className="inline h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors align-middle ml-1"
+                          />
+                        </span>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p className="font-medium">Acesse o curso no pref.rio</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </h1>
+              ) : (
+                <h1 className="text-3xl font-bold tracking-tight break-words">
+                  {course.title as string}
+                </h1>
+              )}
               <div className="flex items-center gap-4 mt-2">
                 <Badge
                   variant={config.variant}
