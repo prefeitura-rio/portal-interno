@@ -280,6 +280,11 @@ export function getMenuList(pathname: string): Group[] {
               allowedRoles: ['admin', 'superadmin'],
             },
             {
+              href: '/heimdall/comparar',
+              label: 'Comparar ambientes',
+              allowedRoles: ['admin', 'superadmin'],
+            },
+            {
               href: '/heimdall/health',
               label: 'Health',
               allowedRoles: ['admin', 'superadmin'],
