@@ -1,0 +1,19 @@
+---
+description: Ponte para o contexto de agentes do portal-interno
+globs:
+alwaysApply: true
+---
+
+Antes de qualquer trabalho de frontend/Next.js neste repo:
+
+1. Ler `AGENTS.md` na raiz.
+2. Ler o arquivo relevante em `docs/agents/` (overview, architecture, auth, APIs, domains, code-style, PR playbook).
+3. Docs Next.js (dual pointer): `node_modules/next/dist/docs/` se existir; senão https://nextjs.org/docs/llms.txt e https://nextjs.org/docs/app. Neste projeto (Next 15.5) preferir o remoto. Ecossistema/RBAC: `docs/agents/00-overview.md`, `HEIMDALL_RBAC.md`, links GitHub (não pastas irmãs locais).
+
+Fallback rápido (detalhes em `docs/agents/05-code-style.md`):
+
+- TypeScript + named exports; Zod; shadcn/ui + Radix + Tailwind.
+- Tailwind via `className` (sem CSS inline salvo necessidade); escala (`p-3`) > arbitrary (`p-[12px]`); cores = tokens de `src/app/globals.css`.
+- Ícones: Lucide por padrão; customs em `src/components/icons/`.
+- Auth = cookies Keycloak + Heimdall RBAC (não next-auth); novas rotas → `ROUTE_PERMISSIONS` + `menu-list` se aplicável.
+- Preferir BFF `src/app/api/` + Orval `src/http-*`; Biome + `typecheck`.
