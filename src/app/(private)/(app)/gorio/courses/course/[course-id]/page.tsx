@@ -219,8 +219,7 @@ export default function CourseDetailPage({
   const courseFormRef = useRef<NewCourseFormRef>(null)
 
   // Heimdall user context for role-based actions
-  const { canApproveCourses, canPublishCourses, userOrgaoIds } =
-    useHeimdallUserContext()
+  const { canApproveCourses, canPublishCourses } = useHeimdallUserContext()
 
   // Use the custom hook to fetch course data
   const { course, loading, error, refetch } = useCourse(
@@ -1781,7 +1780,6 @@ export default function CourseDetailPage({
                 courseStatus={course.status as string}
                 onFormChangesDetected={setHasFormChanges}
                 canPublishDirectly={canPublishCourses}
-                userOrgaoIds={!canPublishCourses ? userOrgaoIds : undefined}
                 skipSaveConfirm={isFinished}
               />
             </div>
@@ -1820,7 +1818,7 @@ export default function CourseDetailPage({
                   isDraft={isDraft}
                   courseStatus={course.status as string}
                   onFormChangesDetected={setHasFormChanges}
-                  userOrgaoIds={!canPublishCourses ? userOrgaoIds : undefined}
+                  canPublishDirectly={canPublishCourses}
                   skipSaveConfirm={isFinished}
                 />
               </div>

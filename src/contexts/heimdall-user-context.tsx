@@ -58,8 +58,6 @@ interface HeimdallUserContextType {
   canDeleteOwnDraft: boolean
   /** Can manage enrollments (approve/reject/complete) */
   canManageEnrollments: boolean
-  /** Orgao IDs extracted from user groups (go:orgao:{id}) */
-  userOrgaoIds: string[]
 }
 
 const HeimdallUserContext = createContext<HeimdallUserContextType | null>(null)
@@ -86,9 +84,6 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
   const canEditCoursesPermission = canEditCourses(user?.roles)
   const canDeleteDraft = canDeleteOwnDraft(user?.roles)
   const canManageEnrollmentsPermission = canManageEnrollments(user?.roles)
-  const orgaoIds = (user?.groups || [])
-    .filter(g => g.startsWith('go:orgao:'))
-    .map(g => g.replace('go:orgao:', ''))
 
   return (
     <HeimdallUserContext.Provider
@@ -114,7 +109,6 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
         canEditCourses: canEditCoursesPermission,
         canDeleteOwnDraft: canDeleteDraft,
         canManageEnrollments: canManageEnrollmentsPermission,
-        userOrgaoIds: orgaoIds,
       }}
     >
       {children}

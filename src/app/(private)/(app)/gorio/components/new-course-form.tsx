@@ -56,6 +56,7 @@ import { ImageUpload } from '@/components/ui/image-upload'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useRestrictedDepartmentIds } from '@/hooks/use-restricted-department-ids'
 import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { Copy, Plus, Trash2 } from 'lucide-react'
@@ -980,8 +981,6 @@ interface NewCourseFormProps {
   courseStatus?: string
   onFormChangesDetected?: (hasChanges: boolean) => void
   canPublishDirectly?: boolean
-  /** Restrict orgao_id field to these department ids (for editors) */
-  userOrgaoIds?: string[]
   /** Skip the internal "Salvar Alterações" confirmation dialog and call onSubmit directly */
   skipSaveConfirm?: boolean
 }
@@ -1085,13 +1084,17 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
       courseStatus,
       onFormChangesDetected,
       canPublishDirectly = false,
-      userOrgaoIds,
       skipSaveConfirm = false,
     },
     ref
   ) => {
     const router = useRouter()
     const isMobile = useIsMobile()
+    const {
+      restrictToIds,
+      isLoading: secretariasLoading,
+      hasNoSecretarias,
+    } = useRestrictedDepartmentIds()
 
     // Function to truncate text for mobile
     const truncateText = (text: string, maxLength = 36) => {
@@ -2617,11 +2620,21 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       <DepartmentCombobox
                         value={field.value || ''}
                         onValueChange={field.onChange}
-                        disabled={isReadOnly}
+                        disabled={
+                          isReadOnly ||
+                          secretariasLoading ||
+                          hasNoSecretarias
+                        }
                         placeholder="Selecione um órgão"
-                        restrictToIds={userOrgaoIds}
+                        restrictToIds={restrictToIds}
                       />
                     </FormControl>
+                    {hasNoSecretarias && (
+                      <p className="text-sm text-destructive">
+                        Nenhuma secretaria vinculada ao seu CPF. Contate o
+                        administrador.
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

@@ -33,6 +33,7 @@ import { useIdiomas } from '@/hooks/use-idiomas'
 import { useModelosTrabalho } from '@/hooks/use-modelos-trabalho'
 import { useNiveisIdioma } from '@/hooks/use-niveis-idioma'
 import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
+import { useRestrictedDepartmentIds } from '@/hooks/use-restricted-department-ids'
 import { useTiposPcd } from '@/hooks/use-tipos-pcd'
 import { EmpregabilidadeAcessibilidadePCD } from '@/http-gorio/models/empregabilidadeAcessibilidadePCD'
 import {
@@ -326,6 +327,11 @@ export const NewEmpregabilidadeForm = forwardRef<
   ) => {
     const router = useRouter()
     const { user, canPublishVagaAsAtivo } = useHeimdallUserContext()
+    const {
+      restrictToIds,
+      isLoading: secretariasLoading,
+      hasNoSecretarias,
+    } = useRestrictedDepartmentIds()
     const hasEditorRestrictions = hasEditorComCuradoriaRestrictions(user?.roles)
 
     // Memoize neighborhood options for the combobox
@@ -1020,10 +1026,21 @@ export const NewEmpregabilidadeForm = forwardRef<
                       <DepartmentCombobox
                         value={field.value || ''}
                         onValueChange={field.onChange}
-                        disabled={isReadOnly}
+                        disabled={
+                          isReadOnly ||
+                          secretariasLoading ||
+                          hasNoSecretarias
+                        }
                         placeholder="Selecione um órgão"
+                        restrictToIds={restrictToIds}
                       />
                     </FormControl>
+                    {hasNoSecretarias && (
+                      <p className="text-sm text-destructive">
+                        Nenhuma secretaria vinculada ao seu CPF. Contate o
+                        administrador.
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

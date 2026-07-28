@@ -302,3 +302,20 @@ export function canDeleteOwnDraft(roles: string[] | undefined): boolean {
 export function canManageEnrollments(roles: string[] | undefined): boolean {
   return hasCursosEditorAccess(roles)
 }
+
+/**
+ * Roles that bypass CPF-secretaria filtering in GO Rio forms.
+ * Restricted roles: go:cursos:editor, go:empregabilidade:editor_com_curadoria,
+ * go:empregabilidade:editor_sem_curadoria.
+ */
+export function shouldBypassSecretariaFilter(
+  roles: string[] | undefined
+): boolean {
+  if (!roles) return false
+  return (
+    hasAdminPrivileges(roles) ||
+    roles.includes('go:admin') ||
+    roles.includes('go:cursos:casa_civil') ||
+    roles.includes('go:empregabilidade:admin')
+  )
+}
