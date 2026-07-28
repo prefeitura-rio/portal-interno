@@ -204,6 +204,21 @@ function CNAEActivityDisplay({ cnaeIds }: { cnaeIds: string[] }) {
   )
 }
 
+// Converts an API ISO timestamp to a local YYYY-MM-DD key (browser timezone).
+// We derive the calendar day from the parsed instant instead of slicing the raw
+// string: the backend now serializes timestamps with a -03:00 offset instead of
+// UTC "Z", and `iso.split('T')[0]` would read a different day depending on that
+// offset. Parsing to an instant first makes the day stable across serializations.
+function toLocalDateKey(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Helper function to transform API data to OportunidadeMEI format
 function transformAPIToDataTable(
   opportunity: ModelsOportunidadeMEI
@@ -217,12 +232,11 @@ function transformAPIToDataTable(
     title: String(opp.titulo || ''),
     activity: '', // Will be populated by CNAEActivityDisplay component
     offeredBy: String(opp.orgao_id || ''), // Store orgao_id as cd_ua for DepartmentName
-    publishedAt:
-      opp.status === 'draft' ? null : opp.created_at?.split('T')?.[0] || null,
-    expiresAt: String(opp.data_expiracao?.split('T')?.[0] || ''),
+    publishedAt: opp.status === 'draft' ? null : toLocalDateKey(opp.created_at),
+    expiresAt: toLocalDateKey(opp.data_expiracao) || '',
     status: opp.status as OportunidadeMEIStatus,
     managingOrgan: String(opp.orgao_id || ''), // Store orgao_id as cd_ua
-    lastUpdate: String(opp.updated_at?.split('T')?.[0] || ''),
+    lastUpdate: toLocalDateKey(opp.updated_at) || '',
     cnaeIds, // Store cnae_ids for the component
   }
 }
