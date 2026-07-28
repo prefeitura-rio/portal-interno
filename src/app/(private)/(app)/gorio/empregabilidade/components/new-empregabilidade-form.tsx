@@ -1027,9 +1027,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                         value={field.value || ''}
                         onValueChange={field.onChange}
                         disabled={
-                          isReadOnly ||
-                          secretariasLoading ||
-                          hasNoSecretarias
+                          isReadOnly || secretariasLoading || hasNoSecretarias
                         }
                         placeholder="Selecione um órgão"
                         restrictToIds={restrictToIds}
