@@ -37,6 +37,7 @@ import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useVaga } from '@/hooks/use-vaga'
 import { fromApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
+import { formatDateBR } from '@/lib/format'
 import {
   type VagaStatus,
   vagaStatusConfig,
@@ -45,8 +46,6 @@ import {
   canDeleteVagaWithStatus,
   hasEditorComCuradoriaRestrictions,
 } from '@/types/heimdall-roles'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import {
   Ban,
   Edit,
@@ -871,10 +870,7 @@ export default function EmpregabilidadeDetailPage({
                 )}
                 {vaga.created_at && (
                   <span className="text-sm text-muted-foreground">
-                    Criada em{' '}
-                    {format(new Date(vaga.created_at), 'dd/MM/yyyy', {
-                      locale: ptBR,
-                    })}
+                    Criada em {formatDateBR(vaga.created_at)}
                   </span>
                 )}
                 {vaga.contratante?.nome_fantasia && (

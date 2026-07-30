@@ -53,6 +53,7 @@ import {
   useMEIOpportunities,
 } from '@/hooks/use-mei-opportunities'
 import type { ModelsOportunidadeMEI } from '@/http-gorio/models'
+import { APP_TIME_ZONE } from '@/lib/format'
 import {
   type Column,
   type ColumnDef,
@@ -204,19 +205,23 @@ function CNAEActivityDisplay({ cnaeIds }: { cnaeIds: string[] }) {
   )
 }
 
-// Converts an API ISO timestamp to a local YYYY-MM-DD key (browser timezone).
+// Converts an API ISO timestamp to a YYYY-MM-DD key in Rio's timezone.
 // We derive the calendar day from the parsed instant instead of slicing the raw
-// string: the backend now serializes timestamps with a -03:00 offset instead of
-// UTC "Z", and `iso.split('T')[0]` would read a different day depending on that
-// offset. Parsing to an instant first makes the day stable across serializations.
+// string (`iso.split('T')[0]`), which would read a different day depending on the
+// -03:00 offset the backend now serializes. We also pin APP_TIME_ZONE instead of
+// using the runtime zone (getFullYear/getDate): SSR runs on UTC pods, where a
+// late-night `-03:00` instant would roll over to the next day. `en-CA` formats
+// as YYYY-MM-DD, so the key stays stable across serializations and runtimes.
 function toLocalDateKey(iso: string | null | undefined): string | null {
   if (!iso) return null
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return null
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: APP_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
 }
 
 // Helper function to transform API data to OportunidadeMEI format

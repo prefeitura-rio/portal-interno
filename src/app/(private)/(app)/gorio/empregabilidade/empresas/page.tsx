@@ -22,6 +22,7 @@ import {
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEmpresas } from '@/hooks/use-empresas'
 import type { EmpregabilidadeEmpresa } from '@/http-gorio/models'
+import { formatDateBR } from '@/lib/format'
 import {
   type Column,
   type ColumnDef,
@@ -272,11 +273,10 @@ export default function EmpresasPage() {
           if (!timestamp)
             return <span className="text-muted-foreground">Não informado</span>
 
-          const date = new Date(timestamp)
           return (
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{date.toLocaleDateString('pt-BR')}</span>
+              <span>{formatDateBR(timestamp)}</span>
             </div>
           )
         },
