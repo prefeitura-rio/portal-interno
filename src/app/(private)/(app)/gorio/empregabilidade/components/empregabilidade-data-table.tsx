@@ -60,6 +60,7 @@ import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useEmpregabilidadeVagas } from '@/hooks/use-empregabilidade-vagas'
 import type { EmpregabilidadeVaga } from '@/http-gorio/models'
+import { formatDateBR } from '@/lib/format'
 import {
   type VagaStatus,
   vagaStatusConfig,
@@ -664,11 +665,10 @@ export function EmpregabilidadeDataTable() {
           if (!timestamp)
             return <span className="text-muted-foreground">Não informado</span>
 
-          const date = new Date(timestamp)
           return (
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{date.toLocaleDateString('pt-BR')}</span>
+              <span>{formatDateBR(timestamp)}</span>
             </div>
           )
         },
@@ -716,11 +716,10 @@ export function EmpregabilidadeDataTable() {
               <span className="text-muted-foreground">Sem data limite</span>
             )
 
-          const date = new Date(timestamp)
           return (
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{date.toLocaleDateString('pt-BR')}</span>
+              <span>{formatDateBR(timestamp)}</span>
             </div>
           )
         },

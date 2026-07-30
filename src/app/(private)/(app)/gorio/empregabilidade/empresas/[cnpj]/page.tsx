@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEmpresa } from '@/hooks/use-empresa'
+import { formatDateBR } from '@/lib/format'
 import { Building2, Calendar, Globe, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { use } from 'react'
@@ -75,8 +76,7 @@ export default function ViewEmpresaPage({
    */
   const formatDate = (value: string | undefined): string => {
     if (!value) return 'Não informado'
-    const date = new Date(value)
-    return date.toLocaleString('pt-BR', {
+    return formatDateBR(value, {
       dateStyle: 'short',
       timeStyle: 'short',
     })
