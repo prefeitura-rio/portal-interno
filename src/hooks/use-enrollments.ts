@@ -41,6 +41,7 @@ interface UseEnrollmentsReturn {
     enrollmentId: string,
     certificateUrl: string
   ) => Promise<Enrollment | null>
+  deleteEnrollment: (enrollmentId: string) => Promise<boolean>
 }
 
 export function useEnrollments({
@@ -312,6 +313,24 @@ export function useEnrollments({
     [courseId]
   )
 
+  const deleteEnrollment = useCallback(
+    async (enrollmentId: string): Promise<boolean> => {
+      try {
+        const response = await fetch(
+          `/api/enrollments/${courseId}/${enrollmentId}`,
+          { method: 'DELETE' }
+        )
+        if (!response.ok) return false
+        await fetchEnrollments()
+        return true
+      } catch (err) {
+        console.error('Error deleting enrollment:', err)
+        return false
+      }
+    },
+    [courseId, fetchEnrollments]
+  )
+
   useEffect(() => {
     if (autoFetch) {
       fetchEnrollments()
@@ -328,5 +347,6 @@ export function useEnrollments({
     updateEnrollmentStatus,
     updateMultipleEnrollmentStatuses,
     updateEnrollmentCertificate,
+    deleteEnrollment,
   }
 }
