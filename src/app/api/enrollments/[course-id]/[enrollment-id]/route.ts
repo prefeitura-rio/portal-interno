@@ -1,10 +1,55 @@
 import { getApiV1CoursesCourseId } from '@/http-gorio/courses/courses'
-import { putApiV1CoursesCourseIdEnrollmentsEnrollmentId } from '@/http-gorio/inscricoes/inscricoes'
+import {
+  deleteApiV1CoursesCourseIdEnrollmentsEnrollmentId,
+  putApiV1CoursesCourseIdEnrollmentsEnrollmentId,
+} from '@/http-gorio/inscricoes/inscricoes'
 import {
   convertApiEnrollmentToFrontend,
   unwrapApiInscricao,
 } from '@/lib/enrollment-converters'
 import { type NextRequest, NextResponse } from 'next/server'
+
+export async function DELETE(
+  _request: NextRequest,
+  {
+    params,
+  }: { params: Promise<{ 'course-id': string; 'enrollment-id': string }> }
+) {
+  try {
+    const { 'course-id': courseId, 'enrollment-id': enrollmentId } =
+      await params
+
+    if (!courseId || !enrollmentId) {
+      return NextResponse.json(
+        { error: 'Course ID and enrollment ID are required' },
+        { status: 400 }
+      )
+    }
+
+    const response = await deleteApiV1CoursesCourseIdEnrollmentsEnrollmentId(
+      Number.parseInt(courseId, 10),
+      enrollmentId
+    )
+
+    if (response.status === 200) {
+      return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to delete enrollment' },
+      { status: response.status }
+    )
+  } catch (error) {
+    console.error('Error deleting enrollment:', error)
+    return NextResponse.json(
+      {
+        error: 'Failed to delete enrollment',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
+  }
+}
 
 export async function PUT(
   request: NextRequest,

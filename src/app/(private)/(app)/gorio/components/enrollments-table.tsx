@@ -24,6 +24,7 @@ import {
   MapPin,
   Phone,
   Text,
+  Trash2,
   User,
   XCircle,
 } from 'lucide-react'
@@ -46,6 +47,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -54,6 +56,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEnrollments } from '@/hooks/use-enrollments'
 import { getEnrollmentRmiDivergence } from '@/lib/enrollment-rmi-consistency'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
@@ -134,6 +137,7 @@ export function EnrollmentsTable({
   course,
 }: EnrollmentsTableProps) {
   const router = useRouter()
+  const { canManageEnrollments } = useHeimdallUserContext()
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'enrollmentDate', desc: true },
   ])
@@ -147,9 +151,12 @@ export function EnrollmentsTable({
   const [selectedEnrollment, setSelectedEnrollment] =
     React.useState<Enrollment | null>(null)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
-  const [confirmDialog, setConfirmDialog] = React.useState({
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    open: boolean
+    type: 'remove_concluded' | 'delete_enrollment'
+  }>({
     open: false,
-    type: 'remove_concluded' as const,
+    type: 'remove_concluded',
   })
   const [isAddParticipantsModalOpen, setIsAddParticipantsModalOpen] =
     React.useState(false)
@@ -291,6 +298,7 @@ export function EnrollmentsTable({
     updateEnrollmentStatus,
     updateMultipleEnrollmentStatuses,
     updateEnrollmentCertificate,
+    deleteEnrollment,
     refetch,
   } = useEnrollments({
     courseId,
@@ -501,6 +509,21 @@ export function EnrollmentsTable({
       }
     },
     [updateEnrollmentStatus, updateEnrollmentCertificate, certificateForm]
+  )
+
+  const handleDeleteEnrollment = React.useCallback(
+    async (enrollment: Enrollment) => {
+      setConfirmDialog(prev => ({ ...prev, open: false }))
+      const success = await deleteEnrollment(enrollment.id)
+      if (success) {
+        setIsSheetOpen(false)
+        setSelectedEnrollment(null)
+        toast.success('Inscrito excluído com sucesso.')
+      } else {
+        toast.error('Erro ao excluir inscrito. Tente novamente.')
+      }
+    },
+    [deleteEnrollment]
   )
 
   const handleSetPendingEnrollment = React.useCallback(
@@ -2514,6 +2537,24 @@ export function EnrollmentsTable({
                     Marcar como reprovado
                   </Button>
                 </div>
+                {canManageEnrollments && (
+                  <>
+                    <Separator />
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() =>
+                        setConfirmDialog({
+                          open: true,
+                          type: 'delete_enrollment',
+                        })
+                      }
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir inscrito
+                    </Button>
+                  </>
+                )}
               </SheetFooter>
             </>
           )}
@@ -2579,7 +2620,7 @@ export function EnrollmentsTable({
 
       {/* Modal de confirmação para remover status de concluído */}
       <ConfirmDialog
-        open={confirmDialog.open}
+        open={confirmDialog.open && confirmDialog.type === 'remove_concluded'}
         onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
         title="Remover Status de Concluído"
         description={
@@ -2593,6 +2634,22 @@ export function EnrollmentsTable({
         onConfirm={() => {
           if (selectedEnrollment) {
             confirmRemoveConcludedStatus(selectedEnrollment)
+          }
+        }}
+      />
+
+      {/* Modal de confirmação para excluir inscrito */}
+      <ConfirmDialog
+        open={confirmDialog.open && confirmDialog.type === 'delete_enrollment'}
+        onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
+        title="Excluir inscrito"
+        description="Ao excluir o inscrito, essa ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={() => {
+          if (selectedEnrollment) {
+            handleDeleteEnrollment(selectedEnrollment)
           }
         }}
       />
