@@ -1668,6 +1668,65 @@ export function EnrollmentsTable({
                     </div>
                   </div>
 
+                  {/* Contact provided by the órgão/secretaria on manual enrollment.
+                      Kept separate from the official RMI data; when they diverge the RMI
+                      value is shown below for comparison. */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      Contato fornecido pela secretaria
+                    </h4>
+                    <div className="grid gap-4">
+                      <div className="flex items-center gap-3">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            E-mail informado pelo órgão
+                          </Label>
+                          {selectedEnrollment.declaredEmail ? (
+                            <p className="text-sm">
+                              {selectedEnrollment.declaredEmail}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              Não informado
+                            </p>
+                          )}
+                          {selectedEnrollment.personal_info?.email &&
+                            selectedEnrollment.personal_info.email !==
+                              selectedEnrollment.declaredEmail && (
+                              <p className="text-xs text-muted-foreground">
+                                RMI: {selectedEnrollment.personal_info.email}
+                              </p>
+                            )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            Telefone informado pelo órgão
+                          </Label>
+                          {selectedEnrollment.phone ? (
+                            <p className="text-sm">
+                              {selectedEnrollment.phone}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              Não informado
+                            </p>
+                          )}
+                          {selectedEnrollment.personal_info?.celular &&
+                            selectedEnrollment.personal_info.celular !==
+                              selectedEnrollment.phone && (
+                              <p className="text-xs text-muted-foreground">
+                                RMI: {selectedEnrollment.personal_info.celular}
+                              </p>
+                            )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Enrollment Information */}
                   <div className="space-y-4">
                     <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
