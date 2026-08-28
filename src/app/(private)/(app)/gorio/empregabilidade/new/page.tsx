@@ -13,7 +13,7 @@ import {
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 function mapCriteriosToApiData(data: any) {
@@ -73,10 +73,13 @@ async function saveIdiomasRequisito(
 export default function NewEmpregabilidadePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const isSubmittingRef = useRef(false)
   const router = useRouter()
 
   const handleCreateVaga = async (data: any) => {
+    if (isSubmittingRef.current) return
     try {
+      isSubmittingRef.current = true
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
 
@@ -118,6 +121,7 @@ export default function NewEmpregabilidadePage() {
       toast.error('Erro ao criar vaga', {
         description: error instanceof Error ? error.message : 'Erro inesperado',
       })
+      isSubmittingRef.current = false
       setIsSubmitting(false)
       setHasUnsavedChanges(true)
     }
@@ -258,6 +262,7 @@ export default function NewEmpregabilidadePage() {
         </div>
         <NewEmpregabilidadeForm
           showActionButtons={true}
+          isSubmitting={isSubmitting}
           onSubmit={handleCreateVaga}
           onSaveDraft={handleCreateDraft}
           onSendForApproval={handleCreateAndSendToApproval}

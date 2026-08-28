@@ -291,6 +291,8 @@ interface NewEmpregabilidadeFormProps {
     | 'vaga_congelada'
     | 'vaga_descontinuada'
     | null
+  /** Disables submit buttons while a submission is in progress (prevents double-submit) */
+  isSubmitting?: boolean
   onSubmit?: (data: FormData) => void
   onSaveDraft?: (data: FormData) => void
   /** Called when saving draft in edit mode and then publishing */
@@ -315,6 +317,7 @@ export const NewEmpregabilidadeForm = forwardRef<
     {
       initialData,
       isReadOnly = false,
+      isSubmitting = false,
       showActionButtons = false,
       vagaStatus = null,
       onSubmit,
@@ -1256,8 +1259,8 @@ export const NewEmpregabilidadeForm = forwardRef<
                 Enviar p/ aprovação
               </Button>
               {canPublishVagaAsAtivo && (
-                <Button type="submit" disabled={isReadOnly}>
-                  Publicar Vaga
+                <Button type="submit" disabled={isReadOnly || isSubmitting}>
+                  {isSubmitting ? 'Publicando...' : 'Publicar Vaga'}
                 </Button>
               )}
             </div>

@@ -86,6 +86,7 @@ export default function EmpregabilidadeDetailPage({
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('about')
   const [isLoading, setIsLoading] = useState(false)
+  const isLoadingRef = useRef(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showTabChangeDialog, setShowTabChangeDialog] = useState(false)
   const [pendingTab, setPendingTab] = useState<string | null>(null)
@@ -532,8 +533,9 @@ export default function EmpregabilidadeDetailPage({
   // Helper to persist form data (for published vagas - validação já feita no form)
   const saveVagaData = useCallback(
     async (data: any) => {
-      if (!vaga?.id) return
+      if (!vaga?.id || isLoadingRef.current) return
 
+      isLoadingRef.current = true
       setIsLoading(true)
 
       try {
@@ -562,6 +564,7 @@ export default function EmpregabilidadeDetailPage({
           error instanceof Error ? error.message : 'Erro ao salvar vaga'
         )
       } finally {
+        isLoadingRef.current = false
         setIsLoading(false)
       }
     },
@@ -618,8 +621,9 @@ export default function EmpregabilidadeDetailPage({
   // Handle save as draft (for em_edicao - validates 5 fields only)
   const handleFormSaveDraft = useCallback(
     async (data: any) => {
-      if (!vaga?.id) return
+      if (!vaga?.id || isLoadingRef.current) return
 
+      isLoadingRef.current = true
       setIsLoading(true)
 
       try {
@@ -648,6 +652,7 @@ export default function EmpregabilidadeDetailPage({
           error instanceof Error ? error.message : 'Erro ao salvar rascunho'
         )
       } finally {
+        isLoadingRef.current = false
         setIsLoading(false)
       }
     },
@@ -657,8 +662,9 @@ export default function EmpregabilidadeDetailPage({
   // Handle save and publish (validates 11 fields, saves then publishes)
   const handleFormSaveAndPublish = useCallback(
     async (data: any) => {
-      if (!vaga?.id) return
+      if (!vaga?.id || isLoadingRef.current) return
 
+      isLoadingRef.current = true
       setIsLoading(true)
 
       try {
@@ -704,6 +710,7 @@ export default function EmpregabilidadeDetailPage({
           error instanceof Error ? error.message : 'Erro ao salvar e publicar'
         )
       } finally {
+        isLoadingRef.current = false
         setIsLoading(false)
       }
     },
