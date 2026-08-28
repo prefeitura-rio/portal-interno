@@ -40,7 +40,7 @@
     "@tanstack/react-query": "^5.101.3",
     "@tanstack/react-table": "^8.21.3",
     "@tiptap/extension-character-count": "3.27.3",
-    "@tiptap/extension-link": "3.27.3",
+    "@tiptap/extension-link": "3.29.2",
     "@tiptap/extension-placeholder": "3.27.3",
     "@tiptap/extension-task-item": "3.27.3",
     "@tiptap/extension-task-list": "3.27.3",
