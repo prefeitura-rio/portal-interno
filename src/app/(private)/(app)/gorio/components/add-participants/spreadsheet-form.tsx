@@ -128,9 +128,11 @@ export function SpreadsheetForm({
     { name: 'nome_completo', required: true },
     { name: 'cpf', required: true },
     { name: 'idade', required: false },
-    { name: 'telefone', required: false },
-    { name: 'email', required: false },
-    { name: 'endereco', required: false },
+    // Contato obrigatório: mesma exigência que o app faz ao cidadão. A carga
+    // manual não pode produzir participante sem qualificação para cursos e vagas.
+    { name: 'telefone', required: true },
+    { name: 'email', required: true },
+    { name: 'endereco', required: true },
     { name: 'bairro', required: false },
   ]
 

@@ -41,24 +41,23 @@ const baseManualSchema = z.object({
     .max(150, 'Idade inválida')
     .optional()
     .or(z.literal('')),
+  // Contato obrigatório: os mesmos campos que o app exige do cidadão. Sem eles
+  // o participante entra no sistema sem qualificação para cursos e vagas.
   phone: z
     .string()
+    .min(1, 'Telefone é obrigatório')
     .min(10, 'Telefone inválido')
-    .max(11, 'Telefone deve ter 10 ou 11 dígitos')
-    .optional()
-    .or(z.literal('')),
+    .max(11, 'Telefone deve ter 10 ou 11 dígitos'),
   email: z
     .string()
+    .min(1, 'E-mail é obrigatório')
     .email('E-mail inválido')
-    .max(100, 'E-mail muito longo')
-    .optional()
-    .or(z.literal('')),
+    .max(100, 'E-mail muito longo'),
   address: z
     .string()
+    .min(1, 'Endereço é obrigatório')
     .min(3, 'Endereço muito curto')
-    .max(200, 'Endereço muito longo')
-    .optional()
-    .or(z.literal('')),
+    .max(200, 'Endereço muito longo'),
   neighborhood: z
     .string()
     .min(2, 'Bairro muito curto')
@@ -360,21 +359,21 @@ export function ManualForm({
           },
           {
             name: 'phone',
-            label: 'Telefone (opcional)',
+            label: 'Telefone *',
             type: 'text',
             placeholder: '21999999999',
             maxLength: 11,
           },
           {
             name: 'email',
-            label: 'E-mail (opcional)',
+            label: 'E-mail *',
             type: 'email',
             placeholder: 'exemplo@email.com',
             maxLength: 100,
           },
           {
             name: 'address',
-            label: 'Endereço (opcional)',
+            label: 'Endereço *',
             type: 'text',
             placeholder: 'Rua, número, complemento',
             maxLength: 200,

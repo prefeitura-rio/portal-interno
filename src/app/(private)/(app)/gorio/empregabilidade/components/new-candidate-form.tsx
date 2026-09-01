@@ -44,7 +44,7 @@ function createFormSchema(informacoesComplementares: InformacaoComplementar[]) {
       .min(1, 'CPF é obrigatório')
       .refine(validateCPF, 'CPF inválido. Verifique os dígitos.'),
     nome: z.string().min(1, 'Nome é obrigatório'),
-    email: z.string().email('Email inválido').optional().or(z.literal('')),
+    email: z.string().min(1, 'Email é obrigatório').email('Email inválido'),
   }
 
   const dynamicSchema: Record<string, z.ZodTypeAny> = {}
@@ -192,7 +192,7 @@ export const NewCandidateForm = forwardRef<
         console.log('Submitting candidatura:', {
           cpf: cleanCPF(data.cpf),
           nome: data.nome,
-          email: data.email || undefined,
+          email: data.email,
           id_vaga: vagaId,
           respostas_info_complementares: respostasFiltradas,
         })
@@ -206,7 +206,7 @@ export const NewCandidateForm = forwardRef<
           body: JSON.stringify({
             cpf: cleanCPF(data.cpf),
             nome: data.nome,
-            email: data.email || undefined,
+            email: data.email,
             id_vaga: vagaId,
             respostas_info_complementares: respostasFiltradas,
           }),
@@ -440,7 +440,7 @@ export const NewCandidateForm = forwardRef<
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>Email *</FormLabel>
                 <FormControl>
                   <Input
                     {...field}

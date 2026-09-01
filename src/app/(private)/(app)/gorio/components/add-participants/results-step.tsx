@@ -52,7 +52,8 @@ export function ResultsStep({
           {isEmpty && (
             <p className="text-sm text-muted-foreground">
               Verifique se o arquivo contém linhas de dados além do cabeçalho e
-              se as colunas obrigatórias (nome_completo, cpf) estão presentes.
+              se as colunas obrigatórias (nome_completo, cpf, telefone, email,
+              endereco) estão presentes.
             </p>
           )}
         </div>
