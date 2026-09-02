@@ -2,6 +2,7 @@ import type {
   ModelsInscricao,
   ModelsStatusInscricao,
 } from '@/http-gorio/models'
+import { sanitizeRmiValue } from '@/lib/rmi-value'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
 
 const INVALID_PLACEHOLDER_EMAILS = ['naotem@email.com', '0@0.aa']
@@ -29,12 +30,23 @@ export function unwrapApiInscricao(
   return undefined
 }
 
+/**
+ * Contato e endereço da inscrição têm duas origens: `personal_info` é o
+ * snapshot do RMI (dado oficial do cidadão) e os campos de topo
+ * (`email`, `phone`, `address`, `neighborhood`) são o que o órgão declarou
+ * no cadastro manual / importação em lote.
+ *
+ * Para exibir, o RMI prevalece e o declarado fica como fallback — do
+ * contrário a inscrição feita pelo próprio cidadão aparece sem contato
+ * mesmo quando o RMI tem o dado. O valor declarado continua disponível em
+ * `declaredEmail` / `declaredPhone`, que é o que a comparação de
+ * divergência com o RMI usa.
+ */
 function resolveEnrollmentEmail(
   apiEnrollment: ModelsInscricao
 ): string | undefined {
-  const personalEmail = (apiEnrollment.personal_info as { email?: string })
-    ?.email
-  const enrollmentEmail = apiEnrollment.email as string | undefined
+  const personalEmail = sanitizeRmiValue(apiEnrollment.personal_info?.email)
+  const enrollmentEmail = sanitizeRmiValue(apiEnrollment.email)
 
   if (
     personalEmail &&
@@ -44,6 +56,39 @@ function resolveEnrollmentEmail(
   }
 
   return enrollmentEmail || undefined
+}
+
+function resolveEnrollmentPhone(apiEnrollment: ModelsInscricao): string {
+  return (
+    sanitizeRmiValue(apiEnrollment.personal_info?.celular) ||
+    sanitizeRmiValue(apiEnrollment.phone)
+  )
+}
+
+function resolveEnrollmentAddress(
+  apiEnrollment: ModelsInscricao
+): string | undefined {
+  const endereco = apiEnrollment.personal_info?.endereco
+  const logradouro = sanitizeRmiValue(endereco?.logradouro)
+
+  if (logradouro) {
+    const tipoLogradouro = sanitizeRmiValue(endereco?.tipo_logradouro)
+    const numero = sanitizeRmiValue(endereco?.numero)
+
+    return `${tipoLogradouro} ${logradouro}${numero ? `, ${numero}` : ''}`.trim()
+  }
+
+  return sanitizeRmiValue(apiEnrollment.address) || undefined
+}
+
+function resolveEnrollmentNeighborhood(
+  apiEnrollment: ModelsInscricao
+): string | undefined {
+  return (
+    sanitizeRmiValue(apiEnrollment.personal_info?.endereco?.bairro) ||
+    sanitizeRmiValue(apiEnrollment.neighborhood) ||
+    undefined
+  )
 }
 
 export function convertApiStatusToFrontend(
@@ -105,10 +150,11 @@ export function convertApiEnrollmentToFrontend(
     declaredName: (apiEnrollment.name as string) || undefined,
     cpf: (apiEnrollment.cpf as string) || '',
     email: resolveEnrollmentEmail(apiEnrollment),
-    declaredEmail: (apiEnrollment.email as string) || undefined,
-    phone: (apiEnrollment.phone as string) || '',
-    address: (apiEnrollment.address as string) || undefined,
-    neighborhood: (apiEnrollment.neighborhood as string) || undefined,
+    declaredEmail: sanitizeRmiValue(apiEnrollment.email) || undefined,
+    phone: resolveEnrollmentPhone(apiEnrollment),
+    declaredPhone: sanitizeRmiValue(apiEnrollment.phone) || undefined,
+    address: resolveEnrollmentAddress(apiEnrollment),
+    neighborhood: resolveEnrollmentNeighborhood(apiEnrollment),
     age: (apiEnrollment.age as number) || undefined,
     enrollmentDate:
       (apiEnrollment.enrolled_at as string) || new Date().toISOString(),

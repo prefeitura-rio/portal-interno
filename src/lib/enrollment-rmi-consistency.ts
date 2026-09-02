@@ -167,7 +167,7 @@ export function getEnrollmentRmiDivergence(
     {
       name: enrollment.declaredName,
       cpf: enrollment.cpf,
-      phone: enrollment.phone,
+      phone: enrollment.declaredPhone,
       email: enrollment.declaredEmail,
     },
     enrollment.personal_info,
