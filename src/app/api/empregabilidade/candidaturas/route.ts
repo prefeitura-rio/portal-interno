@@ -4,6 +4,7 @@ import {
   postApiV1EmpregabilidadeCandidaturas,
 } from '@/http-gorio/empregabilidade-candidaturas/empregabilidade-candidaturas'
 import { cleanCPF } from '@/lib/cpf-validator'
+import { sanitizeRmiValue } from '@/lib/rmi-value'
 import {
   mapBackendStatusToFrontend,
   mapFrontendStatusToBackend,
@@ -60,6 +61,11 @@ export async function GET(request: Request) {
         const vagaInfos =
           (c.vaga?.informacoes_complementares as any[] | undefined) || []
 
+        const endereco = c.personal_info?.endereco
+        const logradouro = sanitizeRmiValue(endereco?.logradouro)
+        const tipoLogradouro = sanitizeRmiValue(endereco?.tipo_logradouro)
+        const numero = sanitizeRmiValue(endereco?.numero)
+
         return {
           id: c.id,
           candidateName:
@@ -68,18 +74,23 @@ export async function GET(request: Request) {
             c.curriculo_snapshot?.nome_completo ||
             'Nome não disponível',
           cpf: c.cpf,
-          email: c.email || c.curriculo_snapshot?.email || '',
-          phone: c.personal_info?.celular || '',
+          // O RMI prevalece: candidatura.email guarda a claim do token do
+          // Keycloak no instante da candidatura, então não acompanha o e-mail
+          // que o cidadão atualiza depois no app. Fica só como fallback.
+          email:
+            sanitizeRmiValue(c.personal_info?.email) ||
+            sanitizeRmiValue(c.email),
+          phone: sanitizeRmiValue(c.personal_info?.celular),
           enrollmentDate: c.created_at,
           status: mapBackendStatusToFrontend(c.status),
           /** Raw backend status for display (e.g. "Vaga congelada" vs "Vaga encerrada" when status is cancelled) */
           statusBackend: c.status,
-          address: c.personal_info?.endereco?.logradouro
-            ? `${c.personal_info.endereco.tipo_logradouro || ''} ${c.personal_info.endereco.logradouro}${c.personal_info.endereco.numero ? `, ${c.personal_info.endereco.numero}` : ''}`.trim()
+          address: logradouro
+            ? `${tipoLogradouro} ${logradouro}${numero ? `, ${numero}` : ''}`.trim()
             : '',
-          neighborhood: c.personal_info?.endereco?.bairro || '',
-          city: c.personal_info?.endereco?.municipio || '',
-          state: c.personal_info?.endereco?.estado || '',
+          neighborhood: sanitizeRmiValue(endereco?.bairro),
+          city: sanitizeRmiValue(endereco?.municipio),
+          state: sanitizeRmiValue(endereco?.estado),
           currentEtapaId: c.id_etapa_atual ?? null,
           vaga: c.vaga
             ? {

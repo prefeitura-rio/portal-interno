@@ -113,6 +113,15 @@ function getStatusDisplayLabel(candidato: {
   return STATUS_LABELS[candidato.status] ?? candidato.status
 }
 
+/** Valor de contato do candidato, explicitando quando o dado não veio. */
+function ContactValue({ value }: { value?: string }) {
+  if (!value) {
+    return <p className="text-sm text-muted-foreground italic">Não informado</p>
+  }
+
+  return <p className="text-sm">{value}</p>
+}
+
 /**
  * Gera headers e dados de currículo expandido em colunas numeradas.
  * Cada registro do currículo (formação, experiência, etc.) vira uma coluna separada.
@@ -1185,61 +1194,47 @@ export function CandidatesTable({
                               </p>
                             </div>
                           </div>
+                          {/* Campos de contato são sempre exibidos: omitir o
+                              campo vazio esconde do operador que o dado está
+                              faltando, em vez de mostrar que está. */}
                           <div className="flex items-center gap-3">
                             <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
                             <div>
                               <Label className="text-xs text-muted-foreground">
                                 E-mail
                               </Label>
-                              <p className="text-sm">
-                                {selectedCandidato.email}
-                              </p>
+                              <ContactValue value={selectedCandidato.email} />
                             </div>
                           </div>
-                          {selectedCandidato.phone && (
-                            <div className="flex items-center gap-3">
-                              <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-                              <div>
-                                <Label className="text-xs text-muted-foreground">
-                                  Telefone
-                                </Label>
-                                <p className="text-sm">
-                                  {selectedCandidato.phone}
-                                </p>
-                              </div>
+                          <div className="flex items-center gap-3">
+                            <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Telefone
+                              </Label>
+                              <ContactValue value={selectedCandidato.phone} />
                             </div>
-                          )}
-                          {(selectedCandidato.address ||
-                            selectedCandidato.neighborhood) && (
-                            <>
-                              {selectedCandidato.address && (
-                                <div className="flex items-center gap-3">
-                                  <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">
-                                      Endereço
-                                    </Label>
-                                    <p className="text-sm">
-                                      {selectedCandidato.address}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-                              {selectedCandidato.neighborhood && (
-                                <div className="flex items-center gap-3">
-                                  <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">
-                                      Bairro
-                                    </Label>
-                                    <p className="text-sm">
-                                      {selectedCandidato.neighborhood}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-                            </>
-                          )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Endereço
+                              </Label>
+                              <ContactValue value={selectedCandidato.address} />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Bairro
+                              </Label>
+                              <ContactValue
+                                value={selectedCandidato.neighborhood}
+                              />
+                            </div>
+                          </div>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
