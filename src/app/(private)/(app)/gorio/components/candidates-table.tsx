@@ -35,6 +35,7 @@ import * as React from 'react'
 
 import type { InformacaoComplementar } from '@/app/(private)/(app)/gorio/empregabilidade/components/informacoes-complementares-creator'
 import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-candidate-dialog'
+import { ContactValue } from '@/components/contact-value'
 import { DataTable } from '@/components/data-table/data-table'
 import {
   DataTableActionBar,
@@ -111,15 +112,6 @@ function getStatusDisplayLabel(candidato: {
       return 'Vaga encerrada'
   }
   return STATUS_LABELS[candidato.status] ?? candidato.status
-}
-
-/** Valor de contato do candidato, explicitando quando o dado não veio. */
-function ContactValue({ value }: { value?: string }) {
-  if (!value) {
-    return <p className="text-sm text-muted-foreground italic">Não informado</p>
-  }
-
-  return <p className="text-sm">{value}</p>
 }
 
 /**
