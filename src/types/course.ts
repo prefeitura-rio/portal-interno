@@ -363,6 +363,8 @@ export interface Enrollment {
   /** Autodeclared email stored on enrollment (before RMI display preference) */
   declaredEmail?: string
   phone: string
+  /** Autodeclared phone stored on enrollment (before RMI display preference) */
+  declaredPhone?: string
   address?: string
   neighborhood?: string
   age?: number

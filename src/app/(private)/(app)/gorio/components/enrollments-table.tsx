@@ -32,6 +32,7 @@ import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
+import { ContactValue } from '@/components/contact-value'
 import { DataTable } from '@/components/data-table/data-table'
 import {
   DataTableActionBar,
@@ -1639,13 +1640,16 @@ export function EnrollmentsTable({
                           </div>
                         ) : null
                       })()}
+                      {/* Campos de contato são sempre exibidos: omitir o
+                          campo vazio esconde do operador que o dado está
+                          faltando, em vez de mostrar que está. */}
                       <div className="flex items-center gap-3">
                         <Mail className="w-4 h-4 text-muted-foreground" />
                         <div>
                           <Label className="text-xs text-muted-foreground">
                             E-mail
                           </Label>
-                          <p className="text-sm">{selectedEnrollment.email}</p>
+                          <ContactValue value={selectedEnrollment.email} />
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -1654,40 +1658,29 @@ export function EnrollmentsTable({
                           <Label className="text-xs text-muted-foreground">
                             Telefone
                           </Label>
-                          <p className="text-sm">{selectedEnrollment.phone}</p>
+                          <ContactValue value={selectedEnrollment.phone} />
                         </div>
                       </div>
-                      {(selectedEnrollment.address ||
-                        selectedEnrollment.neighborhood) && (
-                        <>
-                          {selectedEnrollment.address && (
-                            <div className="flex items-center gap-3">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <div>
-                                <Label className="text-xs text-muted-foreground">
-                                  Endereço
-                                </Label>
-                                <p className="text-sm">
-                                  {selectedEnrollment.address}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                          {selectedEnrollment.neighborhood && (
-                            <div className="flex items-center gap-3">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <div>
-                                <Label className="text-xs text-muted-foreground">
-                                  Bairro
-                                </Label>
-                                <p className="text-sm">
-                                  {selectedEnrollment.neighborhood}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            Endereço
+                          </Label>
+                          <ContactValue value={selectedEnrollment.address} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            Bairro
+                          </Label>
+                          <ContactValue
+                            value={selectedEnrollment.neighborhood}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -1705,15 +1698,9 @@ export function EnrollmentsTable({
                           <Label className="text-xs text-muted-foreground">
                             E-mail informado pelo órgão
                           </Label>
-                          {selectedEnrollment.declaredEmail ? (
-                            <p className="text-sm">
-                              {selectedEnrollment.declaredEmail}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">
-                              Não informado
-                            </p>
-                          )}
+                          <ContactValue
+                            value={selectedEnrollment.declaredEmail}
+                          />
                           {selectedEnrollment.personal_info?.email &&
                             selectedEnrollment.personal_info.email !==
                               selectedEnrollment.declaredEmail && (
@@ -1729,18 +1716,12 @@ export function EnrollmentsTable({
                           <Label className="text-xs text-muted-foreground">
                             Telefone informado pelo órgão
                           </Label>
-                          {selectedEnrollment.phone ? (
-                            <p className="text-sm">
-                              {selectedEnrollment.phone}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">
-                              Não informado
-                            </p>
-                          )}
+                          <ContactValue
+                            value={selectedEnrollment.declaredPhone}
+                          />
                           {selectedEnrollment.personal_info?.celular &&
                             selectedEnrollment.personal_info.celular !==
-                              selectedEnrollment.phone && (
+                              selectedEnrollment.declaredPhone && (
                               <p className="text-xs text-muted-foreground">
                                 RMI: {selectedEnrollment.personal_info.celular}
                               </p>
