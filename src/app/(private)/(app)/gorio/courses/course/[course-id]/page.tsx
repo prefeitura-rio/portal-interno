@@ -34,6 +34,7 @@ import type { CourseStatusConfig } from '@/types/course'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
+  AlertTriangle,
   Ban,
   Calendar,
   CheckCircle2,
@@ -1907,7 +1908,7 @@ export default function CourseDetailPage({
                         ? `Tem certeza que deseja enviar o curso "${course.title}" para aprovação? O curso será revisado pela Casa Civil.`
                         : confirmDialog.type === 'request_changes'
                           ? isOpened
-                            ? `Este curso está ativo e recebendo inscrições. Ao confirmar, ele será removido da listagem pública imediatamente e não aceitará novas inscrições até que a edição seja aprovada. Alunos já inscritos não são afetados.`
+                            ? ''
                             : `Tem certeza que deseja enviar o curso "${course.title}" de volta para edição? O responsável fará as alterações necessárias.`
                           : confirmDialog.type === 'approve_publish'
                             ? `Tem certeza que deseja aprovar e publicar o curso "${course.title}"? O curso ficará disponível publicamente.`
@@ -2016,7 +2017,26 @@ export default function CourseDetailPage({
             }
           }
         }}
-      />
+      >
+        {confirmDialog.type === 'request_changes' && isOpened && (
+          <div className="flex gap-3 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-800 dark:bg-amber-950">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="space-y-1">
+              <p className="font-semibold text-amber-900 dark:text-amber-100">
+                Este curso será removido da listagem pública imediatamente.
+              </p>
+              <p className="text-amber-800 dark:text-amber-200">
+                Ele está ativo e pode estar recebendo inscrições agora. Ao
+                confirmar, não aceitará novas inscrições até que a edição seja
+                aprovada pela curadoria.
+              </p>
+              <p className="text-amber-700 dark:text-amber-300">
+                Alunos já inscritos não são afetados.
+              </p>
+            </div>
+          </div>
+        )}
+      </ConfirmDialog>
 
       {/* Modal de confirmação para mudança de tab */}
       <ConfirmDialog
