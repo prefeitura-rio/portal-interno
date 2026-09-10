@@ -88,8 +88,10 @@ export function Menu({ isOpen }: MenuProps) {
                               asChild
                             >
                               <Link href={href}>
+                                {/* O Link herda o gap-2 do Button: mr-2 + gap-2 dá os
+                                    mesmos 16px dos itens com submenu (mr-4, sem gap). */}
                                 <span
-                                  className={cn(isOpen === false ? '' : 'mr-4')}
+                                  className={cn(isOpen === false ? '' : 'mr-2')}
                                 >
                                   <Icon size={18} />
                                 </span>
