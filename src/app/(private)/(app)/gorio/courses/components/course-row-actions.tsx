@@ -146,6 +146,13 @@ export function CourseRowActions({
     status
   )
   const isPendingDeletion = status === 'pending_deletion'
+  const isOpenedCourse = [
+    'opened',
+    'ABERTO',
+    'scheduled',
+    'accepting_enrollments',
+    'in_progress',
+  ].includes(status)
 
   const canEdit = canPublishCourses || isDraft || isNeedsChanges
   const showSendToReview = !canPublishCourses && (isDraft || isNeedsChanges)
@@ -333,7 +340,11 @@ export function CourseRowActions({
           open={dialog.open}
           onOpenChange={open => setDialog(prev => ({ ...prev, open }))}
           title={activeConfig.title}
-          description={activeConfig.description}
+          description={
+            dialog.type === 'propose_edit' && isOpenedCourse
+              ? `Este curso está ativo e recebendo inscrições. Ao confirmar, ele será removido da listagem pública imediatamente e não aceitará novas inscrições até que a edição seja aprovada. Alunos já inscritos não são afetados.`
+              : activeConfig.description
+          }
           confirmText={activeConfig.confirmText}
           variant={activeConfig.variant}
           onConfirm={handleConfirm}
