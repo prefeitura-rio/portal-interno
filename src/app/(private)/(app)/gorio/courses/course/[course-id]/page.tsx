@@ -1906,7 +1906,9 @@ export default function CourseDetailPage({
                       : confirmDialog.type === 'send_to_review'
                         ? `Tem certeza que deseja enviar o curso "${course.title}" para aprovação? O curso será revisado pela Casa Civil.`
                         : confirmDialog.type === 'request_changes'
-                          ? `Tem certeza que deseja enviar o curso "${course.title}" de volta para edição? O responsável fará as alterações necessárias.`
+                          ? isOpened
+                            ? `Este curso está ativo e recebendo inscrições. Ao confirmar, ele será removido da listagem pública imediatamente e não aceitará novas inscrições até que a edição seja aprovada. Alunos já inscritos não são afetados.`
+                            : `Tem certeza que deseja enviar o curso "${course.title}" de volta para edição? O responsável fará as alterações necessárias.`
                           : confirmDialog.type === 'approve_publish'
                             ? `Tem certeza que deseja aprovar e publicar o curso "${course.title}"? O curso ficará disponível publicamente.`
                             : confirmDialog.type === 'request_deletion'
