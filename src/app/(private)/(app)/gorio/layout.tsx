@@ -1,8 +1,19 @@
 import { ProtectedRoute } from '@/components/auth/protected-route'
-import { COURSES_ROLES, EMPREGO_TRABALHO_ROLES } from '@/types/heimdall-roles'
+import {
+  COURSES_ROLES,
+  CURRICULOS_ROLES,
+  EMPREGO_TRABALHO_ROLES,
+} from '@/types/heimdall-roles'
 
-// Combine roles from both modules under /gorio: Cursos (Capacitação) + Emprego e trabalho
-const GORIO_ROLES = [...new Set([...EMPREGO_TRABALHO_ROLES, ...COURSES_ROLES])]
+// Combine roles from every module under /gorio: Capacitação, Emprego e trabalho
+// e Banco de currículos. O middleware restringe cada sub-rota ao seu módulo.
+const GORIO_ROLES = [
+  ...new Set([
+    ...EMPREGO_TRABALHO_ROLES,
+    ...COURSES_ROLES,
+    ...CURRICULOS_ROLES,
+  ]),
+]
 
 export default function GorioLayout({
   children,
