@@ -15,6 +15,7 @@ import {
 } from '@tanstack/react-table'
 import {
   AlertTriangle,
+  Cake,
   Calendar,
   CheckCircle,
   Clock,
@@ -59,6 +60,7 @@ import {
 } from '@/components/ui/sheet'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEnrollments } from '@/hooks/use-enrollments'
+import { calcAgeFromBirthDate } from '@/lib/calc-age'
 import { getEnrollmentRmiDivergence } from '@/lib/enrollment-rmi-consistency'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import { useRouter } from 'next/navigation'
@@ -318,23 +320,11 @@ export function EnrollmentsTable({
     (enrollment: Enrollment): string => {
       // Prioridade 1: Calcular de data_nascimento
       if (enrollment.personal_info?.data_nascimento) {
-        try {
-          const birthDate = new Date(enrollment.personal_info.data_nascimento)
-          const today = new Date()
-          let age = today.getFullYear() - birthDate.getFullYear()
-          const monthDiff = today.getMonth() - birthDate.getMonth()
-          if (
-            monthDiff < 0 ||
-            (monthDiff === 0 && today.getDate() < birthDate.getDate())
-          ) {
-            age--
-          }
-          // Validação de sanidade
-          if (age >= 0 && age <= 150) {
-            return age.toString()
-          }
-        } catch (error) {
-          console.warn('Erro ao calcular idade de data_nascimento:', error)
+        const age = calcAgeFromBirthDate(
+          enrollment.personal_info.data_nascimento
+        )
+        if (age !== null) {
+          return age.toString()
         }
       }
 
@@ -1630,7 +1620,7 @@ export function EnrollmentsTable({
 
                         return idadeValue ? (
                           <div className="flex items-center gap-3">
-                            <Hash className="w-4 h-4 text-muted-foreground" />
+                            <Cake className="w-4 h-4 text-muted-foreground" />
                             <div>
                               <Label className="text-xs text-muted-foreground">
                                 Idade

@@ -74,6 +74,7 @@ export async function GET(request: Request) {
             c.curriculo_snapshot?.nome_completo ||
             'Nome não disponível',
           cpf: c.cpf,
+          dataNascimento: c.personal_info?.data_nascimento ?? undefined,
           // O RMI prevalece: candidatura.email guarda a claim do token do
           // Keycloak no instante da candidatura, então não acompanha o e-mail
           // que o cidadão atualiza depois no app. Fica só como fallback.

@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Award,
   Briefcase,
+  Cake,
   Calendar,
   CheckCircle,
   Clock,
@@ -78,6 +79,7 @@ import {
   useCandidatos,
 } from '@/hooks/use-candidatos'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
+import { calcAgeFromBirthDate, formatAgeLabel } from '@/lib/calc-age'
 import type { VagaStatus } from '@/lib/status-config/empregabilidade'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
@@ -912,6 +914,7 @@ export function CandidatesTable({
       const headers = [
         'Nome',
         'CPF',
+        'Idade',
         'E-mail',
         'Telefone',
         'Data de Inscrição',
@@ -925,9 +928,13 @@ export function CandidatesTable({
       ]
 
       const worksheetData = candidatosToExport.map(c => {
+        const age = c.dataNascimento
+          ? calcAgeFromBirthDate(c.dataNascimento)
+          : null
         const row: Record<string, string | number> = {
           Nome: c.candidateName ?? '',
           CPF: c.cpf ?? '',
+          Idade: age !== null ? age : '',
           'E-mail': c.email ?? '',
           Telefone: c.phone ?? '',
           'Data de Inscrição': c.enrollmentDate
@@ -1184,6 +1191,22 @@ export function CandidatesTable({
                               <p className="font-mono text-sm">
                                 {selectedCandidato.cpf}
                               </p>
+                            </div>
+                          </div>
+                          {/* Campos de contato são sempre exibidos: omitir o
+                              campo vazio esconde do operador que o dado está
+                              faltando, em vez de mostrar que está. */}
+                          <div className="flex items-center gap-3">
+                            <Cake className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Idade
+                              </Label>
+                              <ContactValue
+                                value={formatAgeLabel(
+                                  selectedCandidato.dataNascimento
+                                )}
+                              />
                             </div>
                           </div>
                           {/* Campos de contato são sempre exibidos: omitir o
