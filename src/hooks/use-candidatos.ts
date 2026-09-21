@@ -57,6 +57,8 @@ export interface Candidato {
   id: string
   candidateName: string
   cpf: string
+  /** Data de nascimento ISO de personal_info (para cálculo de idade) */
+  dataNascimento?: string
   email: string
   phone?: string
   enrollmentDate: string
