@@ -12,7 +12,15 @@ export interface EmpregabilidadeBancoCurriculoDetalhe {
   celular?: string
   cpf?: string
   curriculo?: EmpregabilidadeCurriculoCompleto
+  /**
+   * DataAtualizacao é o último salvamento do currículo pelo cidadão. É nula
+   * quando nenhuma seção foi preenchida.
+   */
+  data_atualizacao?: string
   data_inclusao?: string
+  /** Deficiencia é o que o cidadão declarou sobre deficiência (PCD). */
+  deficiencia?: string
+  email?: string
   escolaridade?: string
   /**
    * Genero é a identidade de gênero autodeclarada. O sexo da base cadastral
@@ -23,4 +31,5 @@ export interface EmpregabilidadeBancoCurriculoDetalhe {
   nome?: string
   nome_social?: string
   profissao?: string
+  raca?: string
 }
