@@ -4,6 +4,7 @@ import { DataTable } from '@/components/data-table/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useBancoCurriculos } from '@/hooks/use-banco-curriculos'
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import type { EmpregabilidadeBancoCurriculoItem } from '@/http-gorio/models'
 import { formatDateBR } from '@/lib/format'
 import {
@@ -16,7 +17,7 @@ import {
 import { Eye, Search } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
   NAO_INFORMADO,
   nomeDeExibicao,
@@ -26,6 +27,8 @@ import {
 const PAGE_SIZE_PADRAO = 10
 // A API aceita no máximo 100 por página.
 const PAGE_SIZE_MAXIMO = 100
+// Busca enquanto digita: espera a pessoa parar antes de ir na API.
+const ATRASO_BUSCA_MS = 500
 
 /**
  * Listagem do banco de currículos. Busca, página e tamanho de página ficam na
@@ -44,8 +47,18 @@ export function BancoCurriculosTable() {
   const search = searchParams.get('search') ?? ''
 
   const [termo, setTermo] = useState(search)
+  // Marca as mudanças de URL feitas pela própria digitação, para a sincronização
+  // abaixo não sobrescrever o que a pessoa já digitou depois.
+  const buscaDaDigitacaoRef = useRef(false)
+
   // Mantém o campo coerente quando a URL muda por voltar/avançar do navegador.
-  useEffect(() => setTermo(search), [search])
+  useEffect(() => {
+    if (buscaDaDigitacaoRef.current) {
+      buscaDaDigitacaoRef.current = false
+      return
+    }
+    setTermo(search)
+  }, [search])
 
   const { data, isLoading, isError } = useBancoCurriculos({
     page,
@@ -73,9 +86,28 @@ export function BancoCurriculosTable() {
     })
   }
 
+  function aplicarBusca(valor: string) {
+    const limpo = valor.trim()
+    // Sem mudança não há o que atualizar, e o sinalizador ficaria preso.
+    if (limpo === search) return
+    buscaDaDigitacaoRef.current = true
+    atualizarUrl({ page: 1, pageSize, search: limpo })
+  }
+
+  const aplicarBuscaComAtraso = useDebouncedCallback(
+    (valor: string) => aplicarBusca(valor),
+    ATRASO_BUSCA_MS
+  )
+
+  function handleTermo(valor: string) {
+    setTermo(valor)
+    aplicarBuscaComAtraso(valor)
+  }
+
+  // O botão continua valendo para quem prefere confirmar, e busca na hora.
   function handleFiltrar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    atualizarUrl({ page: 1, pageSize, search: termo.trim() })
+    aplicarBusca(termo)
   }
 
   function handlePaginationChange(updater: Updater<PaginationState>) {
@@ -153,9 +185,9 @@ export function BancoCurriculosTable() {
       >
         <Input
           value={termo}
-          onChange={event => setTermo(event.target.value)}
-          placeholder="Pesquisar por nome"
-          aria-label="Pesquisar por nome"
+          onChange={event => handleTermo(event.target.value)}
+          placeholder="Pesquisar por nome ou CPF"
+          aria-label="Pesquisar por nome ou CPF"
           className="sm:max-w-sm"
         />
         <Button type="submit" variant="outline">
