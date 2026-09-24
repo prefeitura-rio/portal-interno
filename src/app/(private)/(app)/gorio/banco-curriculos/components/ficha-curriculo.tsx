@@ -1,9 +1,13 @@
+'use client'
+
+import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
 import type {
   EmpregabilidadeBancoCurriculoDetalhe,
   EmpregabilidadeCurriculoConquista,
   EmpregabilidadeCurriculoCursoComplementar,
   EmpregabilidadeCurriculoExperiencia,
   EmpregabilidadeCurriculoFormacao,
+  EmpregabilidadeCurriculoSituacaoInteresses,
 } from '@/http-gorio/models'
 import { formatCPF } from '@/lib/cpf-validator'
 import { formatDateBR } from '@/lib/format'
@@ -14,6 +18,7 @@ import {
   formatarCelular,
   formatarIdade,
   formatarTempoExperiencia,
+  formatarTempoProcurandoEmprego,
   nomeDeExibicao,
   valorOuNaoInformado,
 } from '../lib/format'
@@ -156,6 +161,14 @@ export function FichaCurriculo({ curriculo }: FichaCurriculoProps) {
           </ul>
         )}
       </Secao>
+
+      <Secao titulo="Situação e interesses">
+        {completo?.situacao_interesses ? (
+          <SituacaoInteresses situacao={completo.situacao_interesses} />
+        ) : (
+          <NaoInformado />
+        )}
+      </Secao>
     </div>
   )
 }
@@ -223,6 +236,42 @@ function BlocoExperiencia({
       </div>
       {descricao && <p className="whitespace-pre-line text-sm">{descricao}</p>}
     </div>
+  )
+}
+
+function SituacaoInteresses({
+  situacao,
+}: {
+  situacao: EmpregabilidadeCurriculoSituacaoInteresses
+}) {
+  // O currículo guarda só os ids dos regimes; os nomes vêm da tabela de apoio.
+  const { regimes } = useRegimesContratacao()
+  const tiposVinculo = (situacao.ids_tipos_vinculo_preferencia ?? [])
+    .map(id => regimes.find(regime => regime.id === id)?.descricao)
+    .filter(Boolean)
+    .join(', ')
+
+  return (
+    <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Dado
+        rotulo="Situação atual"
+        valor={valorOuNaoInformado(situacao.situacao?.descricao)}
+      />
+      <Dado
+        rotulo="Tempo procurando emprego"
+        valor={formatarTempoProcurandoEmprego(
+          situacao.tempo_procurando_emprego
+        )}
+      />
+      <Dado
+        rotulo="Disponibilidade"
+        valor={valorOuNaoInformado(situacao.disponibilidade?.descricao)}
+      />
+      <Dado
+        rotulo="Tipo de vínculo desejado"
+        valor={tiposVinculo || NAO_INFORMADO}
+      />
+    </dl>
   )
 }
 
