@@ -53,6 +53,8 @@ O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e p
 | `go:empregabilidade:admin`                | Admin Emprego e Trabalho      | Apenas módulo Emprego e trabalho                 |
 | `go:empregabilidade:editor_sem_curadoria` | Editor sem curadoria          | Apenas módulo Emprego e trabalho                 |
 | `go:empregabilidade:editor_com_curadoria` | Editor com curadoria          | Apenas módulo Emprego e trabalho                 |
+| `go:curriculos:admin`                     | Admin Banco de currículos     | Apenas Banco de currículos (leitura, por ora)    |
+| `go:curriculos:editor`                    | Editor Banco de currículos    | Apenas Banco de currículos (leitura, por ora)    |
 | `busca:services:admin`                    | Admin Serviços                | Gerencia e aprova serviços municipais            |
 | `busca:services:editor`                   | Editor Serviços               | Cria e edita serviços municipais                 |
 
@@ -66,11 +68,14 @@ O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e p
 | Criar/Editar cursos     | ✅    | ✅         | ✅       | ✅                   | ✅               | ❌                 | ❌                      | ❌                      | ❌                   | ❌                    |
 | Gerenciar inscritos     | ✅    | ✅         | ✅       | ✅                   | ✅               | ❌                 | ❌                      | ❌                      | ❌                   | ❌                    |
 | Emprego e trabalho      | ✅    | ✅         | ✅       | ❌                   | ❌               | ✅                 | ✅                      | ✅                      | ❌                   | ❌                    |
+| Banco de currículos     | ✅    | ✅         | ✅       | ❌                   | ❌               | ❌                 | ❌                      | ❌                      | ❌                   | ❌                    |
 | Serviços Municipais     | ✅    | ✅         | ❌       | ❌                   | ❌               | ❌                 | ❌                      | ❌                      | ✅                   | ✅                    |
 | Aprovar Serviços        | ✅    | ✅         | ❌       | ❌                   | ❌               | ❌                 | ❌                      | ❌                      | ✅                   | ❌                    |
 | Minha Conta             | ✅    | ✅         | ✅       | ✅                   | ✅               | ✅                 | ✅                      | ✅                      | ✅                   | ✅                    |
 
 As roles `go:empregabilidade:*` têm acesso **somente** ao módulo "Emprego e trabalho" (e Dashboard / Minha conta). Capacitação e Serviços municipais não aparecem no menu e o acesso às rotas é bloqueado.
+
+As roles `go:curriculos:*` têm acesso **somente** ao Banco de currículos (e Dashboard / Minha conta), por enquanto só de leitura. Na API (app-go-api) essa autorização vale sempre, independente de `RBAC_ENABLED`: o banco lista os currículos de todos os cidadãos.
 
 ---
 
