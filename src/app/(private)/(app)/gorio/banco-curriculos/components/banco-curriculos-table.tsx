@@ -27,6 +27,7 @@ import {
 const PAGE_SIZE_PADRAO = 10
 // A API aceita no máximo 100 por página.
 const PAGE_SIZE_MAXIMO = 100
+const PAGE_SIZE_OPCOES = [10, 20, 30, 40, 50, PAGE_SIZE_MAXIMO]
 // Busca enquanto digita: espera a pessoa parar antes de ir na API.
 const ATRASO_BUSCA_MS = 500
 
@@ -201,7 +202,11 @@ export function BancoCurriculosTable() {
           Não foi possível carregar os currículos. Tente novamente em instantes.
         </p>
       ) : (
-        <DataTable table={table} loading={isLoading} />
+        <DataTable
+          table={table}
+          loading={isLoading}
+          pageSizeOptions={PAGE_SIZE_OPCOES}
+        />
       )}
     </div>
   )

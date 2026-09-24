@@ -50,8 +50,12 @@ export function useBancoCurriculo(cpf: string) {
         `/api/empregabilidade/banco-curriculos/${encodeURIComponent(cpf)}`
       ),
     enabled: !!cpf,
-    retry: (failureCount, error) =>
-      getBancoCurriculosErrorStatus(error) !== 404 && failureCount < 1,
+    // Só vale tentar de novo em falha do servidor: CPF inválido (400) ou sem
+    // currículo (404) dariam a mesma resposta.
+    retry: (failureCount, error) => {
+      const status = getBancoCurriculosErrorStatus(error)
+      return (status === null || status >= 500) && failureCount < 1
+    },
   })
 }
 

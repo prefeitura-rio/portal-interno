@@ -20,6 +20,7 @@ interface DataTableProps<TData> extends React.ComponentProps<'div'> {
   onRowClick?: (row: TData) => void
   loading?: boolean
   emptyMessage?: React.ReactNode
+  pageSizeOptions?: number[]
 }
 
 export function DataTable<TData>({
@@ -30,6 +31,7 @@ export function DataTable<TData>({
   onRowClick,
   loading = false,
   emptyMessage = 'Nenhum resultado encontrado.',
+  pageSizeOptions,
   ...props
 }: DataTableProps<TData>) {
   // Show skeleton while loading
@@ -137,7 +139,7 @@ export function DataTable<TData>({
         </Table>
       </div>
       <div className="flex flex-col gap-2.5">
-        <DataTablePagination table={table} />
+        <DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />
         {actionBar &&
           table.getFilteredSelectedRowModel().rows.length > 0 &&
           actionBar}

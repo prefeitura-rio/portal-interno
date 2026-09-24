@@ -60,14 +60,16 @@ export default function BancoCurriculoDetalhePage({
   )
 }
 
+function mensagemDeErro(status: number | null) {
+  if (status === 400) return 'CPF inválido.'
+  if (status === 404) return 'Currículo não encontrado.'
+  return 'Não foi possível carregar o currículo. Tente novamente em instantes.'
+}
+
 function FichaIndisponivel({ status }: { status: number | null }) {
   return (
     <div className="space-y-4 rounded-md border p-6">
-      <p className="text-muted-foreground">
-        {status === 404
-          ? 'Currículo não encontrado.'
-          : 'Não foi possível carregar o currículo. Tente novamente em instantes.'}
-      </p>
+      <p className="text-muted-foreground">{mensagemDeErro(status)}</p>
       <Button asChild variant="outline">
         <Link href="/gorio/banco-curriculos">
           <ArrowLeft className="mr-2 h-4 w-4" />

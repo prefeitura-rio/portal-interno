@@ -55,3 +55,18 @@ export function formatarIdade(idade: number | null | undefined): string {
   if (idade === null || idade === undefined) return NAO_INFORMADO
   return `${idade} ${idade === 1 ? 'ano' : 'anos'}`
 }
+
+// Códigos gravados pelo formulário do cidadão (superapp), com os mesmos rótulos.
+const TEMPO_PROCURANDO_EMPREGO: Record<string, string> = {
+  UP_TO_6: 'Há até 6 meses',
+  FROM_7_TO_12: 'De 7 a 12 meses',
+  FROM_13_TO_24: 'De 13 a 24 meses',
+  OVER_24: 'Mais de 24 meses',
+}
+
+export function formatarTempoProcurandoEmprego(
+  codigo: string | null | undefined
+): string {
+  if (!codigo) return NAO_INFORMADO
+  return TEMPO_PROCURANDO_EMPREGO[codigo] ?? codigo
+}

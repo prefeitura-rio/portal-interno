@@ -43,6 +43,12 @@ export function DataTablePagination<TData>({
     : table.getFilteredRowModel().rows.length
 
   const selectedRows = table.getFilteredSelectedRowModel().rows.length
+  // Só as tabelas com a coluna de checkbox permitem selecionar linhas; nas
+  // demais, o contador de selecionadas ficaria sempre em zero.
+  const hasRowSelection = table
+    .getAllLeafColumns()
+    .some(column => column.id === 'select')
+  const totalLabel = isEstimatedTotal ? `${totalRows}+` : totalRows
 
   return (
     <div
@@ -53,8 +59,9 @@ export function DataTablePagination<TData>({
       {...props}
     >
       <div className="flex-1 whitespace-nowrap text-muted-foreground text-sm">
-        {selectedRows} de {isEstimatedTotal ? `${totalRows}+` : totalRows}{' '}
-        linha(s) selecionada(s).
+        {hasRowSelection
+          ? `${selectedRows} de ${totalLabel} linha(s) selecionada(s).`
+          : `${totalLabel} resultado(s).`}
       </div>
       <div className="flex flex-col-reverse items-center gap-4 sm:flex-row sm:gap-6 lg:gap-8">
         <div className="flex items-center space-x-2">
