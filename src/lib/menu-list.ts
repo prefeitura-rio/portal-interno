@@ -1,6 +1,7 @@
-import { COURSES_ROLES } from '@/types/heimdall-roles'
+import { COURSES_ROLES, CURRICULOS_ROLES } from '@/types/heimdall-roles'
 import {
   Briefcase,
+  FileUser,
   FolderKanban,
   GraduationCap,
   KeyRound,
@@ -64,6 +65,8 @@ export function getMenuList(pathname: string): Group[] {
             'go:empregabilidade:admin',
             'go:empregabilidade:editor_sem_curadoria',
             'go:empregabilidade:editor_com_curadoria',
+            'go:curriculos:admin',
+            'go:curriculos:editor',
           ],
         },
       ],
@@ -156,6 +159,13 @@ export function getMenuList(pathname: string): Group[] {
               ],
             },
           ],
+        },
+        {
+          href: '/gorio/banco-curriculos',
+          label: 'Banco de currículos',
+          icon: FileUser,
+          submenus: [],
+          allowedRoles: [...CURRICULOS_ROLES],
         },
       ]
         .map(menu => {

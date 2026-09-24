@@ -19,6 +19,7 @@ interface DataTableProps<TData> extends React.ComponentProps<'div'> {
   actionBar?: React.ReactNode
   onRowClick?: (row: TData) => void
   loading?: boolean
+  emptyMessage?: React.ReactNode
 }
 
 export function DataTable<TData>({
@@ -28,6 +29,7 @@ export function DataTable<TData>({
   className,
   onRowClick,
   loading = false,
+  emptyMessage = 'Nenhum resultado encontrado.',
   ...props
 }: DataTableProps<TData>) {
   // Show skeleton while loading
@@ -127,7 +129,7 @@ export function DataTable<TData>({
                   colSpan={table.getAllColumns().length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  {emptyMessage}
                 </TableCell>
               </TableRow>
             )}

@@ -1,4 +1,8 @@
-import { COURSES_ROLES, EMPREGO_TRABALHO_ROLES } from '@/types/heimdall-roles'
+import {
+  COURSES_ROLES,
+  CURRICULOS_ROLES,
+  EMPREGO_TRABALHO_ROLES,
+} from '@/types/heimdall-roles'
 
 /**
  * Route permission configuration using Heimdall roles
@@ -17,6 +21,8 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:empregabilidade:admin',
     'go:empregabilidade:editor_sem_curadoria',
     'go:empregabilidade:editor_com_curadoria',
+    'go:curriculos:admin',
+    'go:curriculos:editor',
   ],
 
   // GO Rio - Capacitação (admin, superadmin, go:admin + Casa Civil curation)
@@ -64,6 +70,10 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
   ],
   '/gorio/empregabilidade/*': [...EMPREGO_TRABALHO_ROLES],
 
+  // GO Rio - Banco de currículos (admin, superadmin, go:admin + go:curriculos:*)
+  '/gorio/banco-curriculos': [...CURRICULOS_ROLES],
+  '/gorio/banco-curriculos/*': [...CURRICULOS_ROLES],
+
   // Serviços Municipais (admin, superadmin, busca:services roles - NOT empregabilidade)
   '/servicos-municipais/servicos': [
     'admin',
@@ -96,6 +106,8 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
     'go:empregabilidade:admin',
     'go:empregabilidade:editor_sem_curadoria',
     'go:empregabilidade:editor_com_curadoria',
+    'go:curriculos:admin',
+    'go:curriculos:editor',
   ],
 
   // Superadmin - vínculos CPF-Secretaria

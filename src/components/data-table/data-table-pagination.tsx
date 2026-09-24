@@ -28,14 +28,18 @@ export function DataTablePagination<TData>({
   ...props
 }: DataTablePaginationProps<TData>) {
   // Check if manual pagination is enabled
-  const isManualPagination = (table.options as any).manualPagination || false
+  const isManualPagination = table.options.manualPagination ?? false
   const pageCount = table.getPageCount()
   const currentPage = table.getState().pagination.pageIndex
   const pageSize = table.getState().pagination.pageSize
 
-  // For manual pagination, we need to handle the total count differently
+  // For manual pagination, use the exact rowCount when provided (including 0);
+  // otherwise estimate from pageCount and flag the total as approximate
+  const manualRowCount = table.options.rowCount
+  const isEstimatedTotal =
+    isManualPagination && typeof manualRowCount !== 'number'
   const totalRows = isManualPagination
-    ? (table.options as any).rowCount || pageCount * pageSize // Use provided rowCount or estimate
+    ? (manualRowCount ?? pageCount * pageSize)
     : table.getFilteredRowModel().rows.length
 
   const selectedRows = table.getFilteredSelectedRowModel().rows.length
@@ -49,7 +53,7 @@ export function DataTablePagination<TData>({
       {...props}
     >
       <div className="flex-1 whitespace-nowrap text-muted-foreground text-sm">
-        {selectedRows} de {isManualPagination ? `${totalRows}+` : totalRows}{' '}
+        {selectedRows} de {isEstimatedTotal ? `${totalRows}+` : totalRows}{' '}
         linha(s) selecionada(s).
       </div>
       <div className="flex flex-col-reverse items-center gap-4 sm:flex-row sm:gap-6 lg:gap-8">

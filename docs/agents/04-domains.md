@@ -6,6 +6,7 @@
 |---------|--------------|-----------------|
 | Capacitação (cursos) | `/gorio/courses`, `/new`, `/course/[course-id]` | `gorio/`, `http-gorio/`, BFF courses |
 | Empregabilidade | `/gorio/empregabilidade`, `/new`, `/[id]`, `/empresas`, `/empresas/[cnpj]` | `http-gorio/`, BFF empregabilidade |
+| Banco de currículos | `/gorio/banco-curriculos`, `/[cpf]` | `http-gorio/empregabilidade-banco-curriculos`, BFF `api/empregabilidade/banco-curriculos`; papéis `go:curriculos:*` |
 | MEI | `/gorio/oportunidades-mei`, `/new`, `/oportunidade-mei/[id]` | `http-gorio/`; papéis admin/go:admin; **feature flag** |
 | Serviços municipais | `/servicos-municipais/servicos`, `/new`, `/servico/[id]` | `http-busca-search/`, BFF services |
 | Heimdall admin | `/heimdall`, `/usuarios`, `/grupos`, `/papeis`, `/acoes`, `/mapeamentos`, … | `http-heimdall/` |

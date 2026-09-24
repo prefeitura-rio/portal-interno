@@ -74,6 +74,18 @@ function getRoleInfo(role: string) {
       variant: 'outline',
       className: 'bg-slate-100 text-slate-800 border-slate-300',
     },
+    'go:curriculos:admin': {
+      label: 'Admin Banco de Currículos',
+      description: 'Consulta ao banco de currículos',
+      variant: 'outline',
+      className: 'bg-slate-100 text-slate-800 border-slate-300',
+    },
+    'go:curriculos:editor': {
+      label: 'Editor Banco de Currículos',
+      description: 'Consulta ao banco de currículos',
+      variant: 'outline',
+      className: 'bg-slate-100 text-slate-800 border-slate-300',
+    },
   }
 
   return (

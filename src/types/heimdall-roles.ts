@@ -32,6 +32,20 @@ export const COURSES_ROLES = [
 export type CoursesRole = (typeof COURSES_ROLES)[number]
 
 /**
+ * Roles that grant access to the "Banco de currículos" module.
+ * Both module roles are read-only for now; they will diverge in future versions.
+ */
+export const CURRICULOS_ROLES = [
+  'admin',
+  'superadmin',
+  'go:admin',
+  'go:curriculos:admin', // Admin do banco de currículos
+  'go:curriculos:editor', // Editor do banco de currículos
+] as const
+
+export type CurriculosRole = (typeof CURRICULOS_ROLES)[number]
+
+/**
  * Available roles in the Heimdall system
  */
 export type HeimdallRole =
@@ -45,6 +59,8 @@ export type HeimdallRole =
   | 'go:empregabilidade:admin' // Admin for Emprego e trabalho only
   | 'go:empregabilidade:editor_sem_curadoria' // Editor (sem curadoria) - Emprego e trabalho only
   | 'go:empregabilidade:editor_com_curadoria' // Editor (com curadoria) - Emprego e trabalho only
+  | 'go:curriculos:admin' // Admin for Banco de currículos only
+  | 'go:curriculos:editor' // Editor for Banco de currículos only
 
 /**
  * User information from Heimdall API
@@ -73,6 +89,8 @@ export function isHeimdallRole(role: string): role is HeimdallRole {
     'go:empregabilidade:admin',
     'go:empregabilidade:editor_sem_curadoria',
     'go:empregabilidade:editor_com_curadoria',
+    'go:curriculos:admin',
+    'go:curriculos:editor',
   ].includes(role)
 }
 
