@@ -39,6 +39,18 @@ export const heimdallKeys = {
     [...heimdallKeys.all, 'health', 'cerbos-policy-template'] as const,
 }
 
+/** Erro do BFF com o status e o corpo da resposta, para quem precisar tratá-los. */
+export class HeimdallApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly body: unknown
+  ) {
+    super(message)
+    this.name = 'HeimdallApiError'
+  }
+}
+
 export async function fetchHeimdallApi<T>(
   url: string,
   init?: RequestInit
@@ -47,19 +59,24 @@ export async function fetchHeimdallApi<T>(
 
   if (!response.ok) {
     let message = `Erro ${response.status}`
+    let body: unknown = null
     try {
-      const body = await response.json()
-      if (typeof body?.error === 'string') {
-        message = body.error
+      body = await response.json()
+      const parsed = body as {
+        error?: unknown
+        details?: { detail?: unknown }
+      } | null
+      if (typeof parsed?.error === 'string') {
+        message = parsed.error
       }
-      const detail = body?.details?.detail
+      const detail = parsed?.details?.detail
       if (typeof detail === 'string') {
         message = `${message}: ${detail}`
       }
     } catch {
       // corpo não-JSON: mantém a mensagem genérica
     }
-    throw new Error(message)
+    throw new HeimdallApiError(message, response.status, body)
   }
 
   if (response.status === 204) {

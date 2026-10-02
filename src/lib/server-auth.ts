@@ -1,5 +1,6 @@
 import { getCurrentUserInfoApiV1UsersMeGet } from '@/http-heimdall/users/users'
 import { redirect } from 'next/navigation'
+import { NextResponse } from 'next/server'
 
 /**
  * Server-side function to get user roles from Heimdall API
@@ -43,6 +44,27 @@ export async function requireRoles(requiredRoles: string[]): Promise<string[]> {
   }
 
   return userRoles
+}
+
+/**
+ * Variante de requireRoles para route handlers em src/app/api:
+ * responde 403 em JSON em vez de redirecionar.
+ *
+ * @returns null se autorizado, ou a resposta de erro a devolver
+ */
+export async function forbidUnlessRoles(
+  requiredRoles: string[]
+): Promise<NextResponse | null> {
+  const userRoles = await getUserRolesServer()
+
+  if (!userRoles?.some(role => requiredRoles.includes(role))) {
+    return NextResponse.json(
+      { error: `Requer um dos papéis: ${requiredRoles.join(', ')}` },
+      { status: 403 }
+    )
+  }
+
+  return null
 }
 
 /**
