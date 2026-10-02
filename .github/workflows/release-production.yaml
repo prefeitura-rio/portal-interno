@@ -5,7 +5,34 @@ on:
     types: [published]
 
 jobs:
+  # Bloqueia o deploy enquanto produção não tiver, no Heimdall, os papéis que
+  # este release passou a usar e que já existem em staging. Gera um link para a
+  # tela de promoção já preenchida e espera a aprovação de um superadmin.
+  heimdall-check:
+    name: Heimdall config check
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Check Heimdall config needed by this release
+        uses: prefeitura-rio/heimdall/.github/actions/release-check@main
+        with:
+          app: portal-interno
+          role-paths: |
+            src/*.ts
+            src/*.tsx
+            :(exclude)src/http-*
+          staging-token: ${{ secrets.HEIMDALL_STAGING_READONLY_TOKEN }}
+          production-token: ${{ secrets.HEIMDALL_PRODUCTION_READONLY_TOKEN }}
+          enforce: ${{ vars.HEIMDALL_RELEASE_CHECK != 'off' }}
+
   build-and-deploy:
+    needs: heimdall-check
     runs-on: ubuntu-latest
     environment: production
     permissions:
