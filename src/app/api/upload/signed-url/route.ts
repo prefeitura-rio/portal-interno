@@ -1,4 +1,9 @@
 import { isJwtExpired } from '@/lib/jwt-utils'
+import {
+  DEFAULT_UPLOAD_FOLDER,
+  UPLOAD_FOLDERS,
+  isUploadFolder,
+} from '@/lib/upload-folders'
 import { Storage } from '@google-cloud/storage'
 import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -31,14 +36,21 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  let body: { contentType?: string }
+  let body: { contentType?: string; folder?: unknown }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Body inválido' }, { status: 400 })
   }
 
-  const { contentType } = body
+  const { contentType, folder = DEFAULT_UPLOAD_FOLDER } = body
+
+  if (!isUploadFolder(folder)) {
+    return NextResponse.json(
+      { error: 'Pasta de upload inválida' },
+      { status: 400 }
+    )
+  }
 
   if (!contentType || !ALLOWED_CONTENT_TYPES[contentType]) {
     return NextResponse.json(
@@ -51,7 +63,7 @@ export async function POST(request: NextRequest) {
 
   const ext = ALLOWED_CONTENT_TYPES[contentType]
   const uuid = crypto.randomUUID()
-  const objectPath = `superapp/images/courses/${uuid}.${ext}`
+  const objectPath = `${UPLOAD_FOLDERS[folder]}/${uuid}.${ext}`
 
   const storage = new Storage({
     credentials: {
