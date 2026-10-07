@@ -1,5 +1,6 @@
 'use client'
 
+import { DEFAULT_UPLOAD_FOLDER, type UploadFolder } from '@/lib/upload-folders'
 import { cn } from '@/lib/utils'
 import { Eye, ImagePlus, Loader2, RotateCcw, X } from 'lucide-react'
 import React, { useEffect } from 'react'
@@ -7,13 +8,8 @@ import { toast } from 'sonner'
 import { Button } from './button'
 import { ImageCropDialog } from './image-crop-dialog'
 
-const ALLOWED_TYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/webp',
-  'image/svg+xml',
-]
+const RASTER_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+const SVG_TYPE = 'image/svg+xml'
 
 const DEFAULT_MAX_SIZE = 1 * 1024 * 1024 // 1MB
 
@@ -59,6 +55,10 @@ interface ImageUploadProps {
   defaultValueLabel?: string
   /** If true, only square images (width === height) are accepted. */
   requireSquare?: boolean
+  /** Minimum width and height in px. Not applied to SVG (vector). */
+  minDimension?: number
+  /** If false, SVG files are rejected. Defaults to true. */
+  allowSvg?: boolean
   /**
    * If set, opens a crop dialog after file selection locked to this aspect ratio.
    * Example: 16/9 for widescreen, 1 for square.
@@ -66,6 +66,8 @@ interface ImageUploadProps {
   cropAspectRatio?: number
   /** When set, shows an eye button on the preview to open a custom preview modal. */
   onPreviewClick?: () => void
+  /** GCS folder for the uploaded object. Defaults to "courses". */
+  uploadFolder?: UploadFolder
 }
 
 export function ImageUpload({
@@ -81,10 +83,17 @@ export function ImageUpload({
   defaultValue,
   defaultValueLabel = 'Usar logo padrão',
   requireSquare = false,
+  minDimension,
+  allowSvg = true,
   cropAspectRatio,
   onPreviewClick,
+  uploadFolder = DEFAULT_UPLOAD_FOLDER,
 }: ImageUploadProps) {
   const id = React.useId()
+  const allowedTypes = allowSvg ? [...RASTER_TYPES, SVG_TYPE] : RASTER_TYPES
+  const allowedTypesLabel = allowSvg
+    ? 'PNG, JPG, WebP ou SVG'
+    : 'PNG, JPG ou WebP'
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = React.useState(false)
   const [dragOver, setDragOver] = React.useState(false)
@@ -108,7 +117,7 @@ export function ImageUpload({
       const res = await fetch('/api/upload/signed-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contentType }),
+        body: JSON.stringify({ contentType, folder: uploadFolder }),
       })
 
       if (!res.ok) {
@@ -143,9 +152,9 @@ export function ImageUpload({
   }
 
   const handleFile = async (file: File) => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!allowedTypes.includes(file.type)) {
       toast.error('Tipo de arquivo não suportado', {
-        description: 'Use PNG, JPG, WebP ou SVG.',
+        description: `Use ${allowedTypesLabel}.`,
       })
       return
     }
@@ -156,12 +165,24 @@ export function ImageUpload({
       return
     }
 
-    if (requireSquare) {
+    const checkMinDimension =
+      minDimension !== undefined && file.type !== SVG_TYPE
+
+    if (requireSquare || checkMinDimension) {
       try {
         const { width, height } = await getImageDimensions(file)
-        if (width !== height) {
+        if (requireSquare && width !== height) {
           toast.error('Imagem deve ser quadrada', {
             description: `A imagem selecionada tem ${width}×${height}px. Use uma imagem quadrada.`,
+          })
+          return
+        }
+        if (
+          checkMinDimension &&
+          (width < minDimension || height < minDimension)
+        ) {
+          toast.error('Imagem muito pequena', {
+            description: `A imagem selecionada tem ${width}×${height}px. O mínimo é ${minDimension}×${minDimension}px.`,
           })
           return
         }
@@ -175,7 +196,7 @@ export function ImageUpload({
     if (cropAspectRatio !== undefined) {
       const objectUrl = URL.createObjectURL(file)
       setPendingFileType(
-        file.type === 'image/svg+xml'
+        file.type === SVG_TYPE
           ? 'image/png'
           : (file.type as 'image/jpeg' | 'image/png' | 'image/webp')
       )
@@ -249,7 +270,7 @@ export function ImageUpload({
           ref={inputRef}
           id={id}
           type="file"
-          accept={ALLOWED_TYPES.join(',')}
+          accept={allowedTypes.join(',')}
           className="sr-only"
           onChange={handleInputChange}
           disabled={disabled || uploading}
@@ -266,8 +287,8 @@ export function ImageUpload({
               src={value}
               alt="Preview"
               className={cn(
-                previewClassName,
                 'w-full h-auto',
+                previewClassName,
                 onPreviewClick && 'cursor-pointer'
               )}
               onClick={onPreviewClick}
@@ -329,7 +350,7 @@ export function ImageUpload({
                     Clique para selecionar ou arraste uma imagem
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    PNG, JPG, WebP ou SVG - máx. {formatSize(maxSize)}
+                    {allowedTypesLabel} - máx. {formatSize(maxSize)}
                   </p>
                 </>
               )}
