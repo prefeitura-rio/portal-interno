@@ -17,6 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { ImageUpload } from '@/components/ui/image-upload'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Building2, Globe, Info, Search } from 'lucide-react'
@@ -50,20 +51,15 @@ const formSchema = z.object({
     .string()
     .min(1, { message: 'Descrição da empresa é obrigatória.' })
     .min(10, { message: 'Descrição deve ter pelo menos 10 caracteres.' }),
+  // Uploads novos vêm do bucket via signed URL; logos antigas podem ser
+  // qualquer URL https já persistida e continuam válidas.
   logo_url: z
     .string()
-    .min(1, { message: 'URL da imagem é obrigatória.' })
+    .min(1, { message: 'A logo da empresa é obrigatória.' })
     .url({ message: 'Deve ser uma URL válida.' })
-    .refine(
-      value =>
-        value.startsWith(
-          'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/'
-        ),
-      {
-        message:
-          'A URL deve começar com https://storage.googleapis.com/rj-escritorio-dev-public/superapp/',
-      }
-    ),
+    .refine(value => value.startsWith('https://'), {
+      message: 'A logo deve ser uma URL https.',
+    }),
   // Campos opcionais adicionais
   website: z
     .string()
@@ -93,7 +89,6 @@ export function NewEmpresaForm({
 }: NewEmpresaFormProps) {
   const [isSearching, setIsSearching] = useState(false)
   const [searchedCompany, setSearchedCompany] = useState<string | null>(null)
-  const [imageError, setImageError] = useState(false)
   const [showStagingDialog, setShowStagingDialog] = useState(false)
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null)
 
@@ -194,7 +189,7 @@ export function NewEmpresaForm({
     }
 
     if (!data.logo_url || data.logo_url.trim() === '') {
-      toast.error('Por favor, informe a URL da imagem do logo')
+      toast.error('Por favor, envie a logo da empresa')
       return
     }
 
@@ -385,56 +380,35 @@ export function NewEmpresaForm({
             />
 
             {/* Company Logo */}
+            {/* Regras definidas com design: quadrada, mín. 200×200px, até 1MB, sem SVG */}
             <FormField
               control={form.control}
               name="logo_url"
-              render={({ field }) => {
-                const logoUrl = field.value
-                const isValidLogoUrl =
-                  logoUrl &&
-                  logoUrl.trim() !== '' &&
-                  (logoUrl.startsWith('http://') ||
-                    logoUrl.startsWith('https://'))
-
-                return (
-                  <FormItem>
-                    <FormLabel>URL da Logo*</FormLabel>
-                    <FormControl>
-                      <div className="space-y-3">
-                        <Input
-                          type="url"
-                          placeholder="https://storage.googleapis.com/rj-escritorio-dev-public/superapp/..."
-                          {...field}
-                          onChange={e => {
-                            field.onChange(e)
-                            setImageError(false)
-                          }}
-                          disabled={isReadOnly}
-                        />
-                        {isValidLogoUrl && (
-                          <div className="relative rounded-lg border p-4 bg-muted/50">
-                            {!imageError ? (
-                              <img
-                                src={logoUrl}
-                                alt="Preview do logo"
-                                className="max-h-[200px] max-w-full rounded-lg object-contain mx-auto"
-                                onError={() => setImageError(true)}
-                                onLoad={() => setImageError(false)}
-                              />
-                            ) : (
-                              <div className="text-sm text-destructive text-center py-4">
-                                Erro ao carregar imagem. Verifique se a URL está
-                                correta.
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )
-              }}
+              render={({ field, fieldState }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      onChange={value => field.onChange(value ?? '')}
+                      label="Logo da empresa*"
+                      uploadFolder="empresas"
+                      requireSquare
+                      minDimension={200}
+                      allowSvg={false}
+                      maxSize={1 * 1024 * 1024}
+                      // Mesmo enquadramento do pref.rio: círculo com borda e fundo branco
+                      previewClassName="mx-auto size-32 rounded-full border bg-white object-contain"
+                      error={!!fieldState.error}
+                      disabled={isReadOnly}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Envie uma imagem quadrada, com no mínimo 200×200 px e até 1
+                    MB. Prefira fundo branco.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </CardContent>
         </Card>
