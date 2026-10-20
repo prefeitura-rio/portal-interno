@@ -115,6 +115,18 @@ export const candidaturaStatusConfig: Record<
   },
 }
 
+// Origem da candidatura: por onde o candidato entrou na vaga.
+const ORIGEM_CANDIDATURA_LABEL: Record<string, string> = {
+  portal_cidadao: 'Candidatura pelo app',
+  secretaria: 'Cadastro na vaga',
+  banco_curriculos: 'Cadastro no banco de currículos',
+}
+
+/** Candidaturas anteriores ao registro da origem saem como "Não informado". */
+export function origemCandidaturaLabel(origem: string | null | undefined) {
+  return (origem && ORIGEM_CANDIDATURA_LABEL[origem]) || 'Não informado'
+}
+
 // Status Mapping Helpers (Backend ↔ Frontend)
 export function mapBackendStatusToFrontend(
   backendStatus: string

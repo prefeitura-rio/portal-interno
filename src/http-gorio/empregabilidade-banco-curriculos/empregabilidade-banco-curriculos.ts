@@ -6,15 +6,28 @@
  * OpenAPI spec version: 1.0
  */
 import type {
+  EmpregabilidadeAssociacaoRecusadaResponse,
+  EmpregabilidadeAssociarVagasRequest,
+  EmpregabilidadeAssociarVagasResponse,
+  EmpregabilidadeBancoCurriculoCandidaturaListResponse,
   EmpregabilidadeBancoCurriculoDetalhe,
   EmpregabilidadeBancoCurriculoListResponse,
+  GetApiV1EmpregabilidadeBancoCurriculos400,
   GetApiV1EmpregabilidadeBancoCurriculos403,
   GetApiV1EmpregabilidadeBancoCurriculos500,
   GetApiV1EmpregabilidadeBancoCurriculosCpf400,
   GetApiV1EmpregabilidadeBancoCurriculosCpf403,
   GetApiV1EmpregabilidadeBancoCurriculosCpf404,
   GetApiV1EmpregabilidadeBancoCurriculosCpf500,
+  GetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturas400,
+  GetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturas403,
+  GetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturas500,
+  GetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasParams,
   GetApiV1EmpregabilidadeBancoCurriculosParams,
+  PostApiV1EmpregabilidadeBancoCurriculosCpfAssociacoes400,
+  PostApiV1EmpregabilidadeBancoCurriculosCpfAssociacoes403,
+  PostApiV1EmpregabilidadeBancoCurriculosCpfAssociacoes404,
+  PostApiV1EmpregabilidadeBancoCurriculosCpfAssociacoes500,
 } from '../models'
 
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
@@ -22,6 +35,11 @@ import { customFetchGoRio } from '../../../custom-fetch-gorio'
 export type getApiV1EmpregabilidadeBancoCurriculosResponse200 = {
   data: EmpregabilidadeBancoCurriculoListResponse
   status: 200
+}
+
+export type getApiV1EmpregabilidadeBancoCurriculosResponse400 = {
+  data: GetApiV1EmpregabilidadeBancoCurriculos400
+  status: 400
 }
 
 export type getApiV1EmpregabilidadeBancoCurriculosResponse403 = {
@@ -39,6 +57,7 @@ export type getApiV1EmpregabilidadeBancoCurriculosResponseSuccess =
     headers: Headers
   }
 export type getApiV1EmpregabilidadeBancoCurriculosResponseError = (
+  | getApiV1EmpregabilidadeBancoCurriculosResponse400
   | getApiV1EmpregabilidadeBancoCurriculosResponse403
   | getApiV1EmpregabilidadeBancoCurriculosResponse500
 ) & {
@@ -55,6 +74,15 @@ export const getGetApiV1EmpregabilidadeBancoCurriculosUrl = (
   const normalizedParams = new URLSearchParams()
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['genero']
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach(v => {
+        normalizedParams.append(key, v === null ? 'null' : String(v))
+      })
+      return
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
@@ -142,6 +170,155 @@ export const getApiV1EmpregabilidadeBancoCurriculosCpf = async (
 ): Promise<getApiV1EmpregabilidadeBancoCurriculosCpfResponse> => {
   return customFetchGoRio<getApiV1EmpregabilidadeBancoCurriculosCpfResponse>(
     getGetApiV1EmpregabilidadeBancoCurriculosCpfUrl(cpf),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
+}
+
+export type postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse200 = {
+  data: EmpregabilidadeAssociarVagasResponse
+  status: 200
+}
+
+export type postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse400 = {
+  data: PostApiV1EmpregabilidadeBancoCurriculosCpfAssociacoes400
+  status: 400
+}
+
+export type postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse403 = {
+  data: PostApiV1EmpregabilidadeBancoCurriculosCpfAssociacoes403
+  status: 403
+}
+
+export type postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse404 = {
+  data: PostApiV1EmpregabilidadeBancoCurriculosCpfAssociacoes404
+  status: 404
+}
+
+export type postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse422 = {
+  data: EmpregabilidadeAssociacaoRecusadaResponse
+  status: 422
+}
+
+export type postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse500 = {
+  data: PostApiV1EmpregabilidadeBancoCurriculosCpfAssociacoes500
+  status: 500
+}
+
+export type postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponseSuccess =
+  postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse200 & {
+    headers: Headers
+  }
+export type postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponseError =
+  (
+    | postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse400
+    | postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse403
+    | postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse404
+    | postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse422
+    | postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse500
+  ) & {
+    headers: Headers
+  }
+
+export type postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse =
+  | postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponseSuccess
+  | postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponseError
+
+export const getPostApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesUrl = (
+  cpf: string
+) => {
+  return `/api/v1/empregabilidade/banco-curriculos/${cpf}/associacoes`
+}
+
+/**
+ * Associa o candidato do banco de currículos a uma ou mais vagas, criando a candidatura em cada uma. Valem as regras da candidatura do app: currículo mínimo e termos aceitos (422 quando faltam), vaga recebendo candidaturas e requisitos da vaga. O resultado vem por vaga. Exige acesso ao banco de currículos (admin ou go:curriculos:*) e, fora os admins totais, go:empregabilidade:admin ou editor de empregabilidade; editores só associam a vagas da própria secretaria. O candidato não recebe o e-mail de candidatura enviada.
+ * @summary Associar candidato a vagas
+ */
+export const postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoes = async (
+  cpf: string,
+  empregabilidadeAssociarVagasRequest: EmpregabilidadeAssociarVagasRequest,
+  options?: RequestInit
+): Promise<postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse> => {
+  return customFetchGoRio<postApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesResponse>(
+    getPostApiV1EmpregabilidadeBancoCurriculosCpfAssociacoesUrl(cpf),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(empregabilidadeAssociarVagasRequest),
+    }
+  )
+}
+
+export type getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse200 = {
+  data: EmpregabilidadeBancoCurriculoCandidaturaListResponse
+  status: 200
+}
+
+export type getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse400 = {
+  data: GetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturas400
+  status: 400
+}
+
+export type getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse403 = {
+  data: GetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturas403
+  status: 403
+}
+
+export type getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse500 = {
+  data: GetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturas500
+  status: 500
+}
+
+export type getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponseSuccess =
+  getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse200 & {
+    headers: Headers
+  }
+export type getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponseError =
+  (
+    | getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse400
+    | getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse403
+    | getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse500
+  ) & {
+    headers: Headers
+  }
+
+export type getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse =
+  | getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponseSuccess
+  | getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponseError
+
+export const getGetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasUrl = (
+  cpf: string,
+  params?: GetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasParams
+) => {
+  const normalizedParams = new URLSearchParams()
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  })
+
+  const stringifiedParams = normalizedParams.toString()
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/empregabilidade/banco-curriculos/${cpf}/candidaturas?${stringifiedParams}`
+    : `/api/v1/empregabilidade/banco-curriculos/${cpf}/candidaturas`
+}
+
+/**
+ * Lista as vagas a que o cidadão se candidatou ou foi associado, da candidatura mais recente para a mais antiga. O status da vaga considera a data limite. Exige admin ou role go:curriculos:admin / go:curriculos:editor.
+ * @summary Histórico de candidaturas do currículo
+ */
+export const getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturas = async (
+  cpf: string,
+  params?: GetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasParams,
+  options?: RequestInit
+): Promise<getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse> => {
+  return customFetchGoRio<getApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasResponse>(
+    getGetApiV1EmpregabilidadeBancoCurriculosCpfCandidaturasUrl(cpf, params),
     {
       ...options,
       method: 'GET',

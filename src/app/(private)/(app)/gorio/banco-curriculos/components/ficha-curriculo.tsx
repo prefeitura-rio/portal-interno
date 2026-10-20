@@ -27,6 +27,40 @@ interface FichaCurriculoProps {
   curriculo: EmpregabilidadeBancoCurriculoDetalhe
 }
 
+/** Nome e datas do currículo, acima das abas da ficha. */
+export function CabecalhoCurriculo({
+  curriculo,
+  acoes,
+}: FichaCurriculoProps & {
+  /** Botões no canto direito, ao lado do nome. */
+  acoes?: ReactNode
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <h2 className="text-2xl font-bold tracking-tight">
+          {nomeDeExibicao(curriculo)}
+        </h2>
+        {acoes}
+      </div>
+      <div className="flex flex-col gap-1 rounded-md border bg-muted/50 px-4 py-3 text-sm sm:flex-row sm:gap-8">
+        <span>
+          Data de inclusão:{' '}
+          <span className="font-medium">
+            {formatDateBR(curriculo.data_inclusao) || NAO_INFORMADO}
+          </span>
+        </span>
+        <span>
+          Última atualização:{' '}
+          <span className="font-medium">
+            {formatDateBR(curriculo.data_atualizacao) || NAO_INFORMADO}
+          </span>
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export function FichaCurriculo({ curriculo }: FichaCurriculoProps) {
   const completo = curriculo.curriculo
   const formacoes = completo?.formacoes ?? []
@@ -39,26 +73,6 @@ export function FichaCurriculo({ curriculo }: FichaCurriculoProps) {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">
-          {nomeDeExibicao(curriculo)}
-        </h2>
-        <div className="flex flex-col gap-1 rounded-md border bg-muted/50 px-4 py-3 text-sm sm:flex-row sm:gap-8">
-          <span>
-            Data de inclusão:{' '}
-            <span className="font-medium">
-              {formatDateBR(curriculo.data_inclusao) || NAO_INFORMADO}
-            </span>
-          </span>
-          <span>
-            Última atualização:{' '}
-            <span className="font-medium">
-              {formatDateBR(curriculo.data_atualizacao) || NAO_INFORMADO}
-            </span>
-          </span>
-        </div>
-      </div>
-
       <Secao titulo="Informações gerais">
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {temNomeSocial && (

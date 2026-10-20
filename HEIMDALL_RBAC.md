@@ -75,7 +75,7 @@ O sistema utiliza a **API Heimdall** como fonte única de verdade para roles e p
 
 As roles `go:empregabilidade:*` têm acesso **somente** ao módulo "Emprego e trabalho" (e Dashboard / Minha conta). Capacitação e Serviços municipais não aparecem no menu e o acesso às rotas é bloqueado.
 
-As roles `go:curriculos:*` têm acesso **somente** ao Banco de currículos (e Dashboard / Minha conta), por enquanto só de leitura. Na API (app-go-api) essa autorização vale sempre, independente de `RBAC_ENABLED`: o banco lista os currículos de todos os cidadãos.
+As roles `go:curriculos:*` têm acesso **somente** ao Banco de currículos (e Dashboard / Minha conta), só de leitura. Associar um candidato a vagas (botão "Associar a uma vaga" da ficha) exige também uma role de empregabilidade (`go:empregabilidade:admin` ou editor com/sem curadoria) ou um admin total; os editores só associam a vagas da própria secretaria. O acesso ao banco é liberado aos poucos, pessoa a pessoa, independente do módulo de empregabilidade. Na API (app-go-api) essa autorização vale sempre, independente de `RBAC_ENABLED`: o banco lista os currículos de todos os cidadãos.
 
 ---
 
