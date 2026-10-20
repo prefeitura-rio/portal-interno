@@ -322,6 +322,20 @@ export function canManageEnrollments(roles: string[] | undefined): boolean {
 }
 
 /**
+ * Can approve a candidatura (final hiring decision).
+ * Restricted to admin-level roles to prevent accidental mass approvals.
+ * editor_com_curadoria and editor_sem_curadoria are intentionally excluded.
+ */
+export function canApproveCandidatura(roles: string[] | undefined): boolean {
+  if (!roles) return false
+  return (
+    hasAdminPrivileges(roles) ||
+    roles.includes('go:admin') ||
+    roles.includes('go:empregabilidade:admin')
+  )
+}
+
+/**
  * Roles that bypass CPF-secretaria filtering in GO Rio forms.
  * Restricted roles: go:cursos:editor, go:empregabilidade:editor_com_curadoria,
  * go:empregabilidade:editor_sem_curadoria.

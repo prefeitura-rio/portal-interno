@@ -3,6 +3,7 @@
 import { useHeimdallUserWithLoading } from '@/hooks/use-heimdall-user'
 import type { HeimdallUser } from '@/types/heimdall-roles'
 import {
+  canApproveCandidatura,
   canApproveCourses,
   canDeleteOwnDraft,
   canEditBuscaServices,
@@ -58,6 +59,8 @@ interface HeimdallUserContextType {
   canDeleteOwnDraft: boolean
   /** Can manage enrollments (approve/reject/complete) */
   canManageEnrollments: boolean
+  /** Can approve a candidatura (final hiring decision — restricted to admin-level roles) */
+  canApproveCandidatura: boolean
 }
 
 const HeimdallUserContext = createContext<HeimdallUserContextType | null>(null)
@@ -84,6 +87,7 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
   const canEditCoursesPermission = canEditCourses(user?.roles)
   const canDeleteDraft = canDeleteOwnDraft(user?.roles)
   const canManageEnrollmentsPermission = canManageEnrollments(user?.roles)
+  const canApproveCandidaturaPermission = canApproveCandidatura(user?.roles)
 
   return (
     <HeimdallUserContext.Provider
@@ -109,6 +113,7 @@ export function HeimdallUserProvider({ children }: { children: ReactNode }) {
         canEditCourses: canEditCoursesPermission,
         canDeleteOwnDraft: canDeleteDraft,
         canManageEnrollments: canManageEnrollmentsPermission,
+        canApproveCandidatura: canApproveCandidaturaPermission,
       }}
     >
       {children}
