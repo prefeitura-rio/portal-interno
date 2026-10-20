@@ -5,6 +5,9 @@
  * API de serviços para aplicativos da Prefeitura do Rio
  * OpenAPI spec version: 1.0
  */
+import type { GetApiV1EmpregabilidadeBancoCurriculosExperienciaCarteira } from './getApiV1EmpregabilidadeBancoCurriculosExperienciaCarteira'
+import type { GetApiV1EmpregabilidadeBancoCurriculosPcd } from './getApiV1EmpregabilidadeBancoCurriculosPcd'
+import type { GetApiV1EmpregabilidadeBancoCurriculosTempoExperiencia } from './getApiV1EmpregabilidadeBancoCurriculosTempoExperiencia'
 
 export type GetApiV1EmpregabilidadeBancoCurriculosParams = {
   /**
@@ -16,7 +19,47 @@ export type GetApiV1EmpregabilidadeBancoCurriculosParams = {
    */
   pageSize?: number
   /**
-   * Busca parcial por nome ou nome social
+   * Busca parcial por nome, nome social ou CPF
    */
   search?: string
+  /**
+   * Gêneros autodeclarados (repetível ou separado por vírgula)
+   */
+  genero?: string[]
+  /**
+   * Idade mínima
+   */
+  idade_min?: number
+  /**
+   * Idade máxima
+   */
+  idade_max?: number
+  /**
+   * Soma das experiências
+   */
+  tempo_experiencia?: GetApiV1EmpregabilidadeBancoCurriculosTempoExperiencia
+  /**
+   * Experiência comprovada em carteira
+   */
+  experiencia_carteira?: GetApiV1EmpregabilidadeBancoCurriculosExperienciaCarteira
+  /**
+   * Escolaridade do cadastro (exata)
+   */
+  escolaridade?: string
+  /**
+   * Idioma do currículo
+   */
+  id_idioma?: string
+  /**
+   * Nível mínimo do idioma (exige id_idioma)
+   */
+  id_nivel_idioma?: string
+  /**
+   * Bairro do cadastro
+   */
+  bairro?: string
+  /**
+   * Pessoa com deficiência
+   */
+  pcd?: GetApiV1EmpregabilidadeBancoCurriculosPcd
 }

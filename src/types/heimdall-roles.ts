@@ -33,7 +33,8 @@ export type CoursesRole = (typeof COURSES_ROLES)[number]
 
 /**
  * Roles that grant access to the "Banco de currículos" module.
- * Both module roles are read-only for now; they will diverge in future versions.
+ * Both module roles only read the base. Associating a candidate to vagas also
+ * needs an Emprego e trabalho role (or a total admin role).
  */
 export const CURRICULOS_ROLES = [
   'admin',

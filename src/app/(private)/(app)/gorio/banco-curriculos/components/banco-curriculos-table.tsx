@@ -19,6 +19,17 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  type FiltroCandidatos,
+  aplicarFiltroNaUrl,
+  filtroDeParametros,
+  filtroParaParametros,
+} from '../../components/filtro-candidatos/filtro-candidatos'
+import {
+  BotaoFiltro,
+  FiltroCandidatosDialog,
+  FiltrosAplicados,
+} from '../../components/filtro-candidatos/filtro-candidatos-dialog'
+import {
   NAO_INFORMADO,
   nomeDeExibicao,
   valorOuNaoInformado,
@@ -32,8 +43,8 @@ const PAGE_SIZE_OPCOES = [10, 20, 30, 40, 50, PAGE_SIZE_MAXIMO]
 const ATRASO_BUSCA_MS = 500
 
 /**
- * Listagem do banco de currículos. Busca, página e tamanho de página ficam na
- * URL, para o operador voltar da ficha para a mesma lista.
+ * Listagem do banco de currículos. Busca, filtros, página e tamanho de página
+ * ficam na URL, para o operador voltar da ficha para a mesma lista.
  */
 export function BancoCurriculosTable() {
   const router = useRouter()
@@ -46,6 +57,11 @@ export function BancoCurriculosTable() {
     PAGE_SIZE_MAXIMO
   )
   const search = searchParams.get('search') ?? ''
+  const filtro = useMemo(
+    () => filtroDeParametros(new URLSearchParams(searchParams.toString())),
+    [searchParams]
+  )
+  const [filtrando, setFiltrando] = useState(false)
 
   const [termo, setTermo] = useState(search)
   // Marca as mudanças de URL feitas pela própria digitação, para a sincronização
@@ -65,6 +81,7 @@ export function BancoCurriculosTable() {
     page,
     pageSize,
     search: search || undefined,
+    filtro: filtroParaParametros(filtro),
   })
 
   const total = data?.meta?.total ?? 0
@@ -74,8 +91,12 @@ export function BancoCurriculosTable() {
     page: number
     pageSize: number
     search: string
+    filtro?: FiltroCandidatos
   }) {
-    const params = new URLSearchParams()
+    const params = aplicarFiltroNaUrl(
+      new URLSearchParams(),
+      proximo.filtro ?? filtro
+    )
     if (proximo.search) params.set('search', proximo.search)
     if (proximo.page > 1) params.set('page', String(proximo.page))
     if (proximo.pageSize !== PAGE_SIZE_PADRAO) {
@@ -103,6 +124,11 @@ export function BancoCurriculosTable() {
   function handleTermo(valor: string) {
     setTermo(valor)
     aplicarBuscaComAtraso(valor)
+  }
+
+  // Mudar o filtro volta para a primeira página.
+  function aplicarFiltro(proximo: FiltroCandidatos) {
+    atualizarUrl({ page: 1, pageSize, search, filtro: proximo })
   }
 
   // O botão continua valendo para quem prefere confirmar, e busca na hora.
@@ -193,9 +219,18 @@ export function BancoCurriculosTable() {
         />
         <Button type="submit" variant="outline">
           <Search className="mr-2 h-4 w-4" />
-          Filtrar
+          Pesquisar
         </Button>
+        <BotaoFiltro filtro={filtro} onClick={() => setFiltrando(true)} />
       </form>
+
+      <FiltrosAplicados filtro={filtro} onChange={aplicarFiltro} />
+      <FiltroCandidatosDialog
+        open={filtrando}
+        onOpenChange={setFiltrando}
+        filtro={filtro}
+        onAplicar={aplicarFiltro}
+      />
 
       {isError ? (
         <p className="text-sm text-destructive">

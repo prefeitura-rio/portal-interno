@@ -4,6 +4,7 @@ import {
   postApiV1EmpregabilidadeCandidaturas,
 } from '@/http-gorio/empregabilidade-candidaturas/empregabilidade-candidaturas'
 import { cleanCPF } from '@/lib/cpf-validator'
+import { parametrosDoFiltroCandidatos } from '@/lib/filtro-candidatos-params'
 import { sanitizeRmiValue } from '@/lib/rmi-value'
 import {
   mapBackendStatusToFrontend,
@@ -48,6 +49,8 @@ export async function GET(request: Request) {
       params.etapa_id = etapaId
     }
 
+    Object.assign(params, parametrosDoFiltroCandidatos(searchParams))
+
     // Call Orval client
     const response = await getApiV1EmpregabilidadeCandidaturas(params)
 
@@ -83,6 +86,7 @@ export async function GET(request: Request) {
             sanitizeRmiValue(c.email),
           phone: sanitizeRmiValue(c.personal_info?.celular),
           enrollmentDate: c.created_at,
+          origem: c.origem ?? null,
           status: mapBackendStatusToFrontend(c.status),
           /** Raw backend status for display (e.g. "Vaga congelada" vs "Vaga encerrada" when status is cancelled) */
           statusBackend: c.status,

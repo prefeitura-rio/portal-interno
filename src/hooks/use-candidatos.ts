@@ -62,6 +62,8 @@ export interface Candidato {
   email: string
   phone?: string
   enrollmentDate: string
+  /** Por onde a candidatura entrou (app, cadastro na vaga, banco de currículos); nula nas antigas */
+  origem?: string | null
   status: CandidatoStatus
   /** Raw backend status (e.g. vaga_congelada, vaga_descontinuada) for display when status is cancelled */
   statusBackend?: string
@@ -99,6 +101,8 @@ export interface CandidatoFilters {
   status?: CandidatoStatus[]
   search?: string
   etapa_id?: string
+  /** Filtros avançados de candidatos, já como parâmetros da API. */
+  candidato?: Record<string, string>
 }
 
 interface UseCandidatosOptions {
@@ -184,6 +188,10 @@ export function useCandidatos({
       // Add etapa filter if present (single UUID)
       if (filters?.etapa_id) {
         params.append('etapa_id', filters.etapa_id)
+      }
+
+      for (const [chave, valor] of Object.entries(filters?.candidato ?? {})) {
+        params.append(chave, valor)
       }
 
       console.log('Fetching candidatos with params:', params.toString())

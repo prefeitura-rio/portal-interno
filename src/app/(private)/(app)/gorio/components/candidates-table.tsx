@@ -27,6 +27,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Route,
   Text,
   User,
   UserPlus,
@@ -78,9 +79,22 @@ import {
 } from '@/hooks/use-candidatos'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { calcAgeFromBirthDate, formatAgeLabel } from '@/lib/calc-age'
-import type { VagaStatus } from '@/lib/status-config/empregabilidade'
+import {
+  type VagaStatus,
+  origemCandidaturaLabel,
+} from '@/lib/status-config/empregabilidade'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
+import {
+  FILTRO_VAZIO,
+  type FiltroCandidatos,
+  filtroParaParametros,
+} from './filtro-candidatos/filtro-candidatos'
+import {
+  BotaoFiltro,
+  FiltroCandidatosDialog,
+  FiltrosAplicados,
+} from './filtro-candidatos/filtro-candidatos-dialog'
 
 interface CandidatesTableProps {
   empregabilidadeId: string
@@ -274,6 +288,10 @@ export function CandidatesTable({
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'enrollmentDate', desc: true },
   ])
+  // Filtros avançados de candidatos, os mesmos do banco de currículos.
+  const [filtroCandidatos, setFiltroCandidatos] =
+    React.useState<FiltroCandidatos>(FILTRO_VAZIO)
+  const [filtrandoCandidatos, setFiltrandoCandidatos] = React.useState(false)
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
@@ -340,8 +358,9 @@ export function CandidatesTable({
       status: statusArray,
       search: searchForApi.trim() || undefined,
       etapa_id: etapaId,
+      candidato: filtroParaParametros(filtroCandidatos),
     }
-  }, [columnFilters, searchForApi])
+  }, [columnFilters, searchForApi, filtroCandidatos])
 
   // Use the custom hook to fetch candidatos
   const {
@@ -620,6 +639,22 @@ export function CandidatesTable({
         },
         enableColumnFilter: false,
         size: 140,
+      },
+      {
+        id: 'origem',
+        accessorKey: 'origem',
+        header: ({ column }: { column: Column<Candidato, unknown> }) => (
+          <DataTableColumnHeader column={column} title="Origem" />
+        ),
+        cell: ({ row }) => (
+          <span className="text-sm">
+            {origemCandidaturaLabel(row.original.origem)}
+          </span>
+        ),
+        meta: { label: 'Origem' },
+        enableColumnFilter: false,
+        enableSorting: false,
+        size: 180,
       },
       {
         id: 'status',
@@ -939,6 +974,7 @@ export function CandidatesTable({
           'Data de Inscrição': c.enrollmentDate
             ? new Date(c.enrollmentDate).toLocaleDateString('pt-BR')
             : '',
+          Origem: origemCandidaturaLabel(c.origem),
           Status: getStatusDisplayLabel(c),
           Endereço: c.address ?? '',
           Bairro: c.neighborhood ?? '',
@@ -1045,6 +1081,12 @@ export function CandidatesTable({
     empregabilidadeTitle,
     buildCandidaturasWorkbook,
   ])
+
+  // Mudar o filtro volta para a primeira página.
+  function aplicarFiltroCandidatos(proximo: FiltroCandidatos) {
+    setFiltroCandidatos(proximo)
+    setPagination(atual => ({ ...atual, pageIndex: 0 }))
+  }
 
   if (loading && candidatos.length === 0) {
     return (
@@ -1270,6 +1312,19 @@ export function CandidatesTable({
                                 {new Date(
                                   selectedCandidato.enrollmentDate
                                 ).toLocaleDateString('pt-BR')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Route className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div>
+                              <Label className="text-xs text-muted-foreground">
+                                Origem
+                              </Label>
+                              <p>
+                                {origemCandidaturaLabel(
+                                  selectedCandidato.origem
+                                )}
                               </p>
                             </div>
                           </div>
@@ -1776,6 +1831,13 @@ export function CandidatesTable({
         </SheetContent>
       </Sheet>
 
+      <FiltroCandidatosDialog
+        open={filtrandoCandidatos}
+        onOpenChange={setFiltrandoCandidatos}
+        filtro={filtroCandidatos}
+        onAplicar={aplicarFiltroCandidatos}
+      />
+
       {selectedCandidato && (
         <ConfirmDialog
           open={showRejectConfirm}
@@ -1790,7 +1852,16 @@ export function CandidatesTable({
       )}
 
       <DataTable table={table} onRowClick={handleRowClick}>
-        <DataTableToolbar table={table} />
+        <DataTableToolbar table={table}>
+          <BotaoFiltro
+            filtro={filtroCandidatos}
+            onClick={() => setFiltrandoCandidatos(true)}
+          />
+        </DataTableToolbar>
+        <FiltrosAplicados
+          filtro={filtroCandidatos}
+          onChange={aplicarFiltroCandidatos}
+        />
 
         <DataTableActionBar table={table}>
           <DataTableActionBarSelection table={table} />

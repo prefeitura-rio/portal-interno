@@ -5,6 +5,9 @@
  * API de serviços para aplicativos da Prefeitura do Rio
  * OpenAPI spec version: 1.0
  */
+import type { GetApiV1EmpregabilidadeCandidaturasExperienciaCarteira } from './getApiV1EmpregabilidadeCandidaturasExperienciaCarteira'
+import type { GetApiV1EmpregabilidadeCandidaturasPcd } from './getApiV1EmpregabilidadeCandidaturasPcd'
+import type { GetApiV1EmpregabilidadeCandidaturasTempoExperiencia } from './getApiV1EmpregabilidadeCandidaturasTempoExperiencia'
 
 export type GetApiV1EmpregabilidadeCandidaturasParams = {
   /**
@@ -35,4 +38,44 @@ export type GetApiV1EmpregabilidadeCandidaturasParams = {
    * Filtrar por ID da etapa atual
    */
   etapa_id?: string
+  /**
+   * Gêneros autodeclarados (repetível ou separado por vírgula)
+   */
+  genero?: string[]
+  /**
+   * Idade mínima
+   */
+  idade_min?: number
+  /**
+   * Idade máxima
+   */
+  idade_max?: number
+  /**
+   * Soma das experiências
+   */
+  tempo_experiencia?: GetApiV1EmpregabilidadeCandidaturasTempoExperiencia
+  /**
+   * Experiência comprovada em carteira
+   */
+  experiencia_carteira?: GetApiV1EmpregabilidadeCandidaturasExperienciaCarteira
+  /**
+   * Escolaridade do cadastro (exata)
+   */
+  escolaridade?: string
+  /**
+   * Idioma do currículo
+   */
+  id_idioma?: string
+  /**
+   * Nível mínimo do idioma (exige id_idioma)
+   */
+  id_nivel_idioma?: string
+  /**
+   * Bairro do cadastro
+   */
+  bairro?: string
+  /**
+   * Pessoa com deficiência
+   */
+  pcd?: GetApiV1EmpregabilidadeCandidaturasPcd
 }
