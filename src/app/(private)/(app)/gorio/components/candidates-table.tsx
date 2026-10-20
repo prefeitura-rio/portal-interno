@@ -34,6 +34,8 @@ import {
 } from 'lucide-react'
 import * as React from 'react'
 
+import { CandidaturaActionsDropdown } from '@/app/(private)/(app)/gorio/components/candidatura-actions-dropdown'
+import { EtapaSelector } from '@/app/(private)/(app)/gorio/components/etapa-selector'
 import type { InformacaoComplementar } from '@/app/(private)/(app)/gorio/empregabilidade/components/informacoes-complementares-creator'
 import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-candidate-dialog'
 import { ContactValue } from '@/components/contact-value'
@@ -54,15 +56,11 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { ExpandableText } from '@/components/ui/expandable-text'
 import { Label } from '@/components/ui/label'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -292,6 +290,7 @@ export function CandidatesTable({
   const [showNewCandidateDialog, setShowNewCandidateDialog] =
     React.useState(false)
   const [isAdvancingEtapa, setIsAdvancingEtapa] = React.useState(false)
+  const [showRejectConfirm, setShowRejectConfirm] = React.useState(false)
 
   // Debounced search for API (filter while user types without hitting API every keystroke)
   const [searchForApi, setSearchForApi] = React.useState('')
@@ -306,7 +305,7 @@ export function CandidatesTable({
   }, [columnFilters, debouncedSetSearch])
 
   // Get user permissions
-  const { canEditGoRio } = useHeimdallUserContext()
+  const { canEditGoRio, canApproveCandidatura } = useHeimdallUserContext()
 
   const isAddCandidateDisabled =
     vagaStatus === 'publicado_expirado' ||
@@ -1330,17 +1329,18 @@ export function CandidatesTable({
                       selectedCandidato.vaga.etapas.length > 0 && (
                         <AccordionItem value="etapa">
                           <AccordionTrigger className="text-sm font-medium">
-                            Etapa no processo
+                            Etapa atual do candidato no processo
                           </AccordionTrigger>
                           <AccordionContent>
-                            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
-                              <ul className="space-y-2">
-                                <li className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-md bg-background/60">
+                            <div className="space-y-4">
+                              {/* Box: lista de etapas */}
+                              <ul className="rounded-lg border border-border bg-muted/30 divide-y divide-border overflow-hidden">
+                                <li className="flex items-center justify-between gap-2 py-2 px-3">
                                   <span className="text-sm">
                                     <span className="text-muted-foreground font-mono mr-2">
                                       1.
                                     </span>
-                                    Candidatura recebida (Default do sistema)
+                                    Candidatura recebida (Padrão do sistema)
                                   </span>
                                   {selectedCandidato.currentEtapaId == null && (
                                     <Badge
@@ -1360,7 +1360,7 @@ export function CandidatesTable({
                                     return (
                                       <li
                                         key={etapa.id}
-                                        className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-md bg-background/60"
+                                        className="flex items-center justify-between gap-2 py-2 px-3"
                                       >
                                         <span className="text-sm">
                                           <span className="text-muted-foreground font-mono mr-2">
@@ -1382,54 +1382,42 @@ export function CandidatesTable({
                                   }
                                 )}
                               </ul>
+
+                              <Separator />
+
+                              {/* Mover candidato */}
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">
-                                  Definir etapa
+                                <Label className="text-sm font-medium">
+                                  Mover candidato no processo
                                 </Label>
-                                <Select
-                                  value={
-                                    selectedCandidato.currentEtapaId ??
-                                    '__candidatura_recebida__'
-                                  }
-                                  onValueChange={value => {
-                                    const idEtapa =
-                                      value === '__candidatura_recebida__'
-                                        ? null
-                                        : value
-                                    handleSetEtapa(selectedCandidato, idEtapa)
-                                  }}
-                                >
-                                  <SelectTrigger size="sm" className="w-full">
-                                    <SelectValue placeholder="Selecione a etapa" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem
-                                      value="__candidatura_recebida__"
-                                      disabled
-                                    >
-                                      1. Candidatura recebida
-                                    </SelectItem>
-                                    {selectedCandidato.vaga.etapas.map(
-                                      (etapa, index) => {
-                                        const numeroEtapa = index + 2
-                                        return (
-                                          <SelectItem
-                                            key={etapa.id}
-                                            value={etapa.id}
-                                          >
-                                            {numeroEtapa}.{' '}
-                                            {etapa.titulo ??
-                                              `Etapa ${numeroEtapa}`}
-                                          </SelectItem>
-                                        )
-                                      }
-                                    )}
-                                  </SelectContent>
-                                </Select>
                                 <p className="text-xs text-muted-foreground">
-                                  Avançar ou voltar para qualquer etapa do
-                                  processo.
+                                  Escolha em qual etapa deseja posicionar este
+                                  candidato (até mesmo em uma etapa anterior à
+                                  atual)
                                 </p>
+                                <EtapaSelector
+                                  etapas={selectedCandidato.vaga.etapas}
+                                  currentEtapaId={
+                                    selectedCandidato.currentEtapaId
+                                  }
+                                  candidatoId={selectedCandidato.id}
+                                  canApprove={canApproveCandidatura}
+                                  isRejected={
+                                    selectedCandidato.status === 'rejected'
+                                  }
+                                  isApproved={
+                                    selectedCandidato.status === 'approved'
+                                  }
+                                  onMoveEtapa={idEtapa =>
+                                    handleSetEtapa(selectedCandidato, idEtapa)
+                                  }
+                                  onReject={() =>
+                                    handleRejectCandidato(selectedCandidato)
+                                  }
+                                  onApprove={() =>
+                                    handleConfirmCandidato(selectedCandidato)
+                                  }
+                                />
                               </div>
                             </div>
                           </AccordionContent>
@@ -1625,9 +1613,10 @@ export function CandidatesTable({
                                           </p>
                                         )}
                                         {e.descricao_atividades && (
-                                          <p className="text-muted-foreground text-xs mt-1 line-clamp-3">
-                                            {e.descricao_atividades}
-                                          </p>
+                                          <ExpandableText
+                                            text={e.descricao_atividades}
+                                            className="text-muted-foreground mt-1"
+                                          />
                                         )}
                                       </li>
                                     ))}
@@ -1662,9 +1651,10 @@ export function CandidatesTable({
                                           </span>
                                         )}
                                         {q.descricao && (
-                                          <p className="text-muted-foreground text-xs mt-0.5">
-                                            {q.descricao}
-                                          </p>
+                                          <ExpandableText
+                                            text={q.descricao}
+                                            className="text-muted-foreground mt-0.5"
+                                          />
                                         )}
                                       </li>
                                     ))}
@@ -1716,83 +1706,88 @@ export function CandidatesTable({
                 </div>
               </div>
 
-              <SheetFooter className="flex-col gap-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-                  <Button
-                    onClick={() => handleConfirmCandidato(selectedCandidato)}
-                    className="w-full bg-green-50 border border-green-200 text-green-700 hover:bg-green-100!"
-                    disabled={selectedCandidato.status === 'approved'}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Aprovar candidato
-                  </Button>
-                  <Button
-                    onClick={() => handleSetPendingCandidato(selectedCandidato)}
-                    className="w-full bg-yellow-50 border border-yellow-200 text-yellow-700 hover:bg-yellow-100!"
-                    disabled={selectedCandidato.status === 'pending'}
-                  >
-                    <Clock className="mr-2 h-4 w-4" />
-                    Definir como pendente
-                  </Button>
-                  <Button
-                    onClick={() => handleRejectCandidato(selectedCandidato)}
-                    variant="destructive"
-                    className="w-full"
-                    disabled={selectedCandidato.status === 'rejected'}
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Recusar candidato
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const etapas = selectedCandidato.vaga?.etapas ?? []
-                      if (etapas.length === 0 || isAdvancingEtapa) return
-                      const nextId =
-                        selectedCandidato.currentEtapaId == null
-                          ? etapas[0]?.id
-                          : (() => {
-                              const idx = etapas.findIndex(
-                                e => e.id === selectedCandidato.currentEtapaId
-                              )
-                              return idx >= 0 ? etapas[idx + 1]?.id : undefined
-                            })()
-                      if (nextId) {
-                        setIsAdvancingEtapa(true)
-                        handleSetEtapa(selectedCandidato, nextId).finally(() =>
-                          setIsAdvancingEtapa(false)
-                        )
-                      }
-                    }}
-                    variant="outline"
-                    className="w-full"
-                    disabled={
-                      isAdvancingEtapa ||
-                      !selectedCandidato.vaga?.etapas?.length ||
-                      (() => {
-                        const etapas = selectedCandidato.vaga.etapas ?? []
-                        if (etapas.length === 0) return true
-                        if (selectedCandidato.currentEtapaId == null)
-                          return false
-                        const idx = etapas.findIndex(
-                          e => e.id === selectedCandidato.currentEtapaId
-                        )
-                        return idx < 0 || idx >= etapas.length - 1
-                      })()
+              <SheetFooter className="flex-row! items-center gap-2 px-4 py-3 bg-[#F1F1F4] dark:bg-zinc-900 shadow-[0_-4px_16px_0_rgba(0,0,0,0.15)]">
+                <Button
+                  onClick={() => setShowRejectConfirm(true)}
+                  size="lg"
+                  className="w-44! h-10! rounded-[10px] bg-[#D32F2F] text-white hover:bg-[#B71C1C] shrink-0"
+                  disabled={selectedCandidato.status === 'rejected'}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Recusar candidato
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    const etapas = selectedCandidato.vaga?.etapas ?? []
+                    if (etapas.length === 0 || isAdvancingEtapa) return
+                    const nextId =
+                      selectedCandidato.currentEtapaId == null
+                        ? etapas[0]?.id
+                        : (() => {
+                            const idx = etapas.findIndex(
+                              e => e.id === selectedCandidato.currentEtapaId
+                            )
+                            return idx >= 0 ? etapas[idx + 1]?.id : undefined
+                          })()
+                    if (nextId) {
+                      setIsAdvancingEtapa(true)
+                      handleSetEtapa(selectedCandidato, nextId).finally(() =>
+                        setIsAdvancingEtapa(false)
+                      )
                     }
-                  >
-                    {isAdvancingEtapa ? (
-                      <LoadingSpinner size="sm" className="mr-2 shrink-0" />
-                    ) : (
-                      <ArrowRight className="mr-2 h-4 w-4" />
-                    )}
-                    Avançar etapa
-                  </Button>
-                </div>
+                  }}
+                  size="lg"
+                  className="w-40! h-10! rounded-[10px] bg-[#1976D2] text-white hover:bg-[#1565C0]"
+                  disabled={
+                    isAdvancingEtapa ||
+                    !selectedCandidato.vaga?.etapas?.length ||
+                    (() => {
+                      const etapas = selectedCandidato.vaga.etapas ?? []
+                      if (etapas.length === 0) return true
+                      if (selectedCandidato.currentEtapaId == null) return false
+                      const idx = etapas.findIndex(
+                        e => e.id === selectedCandidato.currentEtapaId
+                      )
+                      return idx < 0 || idx >= etapas.length - 1
+                    })()
+                  }
+                >
+                  {isAdvancingEtapa ? (
+                    <LoadingSpinner size="sm" className="mr-2 shrink-0" />
+                  ) : (
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                  )}
+                  Avançar etapa
+                </Button>
+
+                <CandidaturaActionsDropdown
+                  canApprove={canApproveCandidatura}
+                  isPending={selectedCandidato.status === 'pending'}
+                  isApproved={selectedCandidato.status === 'approved'}
+                  onSetPending={() =>
+                    handleSetPendingCandidato(selectedCandidato)
+                  }
+                  onApprove={() => handleConfirmCandidato(selectedCandidato)}
+                />
               </SheetFooter>
             </>
           )}
         </SheetContent>
       </Sheet>
+
+      {selectedCandidato && (
+        <ConfirmDialog
+          open={showRejectConfirm}
+          onOpenChange={setShowRejectConfirm}
+          title="Atenção!"
+          description="Recusar um candidato é uma ação definitiva. Deseja continuar?"
+          confirmText="Sim"
+          cancelText="Não"
+          variant="destructive"
+          onConfirm={() => handleRejectCandidato(selectedCandidato)}
+        />
+      )}
 
       <DataTable table={table} onRowClick={handleRowClick}>
         <DataTableToolbar table={table} />
