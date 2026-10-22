@@ -15,6 +15,8 @@ interface CandidaturaActionsDropdownProps {
   canApprove: boolean
   isPending: boolean
   isApproved: boolean
+  /** Bloqueia o dropdown inteiro (candidato recusado ou aprovado) */
+  isBlocked?: boolean
   onSetPending: () => void
   onApprove: () => void
 }
@@ -44,6 +46,7 @@ export function CandidaturaActionsDropdown({
   canApprove,
   isPending,
   isApproved,
+  isBlocked = false,
   onSetPending,
   onApprove,
 }: CandidaturaActionsDropdownProps) {
@@ -61,6 +64,7 @@ export function CandidaturaActionsDropdown({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger
+          disabled={isBlocked}
           className="flex h-10 items-center gap-1.5 rounded-[10px] border border-[#E5E5E5] bg-white px-3 text-sm font-medium text-foreground ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
           aria-label="Mais ações"
         >

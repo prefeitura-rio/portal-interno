@@ -13,6 +13,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
+  AlertTriangle,
   ArrowRight,
   Award,
   Briefcase,
@@ -1706,70 +1707,94 @@ export function CandidatesTable({
                 </div>
               </div>
 
-              <SheetFooter className="flex-row! items-center gap-2 px-4 py-3 bg-[#F1F1F4] dark:bg-zinc-900 shadow-[0_-4px_16px_0_rgba(0,0,0,0.15)]">
-                <Button
-                  onClick={() => setShowRejectConfirm(true)}
-                  size="lg"
-                  className="w-44! h-10! rounded-[10px] bg-[#D32F2F] text-white hover:bg-[#B71C1C] shrink-0"
-                  disabled={selectedCandidato.status === 'rejected'}
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Recusar candidato
-                </Button>
-
-                <Button
-                  onClick={() => {
-                    const etapas = selectedCandidato.vaga?.etapas ?? []
-                    if (etapas.length === 0 || isAdvancingEtapa) return
-                    const nextId =
-                      selectedCandidato.currentEtapaId == null
-                        ? etapas[0]?.id
-                        : (() => {
-                            const idx = etapas.findIndex(
-                              e => e.id === selectedCandidato.currentEtapaId
-                            )
-                            return idx >= 0 ? etapas[idx + 1]?.id : undefined
-                          })()
-                    if (nextId) {
-                      setIsAdvancingEtapa(true)
-                      handleSetEtapa(selectedCandidato, nextId).finally(() =>
-                        setIsAdvancingEtapa(false)
-                      )
+              <SheetFooter className="gap-2 px-4 py-3 bg-[#F1F1F4] dark:bg-zinc-900 shadow-[0_-4px_16px_0_rgba(0,0,0,0.15)]">
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setShowRejectConfirm(true)}
+                    size="lg"
+                    className="w-44! h-10! rounded-[10px] bg-[#D32F2F] text-white hover:bg-[#B71C1C] shrink-0"
+                    disabled={
+                      selectedCandidato.status === 'rejected' ||
+                      selectedCandidato.status === 'approved'
                     }
-                  }}
-                  size="lg"
-                  className="w-40! h-10! rounded-[10px] bg-[#1976D2] text-white hover:bg-[#1565C0]"
-                  disabled={
-                    isAdvancingEtapa ||
-                    !selectedCandidato.vaga?.etapas?.length ||
-                    (() => {
-                      const etapas = selectedCandidato.vaga.etapas ?? []
-                      if (etapas.length === 0) return true
-                      if (selectedCandidato.currentEtapaId == null) return false
-                      const idx = etapas.findIndex(
-                        e => e.id === selectedCandidato.currentEtapaId
-                      )
-                      return idx < 0 || idx >= etapas.length - 1
-                    })()
-                  }
-                >
-                  {isAdvancingEtapa ? (
-                    <LoadingSpinner size="sm" className="mr-2 shrink-0" />
-                  ) : (
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                  )}
-                  Avançar etapa
-                </Button>
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Recusar candidato
+                  </Button>
 
-                <CandidaturaActionsDropdown
-                  canApprove={canApproveCandidatura}
-                  isPending={selectedCandidato.status === 'pending'}
-                  isApproved={selectedCandidato.status === 'approved'}
-                  onSetPending={() =>
-                    handleSetPendingCandidato(selectedCandidato)
-                  }
-                  onApprove={() => handleConfirmCandidato(selectedCandidato)}
-                />
+                  <Button
+                    onClick={() => {
+                      const etapas = selectedCandidato.vaga?.etapas ?? []
+                      if (etapas.length === 0 || isAdvancingEtapa) return
+                      const nextId =
+                        selectedCandidato.currentEtapaId == null
+                          ? etapas[0]?.id
+                          : (() => {
+                              const idx = etapas.findIndex(
+                                e => e.id === selectedCandidato.currentEtapaId
+                              )
+                              return idx >= 0 ? etapas[idx + 1]?.id : undefined
+                            })()
+                      if (nextId) {
+                        setIsAdvancingEtapa(true)
+                        handleSetEtapa(selectedCandidato, nextId).finally(() =>
+                          setIsAdvancingEtapa(false)
+                        )
+                      }
+                    }}
+                    size="lg"
+                    className="w-40! h-10! rounded-[10px] bg-[#1976D2] text-white hover:bg-[#1565C0]"
+                    disabled={
+                      isAdvancingEtapa ||
+                      selectedCandidato.status === 'rejected' ||
+                      selectedCandidato.status === 'approved' ||
+                      !selectedCandidato.vaga?.etapas?.length ||
+                      (() => {
+                        const etapas = selectedCandidato.vaga.etapas ?? []
+                        if (etapas.length === 0) return true
+                        if (selectedCandidato.currentEtapaId == null)
+                          return false
+                        const idx = etapas.findIndex(
+                          e => e.id === selectedCandidato.currentEtapaId
+                        )
+                        return idx < 0 || idx >= etapas.length - 1
+                      })()
+                    }
+                  >
+                    {isAdvancingEtapa ? (
+                      <LoadingSpinner size="sm" className="mr-2 shrink-0" />
+                    ) : (
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                    )}
+                    Avançar etapa
+                  </Button>
+
+                  <CandidaturaActionsDropdown
+                    canApprove={canApproveCandidatura}
+                    isPending={selectedCandidato.status === 'pending'}
+                    isApproved={selectedCandidato.status === 'approved'}
+                    isBlocked={
+                      selectedCandidato.status === 'rejected' ||
+                      selectedCandidato.status === 'approved'
+                    }
+                    onSetPending={() =>
+                      handleSetPendingCandidato(selectedCandidato)
+                    }
+                    onApprove={() => handleConfirmCandidato(selectedCandidato)}
+                  />
+                </div>
+
+                {(selectedCandidato.status === 'rejected' ||
+                  selectedCandidato.status === 'approved') && (
+                  <div className="flex items-center gap-1.5">
+                    <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      {selectedCandidato.status === 'rejected'
+                        ? 'Candidato recusado. Não é possível alterar o status ou a etapa.'
+                        : 'Candidato aprovado. Não é possível alterar o status ou a etapa.'}
+                    </p>
+                  </div>
+                )}
               </SheetFooter>
             </>
           )}
