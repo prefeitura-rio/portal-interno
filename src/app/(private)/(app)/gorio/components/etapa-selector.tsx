@@ -9,7 +9,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-import { Check, CheckCircle, ChevronDown, XCircle } from 'lucide-react'
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle,
+  ChevronDown,
+  XCircle,
+} from 'lucide-react'
 import * as React from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -116,24 +122,8 @@ export function EtapaSelector({
     }, SUCCESS_TIMEOUT_MS)
   }
 
-  async function handleCommit() {
-    // Ações definitivas ou mesma etapa → abre modal de confirmação
-    if (
-      selection.kind === 'recusar' ||
-      selection.kind === 'aprovar' ||
-      (selection.etapaId ?? null) === (currentEtapaId ?? null)
-    ) {
-      setConfirmOpen(true)
-      return
-    }
-
-    setLoading(true)
-    try {
-      await onMoveEtapa(selection.etapaId)
-      startSuccessTimer()
-    } finally {
-      setLoading(false)
-    }
+  function handleCommit() {
+    setConfirmOpen(true)
   }
 
   async function handleConfirmed() {
@@ -157,7 +147,15 @@ export function EtapaSelector({
       }
       return
     }
-    // same-etapa: dismiss only
+    if (isSameEtapa) return
+    // mover para etapa diferente
+    setLoading(true)
+    try {
+      await onMoveEtapa(selection.etapaId)
+      startSuccessTimer()
+    } finally {
+      setLoading(false)
+    }
   }
 
   // ── Derived state ──────────────────────────────────────────────────────────
@@ -165,14 +163,22 @@ export function EtapaSelector({
     selection.kind === 'etapa' &&
     (selection.etapaId ?? null) === (currentEtapaId ?? null)
 
+  const targetEtapaLabel =
+    selection.kind === 'etapa' && selection.etapaId !== null
+      ? (etapas.find(e => e.id === selection.etapaId)?.titulo ?? 'esta etapa')
+      : null
+
   const confirmDescription = isSameEtapa
-    ? 'Você moveu o candidato para a mesma posição em que ele já está posicionado atualmente.'
+    ? 'Você selecionou a mesma etapa em que o candidato já está posicionado atualmente.'
     : selection.kind === 'recusar'
       ? 'Recusar um candidato é uma ação definitiva. Deseja continuar?'
-      : 'Aprovar um candidato é uma ação definitiva. Deseja continuar?'
+      : selection.kind === 'aprovar'
+        ? 'Aprovar um candidato é uma ação definitiva. Deseja continuar?'
+        : `Deseja mover o candidato para "${targetEtapaLabel ?? 'Candidatura recebida'}"?`
 
   const isDestructive = selection.kind === 'recusar'
   const isApprove = selection.kind === 'aprovar'
+  const isBlocked = isRejected || isApproved
 
   return (
     <>
@@ -182,6 +188,7 @@ export function EtapaSelector({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
+              disabled={isBlocked}
               className={cn(
                 'flex w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-[10px] border px-3 text-sm transition-colors h-9',
                 'ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -283,7 +290,7 @@ export function EtapaSelector({
         <button
           type="button"
           onClick={handleCommit}
-          disabled={loading}
+          disabled={loading || isBlocked}
           className={cn(
             'inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[10px] px-4 text-sm font-medium whitespace-nowrap text-white',
             'ring-offset-background transition-colors shadow-[0_1px_4px_0_#DFDFDF]',
@@ -313,6 +320,18 @@ export function EtapaSelector({
         Candidato movido de etapa com sucesso!
       </p>
 
+      {/* ── Feedback de bloqueio ─────────────────────────────────────────────── */}
+      {isBlocked && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800/40 px-3 py-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800 dark:text-amber-300">
+            {isRejected
+              ? 'Candidato recusado. Não é possível alterar a etapa.'
+              : 'Candidato aprovado. Não é possível alterar a etapa.'}
+          </p>
+        </div>
+      )}
+
       {/* ── Modal de confirmação ─────────────────────────────────────────────── */}
       <ConfirmDialog
         open={confirmOpen}
@@ -323,7 +342,16 @@ export function EtapaSelector({
         cancelText={isSameEtapa ? undefined : 'Não'}
         variant={isDestructive ? 'destructive' : 'default'}
         onConfirm={handleConfirmed}
-      />
+      >
+        {(isDestructive || isApprove) && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800/40 px-3 py-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800 dark:text-amber-300">
+              Após confirmar, não será possível alterar a etapa do candidato.
+            </p>
+          </div>
+        )}
+      </ConfirmDialog>
     </>
   )
 }
