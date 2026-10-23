@@ -24,7 +24,7 @@ export async function PUT(
     })
 
     if (response.status === 200) {
-      revalidateTag('empregabilidade-candidaturas')
+      revalidateTag('empregabilidade-candidaturas', 'max')
       return NextResponse.json({
         candidatura: response.data,
         success: true,

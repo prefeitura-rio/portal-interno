@@ -90,9 +90,9 @@ export async function POST(request: Request) {
 
     if (response.status === 201) {
       // Revalidate empresas cache
-      revalidateTag('empregabilidade-empresas')
+      revalidateTag('empregabilidade-empresas', 'max')
       // Also revalidate vagas cache as empresas are used in vagas
-      revalidateTag('empregabilidade-vagas')
+      revalidateTag('empregabilidade-vagas', 'max')
 
       return NextResponse.json({
         empresa: response.data,

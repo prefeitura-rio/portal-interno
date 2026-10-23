@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       await putApiV1EmpregabilidadeVagasIdSendToApproval(vagaId)
 
     if (sendToApprovalResponse.status === 200) {
-      revalidateTag('empregabilidade-vagas')
+      revalidateTag('empregabilidade-vagas', 'max')
 
       return NextResponse.json({
         vaga: sendToApprovalResponse.data,

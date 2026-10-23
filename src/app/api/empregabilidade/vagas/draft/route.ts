@@ -37,8 +37,8 @@ export async function POST(request: Request) {
 
     if (response.status === 201) {
       // Revalidate vagas cache (especially drafts)
-      revalidateTag('empregabilidade-vagas')
-      revalidateTag('empregabilidade-vagas-drafts')
+      revalidateTag('empregabilidade-vagas', 'max')
+      revalidateTag('empregabilidade-vagas-drafts', 'max')
 
       return NextResponse.json({
         vaga: response.data,

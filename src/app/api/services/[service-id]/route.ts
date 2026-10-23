@@ -102,8 +102,8 @@ export async function PUT(
       console.log('Service updated successfully:', response.data)
 
       // Revalidate cache tags for services
-      revalidateTag('services')
-      revalidateTag(`service-${serviceId}`)
+      revalidateTag('services', 'max')
+      revalidateTag(`service-${serviceId}`, 'max')
 
       // Convert API response to frontend format
       const service = convertApiToFrontend(response.data)
@@ -153,8 +153,8 @@ export async function DELETE(
       console.log('Service deleted successfully')
 
       // Revalidate cache tags for services
-      revalidateTag('services')
-      revalidateTag(`service-${serviceId}`)
+      revalidateTag('services', 'max')
+      revalidateTag(`service-${serviceId}`, 'max')
 
       return NextResponse.json({
         success: true,

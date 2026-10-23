@@ -232,8 +232,8 @@ export async function PUT(
     // Step 10: Handle success response (200)
     if (response.status === 200) {
       // Revalidate cache tags
-      revalidateTag('empregabilidade-empresas')
-      revalidateTag('empregabilidade-vagas') // Vagas depend on empresas
+      revalidateTag('empregabilidade-empresas', 'max')
+      revalidateTag('empregabilidade-vagas', 'max') // Vagas depend on empresas
 
       return NextResponse.json({
         empresa: response.data, // Updated EmpregabilidadeEmpresa
@@ -349,8 +349,8 @@ export async function DELETE(
     // Step 6: Handle success response (200)
     if (response.status === 200) {
       // Revalidate cache tags
-      revalidateTag('empregabilidade-empresas')
-      revalidateTag('empregabilidade-vagas') // Vagas may be affected
+      revalidateTag('empregabilidade-empresas', 'max')
+      revalidateTag('empregabilidade-vagas', 'max') // Vagas may be affected
 
       return NextResponse.json({
         message: 'Empresa excluída com sucesso',

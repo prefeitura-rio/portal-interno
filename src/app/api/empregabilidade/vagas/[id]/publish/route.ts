@@ -70,7 +70,7 @@ export async function PUT(
     console.log('Publish response:', { status: response.status })
 
     if (response.status === 200) {
-      revalidateTag('empregabilidade-vagas')
+      revalidateTag('empregabilidade-vagas', 'max')
 
       return NextResponse.json({
         vaga: response.data,

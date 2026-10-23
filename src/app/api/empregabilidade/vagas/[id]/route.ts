@@ -148,7 +148,7 @@ export async function PUT(
     const response = await putApiV1EmpregabilidadeVagasId(id, body)
 
     if (response.status === 200) {
-      revalidateTag('empregabilidade-vagas')
+      revalidateTag('empregabilidade-vagas', 'max')
 
       return NextResponse.json({
         vaga: response.data,
@@ -189,7 +189,7 @@ export async function DELETE(
     console.log('Delete response:', { status: response.status })
 
     if (response.status === 200) {
-      revalidateTag('empregabilidade-vagas')
+      revalidateTag('empregabilidade-vagas', 'max')
 
       return NextResponse.json({
         success: true,
