@@ -7,7 +7,7 @@
 3. Middleware consulta Heimdall `GET /users/me` (cache em cookie `heimdall_user`).
 4. `hasRouteAccess(path, roles)` via `ROUTE_PERMISSIONS`.
 
-**Não use next-auth** para features novas. A dependência pode existir no `package.json`, mas **não** é o padrão do app.
+**Não use next-auth.** Auth é cookies Keycloak + Heimdall; não há camada Auth.js.
 
 Diferente do [superapp](https://github.com/prefeitura-rio/superapp): aqui **Heimdall é obrigatório**.
 
