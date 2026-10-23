@@ -108,9 +108,9 @@ export async function POST(request: Request) {
     const reviewResult = await reviewResponse.json()
 
     // Revalidate courses cache
-    revalidateTag('courses')
-    revalidateTag('courses-drafts')
-    revalidateTag('courses-in-review')
+    revalidateTag('courses', 'max')
+    revalidateTag('courses-drafts', 'max')
+    revalidateTag('courses-in-review', 'max')
 
     return NextResponse.json({
       course: reviewResult.data || reviewResult,

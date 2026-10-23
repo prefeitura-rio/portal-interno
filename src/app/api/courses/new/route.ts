@@ -64,8 +64,8 @@ export async function POST(request: Request) {
       }
 
       // Revalidate courses cache
-      revalidateTag('courses')
-      revalidateTag('courses-in-review') // NOVO - revalidar tab de revisão
+      revalidateTag('courses', 'max')
+      revalidateTag('courses-in-review', 'max') // NOVO - revalidar tab de revisão
 
       return NextResponse.json({
         course: response.data,

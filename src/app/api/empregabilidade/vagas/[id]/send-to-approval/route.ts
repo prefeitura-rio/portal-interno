@@ -31,7 +31,7 @@ export async function PUT(
     console.log('Send-to-approval response:', { status: response.status })
 
     if (response.status === 200) {
-      revalidateTag('empregabilidade-vagas')
+      revalidateTag('empregabilidade-vagas', 'max')
 
       return NextResponse.json({
         vaga: response.data,

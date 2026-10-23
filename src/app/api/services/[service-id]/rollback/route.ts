@@ -52,8 +52,8 @@ export async function POST(
       console.log('✅ Service rolled back successfully:', responseBody)
 
       // Revalidate cache tags for services
-      revalidateTag('services')
-      revalidateTag(`service-${serviceId}`)
+      revalidateTag('services', 'max')
+      revalidateTag(`service-${serviceId}`, 'max')
 
       // Convert API response to frontend format
       const serviceData =

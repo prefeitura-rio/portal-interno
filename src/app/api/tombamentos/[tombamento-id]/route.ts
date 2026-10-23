@@ -25,8 +25,8 @@ export async function DELETE(
       console.log('Tombamento deleted successfully')
 
       // Revalidate cache tags for services and tombamentos
-      revalidateTag('services')
-      revalidateTag('tombamentos')
+      revalidateTag('services', 'max')
+      revalidateTag('tombamentos', 'max')
 
       return NextResponse.json({
         success: true,

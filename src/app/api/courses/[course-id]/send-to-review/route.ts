@@ -51,8 +51,8 @@ export async function PUT(
     const data = await response.json()
 
     // Revalidar cache
-    revalidateTag('courses')
-    revalidateTag('courses-drafts')
+    revalidateTag('courses', 'max')
+    revalidateTag('courses-drafts', 'max')
 
     return NextResponse.json({
       message: 'Curso enviado para revisão com sucesso',

@@ -78,7 +78,7 @@ export async function POST(request: Request) {
 
     if (publishResponse.status === 200) {
       // Revalidate vagas cache
-      revalidateTag('empregabilidade-vagas')
+      revalidateTag('empregabilidade-vagas', 'max')
 
       return NextResponse.json({
         vaga: publishResponse.data,

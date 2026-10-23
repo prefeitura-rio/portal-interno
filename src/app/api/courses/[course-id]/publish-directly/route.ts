@@ -72,9 +72,9 @@ export async function PUT(
 
     const data = await approveResponse.json()
 
-    revalidateTag('courses')
-    revalidateTag('courses-drafts')
-    revalidateTag('courses-in-review')
+    revalidateTag('courses', 'max')
+    revalidateTag('courses-drafts', 'max')
+    revalidateTag('courses-in-review', 'max')
 
     return NextResponse.json({
       message: 'Curso publicado com sucesso',

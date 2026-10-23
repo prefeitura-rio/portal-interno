@@ -173,7 +173,7 @@ export async function POST(request: Request) {
       console.log('Service created successfully:', response.data)
 
       // Revalidate cache tags for services
-      revalidateTag('services')
+      revalidateTag('services', 'max')
 
       // Convert API response to frontend format
       const service = convertApiToFrontend(response.data)

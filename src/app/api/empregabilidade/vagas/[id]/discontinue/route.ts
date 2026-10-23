@@ -26,7 +26,7 @@ export async function PUT(
     const response = await putApiV1EmpregabilidadeVagasIdDiscontinue(id)
 
     if (response.status === 200) {
-      revalidateTag('empregabilidade-vagas')
+      revalidateTag('empregabilidade-vagas', 'max')
       return NextResponse.json({
         vaga: response.data,
         success: true,

@@ -30,8 +30,8 @@ export async function POST(request: Request) {
 
     if (response.status === 201) {
       // Revalidate courses cache (especially drafts)
-      revalidateTag('courses')
-      revalidateTag('courses-drafts')
+      revalidateTag('courses', 'max')
+      revalidateTag('courses-drafts', 'max')
 
       return NextResponse.json({
         course: response.data,

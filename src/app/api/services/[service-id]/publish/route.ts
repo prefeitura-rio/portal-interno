@@ -84,8 +84,8 @@ export async function PATCH(
       console.log('Service published successfully:', response.data)
 
       // Revalidate cache tags for services
-      revalidateTag('services')
-      revalidateTag(`service-${serviceId}`)
+      revalidateTag('services', 'max')
+      revalidateTag(`service-${serviceId}`, 'max')
 
       // Convert API response to frontend format
       const service = convertApiToFrontend(response.data)
