@@ -76,8 +76,6 @@ export const customFetchHeimdall = async <T>(
     headers: requestHeaders,
   }
 
-  console.log('RequestInit:', requestInit)
-
   const response = await fetch(requestUrl, requestInit)
   const data = await getBody<T>(response)
 
