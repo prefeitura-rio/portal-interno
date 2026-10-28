@@ -5,7 +5,8 @@
 1. OAuth2/OIDC Identidade Carioca (Keycloak) → cookies httpOnly `access_token` / `refresh_token`.
 2. Middleware valida JWT (expiry + refresh).
 3. Middleware consulta Heimdall `GET /users/me` (cache só na memória do servidor, chaveado pelo `access_token`: `src/lib/heimdall-user-cache.ts`). O cookie legado `heimdall_user` vinha do cliente e **nunca** decide papéis nem CPF; não reintroduza cache de autorização em cookie sem assinatura.
-4. `hasRouteAccess(path, roles)` via `ROUTE_PERMISSIONS`.
+4. `hasRouteAccess(path, roles)` via `ROUTE_PERMISSIONS` (páginas).
+5. Rotas de API (`/api/*`): `hasApiRouteAccess` via `API_ROUTE_PERMISSIONS`, no mesmo middleware; responde `401`/`403` em JSON e nega rota sem regra.
 
 **Não use next-auth.** Auth é cookies Keycloak + Heimdall; não há camada Auth.js.
 
@@ -36,7 +37,7 @@ Matriz completa: [`HEIMDALL_RBAC.md`](../../HEIMDALL_RBAC.md).
 
 ## Ao criar rota nova
 
-1. Adicionar path em `ROUTE_PERMISSIONS` com os papéis corretos.
+1. Adicionar path em `ROUTE_PERMISSIONS` com os papéis corretos (rota de API nova: em `API_ROUTE_PERMISSIONS`, com o caminho da pasta em `src/app/api`).
 2. Se a rota aparece no sidebar, atualizar `src/lib/menu-list.ts`.
 3. Sem papel adequado → `/unauthorized`. Logs do middleware nunca levam o CPF: use o identificador opaco de `src/lib/log-user-ref.ts`.
 

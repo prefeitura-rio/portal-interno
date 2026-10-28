@@ -174,6 +174,8 @@ export async function middleware(request: NextRequest) {
 
 > **⚠️ Nota de Performance:** O middleware faz uma chamada à API Heimdall em cada request para rotas protegidas. Isso garante permissões sempre atualizadas.
 
+**Rotas de API (BFF, `src/app/api/**`):** o middleware também casa `/api/:path*` e confere os papéis antes do handler, com o mapa `API_ROUTE_PERMISSIONS` de `src/lib/route-permissions.ts` (chave = caminho da pasta da rota, com os segmentos dinâmicos entre colchetes; cada rota repete os papéis da página que a consome). Sem sessão ou com o token expirado a resposta é `401` em JSON; sem o papel, com o Heimdall indisponível ou numa rota sem regra, `403` (nega por padrão). Só `auth/*` e `health` são públicas; `heimdall/user` e `me/secretarias` exigem só a sessão. Toda rota nova em `src/app/api` precisa de entrada no mapa (o teste `api-route-permissions.test.ts` falha sem ela).
+
 ### 1. Cache Global (Client-Side)
 
 ```typescript
