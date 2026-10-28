@@ -52,7 +52,9 @@ import {
   type MEIOpportunityStatus,
   useMEIOpportunities,
 } from '@/hooks/use-mei-opportunities'
+import { useMEIOpportunitiesCounts } from '@/hooks/use-mei-opportunities-counts'
 import type { ModelsOportunidadeMEI } from '@/http-gorio/models'
+import { formatTabLabelWithCount } from '@/lib/empregabilidade-vagas-counts'
 import { APP_TIME_ZONE } from '@/lib/format'
 import {
   type Column,
@@ -290,14 +292,36 @@ export function OportunidadesMEIDataTable() {
   const [selectedSecretaria, setSelectedSecretaria] = React.useState('')
 
   // Fetch opportunities from API
-  const { opportunities, loading, error, total, pageCount, refetch } =
-    useMEIOpportunities({
-      page: pagination.pageIndex + 1, // API pages start at 1
-      pageSize: pagination.pageSize,
-      status: activeTab,
+  const {
+    opportunities,
+    loading,
+    error,
+    total,
+    pageCount,
+    refetch: refetchOpportunities,
+  } = useMEIOpportunities({
+    page: pagination.pageIndex + 1, // API pages start at 1
+    pageSize: pagination.pageSize,
+    status: activeTab,
+    orgaoId: selectedSecretaria ? Number(selectedSecretaria) : undefined,
+    titulo: searchQuery || undefined,
+  })
+
+  // Total de oportunidades por status, exibido ao lado do título de cada aba
+  const { counts: opportunityCounts, refetch: refetchOpportunityCounts } =
+    useMEIOpportunitiesCounts({
       orgaoId: selectedSecretaria ? Number(selectedSecretaria) : undefined,
       titulo: searchQuery || undefined,
     })
+
+  // Exclusão muda o total do status: recarrega a tabela e as contagens
+  const refetch = React.useCallback(() => {
+    refetchOpportunities()
+    refetchOpportunityCounts()
+  }, [refetchOpportunities, refetchOpportunityCounts])
+
+  const tabLabel = (tab: MEIOpportunityStatus, label: string) =>
+    formatTabLabelWithCount(label, opportunityCounts[tab])
 
   // Use operations hook for delete
   const { deleteOpportunity } = useMEIOpportunityOperations()
@@ -655,9 +679,15 @@ export function OportunidadesMEIDataTable() {
         className="space-y-4"
       >
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="active">Oportunidades ativas</TabsTrigger>
-          <TabsTrigger value="expired">Oportunidades expiradas</TabsTrigger>
-          <TabsTrigger value="draft">Rascunhos</TabsTrigger>
+          <TabsTrigger value="active">
+            {tabLabel('active', 'Oportunidades ativas')}
+          </TabsTrigger>
+          <TabsTrigger value="expired">
+            {tabLabel('expired', 'Oportunidades expiradas')}
+          </TabsTrigger>
+          <TabsTrigger value="draft">
+            {tabLabel('draft', 'Rascunhos')}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
