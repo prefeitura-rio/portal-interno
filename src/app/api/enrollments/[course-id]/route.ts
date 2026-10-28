@@ -10,6 +10,15 @@ import type {
   ModelsInscricao,
 } from '@/http-gorio/models'
 import {
+  type EnrollmentsPage,
+  buildScheduleLocationIndex,
+  fetchAllEnrollmentPages,
+  hasClassFilter,
+  matchesClassFilter,
+  paginateLocally,
+  parseClassFilterParams,
+} from '@/lib/enrollment-class-filters'
+import {
   convertApiEnrollmentToFrontend,
   convertFrontendStatusToApi,
   unwrapApiInscricao,
@@ -42,6 +51,14 @@ export async function GET(
     const limit = Number.parseInt(searchParams.get('perPage') || '10', 10)
     const statusParam = searchParams.get('status')
     const search = searchParams.get('search') || undefined
+    const classFilterParse = parseClassFilterParams(searchParams)
+    if (!classFilterParse.ok) {
+      return NextResponse.json(
+        { error: classFilterParse.error },
+        { status: 400 }
+      )
+    }
+    const classFilter = classFilterParse.filter
 
     // Handle single status parameter
     let status: string | undefined = undefined
@@ -73,6 +90,73 @@ export async function GET(
       courseResponse.status === 200
         ? (courseResponse.data as any)?.data?.custom_fields || []
         : []
+
+    // Filtro por turma/unidade: a API Go não filtra por turma, então busca
+    // todas as inscrições do curso (com status/busca), filtra e pagina aqui.
+    if (hasClassFilter(classFilter)) {
+      if (courseResponse.status !== 200) {
+        return NextResponse.json(
+          { error: 'Failed to fetch course to filter enrollments' },
+          { status: courseResponse.status }
+        )
+      }
+      const scheduleLocationIndex = buildScheduleLocationIndex(
+        (courseResponse.data as any)?.data
+      )
+
+      let apiSummary: any
+      const allPages = await fetchAllEnrollmentPages<ModelsInscricao>(
+        async (fetchPageNumber, fetchLimit) => {
+          const pageResponse = await getApiV1CoursesCourseIdEnrollments(
+            Number.parseInt(courseId, 10),
+            { page: fetchPageNumber, limit: fetchLimit, status, search }
+          )
+          if (pageResponse.status !== 200) {
+            return { error: pageResponse.status }
+          }
+          const pageData = (pageResponse.data as any)?.data
+          if (fetchPageNumber === 1) apiSummary = pageData?.summary
+          const items: ModelsInscricao[] = Array.isArray(pageData?.enrollments)
+            ? pageData.enrollments
+            : []
+          const pageResult: EnrollmentsPage<ModelsInscricao> = {
+            items,
+            total: Number(pageData?.pagination?.total) || items.length,
+          }
+          return pageResult
+        }
+      )
+
+      if (!allPages.ok) {
+        if (allPages.reason === 'too_many') {
+          return NextResponse.json(
+            {
+              error:
+                'O curso tem inscrições demais para filtrar por turma ou unidade',
+            },
+            { status: 422 }
+          )
+        }
+        return NextResponse.json(
+          { error: 'Failed to fetch enrollments from external API' },
+          { status: allPages.status }
+        )
+      }
+
+      const filtered = allPages.items.filter(enrollment =>
+        matchesClassFilter(enrollment, classFilter, scheduleLocationIndex)
+      )
+      const localPage = paginateLocally(filtered, page, limit)
+
+      const responseData: EnrollmentResponse = {
+        enrollments: localPage.items.map(enrollment =>
+          convertApiEnrollmentToFrontend(enrollment, courseCustomFields)
+        ),
+        summary: buildEnrollmentSummary(apiSummary),
+        pagination: localPage.pagination,
+      }
+      return NextResponse.json(responseData)
+    }
 
     // Call the API
     const response = await getApiV1CoursesCourseIdEnrollments(
@@ -124,19 +208,7 @@ export async function GET(
       }
 
       // Calculate summary from data.summary
-      const apiSummary = apiData.data?.summary
-      const summary: EnrollmentSummary = {
-        totalVacancies: apiSummary?.total || 100, // Use total from API
-        confirmedCount: apiSummary?.approved || 0,
-        pendingCount: apiSummary?.pending || 0,
-        cancelledCount: apiSummary?.cancelled || 0,
-        rejectedCount: apiSummary?.rejected || 0,
-        concludedCount: apiSummary?.concluded || 0,
-        remainingVacancies: Math.max(
-          0,
-          (apiSummary?.total || 100) - (apiSummary?.approved || 0)
-        ),
-      }
+      const summary = buildEnrollmentSummary(apiData.data?.summary)
 
       const responseData: EnrollmentResponse = {
         enrollments,
@@ -161,6 +233,21 @@ export async function GET(
       },
       { status: 500 }
     )
+  }
+}
+
+function buildEnrollmentSummary(apiSummary: any): EnrollmentSummary {
+  return {
+    totalVacancies: apiSummary?.total || 100, // Use total from API
+    confirmedCount: apiSummary?.approved || 0,
+    pendingCount: apiSummary?.pending || 0,
+    cancelledCount: apiSummary?.cancelled || 0,
+    rejectedCount: apiSummary?.rejected || 0,
+    concludedCount: apiSummary?.concluded || 0,
+    remainingVacancies: Math.max(
+      0,
+      (apiSummary?.total || 100) - (apiSummary?.approved || 0)
+    ),
   }
 }
 

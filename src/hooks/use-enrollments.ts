@@ -1,3 +1,4 @@
+import { appendClassFilterParams } from '@/lib/enrollment-class-filters'
 import type {
   Enrollment,
   EnrollmentFilters,
@@ -95,6 +96,8 @@ export function useEnrollments({
             params.append('ageMax', filters.ageRange.max.toString())
           }
 
+          appendClassFilterParams(params, filters)
+
           const response = await fetch(
             `/api/enrollments/${courseId}?${params.toString()}`
           )
@@ -162,6 +165,8 @@ export function useEnrollments({
           params.append('ageMin', filters.ageRange.min.toString())
           params.append('ageMax', filters.ageRange.max.toString())
         }
+
+        appendClassFilterParams(params, filters)
 
         const response = await fetch(
           `/api/enrollments/${courseId}?${params.toString()}`
