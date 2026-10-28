@@ -61,6 +61,10 @@ import {
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEnrollments } from '@/hooks/use-enrollments'
 import { calcAgeFromBirthDate } from '@/lib/calc-age'
+import {
+  buildScheduleLocationIndex,
+  resolveEnrollmentUnitId,
+} from '@/lib/enrollment-class-filters'
 import { getEnrollmentRmiDivergence } from '@/lib/enrollment-rmi-consistency'
 import type { Enrollment, EnrollmentStatus } from '@/types/course'
 import { useRouter } from 'next/navigation'
@@ -68,7 +72,10 @@ import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { AddParticipantsModal } from './add-participants'
 import type { CourseData } from './add-participants/types'
-import { getScheduleOptions } from './add-participants/utils/schedule-helpers'
+import {
+  getScheduleOptions,
+  getUnitOptions,
+} from './add-participants/utils/schedule-helpers'
 import { EnrollmentRmiCorrectionDialog } from './enrollment-rmi-correction-dialog'
 import { RmiDivergenceBadge } from './rmi-divergence-badge'
 import { ScheduleVacanciesSummary } from './schedule-vacancies-summary'
@@ -272,12 +279,41 @@ export function EnrollmentsTable({
     isOnlineCourseWithoutDates,
   } = courseStates
 
+  // Opções dos filtros de turma e unidade, a partir das turmas do curso
+  const courseModalidade = course?.modalidade
+  const courseLocations = course?.locations
+  const courseRemoteClass = course?.remote_class
+  const classFilterOptions = React.useMemo(() => {
+    const courseClasses = {
+      modalidade: courseModalidade,
+      locations: courseLocations,
+      remote_class: courseRemoteClass,
+    }
+    const schedules = getScheduleOptions(courseClasses)
+    const units = getUnitOptions(courseClasses)
+    return {
+      schedules,
+      units,
+      scheduleLabels: new Map(
+        schedules.map(option => [option.id, option.label])
+      ),
+      unitLabels: new Map(units.map(option => [option.id, option.label])),
+      scheduleLocationIndex: buildScheduleLocationIndex(courseClasses),
+    }
+  }, [courseModalidade, courseLocations, courseRemoteClass])
+
   // Convert column filters to enrollment filters
   const filters = React.useMemo(() => {
     const statusFilter = columnFilters.find(filter => filter.id === 'status')
     const candidateNameFilter = columnFilters.find(
       filter => filter.id === 'candidateName'
     )
+    const scheduleFilter = columnFilters.find(
+      filter => filter.id === 'schedule'
+    )
+    const unitFilter = columnFilters.find(filter => filter.id === 'unit')
+    const toIdList = (value: unknown): string[] | undefined =>
+      Array.isArray(value) && value.length > 0 ? value.map(String) : undefined
 
     // Handle multiple status filters - value should be an array
     const statusValue = statusFilter?.value as EnrollmentStatus[] | undefined
@@ -289,6 +325,8 @@ export function EnrollmentsTable({
     return {
       status: statusArray,
       search: candidateNameFilter?.value as string,
+      scheduleIds: toIdList(scheduleFilter?.value),
+      unitIds: toIdList(unitFilter?.value),
     }
   }, [columnFilters])
 
@@ -592,6 +630,19 @@ export function EnrollmentsTable({
     [pagination]
   )
 
+  // Filtro novo muda o total de páginas: volta para a primeira
+  const handleColumnFiltersChange = React.useCallback(
+    (
+      updater:
+        | ColumnFiltersState
+        | ((prev: ColumnFiltersState) => ColumnFiltersState)
+    ) => {
+      setColumnFilters(updater)
+      setPagination(prev => ({ ...prev, pageIndex: 0 }))
+    },
+    []
+  )
+
   // Update selectedEnrollment when enrollments data changes
   React.useEffect(() => {
     if (selectedEnrollment && enrollments.length > 0) {
@@ -800,8 +851,72 @@ export function EnrollmentsTable({
         },
         enableColumnFilter: true,
       },
+      ...(classFilterOptions.units.length > 0
+        ? [
+            {
+              id: 'unit',
+              accessorFn: (row: Enrollment) =>
+                resolveEnrollmentUnitId(
+                  row,
+                  classFilterOptions.scheduleLocationIndex
+                ) ?? '',
+              header: ({ column }: { column: Column<Enrollment, unknown> }) => (
+                <DataTableColumnHeader column={column} title="Unidade" />
+              ),
+              cell: ({ cell }) => {
+                const unitId = cell.getValue<string>()
+                return (
+                  <span className="text-sm">
+                    {classFilterOptions.unitLabels.get(unitId) ?? '—'}
+                  </span>
+                )
+              },
+              meta: {
+                label: 'Unidade',
+                variant: 'multiSelect',
+                icon: MapPin,
+                options: classFilterOptions.units.map(option => ({
+                  label: option.label,
+                  value: option.id,
+                })),
+              },
+              enableColumnFilter: true,
+              enableSorting: false,
+            } satisfies ColumnDef<Enrollment>,
+          ]
+        : []),
+      ...(classFilterOptions.schedules.length > 0
+        ? [
+            {
+              id: 'schedule',
+              accessorFn: (row: Enrollment) => row.schedule_id ?? '',
+              header: ({ column }: { column: Column<Enrollment, unknown> }) => (
+                <DataTableColumnHeader column={column} title="Turma" />
+              ),
+              cell: ({ cell }) => {
+                const scheduleId = cell.getValue<string>()
+                return (
+                  <span className="text-sm">
+                    {classFilterOptions.scheduleLabels.get(scheduleId) ?? '—'}
+                  </span>
+                )
+              },
+              meta: {
+                label: 'Turma',
+                variant: 'multiSelect',
+                icon: Clock,
+                options: classFilterOptions.schedules.map(option => ({
+                  label: option.label,
+                  value: option.id,
+                })),
+              },
+              enableColumnFilter: true,
+              enableSorting: false,
+            } satisfies ColumnDef<Enrollment>,
+          ]
+        : []),
     ],
-    []
+    [classFilterOptions]
   )
 
   const table = useReactTable({
@@ -814,7 +929,7 @@ export function EnrollmentsTable({
       pagination,
     },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: handleColumnFiltersChange,
     onPaginationChange: handlePaginationChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
