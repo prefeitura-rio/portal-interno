@@ -1,15 +1,18 @@
 'use client'
 
-import govbrLogo from '@/assets/govbr.svg'
+import { Button } from '@/components/ui/button'
 import { ThemeAwareVideo } from '@/components/ui/custom/theme-aware-video'
 import { VIDEO_SOURCES } from '@/constants/videos-sources'
+import { useLogout } from '@/hooks/use-logout'
 import { useViewportHeight } from '@/hooks/useViewport'
-import { REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE } from '@/middleware'
-import Image from 'next/image'
 import Link from 'next/link'
 
+// A negação de uma rota por falta de papel não encerra a sessão: o usuário
+// segue com acesso às páginas do próprio módulo. O logout completo (Keycloak +
+// gov.br) só acontece pelo clique explícito em sair (DEV-67).
 export default function Unauthorized() {
   const { isBelowBreakpoint } = useViewportHeight(648)
+  const { isLoading, handleLogout } = useLogout()
 
   return (
     <div className="max-w-xl min-h-lvh mx-auto pt-16 md:pt-16 flex flex-col overflow-y-hidden">
@@ -24,30 +27,21 @@ export default function Unauthorized() {
         <p
           className={`text-muted-foreground text-center text-sm md:text-base ${isBelowBreakpoint ? 'mb-6' : 'mb-10'}`}
         >
-          Você não possui permissão para acessar este portal. Entre em contato
-          com o administrador do sistema.
+          Você não possui permissão para acessar esta página. Se precisar de
+          acesso, entre em contato com o administrador do sistema.
         </p>
-        {/* Gov.br Login Section */}
-        <div className="px-4 w-full space-y-1">
-          <p className="text-center text-sm text-foreground-light font-normal">
-            Entre com a sua conta gov.br
-          </p>
-
-          {/* Gov.br Button - Figma Specs */}
-          <div className="flex justify-center pb-2">
-            <Link
-              href={REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE}
-              className="flex w-[216px] h-[55px] px-6 py-4 justify-center items-center gap-3 rounded-2xl bg-card transition-colors"
-            >
-              <Image
-                src={govbrLogo}
-                alt="Gov.br"
-                width={80}
-                height={30}
-                className="object-contain"
-              />
-            </Link>
-          </div>
+        <div className="flex flex-col items-center gap-2 px-4 pb-2">
+          <Button asChild className="w-56">
+            <Link href="/">Voltar ao início</Link>
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-56"
+            onClick={handleLogout}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Saindo...' : 'Sair e entrar com outra conta'}
+          </Button>
         </div>
       </div>
     </div>

@@ -152,7 +152,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <TokenRefreshProvider>
       <div>
         <SessionExpiredHandler />
-        <UnauthorizedHandler />
         {children}
       </div>
     </TokenRefreshProvider>
