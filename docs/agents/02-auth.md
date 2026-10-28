@@ -38,7 +38,7 @@ Matriz completa: [`HEIMDALL_RBAC.md`](../../HEIMDALL_RBAC.md).
 
 1. Adicionar path em `ROUTE_PERMISSIONS` com os papéis corretos.
 2. Se a rota aparece no sidebar, atualizar `src/lib/menu-list.ts`.
-3. Sem papel adequado → `/unauthorized` (ver também `DEBUG_UNAUTHORIZED_ACCESS.md` na raiz, se existir).
+3. Sem papel adequado → `/unauthorized`. Logs do middleware nunca levam o CPF: use o identificador opaco de `src/lib/log-user-ref.ts`.
 
 ## O que fazer / não fazer
 

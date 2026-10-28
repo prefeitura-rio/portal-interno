@@ -123,15 +123,18 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
  * Checks if a user has access to a specific route based on their roles from Heimdall
  * @param route - The route to check
  * @param userRoles - Array of user's roles from Heimdall API
- * @param cpf - Optional CPF for logging purposes
+ * @param userRef - Optional opaque user reference for logging (never the CPF;
+ * see `getLogUserRef` in `log-user-ref.ts`)
  * @returns boolean indicating if access is allowed
  */
 export function hasRouteAccess(
   route: string,
   userRoles: string[] | null | undefined,
-  cpf?: string
+  userRef?: string
 ): boolean {
-  const logPrefix = cpf ? `[${cpf}] [ROUTE_PERMISSIONS]` : '[ROUTE_PERMISSIONS]'
+  const logPrefix = userRef
+    ? `[${userRef}] [ROUTE_PERMISSIONS]`
+    : '[ROUTE_PERMISSIONS]'
 
   if (!userRoles || userRoles.length === 0) {
     console.warn(
@@ -144,14 +147,12 @@ export function hasRouteAccess(
   const exactMatch = ROUTE_PERMISSIONS[route]
   if (exactMatch) {
     const hasAccess = userRoles.some(role => exactMatch.includes(role))
-    console.log(
-      `${logPrefix} Exact match for route "${route}":`,
-      hasAccess,
-      'Required roles:',
-      exactMatch,
-      'User roles:',
-      userRoles
-    )
+    if (!hasAccess) {
+      console.warn(
+        `${logPrefix} Access denied for route "${route}": missing required role. Required roles:`,
+        exactMatch
+      )
+    }
     return hasAccess
   }
 
@@ -163,14 +164,12 @@ export function hasRouteAccess(
       const baseRoute = routePattern.slice(0, -2)
       if (route.startsWith(baseRoute)) {
         const hasAccess = userRoles.some(role => allowedRoles.includes(role))
-        console.log(
-          `${logPrefix} Wildcard match for route "${route}" (pattern: "${routePattern}"):`,
-          hasAccess,
-          'Required roles:',
-          allowedRoles,
-          'User roles:',
-          userRoles
-        )
+        if (!hasAccess) {
+          console.warn(
+            `${logPrefix} Access denied for route "${route}" (pattern: "${routePattern}"): missing required role. Required roles:`,
+            allowedRoles
+          )
+        }
         return hasAccess
       }
     }
@@ -178,8 +177,7 @@ export function hasRouteAccess(
 
   // Default to denying access for unmatched routes
   console.warn(
-    `${logPrefix} No permission rule found for route "${route}". Access denied by default. User roles:`,
-    userRoles
+    `${logPrefix} No permission rule found for route "${route}". Access denied by default.`
   )
   return false
 }
