@@ -69,7 +69,8 @@ export async function middleware(request: NextRequest) {
       return await handleExpiredToken(request, refreshToken?.value)
     }
 
-    // Role-based access control (RBAC) using Heimdall user cache (heimdall_user cookie)
+    // Role-based access control (RBAC) using the server-side Heimdall user cache
+    // (keyed by access_token; the client-controlled heimdall_user cookie is ignored)
     // Fetch user once (with cache) and verify route access based on roles from /me
     const user = await getUserFromHeimdallWithCache(
       request,
