@@ -59,7 +59,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useEmpregabilidadeVagas } from '@/hooks/use-empregabilidade-vagas'
+import { useEmpregabilidadeVagasCounts } from '@/hooks/use-empregabilidade-vagas-counts'
 import type { EmpregabilidadeVaga } from '@/http-gorio/models'
+import { formatTabLabelWithCount } from '@/lib/empregabilidade-vagas-counts'
 import { formatDateBR } from '@/lib/format'
 import {
   type VagaStatus,
@@ -178,14 +180,36 @@ export function EmpregabilidadeDataTable() {
   const isUpdatingUrlRef = React.useRef(false)
 
   // Fetch vagas using the hook
-  const { vagas, loading, error, total, pageCount, refetch } =
-    useEmpregabilidadeVagas({
-      page: pagination.pageIndex + 1, // Convert 0-based to 1-based
-      pageSize: pagination.pageSize,
-      status: mapTabToStatus(activeTab),
+  const {
+    vagas,
+    loading,
+    error,
+    total,
+    pageCount,
+    refetch: refetchVagas,
+  } = useEmpregabilidadeVagas({
+    page: pagination.pageIndex + 1, // Convert 0-based to 1-based
+    pageSize: pagination.pageSize,
+    status: mapTabToStatus(activeTab),
+    companyId: selectedCompany || undefined,
+    search: searchQuery || undefined,
+  })
+
+  // Total de vagas por status, exibido ao lado do título de cada aba
+  const { counts: vagaCounts, refetch: refetchVagaCounts } =
+    useEmpregabilidadeVagasCounts({
       companyId: selectedCompany || undefined,
       search: searchQuery || undefined,
     })
+
+  // Ações mudam o status das vagas: recarrega a tabela e as contagens
+  const refetch = React.useCallback(() => {
+    refetchVagas()
+    refetchVagaCounts()
+  }, [refetchVagas, refetchVagaCounts])
+
+  const tabLabel = (tab: VagaEmpregabilidadeStatus, label: string) =>
+    formatTabLabelWithCount(label, vagaCounts[mapTabToStatus(tab)])
 
   /**
    * Debounced search with max length enforcement
@@ -543,6 +567,7 @@ export function EmpregabilidadeDataTable() {
         }
 
         toast.success('Vaga duplicada com sucesso!')
+        refetchVagaCounts()
         router.push('/gorio/empregabilidade?tab=draft')
       } catch (error) {
         toast.error('Erro ao duplicar vaga', {
@@ -551,7 +576,7 @@ export function EmpregabilidadeDataTable() {
         })
       }
     },
-    [router]
+    [router, refetchVagaCounts]
   )
 
   // Define table columns
@@ -1056,14 +1081,24 @@ export function EmpregabilidadeDataTable() {
         className="space-y-4"
       >
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="active">Vagas ativas</TabsTrigger>
-          <TabsTrigger value="expired">Vagas expiradas</TabsTrigger>
-          <TabsTrigger value="awaiting_approval">
-            Prontas p/ aprovação
+          <TabsTrigger value="active">
+            {tabLabel('active', 'Vagas ativas')}
           </TabsTrigger>
-          <TabsTrigger value="draft">Rascunhos</TabsTrigger>
-          <TabsTrigger value="frozen">Vagas congeladas</TabsTrigger>
-          <TabsTrigger value="discontinued">Vagas encerradas</TabsTrigger>
+          <TabsTrigger value="expired">
+            {tabLabel('expired', 'Vagas expiradas')}
+          </TabsTrigger>
+          <TabsTrigger value="awaiting_approval">
+            {tabLabel('awaiting_approval', 'Prontas p/ aprovação')}
+          </TabsTrigger>
+          <TabsTrigger value="draft">
+            {tabLabel('draft', 'Rascunhos')}
+          </TabsTrigger>
+          <TabsTrigger value="frozen">
+            {tabLabel('frozen', 'Vagas congeladas')}
+          </TabsTrigger>
+          <TabsTrigger value="discontinued">
+            {tabLabel('discontinued', 'Vagas encerradas')}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
