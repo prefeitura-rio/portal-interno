@@ -1,9 +1,8 @@
 import {
-  HEIMDALL_USER_COOKIE_CONFIG,
+  AUTH_COOKIE_CONFIG,
   HEIMDALL_USER_COOKIE_NAME,
 } from '@/lib/auth-cookie-config'
 import { getCurrentUserFromCacheOrHeimdall } from '@/lib/heimdall-user'
-import type { HeimdallUser } from '@/types/heimdall-roles'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -12,7 +11,8 @@ import { NextResponse } from 'next/server'
  *
  * This is a server-side route that:
  * 1. Retrieves the access_token from HTTP-only cookies
- * 2. Calls Heimdall API to get user info with roles
+ * 2. Calls Heimdall API to get user info with roles (server-side cache keyed
+ *    by the access_token; the client-controlled heimdall_user cookie is ignored)
  * 3. Returns the user data to the client
  *
  * The access_token is in HTTP-only cookies, so client-side code cannot access it directly.
@@ -20,20 +20,7 @@ import { NextResponse } from 'next/server'
  */
 export async function GET() {
   try {
-    const cookieStore = await cookies()
-    const cachedUserCookie = cookieStore.get(HEIMDALL_USER_COOKIE_NAME)
-
-    if (cachedUserCookie?.value) {
-      try {
-        const parsed = JSON.parse(cachedUserCookie.value) as HeimdallUser
-        if (parsed?.id && parsed.cpf) {
-          return NextResponse.json(parsed, { status: 200 })
-        }
-      } catch {
-        // fallthrough to refetch
-      }
-    }
-
+    // Nunca responde a partir do cookie heimdall_user: ele vem do cliente.
     const user = await getCurrentUserFromCacheOrHeimdall()
 
     if (!user) {
@@ -45,14 +32,13 @@ export async function GET() {
 
     const response = NextResponse.json(user, { status: 200 })
 
-    try {
-      response.cookies.set(
-        HEIMDALL_USER_COOKIE_NAME,
-        JSON.stringify(user),
-        HEIMDALL_USER_COOKIE_CONFIG
-      )
-    } catch {
-      // ignore cookie write errors in API route
+    const cookieStore = await cookies()
+    if (cookieStore.has(HEIMDALL_USER_COOKIE_NAME)) {
+      // Apaga o cookie legado (ou forjado) que não é mais usado
+      response.cookies.set(HEIMDALL_USER_COOKIE_NAME, '', {
+        ...AUTH_COOKIE_CONFIG,
+        maxAge: 0,
+      })
     }
 
     return response

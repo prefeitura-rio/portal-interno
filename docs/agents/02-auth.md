@@ -4,7 +4,7 @@
 
 1. OAuth2/OIDC Identidade Carioca (Keycloak) → cookies httpOnly `access_token` / `refresh_token`.
 2. Middleware valida JWT (expiry + refresh).
-3. Middleware consulta Heimdall `GET /users/me` (cache em cookie `heimdall_user`).
+3. Middleware consulta Heimdall `GET /users/me` (cache só na memória do servidor, chaveado pelo `access_token`: `src/lib/heimdall-user-cache.ts`). O cookie legado `heimdall_user` vinha do cliente e **nunca** decide papéis nem CPF; não reintroduza cache de autorização em cookie sem assinatura.
 4. `hasRouteAccess(path, roles)` via `ROUTE_PERMISSIONS`.
 
 **Não use next-auth.** Auth é cookies Keycloak + Heimdall; não há camada Auth.js.
@@ -19,7 +19,7 @@ Diferente do [superapp](https://github.com/prefeitura-rio/superapp): aqui **Heim
 | Mapa rota → papéis | `src/lib/route-permissions.ts` |
 | Constantes de papéis | `src/types/heimdall-roles.ts` |
 | Helpers middleware / Heimdall fetch | `src/lib/middleware-helpers.ts` |
-| Cache server `/me` | `src/lib/heimdall-user.ts` |
+| Cache server `/me` | `src/lib/heimdall-user-cache.ts`, `src/lib/heimdall-user.ts` |
 | Cookies | `src/lib/auth-cookie-config.ts` |
 | Refresh | `src/lib/token-refresh.ts`, `docs/TOKEN_REFRESH_STRATEGY.md` |
 | Auth API | `src/app/api/auth/{callback/keycloak,refresh,logout,token-status}` |

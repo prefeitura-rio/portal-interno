@@ -5,11 +5,12 @@ import {
   REDIRECT_WHEN_UNAUTHORIZED_ROUTE,
 } from '../constants/url'
 import {
-  HEIMDALL_USER_COOKIE_CONFIG,
+  AUTH_COOKIE_CONFIG,
   HEIMDALL_USER_COOKIE_NAME,
   getAccessTokenCookieConfig,
   getRefreshTokenCookieConfig,
 } from './auth-cookie-config'
+import { resolveHeimdallUser } from './heimdall-user-cache'
 import { getLogUserRef, redactCpfForLog } from './log-user-ref'
 import { refreshAccessToken } from './token-refresh'
 
@@ -111,45 +112,19 @@ export async function getUserFromHeimdallWithCache(
   response: NextResponse,
   accessToken: string
 ): Promise<HeimdallUser | null> {
-  // 1. Tenta ler do cookie de usuário
-  const userCookie = request.cookies.get(HEIMDALL_USER_COOKIE_NAME)
-
-  if (userCookie?.value) {
-    try {
-      const parsed = JSON.parse(userCookie.value) as HeimdallUser
-      if (parsed?.roles && Array.isArray(parsed.roles)) {
-        return parsed
-      }
-    } catch (error) {
-      console.warn(
-        `[${await getLogUserRef(accessToken)}] [MIDDLEWARE_HELPERS] Failed to parse heimdall_user cookie, will refetch from API`,
-        // Only the error name: the parser message can echo cookie content
-        error instanceof Error ? error.name : 'UnknownError'
-      )
-    }
-  }
-
-  // 2. Cache miss ou cookie inválido -> chama Heimdall /me
-  const user = await fetchHeimdallUserFromApi(accessToken)
-
-  if (!user) {
-    return null
-  }
-
-  // 3. Grava snapshot do usuário no cookie de resposta
-  try {
-    const serialized = JSON.stringify(user)
-    response.cookies.set(HEIMDALL_USER_COOKIE_NAME, serialized, {
-      ...HEIMDALL_USER_COOKIE_CONFIG,
+  // O cookie heimdall_user vinha do cliente sem assinatura e não é mais lido:
+  // os papéis vêm só do Heimdall (ou do cache do servidor, chaveado pelo
+  // próprio access_token). Um cookie legado ou forjado é apagado.
+  if (request.cookies.has(HEIMDALL_USER_COOKIE_NAME)) {
+    response.cookies.set(HEIMDALL_USER_COOKIE_NAME, '', {
+      ...AUTH_COOKIE_CONFIG,
+      maxAge: 0,
     })
-  } catch (error) {
-    console.error(
-      `[${await getLogUserRef(accessToken)}] [MIDDLEWARE_HELPERS] Failed to serialize/set heimdall_user cookie`,
-      error instanceof Error ? error.message : String(error)
-    )
   }
 
-  return user
+  return resolveHeimdallUser(accessToken, () =>
+    fetchHeimdallUserFromApi(accessToken)
+  )
 }
 
 export async function handleExpiredToken(
