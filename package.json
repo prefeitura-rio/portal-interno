@@ -8,7 +8,7 @@
     "start": "next start",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/__tests__/markdown-serializer.test.ts src/lib/__tests__/custom-fetch-logging.test.ts src/lib/__tests__/log-user-ref.test.ts src/lib/__tests__/heimdall-user-cache.test.ts src/lib/__tests__/course-turma-dates.test.ts src/app/api/empregabilidade/candidaturas/__tests__/route-logs.test.ts src/lib/__tests__/empregabilidade-vagas-counts.test.ts src/lib/__tests__/api-route-permissions.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/__tests__/markdown-serializer.test.ts src/lib/__tests__/custom-fetch-logging.test.ts src/lib/__tests__/log-user-ref.test.ts src/lib/__tests__/heimdall-user-cache.test.ts src/lib/__tests__/course-turma-dates.test.ts src/lib/__tests__/course-schedule-vacancies.test.ts src/app/api/empregabilidade/candidaturas/__tests__/route-logs.test.ts src/lib/__tests__/empregabilidade-vagas-counts.test.ts src/lib/__tests__/api-route-permissions.test.ts",
     "lint": "biome check .",
     "format": "biome format --write ."
   },

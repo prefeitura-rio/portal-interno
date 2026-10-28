@@ -71,6 +71,7 @@ import type { CourseData } from './add-participants/types'
 import { getScheduleOptions } from './add-participants/utils/schedule-helpers'
 import { EnrollmentRmiCorrectionDialog } from './enrollment-rmi-correction-dialog'
 import { RmiDivergenceBadge } from './rmi-divergence-badge'
+import { ScheduleVacanciesSummary } from './schedule-vacancies-summary'
 
 // Constantes para validação de certificados
 const VALID_CERTIFICATE_EXTENSIONS = [
@@ -1525,6 +1526,21 @@ export function EnrollmentsTable({
           </div> */}
         </div>
       )}
+
+      <ScheduleVacanciesSummary
+        courseId={courseId}
+        refreshKey={
+          summary
+            ? [
+                summary.confirmedCount,
+                summary.concludedCount,
+                summary.pendingCount,
+                summary.rejectedCount,
+                summary.cancelledCount,
+              ].join('-')
+            : ''
+        }
+      />
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="md:max-w-xl!">
