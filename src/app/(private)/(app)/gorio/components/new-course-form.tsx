@@ -58,6 +58,7 @@ import { Switch } from '@/components/ui/switch'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useRestrictedDepartmentIds } from '@/hooks/use-restricted-department-ids'
 import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
+import { refineTurmaEnrollmentEnd } from '@/lib/course-turma-dates'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { Copy, Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -633,6 +634,7 @@ export const fullFormSchema = z
             path: ['remote_class', i, 'classStartDate'],
           })
         }
+        refineTurmaEnrollmentEnd(ctx, schedule, ['remote_class', i])
       })
     } else {
       // PRESENCIAL
@@ -659,6 +661,12 @@ export const fullFormSchema = z
               path: ['locations', li, 'schedules', si, 'classStartDate'],
             })
           }
+          refineTurmaEnrollmentEnd(ctx, schedule, [
+            'locations',
+            li,
+            'schedules',
+            si,
+          ])
         })
       })
     }
