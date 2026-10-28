@@ -1,3 +1,5 @@
+import { readKeycloakTokenResponse } from './keycloak-token-response'
+
 export interface TokenRefreshResult {
   success: boolean
   accessToken?: string
@@ -23,41 +25,43 @@ export async function refreshAccessToken(
       body: params,
     })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(
-        '❌ Refresh failed with status:',
-        response.status,
-        'Error:',
-        errorText
-      )
+    const result = await readKeycloakTokenResponse(response)
+
+    if (!result.ok) {
+      const { status, contentType, bodyPreview } = result.diagnostics
+      console.error('[TOKEN_REFRESH] Refresh failed:', {
+        reason: result.reason,
+        status,
+        contentType,
+        bodyPreview,
+      })
       return {
         success: false,
-        error: `Failed to refresh token: ${response.status} - ${errorText}`,
+        error: `Failed to refresh token: ${status} - ${result.reason}`,
       }
     }
 
-    const data = await response.json()
+    const { tokens } = result
 
     // Log da resposta do Keycloak para debug de TTL
     console.log('[TOKEN_REFRESH] Token response from Keycloak:', {
-      expires_in: data.expires_in,
-      refresh_expires_in: data.refresh_expires_in,
-      expires_in_minutes: data.expires_in
-        ? Math.floor(data.expires_in / 60)
+      expires_in: tokens.expiresIn,
+      refresh_expires_in: tokens.refreshExpiresIn,
+      expires_in_minutes: tokens.expiresIn
+        ? Math.floor(tokens.expiresIn / 60)
         : null,
-      expires_in_hours: data.expires_in
-        ? Math.floor(data.expires_in / 3600)
+      expires_in_hours: tokens.expiresIn
+        ? Math.floor(tokens.expiresIn / 3600)
         : null,
-      refresh_expires_in_minutes: data.refresh_expires_in
-        ? Math.floor(data.refresh_expires_in / 60)
+      refresh_expires_in_minutes: tokens.refreshExpiresIn
+        ? Math.floor(tokens.refreshExpiresIn / 60)
         : null,
     })
 
     return {
       success: true,
-      accessToken: data.access_token,
-      newRefreshToken: data.refresh_token,
+      accessToken: tokens.accessToken,
+      newRefreshToken: tokens.refreshToken,
     }
   } catch (error) {
     console.error('❌ Network error during token refresh:', error)

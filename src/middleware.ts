@@ -22,6 +22,7 @@ const publicRoutes = [
   { path: '/manifest.json', whenAuthenticated: 'next' },
   { path: '/session-expired', whenAuthenticated: 'next' },
   { path: '/unauthorized', whenAuthenticated: 'next' },
+  { path: '/login-error', whenAuthenticated: 'next' },
 ] as const
 
 function matchRoute(pathname: string, routePath: string): boolean {
@@ -167,7 +168,11 @@ export async function middleware(request: NextRequest) {
   // Handle case where user has auth token but is accessing a public route
   if (authToken && publicRoute) {
     // Skip token validation for special error pages to prevent redirect loops
-    if (path === '/session-expired' || path === '/unauthorized') {
+    if (
+      path === '/session-expired' ||
+      path === '/unauthorized' ||
+      path === '/login-error'
+    ) {
       return response
     }
 
