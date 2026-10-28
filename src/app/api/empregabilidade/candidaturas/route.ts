@@ -236,8 +236,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    console.log('Creating candidatura with body:', body)
-
     // Validate required fields
     if (!body.cpf) {
       return NextResponse.json({ error: 'CPF é obrigatório' }, { status: 400 })
@@ -261,8 +259,6 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log('Calling Orval client with cleaned CPF:', cpfLimpo)
-
     // Call Orval client to create candidatura
     const response = await postApiV1EmpregabilidadeCandidaturas({
       cpf: cpfLimpo,
@@ -274,7 +270,6 @@ export async function POST(request: Request) {
     })
 
     console.log('API Response status:', response.status)
-    console.log('POST Response:', JSON.stringify(response.data, null, 2))
     console.log('Candidatura created with id:', response.data?.id)
     console.log(
       'curriculo_snapshot populated?',
@@ -282,7 +277,7 @@ export async function POST(request: Request) {
     )
 
     if (response.status === 201) {
-      console.log('Candidatura created successfully:', response.data)
+      console.log('Candidatura created successfully')
       return NextResponse.json(
         {
           success: true,
