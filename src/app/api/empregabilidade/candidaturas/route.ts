@@ -234,7 +234,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    // JSON inválido vira 400 sem log: a mensagem do SyntaxError traz um
+    // trecho do corpo da requisição (CPF, nome, e-mail).
+    const body = await request.json().catch(() => null)
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: 'Corpo da requisição inválido' },
+        { status: 400 }
+      )
+    }
 
     // Validate required fields
     if (!body.cpf) {
@@ -294,7 +302,11 @@ export async function POST(request: Request) {
       { status: response.status }
     )
   } catch (error: any) {
-    console.error('Error creating candidatura:', error)
+    // SyntaxError de parse traz um trecho do corpo parseado: loga só o tipo.
+    console.error(
+      'Error creating candidatura:',
+      error instanceof SyntaxError ? error.name : error
+    )
 
     // Try to extract error message from response
     const errorMessage = error?.message || 'Unknown error'

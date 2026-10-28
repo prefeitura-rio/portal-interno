@@ -73,3 +73,33 @@ describe('logs do BFF de candidaturas (DEV-21)', () => {
     }
   })
 })
+
+describe('erros de parse do POST de candidaturas (DEV-21)', () => {
+  const postSource = stripLiterals(
+    routeSource.slice(routeSource.indexOf('export async function POST'))
+  )
+
+  test('premissa: a mensagem do SyntaxError traz um trecho do corpo', async () => {
+    const request = new Request('http://localhost/', {
+      method: 'POST',
+      body: 'cpf=00000000191&nome=Teste',
+    })
+    await assert.rejects(request.json(), (error: unknown) => {
+      assert.ok(error instanceof SyntaxError)
+      assert.match(error.message, /cpf=0/)
+      return true
+    })
+  })
+
+  test('JSON inválido na requisição é tratado antes do catch que loga', () => {
+    assert.match(postSource, /request\.json\(\)\s*\.catch\(/)
+  })
+
+  test('o catch não loga a mensagem de um SyntaxError', () => {
+    const catchBlock = postSource.slice(postSource.indexOf('catch (error'))
+    const [args] = consoleCallArguments(catchBlock)
+    assert.ok(args !== undefined)
+    assert.doesNotMatch(args, /^\s*''\s*,\s*error\s*$/)
+    assert.match(args, /SyntaxError/)
+  })
+})
