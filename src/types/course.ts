@@ -402,6 +402,10 @@ export interface EnrollmentFilters {
     max: number
   }
   search?: string
+  /** Turmas (schedule_id) aceitas; vazio = todas */
+  scheduleIds?: string[]
+  /** Unidades (id do local) aceitas; vazio = todas */
+  unitIds?: string[]
 }
 
 export interface EnrollmentStatusConfig {

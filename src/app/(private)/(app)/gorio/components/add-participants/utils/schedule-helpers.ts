@@ -117,6 +117,28 @@ export function getScheduleOptions(
   return options
 }
 
+export interface UnitOption {
+  id: string
+  label: string
+}
+
+/**
+ * Lista as unidades (locais presenciais) do curso para o filtro de inscritos.
+ * Cursos online não têm unidade.
+ */
+export function getUnitOptions(courseData?: CourseData | null): UnitOption[] {
+  if (!courseData || courseData.modalidade === 'ONLINE') return []
+
+  return (courseData.locations || []).flatMap(location => {
+    if (!location.id) return []
+    const addressPart = getPartialAddress(location.address || '')
+    const label = location.neighborhood
+      ? `${addressPart} (${location.neighborhood})`
+      : addressPart
+    return [{ id: location.id, label }]
+  })
+}
+
 /**
  * Formats a schedule label for display in dropdown (presencial)
  * Format: "Partial Address | Time | Days"
