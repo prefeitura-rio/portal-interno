@@ -234,9 +234,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-
-    console.log('Creating candidatura with body:', body)
+    // JSON inválido vira 400 sem log: a mensagem do SyntaxError traz um
+    // trecho do corpo da requisição (CPF, nome, e-mail).
+    const body = await request.json().catch(() => null)
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: 'Corpo da requisição inválido' },
+        { status: 400 }
+      )
+    }
 
     // Validate required fields
     if (!body.cpf) {
@@ -261,8 +267,6 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log('Calling Orval client with cleaned CPF:', cpfLimpo)
-
     // Call Orval client to create candidatura
     const response = await postApiV1EmpregabilidadeCandidaturas({
       cpf: cpfLimpo,
@@ -274,7 +278,6 @@ export async function POST(request: Request) {
     })
 
     console.log('API Response status:', response.status)
-    console.log('POST Response:', JSON.stringify(response.data, null, 2))
     console.log('Candidatura created with id:', response.data?.id)
     console.log(
       'curriculo_snapshot populated?',
@@ -282,7 +285,7 @@ export async function POST(request: Request) {
     )
 
     if (response.status === 201) {
-      console.log('Candidatura created successfully:', response.data)
+      console.log('Candidatura created successfully')
       return NextResponse.json(
         {
           success: true,
@@ -299,7 +302,11 @@ export async function POST(request: Request) {
       { status: response.status }
     )
   } catch (error: any) {
-    console.error('Error creating candidatura:', error)
+    // SyntaxError de parse traz um trecho do corpo parseado: loga só o tipo.
+    console.error(
+      'Error creating candidatura:',
+      error instanceof SyntaxError ? error.name : error
+    )
 
     // Try to extract error message from response
     const errorMessage = error?.message || 'Unknown error'
