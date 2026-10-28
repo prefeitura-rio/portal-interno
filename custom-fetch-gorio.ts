@@ -96,25 +96,10 @@ export const customFetchGoRio = async <T>(
     cache: 'no-store',
   }
 
-  console.log('🟢 [customFetchGoRio] URL:', requestUrl)
-  console.log('🟢 [customFetchGoRio] Method:', requestInit.method)
-  console.log('🟢 [customFetchGoRio] Headers:', requestHeaders)
-
+  // Não logar headers (Authorization com o token), URL (o caminho pode trazer
+  // CPF) nem corpo da resposta (dados pessoais de cidadãos).
   const response = await fetch(requestUrl, requestInit)
-
-  console.log('🟢 [customFetchGoRio] Response status:', response.status)
-  console.log('🟢 [customFetchGoRio] Response ok:', response.ok)
-  console.log(
-    '🟢 [customFetchGoRio] Response headers:',
-    Object.fromEntries(response.headers.entries())
-  )
-
   const data = await getBody<T>(response)
-
-  console.log(
-    '🟢 [customFetchGoRio] Response data:',
-    typeof data === 'object' ? JSON.stringify(data).substring(0, 500) : data
-  )
 
   return { status: response.status, data, headers: response.headers } as T
 }
