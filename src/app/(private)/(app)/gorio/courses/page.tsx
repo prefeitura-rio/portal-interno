@@ -22,8 +22,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
+import { useCourseTabCounts } from '@/hooks/use-course-tab-counts'
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useDepartment } from '@/hooks/use-department'
+import type { CourseTab } from '@/lib/courses-tab-counts'
+import { formatTabLabelWithCount } from '@/lib/empregabilidade-vagas-counts'
 import type {
   CourseListItem,
   CourseStatus,
@@ -241,6 +244,25 @@ export default function Courses() {
   const [loading, setLoading] = React.useState(false)
   const [initialLoading, setInitialLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState('')
+  // Busca aplicada às contagens das abas (atualizada com o mesmo debounce
+  // da tabela, para não consultar a cada tecla)
+  const [countsSearchQuery, setCountsSearchQuery] = React.useState('')
+
+  // Total de cursos de cada aba, exibido ao lado do título da aba. A aba
+  // "Em edição" só existe para quem não aprova cursos.
+  const visibleTabs = React.useMemo<CourseTab[]>(
+    () =>
+      canApproveCourses
+        ? ['created', 'in_review', 'draft']
+        : ['created', 'in_review', 'needs_changes', 'draft'],
+    [canApproveCourses]
+  )
+  const { counts: tabCounts, refetch: refetchTabCounts } = useCourseTabCounts({
+    tabs: visibleTabs,
+    search: countsSearchQuery || undefined,
+  })
+  const tabLabel = (tab: CourseTab, label: string) =>
+    formatTabLabelWithCount(label, tabCounts[tab])
 
   // Add state for total counts and pagination info
   const [coursesTotal, setCoursesTotal] = React.useState(0)
@@ -366,6 +388,7 @@ export default function Courses() {
 
   // Debounced search function to prevent too many API calls
   const debouncedFetchCourses = useDebouncedCallback((searchQuery: string) => {
+    setCountsSearchQuery(searchQuery)
     fetchCourses(0, pagination.pageSize, activeTab, searchQuery)
   }, 200)
 
@@ -440,6 +463,7 @@ export default function Courses() {
     [router, searchParams, pagination.pageSize]
   )
 
+  // Ações mudam o status dos cursos: recarrega a tabela e as contagens
   const refetchCurrentTab = React.useCallback(() => {
     fetchCourses(
       pagination.pageIndex,
@@ -447,12 +471,14 @@ export default function Courses() {
       activeTab,
       searchQuery
     )
+    refetchTabCounts()
   }, [
     fetchCourses,
     pagination.pageIndex,
     pagination.pageSize,
     activeTab,
     searchQuery,
+    refetchTabCounts,
   ])
 
   // Filter data based on active tab
@@ -952,14 +978,23 @@ export default function Courses() {
           <TabsList
             className={`grid w-full ${canApproveCourses ? 'grid-cols-3' : 'grid-cols-4'}`}
           >
-            <TabsTrigger value="created">Cursos Criados</TabsTrigger>
+            <TabsTrigger value="created">
+              {tabLabel('created', 'Cursos Criados')}
+            </TabsTrigger>
             <TabsTrigger value="in_review">
-              {canApproveCourses ? 'Pronto para aprovação' : 'Em aprovação'}
+              {tabLabel(
+                'in_review',
+                canApproveCourses ? 'Pronto para aprovação' : 'Em aprovação'
+              )}
             </TabsTrigger>
             {!canApproveCourses && (
-              <TabsTrigger value="needs_changes">Em edição</TabsTrigger>
+              <TabsTrigger value="needs_changes">
+                {tabLabel('needs_changes', 'Em edição')}
+              </TabsTrigger>
             )}
-            <TabsTrigger value="draft">Rascunhos</TabsTrigger>
+            <TabsTrigger value="draft">
+              {tabLabel('draft', 'Rascunhos')}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="created" className="space-y-4">
