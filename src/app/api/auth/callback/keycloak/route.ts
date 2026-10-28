@@ -61,9 +61,8 @@ export async function GET(req: NextRequest) {
     data.refresh_token,
     getRefreshTokenCookieConfig(data.refresh_token)
   )
-  // Invalidate any stale Heimdall user snapshot from a previous session so the
-  // middleware refetches fresh roles on the next request. The middleware will
-  // repopulate this cookie automatically.
+  // Clear the legacy heimdall_user cookie: it is no longer written nor trusted
+  // (roles come from Heimdall via the server-side cache keyed by access_token).
   res.cookies.set(HEIMDALL_USER_COOKIE_NAME, '', {
     path: '/',
     httpOnly: true,

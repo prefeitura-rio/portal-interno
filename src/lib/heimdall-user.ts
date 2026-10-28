@@ -2,10 +2,9 @@ import { getCurrentUserInfoApiV1UsersMeGet } from '@/http-heimdall/users/users'
 import type { HeimdallUser } from '@/types/heimdall-roles'
 import { cookies } from 'next/headers'
 import { cache } from 'react'
-import {
-  HEIMDALL_USER_COOKIE_CONFIG,
-  HEIMDALL_USER_COOKIE_NAME,
-} from './auth-cookie-config'
+import { resolveHeimdallUser } from './heimdall-user-cache'
+
+const ACCESS_TOKEN_COOKIE_NAME = 'access_token'
 
 async function fetchHeimdallUserFromApi(): Promise<HeimdallUser | null> {
   const response = await getCurrentUserInfoApiV1UsersMeGet()
@@ -26,40 +25,21 @@ async function fetchHeimdallUserFromApi(): Promise<HeimdallUser | null> {
   return user
 }
 
+/**
+ * Usuário do Heimdall da sessão atual, do cache do servidor ou do Heimdall.
+ * Nunca lê o cookie `heimdall_user`, que o cliente controla: a chave do cache
+ * é o próprio `access_token` da sessão.
+ */
 export const getCurrentUserFromCacheOrHeimdall = cache(
   async (): Promise<HeimdallUser | null> => {
     const cookieStore = await cookies()
-    const cached = cookieStore.get(HEIMDALL_USER_COOKIE_NAME)
+    const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE_NAME)?.value
 
-    if (cached?.value) {
-      try {
-        const parsed = JSON.parse(cached.value) as HeimdallUser
-        if (parsed?.id && parsed.cpf) {
-          return parsed
-        }
-      } catch {
-        // ignore parse errors, will refetch
-      }
-    }
-
-    const user = await fetchHeimdallUserFromApi()
-
-    if (!user) {
+    if (!accessToken) {
       return null
     }
 
-    try {
-      const cookieStoreForSet = await cookies()
-      cookieStoreForSet.set(
-        HEIMDALL_USER_COOKIE_NAME,
-        JSON.stringify(user),
-        HEIMDALL_USER_COOKIE_CONFIG
-      )
-    } catch {
-      // ignore cookie write errors
-    }
-
-    return user
+    return resolveHeimdallUser(accessToken, fetchHeimdallUserFromApi)
   }
 )
 
