@@ -70,7 +70,7 @@ registerHooks({
   },
 })
 
-const { fullFormSchema } = await import(
+const { draftFormSchema, fullFormSchema } = await import(
   '../../app/(private)/(app)/gorio/components/new-course-form.tsx'
 )
 
@@ -126,8 +126,8 @@ function online(remoteClass: ReturnType<typeof turma>[]) {
   return { ...baseCourse, modalidade: 'ONLINE', remote_class: remoteClass }
 }
 
-function enrollmentEndIssues(course: unknown) {
-  const result = fullFormSchema.safeParse(course)
+function enrollmentEndIssues(course: unknown, schema = fullFormSchema) {
+  const result = schema.safeParse(course)
   const issues = result.success ? [] : result.error.issues
   return {
     success: result.success,
@@ -243,6 +243,48 @@ describe('fullFormSchema do formulário de curso', () => {
       classStartDate: null,
     }
     const result = enrollmentEndIssues(online([semAulas]))
+    assert.deepEqual(result.otherIssues, [])
+    assert.equal(result.success, true)
+  })
+})
+
+describe('draftFormSchema (salvar rascunho)', () => {
+  test('rejeita turma presencial com inscrições até depois do fim das aulas', () => {
+    const result = enrollmentEndIssues(
+      {
+        modalidade: 'PRESENCIAL',
+        locations: [{ schedules: [turma('2026-03-05T18:00:00-03:00')] }],
+      },
+      draftFormSchema
+    )
+    assert.equal(result.success, false)
+    assert.deepEqual(result.otherIssues, [])
+    assert.deepEqual(result.paths, [
+      ['locations', 0, 'schedules', 0, 'enrollmentEndDate'],
+    ])
+  })
+
+  test('rejeita turma online com inscrições até depois do fim das aulas', () => {
+    const result = enrollmentEndIssues(
+      {
+        modalidade: 'ONLINE',
+        remote_class: [turma('2026-03-05T18:00:00-03:00')],
+      },
+      draftFormSchema
+    )
+    assert.equal(result.success, false)
+    assert.deepEqual(result.otherIssues, [])
+    assert.deepEqual(result.paths, [['remote_class', 0, 'enrollmentEndDate']])
+  })
+
+  test('aceita rascunho com inscrições até igual ao fim das aulas', () => {
+    const result = enrollmentEndIssues(
+      {
+        modalidade: 'PRESENCIAL',
+        locations: [{ schedules: [turma(CLASS_END)] }],
+      },
+      draftFormSchema
+    )
     assert.deepEqual(result.otherIssues, [])
     assert.equal(result.success, true)
   })

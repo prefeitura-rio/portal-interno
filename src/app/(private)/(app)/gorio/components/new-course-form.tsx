@@ -694,7 +694,7 @@ export const fullFormSchema = z
   )
 
 // Create a minimal schema for draft validation (only basic field presence)
-const draftFormSchema = z
+export const draftFormSchema = z
   .object({
     title: z.string().optional(),
     description: z.string().optional(),
@@ -845,6 +845,7 @@ const draftFormSchema = z
           path: [...path, 'classEndDate'],
         })
       }
+      refineTurmaEnrollmentEnd(ctx, schedule, path)
     }
     if (data.locations) {
       data.locations.forEach((location, li) => {
