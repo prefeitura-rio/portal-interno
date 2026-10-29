@@ -6,9 +6,15 @@
  * soma, por secretaria (`orgao_id`), os cursos e as inscrições de cada um
  * (`pagination.total` da listagem de inscrições do curso, sem filtro).
  *
+ * O nome de cada secretaria também sai daqui (`resolveSecretarias`), em lote
+ * controlado no servidor: pedir os nomes do navegador, um por linha e todos
+ * ao mesmo tempo, esbarrava no limite de taxa da RMI.
+ *
  * Este módulo não depende do Next: recebe as chamadas à API como funções, para
  * ser testado com respostas sintéticas.
  */
+
+import type { DepartmentLookup } from './department-names'
 
 /**
  * Status de curso publicado: os da aba "Cursos Criados" que aparecem com o
@@ -77,10 +83,27 @@ export interface CoursesDashboardTotals {
   coursesWithoutEnrollmentCount: number
 }
 
-export interface CoursesDashboardSummary {
+/** Agrupamento por secretaria, antes de resolver os nomes. */
+export interface CoursesTractionAggregate {
   secretarias: SecretariaTraction[]
   totals: CoursesDashboardTotals
 }
+
+export interface SecretariaTractionRow extends SecretariaTraction {
+  /** Nome da secretaria na RMI; `null` na linha dos cursos sem secretaria. */
+  secretaria: DepartmentLookup | null
+}
+
+export interface CoursesDashboardSummary {
+  secretarias: SecretariaTractionRow[]
+  totals: CoursesDashboardTotals
+  /** Secretarias cujo nome a RMI não devolveu a tempo nesta carga. */
+  secretariasWithoutName: number
+}
+
+export type ResolveSecretarias = (
+  orgaoIds: readonly string[]
+) => Promise<ReadonlyMap<string, DepartmentLookup>>
 
 export type CoursesDashboardResult =
   | { ok: true; summary: CoursesDashboardSummary }
@@ -243,7 +266,7 @@ function compareTraction(a: SecretariaTraction, b: SecretariaTraction) {
 export function aggregateBySecretaria(
   courses: readonly PublishedCourseRef[],
   enrollmentCounts: ReadonlyMap<number, number | null>
-): CoursesDashboardSummary {
+): CoursesTractionAggregate {
   const bySecretaria = new Map<string | null, SecretariaTraction>()
   const totals: CoursesDashboardTotals = {
     publishedCourses: 0,
@@ -282,17 +305,60 @@ export function aggregateBySecretaria(
   }
 }
 
+/**
+ * Junta o nome de cada secretaria às linhas do agrupamento. Código sem
+ * resposta da busca de nomes conta como indisponível.
+ */
+export function attachSecretariaNames(
+  aggregate: CoursesTractionAggregate,
+  names: ReadonlyMap<string, DepartmentLookup>
+): CoursesDashboardSummary {
+  let secretariasWithoutName = 0
+  const secretarias = aggregate.secretarias.map(row => {
+    if (row.orgaoId === null) return { ...row, secretaria: null }
+    const secretaria: DepartmentLookup = names.get(row.orgaoId) ?? {
+      status: 'unavailable',
+    }
+    if (secretaria.status === 'unavailable') secretariasWithoutName += 1
+    return { ...row, secretaria }
+  })
+  return { secretarias, totals: aggregate.totals, secretariasWithoutName }
+}
+
 /** Consolidado de cursos publicados e inscrições por secretaria. */
 export async function buildCoursesDashboard(deps: {
   listPublishedCoursesPage: ListPublishedCoursesPage
   fetchCourseEnrollments: FetchCourseEnrollments
+  resolveSecretarias: ResolveSecretarias
 }): Promise<CoursesDashboardResult> {
   const courses = await fetchAllPublishedCourses(deps.listPublishedCoursesPage)
   if (!courses.ok) return courses
 
-  const counts = await countEnrollmentsByCourse(
-    courses.courses.map(course => course.id),
-    deps.fetchCourseEnrollments
-  )
-  return { ok: true, summary: aggregateBySecretaria(courses.courses, counts) }
+  const orgaoIds = [
+    ...new Set(
+      courses.courses
+        .map(course => course.orgaoId)
+        .filter((orgaoId): orgaoId is string => orgaoId !== null)
+    ),
+  ]
+
+  // Inscrições vêm da API Go e nomes da RMI: as duas buscas correm juntas.
+  // Falha inesperada na busca de nomes não derruba os totais.
+  const [counts, names] = await Promise.all([
+    countEnrollmentsByCourse(
+      courses.courses.map(course => course.id),
+      deps.fetchCourseEnrollments
+    ),
+    deps
+      .resolveSecretarias(orgaoIds)
+      .catch(() => new Map<string, DepartmentLookup>()),
+  ])
+
+  return {
+    ok: true,
+    summary: attachSecretariaNames(
+      aggregateBySecretaria(courses.courses, counts),
+      names
+    ),
+  }
 }

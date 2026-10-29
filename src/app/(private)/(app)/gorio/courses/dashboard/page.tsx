@@ -17,7 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { DepartmentName } from '@/components/ui/department-name'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -30,6 +29,7 @@ import {
 } from '@/components/ui/table'
 import { useCourseTabCounts } from '@/hooks/use-course-tab-counts'
 import { useCoursesDashboard } from '@/hooks/use-courses-dashboard'
+import type { SecretariaTractionRow } from '@/lib/courses-dashboard'
 import type { CourseTab } from '@/lib/courses-tab-counts'
 import {
   AlertTriangle,
@@ -233,6 +233,20 @@ function SecretariaTractionCard() {
           </div>
         )}
 
+        {data && data.secretariasWithoutName > 0 && (
+          <div
+            role="status"
+            className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300"
+          >
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>
+              Não foi possível identificar o nome de{' '}
+              {numberFormatter.format(data.secretariasWithoutName)}{' '}
+              secretaria(s) agora; os números estão corretos. Tente atualizar.
+            </span>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="space-y-2">
             {['a', 'b', 'c', 'd'].map(key => (
@@ -277,13 +291,7 @@ function SecretariaTractionCard() {
                 {data.secretarias.map(row => (
                   <TableRow key={row.orgaoId ?? 'sem-secretaria'}>
                     <TableCell className="whitespace-normal">
-                      {row.orgaoId === null ? (
-                        <span className="text-muted-foreground">
-                          Sem secretaria informada
-                        </span>
-                      ) : (
-                        <DepartmentName cd_ua={row.orgaoId} />
-                      )}
+                      <SecretariaLabel row={row} />
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {numberFormatter.format(row.publishedCourses)}
@@ -315,5 +323,46 @@ function SecretariaTractionCard() {
         )}
       </CardContent>
     </Card>
+  )
+}
+
+/** Nome da secretaria resolvido no servidor pelo BFF do consolidado. */
+function SecretariaLabel({ row }: { row: SecretariaTractionRow }) {
+  const { orgaoId, secretaria } = row
+
+  if (orgaoId === null || secretaria === null) {
+    return (
+      <span className="text-muted-foreground">Sem secretaria informada</span>
+    )
+  }
+
+  if (secretaria.status === 'found') {
+    return (
+      <span>
+        {secretaria.nome}
+        {secretaria.sigla && secretaria.sigla !== secretaria.nome && (
+          <span className="ml-1 text-muted-foreground">
+            ({secretaria.sigla})
+          </span>
+        )}
+      </span>
+    )
+  }
+
+  if (secretaria.status === 'not_found') {
+    return (
+      <span className="text-muted-foreground">
+        Órgão não encontrado (código {orgaoId})
+      </span>
+    )
+  }
+
+  return (
+    <span className="text-muted-foreground">
+      Órgão {orgaoId}{' '}
+      <span className="text-amber-600 dark:text-amber-400">
+        (nome indisponível)
+      </span>
+    </span>
   )
 }

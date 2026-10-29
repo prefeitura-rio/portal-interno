@@ -22,7 +22,11 @@ export function useCoursesDashboard() {
         throw new Error(`Falha ao carregar o consolidado (${response.status})`)
       }
       const body = (await response.json()) as CoursesDashboardSummary
-      return { secretarias: body.secretarias, totals: body.totals }
+      return {
+        secretarias: body.secretarias,
+        totals: body.totals,
+        secretariasWithoutName: body.secretariasWithoutName ?? 0,
+      }
     },
     // Consolidado pesado (uma consulta de inscrições por curso): uma nova
     // tentativa só, e sem refazer ao voltar o foco para a aba

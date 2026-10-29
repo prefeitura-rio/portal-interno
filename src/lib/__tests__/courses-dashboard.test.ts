@@ -9,6 +9,7 @@ const {
   DASHBOARD_ENROLLMENT_CONCURRENCY,
   DASHBOARD_PUBLISHED_STATUSES,
   aggregateBySecretaria,
+  attachSecretariaNames,
   buildCoursesDashboard,
   countEnrollmentsByCourse,
   fetchAllPublishedCourses,
@@ -384,6 +385,13 @@ describe('buildCoursesDashboard', () => {
         enrollmentCalls.push(id)
         return enrollmentsPage(id)
       },
+      resolveSecretarias: async ids =>
+        new Map(
+          ids.map(id => [
+            id,
+            { status: 'found' as const, nome: `Secretaria ${id}`, sigla: id },
+          ])
+        ),
     })
     assert.deepEqual(
       enrollmentCalls.sort((a, b) => a - b),
@@ -414,7 +422,117 @@ describe('buildCoursesDashboard', () => {
       fetchCourseEnrollments: async () => {
         throw new Error('não devia consultar')
       },
+      resolveSecretarias: async () => {
+        throw new Error('não devia consultar')
+      },
     })
     assert.deepEqual(result, { ok: false, status: 403 })
+  })
+
+  test('devolve o nome de cada secretaria, consultando cada código uma vez', async () => {
+    const asked: string[][] = []
+    const result = await buildCoursesDashboard({
+      listPublishedCoursesPage: async () =>
+        coursesPage(
+          [
+            { id: 1, orgao_id: '1000' },
+            { id: 2, orgao_id: '1000' },
+            { id: 3, orgao_id: '2000' },
+            { id: 4 },
+          ],
+          4,
+          1
+        ),
+      fetchCourseEnrollments: async () => enrollmentsPage(1),
+      resolveSecretarias: async ids => {
+        asked.push([...ids])
+        return new Map([
+          [
+            '1000',
+            {
+              status: 'found' as const,
+              nome: 'Secretaria Municipal de Trabalho',
+              sigla: 'SMTE',
+            },
+          ],
+          ['2000', { status: 'unavailable' as const }],
+        ])
+      },
+    })
+    assert.deepEqual(asked, [['1000', '2000']])
+    assert.ok(result.ok)
+    assert.deepEqual(
+      result.summary.secretarias.map(row => [row.orgaoId, row.secretaria]),
+      [
+        [
+          '1000',
+          {
+            status: 'found',
+            nome: 'Secretaria Municipal de Trabalho',
+            sigla: 'SMTE',
+          },
+        ],
+        ['2000', { status: 'unavailable' }],
+        [null, null],
+      ]
+    )
+    assert.equal(result.summary.secretariasWithoutName, 1)
+    assert.equal(result.summary.totals.publishedCourses, 4)
+  })
+
+  test('falha na busca de nomes não derruba os totais', async () => {
+    const result = await buildCoursesDashboard({
+      listPublishedCoursesPage: async () =>
+        coursesPage([{ id: 1, orgao_id: '1000' }], 1, 1),
+      fetchCourseEnrollments: async () => enrollmentsPage(7),
+      resolveSecretarias: async () => {
+        throw new Error('RMI fora do ar')
+      },
+    })
+    assert.ok(result.ok)
+    assert.deepEqual(result.summary.totals, {
+      publishedCourses: 1,
+      totalEnrollments: 7,
+      coursesWithoutEnrollmentCount: 0,
+    })
+    assert.deepEqual(result.summary.secretarias[0].secretaria, {
+      status: 'unavailable',
+    })
+    assert.equal(result.summary.secretariasWithoutName, 1)
+  })
+})
+
+describe('attachSecretariaNames', () => {
+  test('código sem resposta da busca de nomes conta como indisponível', () => {
+    const summary = attachSecretariaNames(
+      {
+        secretarias: [
+          {
+            orgaoId: '1000',
+            publishedCourses: 1,
+            totalEnrollments: 0,
+            coursesWithoutEnrollmentCount: 0,
+          },
+          {
+            orgaoId: '3000',
+            publishedCourses: 1,
+            totalEnrollments: 0,
+            coursesWithoutEnrollmentCount: 0,
+          },
+        ],
+        totals: {
+          publishedCourses: 2,
+          totalEnrollments: 0,
+          coursesWithoutEnrollmentCount: 0,
+        },
+      },
+      new Map([['1000', { status: 'not_found' as const }]])
+    )
+    assert.deepEqual(
+      summary.secretarias.map(row => row.secretaria),
+      [{ status: 'not_found' }, { status: 'unavailable' }]
+    )
+    // Não encontrado é resposta definitiva da RMI, não falha temporária
+    assert.equal(summary.secretariasWithoutName, 1)
   })
 })
