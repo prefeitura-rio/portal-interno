@@ -1,3 +1,4 @@
+import { type TokenStatus, decideTokenRefreshAction } from '@/lib/token-status'
 import { useCallback, useEffect, useRef } from 'react'
 
 interface UseTokenRefreshOptions {
@@ -26,16 +27,6 @@ export function useTokenRefresh(
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const isMonitoringRef = useRef(false)
-
-  const getTokenExpiryTime = useCallback((token: string): number => {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      return payload.exp * 1000 // Converter para milissegundos
-    } catch (error) {
-      console.error('❌ Erro ao obter tempo de expiração do JWT:', error)
-      return 0
-    }
-  }, [])
 
   const stopTokenMonitoring = useCallback(() => {
     if (!isMonitoringRef.current) {
@@ -91,49 +82,29 @@ export function useTokenRefresh(
         return
       }
 
-      const tokenData = await tokenStatusResponse.json()
+      // O endpoint devolve só metadados (nunca os JWTs dos cookies HttpOnly)
+      const tokenData: TokenStatus = await tokenStatusResponse.json()
       console.log('[useTokenRefresh] Token status:', {
-        hasToken: !!tokenData.token,
         isExpired: tokenData.isExpired,
-        hasRefreshToken: !!tokenData.refreshToken,
+        hasRefreshToken: tokenData.hasRefreshToken,
+        expiresAt: tokenData.expiresAt,
       })
 
-      // Se não temos token ou está expirado, tentar refresh
-      if (!tokenData.token || tokenData.isExpired) {
-        if (!tokenData.refreshToken) {
-          console.log('❌ No refresh token available, redirecting to login...')
-          window.location.href = '/api/auth/logout'
-          return
-        }
+      const action = decideTokenRefreshAction(
+        tokenData,
+        Date.now(),
+        refreshBeforeExpiry
+      )
 
-        console.log('🚨 Token expired, attempting refresh...')
-        const refreshSuccess = await refreshToken()
-
-        if (!refreshSuccess) {
-          console.error('❌ Refresh failed, redirecting to login...')
-          window.location.href = '/api/auth/logout'
-        }
+      if (action === 'logout') {
+        console.log('❌ No refresh token available, redirecting to login...')
+        window.location.href = '/api/auth/logout'
         return
       }
 
-      // Se temos token válido, verificar se precisa de refresh
-      const tokenExpiry = getTokenExpiryTime(tokenData.token)
-      const now = Date.now()
-      const timeUntilExpiry = tokenExpiry - now
-      const minutesUntilExpiry = Math.round(timeUntilExpiry / 1000 / 60)
-
-      console.log('[useTokenRefresh] Time until expiry:', {
-        minutesUntilExpiry,
-        refreshBeforeExpiry,
-        shouldRefresh:
-          minutesUntilExpiry <= refreshBeforeExpiry && minutesUntilExpiry > 0,
-      })
-
-      // Se o token está próximo da expiração, fazer o refresh
-      if (minutesUntilExpiry <= refreshBeforeExpiry && minutesUntilExpiry > 0) {
-        console.log(
-          `🚨 Token expires in ${minutesUntilExpiry} minutes, refreshing...`
-        )
+      // Token expirado (com refresh_token) ou próximo da expiração
+      if (action === 'refresh') {
+        console.log('🚨 Token expired or close to expiry, refreshing...')
 
         const refreshSuccess = await refreshToken()
 
@@ -147,12 +118,7 @@ export function useTokenRefresh(
       // Em caso de erro, parar o monitoramento para evitar loops
       stopTokenMonitoring()
     }
-  }, [
-    refreshBeforeExpiry,
-    getTokenExpiryTime,
-    refreshToken,
-    stopTokenMonitoring,
-  ])
+  }, [refreshBeforeExpiry, refreshToken, stopTokenMonitoring])
 
   const startTokenMonitoring = useCallback(() => {
     if (isMonitoringRef.current) {
