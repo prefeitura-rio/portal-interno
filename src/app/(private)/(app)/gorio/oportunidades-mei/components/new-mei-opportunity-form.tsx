@@ -195,6 +195,42 @@ type PartialFormData = Partial<
   originalStatus?: 'canceled' | 'draft' | 'opened' | 'closed'
 }
 
+const toOptionalDate = (
+  value: Date | string | null | undefined
+): Date | undefined => {
+  if (!value) return undefined
+  return typeof value === 'string' ? new Date(value) : value
+}
+
+// Valores do formulário a partir dos dados salvos da oportunidade. Data
+// ausente fica vazia (o formulário aplica o padrão do prazo de expiração).
+export function toMEIOpportunityFormValues(data: PartialFormData) {
+  return {
+    orgao_id:
+      data.orgao_id !== null && data.orgao_id !== undefined
+        ? String(data.orgao_id)
+        : '',
+    subclasses: data.subclasses || [],
+    title: data.title || '',
+    description: data.description || '',
+    outras_informacoes: data.outras_informacoes || '',
+    address: data.address || '',
+    number: data.number || '',
+    neighborhood: data.neighborhood || '',
+    forma_pagamento: data.forma_pagamento || '',
+    prazo_pagamento: data.prazo_pagamento || '',
+    opportunity_expiration_date: toOptionalDate(
+      data.opportunity_expiration_date
+    ),
+    service_execution_deadline: toOptionalDate(data.service_execution_deadline),
+    gallery_images:
+      data.gallery_images && data.gallery_images.length > 0
+        ? data.gallery_images
+        : [''],
+    cover_image: data.cover_image || '',
+  }
+}
+
 // Type for backend API data
 type BackendMEIOpportunityData = {
   orgao_id: string | null
@@ -270,40 +306,17 @@ export const NewMEIOpportunityForm = forwardRef<
       type: null,
     })
 
+    const savedValues = initialData
+      ? toMEIOpportunityFormValues(initialData)
+      : undefined
+
     const form = useForm({
       resolver: zodResolver(formSchema),
-      defaultValues: initialData
+      defaultValues: savedValues
         ? {
-            orgao_id:
-              initialData.orgao_id !== null &&
-              initialData.orgao_id !== undefined
-                ? String(initialData.orgao_id)
-                : '',
-            subclasses: initialData.subclasses || [],
-            title: initialData.title || '',
-            description: initialData.description || '',
-            outras_informacoes: initialData.outras_informacoes || '',
-            address: initialData.address || '',
-            number: initialData.number || '',
-            neighborhood: initialData.neighborhood || '',
-            forma_pagamento: initialData.forma_pagamento || '',
-            prazo_pagamento: initialData.prazo_pagamento || '',
-            opportunity_expiration_date: initialData.opportunity_expiration_date
-              ? typeof initialData.opportunity_expiration_date === 'string'
-                ? new Date(initialData.opportunity_expiration_date)
-                : initialData.opportunity_expiration_date
-              : new Date(),
-            service_execution_deadline: initialData.service_execution_deadline
-              ? typeof initialData.service_execution_deadline === 'string'
-                ? new Date(initialData.service_execution_deadline)
-                : initialData.service_execution_deadline
-              : undefined,
-            gallery_images:
-              initialData.gallery_images &&
-              initialData.gallery_images.length > 0
-                ? initialData.gallery_images
-                : [''],
-            cover_image: initialData.cover_image || '',
+            ...savedValues,
+            opportunity_expiration_date:
+              savedValues.opportunity_expiration_date ?? new Date(),
           }
         : {
             orgao_id: '',
@@ -465,8 +478,16 @@ export const NewMEIOpportunityForm = forwardRef<
         handleSaveDraft()
       },
       validateForPublish: async () => {
+        if (!initialData) {
+          await form.trigger()
+          return getMEIOpportunityPublishPendingFields(form.getValues())
+        }
+        // Publica-se o que está salvo: descarta edições canceladas que ainda
+        // estejam no formulário e destaca os erros dos dados salvos
+        const saved = toMEIOpportunityFormValues(initialData)
+        form.reset(saved)
         await form.trigger()
-        return getMEIOpportunityPublishPendingFields(form.getValues())
+        return getMEIOpportunityPublishPendingFields(saved)
       },
     }))
 

@@ -17,7 +17,8 @@ const PAGE_URL = new URL(
 )
 
 registerSrcLoader()
-const { getMEIOpportunityPublishPendingFields } = await import(FORM_URL.href)
+const { getMEIOpportunityPublishPendingFields, toMEIOpportunityFormValues } =
+  await import(FORM_URL.href)
 
 const EXPIRATION = new Date('2026-11-30T18:00:00-03:00')
 
@@ -99,48 +100,127 @@ describe('getMEIOpportunityPublishPendingFields', () => {
   })
 })
 
-// Chamadas `<objeto>.<método>(...)` dentro de handlePublishDirect, em ordem
-function callsInHandlePublishDirect(source: string): string[] {
-  const sourceFile = ts.createSourceFile(
-    PAGE_URL.pathname,
-    source,
+// Rascunho salvo como a página o recebe de useMEIOpportunity (datas em string)
+const savedDraft = {
+  ...completeDraft,
+  opportunity_expiration_date: '2026-11-30T21:00:00Z',
+  service_execution_deadline: '2026-12-15T21:00:00Z',
+  status: 'draft',
+}
+
+describe('validação dos dados salvos do rascunho', () => {
+  test('rascunho salvo completo pode ser publicado', () => {
+    assert.deepEqual(
+      getMEIOpportunityPublishPendingFields(
+        toMEIOpportunityFormValues(savedDraft)
+      ),
+      []
+    )
+  })
+
+  test('rascunho salvo incompleto não é publicável, mesmo que o formulário tenha edições canceladas completas', () => {
+    // O que se publica é o registro salvo (sem endereço e sem capa); edições
+    // feitas em "Editar" e descartadas em "Cancelar" não contam
+    const saved = { ...savedDraft, address: '', cover_image: '' }
+    assert.deepEqual(
+      getMEIOpportunityPublishPendingFields(toMEIOpportunityFormValues(saved)),
+      ['Endereço', 'Imagem de capa']
+    )
+  })
+
+  test('prazo de expiração ausente no registro salvo fica pendente', () => {
+    const saved = { ...savedDraft, opportunity_expiration_date: '' }
+    assert.equal(
+      toMEIOpportunityFormValues(saved).opportunity_expiration_date,
+      undefined
+    )
+    assert.deepEqual(
+      getMEIOpportunityPublishPendingFields(toMEIOpportunityFormValues(saved)),
+      ['Prazo para expiração da oportunidade']
+    )
+  })
+})
+
+function parseTsx(url: URL): ts.SourceFile {
+  return ts.createSourceFile(
+    url.pathname,
+    readFileSync(url, 'utf8'),
     ts.ScriptTarget.Latest,
     true,
     ts.ScriptKind.TSX
   )
-  let handler: ts.Node | undefined
-  const findHandler = (node: ts.Node) => {
-    if (
-      ts.isVariableDeclaration(node) &&
-      node.name.getText(sourceFile) === 'handlePublishDirect'
-    ) {
-      handler = node.initializer
-      return
-    }
-    ts.forEachChild(node, findHandler)
-  }
-  findHandler(sourceFile)
-  assert.ok(handler, 'handlePublishDirect não encontrado na página')
+}
 
-  const calls: string[] = []
+function findInitializer(
+  sourceFile: ts.SourceFile,
+  matches: (node: ts.Node) => ts.Node | undefined
+): ts.Node | undefined {
+  let found: ts.Node | undefined
   const visit = (node: ts.Node) => {
-    if (ts.isCallExpression(node)) {
-      const callee = node.expression
+    if (found) return
+    found = matches(node)
+    if (!found) ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+  return found
+}
+
+// Nomes das funções chamadas dentro de `node`, em ordem
+function callNames(sourceFile: ts.SourceFile, node: ts.Node): string[] {
+  const calls: string[] = []
+  const visit = (current: ts.Node) => {
+    if (ts.isCallExpression(current)) {
+      const callee = current.expression
       calls.push(
         ts.isPropertyAccessExpression(callee)
           ? callee.name.getText(sourceFile)
           : callee.getText(sourceFile)
       )
     }
-    ts.forEachChild(node, visit)
+    ts.forEachChild(current, visit)
   }
-  visit(handler)
+  visit(node)
   return calls
 }
 
+describe('validateForPublish do formulário', () => {
+  test('restaura o formulário aos dados salvos antes de validar', () => {
+    const sourceFile = parseTsx(FORM_URL)
+    const method = findInitializer(sourceFile, node =>
+      ts.isPropertyAssignment(node) &&
+      node.name.getText(sourceFile) === 'validateForPublish'
+        ? node.initializer
+        : undefined
+    )
+    assert.ok(method, 'validateForPublish não encontrado no formulário')
+    const calls = callNames(sourceFile, method)
+    const savedAt = calls.lastIndexOf('toMEIOpportunityFormValues')
+    const resetAt = calls.indexOf('reset')
+    assert.notEqual(savedAt, -1, 'não valida os dados salvos (initialData)')
+    assert.ok(resetAt > savedAt, 'não restaura o formulário aos dados salvos')
+    assert.ok(
+      calls.lastIndexOf('trigger') > resetAt,
+      'os erros precisam ser destacados depois de restaurar os dados salvos'
+    )
+  })
+})
+
+// Chamadas dentro de handlePublishDirect, em ordem
+function callsInHandlePublishDirect(): string[] {
+  const sourceFile = parseTsx(PAGE_URL)
+  const handler = findInitializer(sourceFile, node =>
+    ts.isVariableDeclaration(node) &&
+    node.name.getText(sourceFile) === 'handlePublishDirect'
+      ? node.initializer
+      : undefined
+  )
+  assert.ok(handler, 'handlePublishDirect não encontrado na página')
+  return callNames(sourceFile, handler)
+}
+
 describe('botão "Publicar oportunidade" do rascunho', () => {
-  test('valida o formulário antes de chamar o publish', () => {
-    const calls = callsInHandlePublishDirect(readFileSync(PAGE_URL, 'utf8'))
+  test('valida os dados salvos antes de chamar o publish', () => {
+    const calls = callsInHandlePublishDirect()
     const validateAt = calls.indexOf('validateForPublish')
     const publishAt = calls.indexOf('publishOpportunity')
     assert.notEqual(validateAt, -1, 'handlePublishDirect não valida o rascunho')
