@@ -142,6 +142,42 @@ export const draftFormSchema = draftFormFields.superRefine(
   refineMEIOpportunityDeadlines
 )
 
+// Rótulos dos campos, na ordem em que aparecem no formulário
+export const MEI_OPPORTUNITY_FIELD_LABELS = {
+  orgao_id: 'Órgão demandante',
+  title: 'Título',
+  subclasses: 'Subclasses CNAE',
+  description: 'Descrição do serviço',
+  outras_informacoes: 'Outras informações',
+  address: 'Endereço',
+  number: 'Número',
+  neighborhood: 'Bairro',
+  forma_pagamento: 'Forma de pagamento',
+  prazo_pagamento: 'Prazo de pagamento após a emissão da nota fiscal',
+  opportunity_expiration_date: 'Prazo para expiração da oportunidade',
+  service_execution_deadline: 'Data limite para execução do serviço',
+  cover_image: 'Imagem de capa',
+  gallery_images: 'Imagens para galeria',
+} as const satisfies Record<keyof z.infer<typeof fullFormFields>, string>
+
+// DEV-90: publicar um rascunho, inclusive pelo botão direto (sem entrar em
+// "Editar"), exige as mesmas regras do fullFormSchema. Devolve os rótulos dos
+// campos pendentes na ordem do formulário; vazio quando pode publicar.
+export function getMEIOpportunityPublishPendingFields(
+  values: unknown
+): string[] {
+  const result = fullFormSchema.safeParse(values)
+  if (result.success) return []
+  const invalidFields = new Set(
+    result.error.issues.map(issue => String(issue.path[0] ?? ''))
+  )
+  const labels = Object.entries(MEI_OPPORTUNITY_FIELD_LABELS)
+    .filter(([field]) => invalidFields.has(field))
+    .map(([, label]) => label)
+  // Erro fora de um campo conhecido ainda impede a publicação
+  return labels.length > 0 ? labels : ['Dados da oportunidade']
+}
+
 // Use the full schema as the main form schema
 const formSchema = fullFormSchema
 
@@ -195,6 +231,9 @@ export interface NewMEIOpportunityFormRef {
   triggerSubmit: () => void
   triggerPublish: () => void
   triggerSaveDraft: () => void
+  // Valida os valores atuais com o fullFormSchema, destaca os erros nos campos
+  // e devolve os rótulos dos campos pendentes (vazio quando pode publicar)
+  validateForPublish: () => Promise<string[]>
 }
 
 export const NewMEIOpportunityForm = forwardRef<
@@ -424,6 +463,10 @@ export const NewMEIOpportunityForm = forwardRef<
       },
       triggerSaveDraft: () => {
         handleSaveDraft()
+      },
+      validateForPublish: async () => {
+        await form.trigger()
+        return getMEIOpportunityPublishPendingFields(form.getValues())
       },
     }))
 

@@ -291,7 +291,25 @@ export default function MEIOpportunityDetailPage({
         throw new Error('ID da oportunidade não encontrado')
       }
 
-      // Publish directly without updating form data
+      // DEV-90: o rascunho passa pelas mesmas regras do "Salvar e Publicar"
+      // (fullFormSchema) antes do publish; com pendências, não publica e abre
+      // a edição com os campos destacados.
+      const draftForm = draftFormRef.current
+      if (!draftForm) {
+        toast.error('Erro ao publicar oportunidade', {
+          description: 'Formulário da oportunidade não carregado.',
+        })
+        return
+      }
+      const pendingFields = await draftForm.validateForPublish()
+      if (pendingFields.length > 0) {
+        handleEdit()
+        toast.error('Preencha os campos obrigatórios antes de publicar', {
+          description: `Campos pendentes: ${pendingFields.join(', ')}.`,
+        })
+        return
+      }
+
       await publishOpportunity(opportunityId.toString())
 
       // Refetch opportunity data to get updated information
