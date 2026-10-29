@@ -1,6 +1,7 @@
 'use client'
 
 import type { CoursesDashboardSummary } from '@/lib/courses-dashboard'
+import { COURSES_DASHBOARD_REFRESH_QUERY_OPTIONS } from '@/lib/courses-dashboard-refresh'
 import { useQuery } from '@tanstack/react-query'
 
 export const coursesDashboardKeys = {
@@ -9,7 +10,8 @@ export const coursesDashboardKeys = {
 
 /**
  * Consolidado de cursos publicados e inscritos por secretaria do Dashboard
- * de Capacitações (DEV-100), via BFF `/api/courses/dashboard`.
+ * de Capacitações (DEV-100), via BFF `/api/courses/dashboard`, revalidado
+ * periodicamente (DEV-106).
  */
 export function useCoursesDashboard() {
   return useQuery({
@@ -28,5 +30,8 @@ export function useCoursesDashboard() {
     // tentativa só, e sem refazer ao voltar o foco para a aba
     retry: 1,
     refetchOnWindowFocus: false,
+    // Revalida sozinho a cada 2 horas, mesmo com a aba em segundo plano
+    // (DEV-106)
+    ...COURSES_DASHBOARD_REFRESH_QUERY_OPTIONS,
   })
 }

@@ -1,3 +1,4 @@
+import { startPeriodicRefresh } from '@/lib/courses-dashboard-refresh'
 import {
   type CourseTab,
   type CourseTabCounts,
@@ -10,6 +11,11 @@ export interface UseCourseTabCountsParams {
   tabs: readonly CourseTab[]
   /** Busca parcial no título do curso */
   search?: string
+  /**
+   * Revalida as contagens a cada N ms, sem esconder os números atuais
+   * durante a nova consulta. Ausente = só busca ao montar e no `refetch`.
+   */
+  refetchIntervalMs?: number
 }
 
 export interface UseCourseTabCountsResult {
@@ -25,37 +31,46 @@ export interface UseCourseTabCountsResult {
 export function useCourseTabCounts(
   params: UseCourseTabCountsParams
 ): UseCourseTabCountsResult {
-  const { tabs, search } = params
+  const { tabs, search, refetchIntervalMs } = params
   // Chave estável para não refazer a consulta a cada render
   const tabsKey = tabs.join(',')
   const [counts, setCounts] = useState<CourseTabCounts>({})
   const [loading, setLoading] = useState(true)
   const controllerRef = useRef<AbortController | null>(null)
 
-  const fetchCounts = useCallback(async () => {
-    controllerRef.current?.abort()
-    const controller = new AbortController()
-    controllerRef.current = controller
+  const fetchCounts = useCallback(
+    async (showLoading = true) => {
+      controllerRef.current?.abort()
+      const controller = new AbortController()
+      controllerRef.current = controller
 
-    setLoading(true)
-    const result = await fetchCourseTabCounts(
-      tabsKey ? (tabsKey.split(',') as CourseTab[]) : [],
-      { search },
-      fetch,
-      window.location.origin,
-      controller.signal
-    )
+      if (showLoading) setLoading(true)
+      const result = await fetchCourseTabCounts(
+        tabsKey ? (tabsKey.split(',') as CourseTab[]) : [],
+        { search },
+        fetch,
+        window.location.origin,
+        controller.signal
+      )
 
-    // Ignora respostas de uma consulta substituída por outra mais nova
-    if (controller.signal.aborted) return
-    setCounts(result)
-    setLoading(false)
-  }, [tabsKey, search])
+      // Ignora respostas de uma consulta substituída por outra mais nova
+      if (controller.signal.aborted) return
+      setCounts(result)
+      setLoading(false)
+    },
+    [tabsKey, search]
+  )
 
   useEffect(() => {
     fetchCounts()
     return () => controllerRef.current?.abort()
   }, [fetchCounts])
+
+  // Revalidação periódica em segundo plano (DEV-106)
+  useEffect(
+    () => startPeriodicRefresh(() => fetchCounts(false), refetchIntervalMs),
+    [fetchCounts, refetchIntervalMs]
+  )
 
   return { counts, loading, refetch: fetchCounts }
 }
