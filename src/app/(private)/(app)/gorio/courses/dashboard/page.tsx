@@ -30,6 +30,7 @@ import {
 import { useCourseTabCounts } from '@/hooks/use-course-tab-counts'
 import { useCoursesDashboard } from '@/hooks/use-courses-dashboard'
 import type { SecretariaTractionRow } from '@/lib/courses-dashboard'
+import { COURSES_DASHBOARD_REFRESH_INTERVAL_MS } from '@/lib/courses-dashboard-refresh'
 import type { CourseTab } from '@/lib/courses-tab-counts'
 import {
   AlertTriangle,
@@ -92,6 +93,8 @@ const numberFormatter = new Intl.NumberFormat('pt-BR')
 export default function CoursesDashboardPage() {
   const { counts, loading: countsLoading } = useCourseTabCounts({
     tabs: PIPELINE_TABS,
+    // Os cards se atualizam sozinhos, no mesmo intervalo da tabela (DEV-106)
+    refetchIntervalMs: COURSES_DASHBOARD_REFRESH_INTERVAL_MS,
   })
 
   return (
