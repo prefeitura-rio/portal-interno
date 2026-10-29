@@ -42,6 +42,28 @@ function isValidDate(value: unknown): value is Date {
   return value instanceof Date && !Number.isNaN(value.getTime())
 }
 
+// Valor de uma data da turma que deixou de valer. Precisa ser `null`, não
+// `undefined`: com `undefined`, o Controller do react-hook-form volta a mostrar
+// o valor inicial do campo enquanto o formulário guarda a data vazia, e o
+// rascunho seguia para a API sem a data.
+export const CLEARED_TURMA_DATE = null
+
+// Data da turma vinda da API. Vazio, inválido ou o zero do Go
+// (0001-01-01T00:00:00Z, gravado quando a data não foi enviada) é ausência.
+export function parseTurmaApiDate(value: unknown): Date | null {
+  if (typeof value !== 'string' || value.trim() === '') return null
+  const date = new Date(value)
+  if (!isValidDate(date) || date.getUTCFullYear() <= 1) return null
+  return date
+}
+
+// Mensagem de data obrigatória que vale também para `null` (data limpa pelo
+// encadeamento das datas da turma), não só para `undefined`.
+export function requiredTurmaDateError(message: string) {
+  return (issue: { input?: unknown }): string | undefined =>
+    issue.input === undefined || issue.input === null ? message : undefined
+}
+
 // Limite exclusivo de `field`: a data preenchida mais próxima antes dele na
 // ordem da turma. Uma data ausente (ex.: aulas de turma online sem datas) é
 // pulada, e o campo seguinte é comparado com a anterior a ela.
@@ -107,6 +129,44 @@ export function turmaDateOrderViolations(
     }
   }
   return violations
+}
+
+const REQUIRED_MESSAGE: Record<TurmaDateField, string> = {
+  enrollmentStartDate: 'Data de início das inscrições é obrigatória.',
+  enrollmentEndDate: 'Data de fim das inscrições é obrigatória.',
+  classStartDate: 'Data de início das aulas é obrigatória.',
+  classEndDate: 'Data de fim das aulas é obrigatória.',
+}
+
+export const CLASS_DATES_PAIR_MESSAGE =
+  'Preencha as duas datas de aula ou deixe ambas em branco.'
+
+// O rascunho não pode seguir com uma data da turma vazia que a API gravaria
+// como 0001-01-01: inscrições sempre; aulas sempre na turma presencial e, na
+// online, as duas ou nenhuma.
+export function refineTurmaDatesPresent(
+  ctx: RefinementCtx,
+  turma: TurmaDates,
+  path: (string | number)[],
+  classDates: 'required' | 'pair'
+): void {
+  const missing = (field: TurmaDateField) => !isValidDate(turma[field])
+  const report = (field: TurmaDateField, message: string) =>
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message,
+      path: [...path, field],
+    })
+  for (const field of ['enrollmentStartDate', 'enrollmentEndDate'] as const) {
+    if (missing(field)) report(field, REQUIRED_MESSAGE[field])
+  }
+  if (classDates === 'required') {
+    for (const field of ['classStartDate', 'classEndDate'] as const) {
+      if (missing(field)) report(field, REQUIRED_MESSAGE[field])
+    }
+  } else if (missing('classStartDate') !== missing('classEndDate')) {
+    report('classEndDate', CLASS_DATES_PAIR_MESSAGE)
+  }
 }
 
 // Trava do salvamento (rascunho e envio) para datas que não passaram pelo

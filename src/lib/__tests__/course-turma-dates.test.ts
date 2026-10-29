@@ -3,8 +3,11 @@ import { existsSync, statSync } from 'node:fs'
 import { registerHooks } from 'node:module'
 import { describe, test } from 'node:test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { createFormControl } from 'react-hook-form'
 import ts from 'typescript'
 import {
+  CLEARED_TURMA_DATE,
+  parseTurmaApiDate,
   turmaDateMin,
   turmaDateOrderViolations,
   turmaDatesToClear,
@@ -454,6 +457,151 @@ describe('draftFormSchema (salvar rascunho)', () => {
         )
       ),
       []
+    )
+  })
+})
+
+// Regressão da validação de staging do DEV-84: alterar o fim das inscrições
+// limpava as datas de aula com `undefined`, o botão seguia mostrando a data
+// antiga e o rascunho ia para a API sem as datas, que voltavam como 31/12/0001.
+describe('data da turma limpa pelo encadeamento', () => {
+  const ORIGINAL = at(CLASS_START)
+  const PATH = 'locations.0.schedules.0.classStartDate'
+
+  function clearWith(value: unknown) {
+    const { control, setValue } = createFormControl({
+      defaultValues: {
+        locations: [{ schedules: [{ classStartDate: ORIGINAL }] }],
+      },
+    })
+    control._state.mount = true
+    setValue(PATH, value as Date)
+    // O que o Controller do campo mostra (useWatch com o valor inicial)
+    return control._getWatch(PATH, ORIGINAL)
+  }
+
+  test('com undefined, o campo voltaria a mostrar a data antiga', () => {
+    assert.equal(clearWith(undefined), ORIGINAL)
+  })
+
+  test('o valor de limpeza deixa o campo vazio, sem a data antiga', () => {
+    assert.equal(clearWith(CLEARED_TURMA_DATE), null)
+  })
+
+  const cleared = (fields: Partial<ReturnType<typeof turma>>) => ({
+    ...turma(),
+    ...fields,
+  })
+
+  test('rascunho presencial sem as datas de aula é recusado (null ou ausente)', () => {
+    for (const empty of [null, undefined]) {
+      const issues = issuesOf(
+        {
+          modalidade: 'PRESENCIAL',
+          locations: [
+            {
+              schedules: [
+                cleared({
+                  classStartDate: empty,
+                  classEndDate: empty,
+                } as never),
+              ],
+            },
+          ],
+        },
+        draftFormSchema
+      )
+      assert.deepEqual(summary(issues), [
+        [
+          'locations.0.schedules.0.classStartDate',
+          'Data de início das aulas é obrigatória.',
+        ],
+        [
+          'locations.0.schedules.0.classEndDate',
+          'Data de fim das aulas é obrigatória.',
+        ],
+      ])
+    }
+  })
+
+  test('rascunho sem o fim das inscrições é recusado', () => {
+    const issues = issuesOf(
+      {
+        modalidade: 'ONLINE',
+        remote_class: [cleared({ enrollmentEndDate: null } as never)],
+      },
+      draftFormSchema
+    )
+    assert.deepEqual(summary(issues), [
+      [
+        'remote_class.0.enrollmentEndDate',
+        'Data de fim das inscrições é obrigatória.',
+      ],
+    ])
+  })
+
+  test('rascunho online: só uma data de aula é recusado; nenhuma é aceito', () => {
+    assert.deepEqual(
+      summary(
+        issuesOf(
+          {
+            modalidade: 'ONLINE',
+            remote_class: [turma({ classStart: null })],
+          },
+          draftFormSchema
+        )
+      ),
+      [
+        [
+          'remote_class.0.classEndDate',
+          'Preencha as duas datas de aula ou deixe ambas em branco.',
+        ],
+      ]
+    )
+    assert.deepEqual(
+      summary(
+        issuesOf(
+          {
+            modalidade: 'ONLINE',
+            remote_class: [turma({ classStart: null, classEnd: null })],
+          },
+          draftFormSchema
+        )
+      ),
+      []
+    )
+  })
+
+  test('envio presencial com data de aula limpa mostra que ela é obrigatória', () => {
+    const issues = issuesOf(
+      presencial([cleared({ classStartDate: null, classEndDate: null })])
+    )
+    assert.deepEqual(summary(issues), [
+      [
+        'locations.0.schedules.0.classStartDate',
+        'Data de início das aulas é obrigatória.',
+      ],
+      [
+        'locations.0.schedules.0.classEndDate',
+        'Data de fim das aulas é obrigatória.',
+      ],
+    ])
+  })
+})
+
+describe('parseTurmaApiDate (datas da turma vindas da API)', () => {
+  test('zero do Go, vazio e inválido viram ausência', () => {
+    assert.equal(parseTurmaApiDate('0001-01-01T00:00:00Z'), null)
+    assert.equal(parseTurmaApiDate(''), null)
+    assert.equal(parseTurmaApiDate(undefined), null)
+    assert.equal(parseTurmaApiDate(null), null)
+    assert.equal(parseTurmaApiDate('não é data'), null)
+  })
+
+  test('data válida é mantida', () => {
+    assert.equal(
+      parseTurmaApiDate('2026-01-20T12:00:00Z')?.toISOString(),
+      '2026-01-20T12:00:00.000Z'
     )
   })
 })
