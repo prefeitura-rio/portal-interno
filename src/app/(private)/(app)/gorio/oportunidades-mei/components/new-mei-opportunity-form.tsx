@@ -43,21 +43,16 @@ import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { refineMEIOpportunityDeadlines } from '@/lib/mei-opportunity-dates'
+import { isMEIImageURL } from '@/lib/mei-opportunity-images'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { requiredError } from '@/lib/zod-errors'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-// Custom validation function for Google Cloud Storage URLs
-const validateGoogleCloudStorageURL = (url: string | undefined) => {
-  // Allow empty or undefined URLs for drafts
-  if (!url || url.trim() === '') {
-    return true
-  }
-  return url.startsWith(
-    'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/'
-  )
-}
+// Capa e galeria: vazio (rascunho) ou objeto do GCS, inclusive os do bucket
+// configurado para upload (pasta superapp/images/mei) e os de buckets antigos
+const validateGoogleCloudStorageURL = (url: string | undefined) =>
+  isMEIImageURL(url)
 
 // Create the full schema for complete validation (used for publishing)
 const fullFormFields = z.object({
@@ -97,23 +92,13 @@ const fullFormFields = z.object({
   service_execution_deadline: z.date().optional(),
   gallery_images: z
     .array(
-      z.string().refine(
-        val => {
-          // Se estiver vazio, aceita (campo opcional)
-          if (!val || val.trim() === '') return true
-          // Se tiver conteúdo, valida se é URL válida
-          try {
-            new URL(val)
-            return validateGoogleCloudStorageURL(val)
-          } catch {
-            return false
-          }
-        },
-        {
+      // Vazio é aceito (item da galeria sem imagem é descartado ao salvar)
+      z
+        .string()
+        .refine(validateGoogleCloudStorageURL, {
           message:
             'Deve ser uma URL válida do bucket do Google Cloud Storage ou deixe em branco.',
-        }
-      )
+        })
     )
     .optional(),
   cover_image: z
@@ -913,14 +898,17 @@ export const NewMEIOpportunityForm = forwardRef<
               <FormField
                 control={form.control}
                 name="cover_image"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormControl>
                       <ImageUpload
                         value={field.value}
-                        onChange={field.onChange}
+                        onChange={value => field.onChange(value ?? '')}
                         label="Imagem de capa*"
+                        uploadFolder="mei"
                         previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
+                        error={!!fieldState.error}
+                        disabled={isReadOnly}
                       />
                     </FormControl>
                     <FormMessage />
@@ -939,12 +927,18 @@ export const NewMEIOpportunityForm = forwardRef<
                         <FormField
                           control={form.control}
                           name={`gallery_images.${index}`}
-                          render={({ field }) => (
+                          render={({ field, fieldState }) => (
                             <FormItem className="flex-1">
                               <FormControl>
-                                <Input
-                                  placeholder="https://storage.googleapis.com/..."
-                                  {...field}
+                                <ImageUpload
+                                  value={field.value}
+                                  onChange={value =>
+                                    field.onChange(value ?? '')
+                                  }
+                                  label={`Imagem ${index + 1}`}
+                                  uploadFolder="mei"
+                                  previewClassName="max-h-[200px] max-w-full rounded-lg object-contain"
+                                  error={!!fieldState.error}
                                   disabled={isReadOnly}
                                 />
                               </FormControl>
@@ -964,19 +958,6 @@ export const NewMEIOpportunityForm = forwardRef<
                           </Button>
                         )}
                       </div>
-                      {form.watch(`gallery_images.${index}`) && (
-                        <div className="w-full rounded-lg border overflow-hidden">
-                          <img
-                            src={form.watch(`gallery_images.${index}`)}
-                            alt={`Pré-visualização ${index + 1}`}
-                            className="w-full h-auto max-h-[200px] object-contain bg-muted"
-                            onError={e => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                            }}
-                          />
-                        </div>
-                      )}
                     </div>
                   ))}
 

@@ -5,6 +5,7 @@
 export const UPLOAD_FOLDERS = {
   courses: 'superapp/images/courses',
   empresas: 'superapp/images/empresas',
+  mei: 'superapp/images/mei',
 } as const
 
 export type UploadFolder = keyof typeof UPLOAD_FOLDERS
