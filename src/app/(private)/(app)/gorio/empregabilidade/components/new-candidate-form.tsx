@@ -36,7 +36,9 @@ export interface NewCandidateFormRef {
 }
 
 // Create dynamic Zod schema based on complementary fields and validation rules
-function createFormSchema(informacoesComplementares: InformacaoComplementar[]) {
+export function createFormSchema(
+  informacoesComplementares: InformacaoComplementar[]
+) {
   // Base schema with CPF, nome and email
   const baseSchema = {
     cpf: z
@@ -54,47 +56,37 @@ function createFormSchema(informacoesComplementares: InformacaoComplementar[]) {
 
     switch (info.field_type) {
       case 'number': {
-        const numSchema = (
-          info.required
-            ? z.string().min(1, 'Campo obrigatório')
-            : z.string().optional().or(z.literal(''))
-        ).refine(
-          v => {
-            if (v === undefined || v === '') return true
-            const n = Number.parseFloat(String(v))
-            if (Number.isNaN(n)) return false
-            if (info.valor_min != null && n < info.valor_min) return false
-            if (info.valor_max != null && n > info.valor_max) return false
-            return true
-          },
-          v => {
-            if (v === undefined || v === '') return { message: '' }
-            const n = Number.parseFloat(String(v))
-            if (Number.isNaN(n)) return { message: 'Informe um número válido' }
-            if (info.valor_min != null && n < info.valor_min)
-              return { message: `Valor mínimo: ${info.valor_min}` }
-            if (info.valor_max != null && n > info.valor_max)
-              return { message: `Valor máximo: ${info.valor_max}` }
-            return { message: '' }
-          }
-        )
+        const baseNumSchema: z.ZodType<string | undefined> = info.required
+          ? z.string().min(1, 'Campo obrigatório')
+          : z.string().optional().or(z.literal(''))
+        // zod 4 não aceita mais função como mensagem do refine: a mensagem
+        // sai da mesma regra, no superRefine
+        const numSchema = baseNumSchema.superRefine((v, ctx) => {
+          if (v === undefined || v === '') return
+          const n = Number.parseFloat(String(v))
+          let message: string | undefined
+          if (Number.isNaN(n)) message = 'Informe um número válido'
+          else if (info.valor_min != null && n < info.valor_min)
+            message = `Valor mínimo: ${info.valor_min}`
+          else if (info.valor_max != null && n > info.valor_max)
+            message = `Valor máximo: ${info.valor_max}`
+          if (message) ctx.addIssue({ code: 'custom', message })
+        })
         dynamicSchema[fieldKey] = numSchema
         break
       }
       case 'select': {
         const optionValues = (info.options ?? []).map(o => o.value)
+        const baseSelectSchema: z.ZodType<string | undefined> = info.required
+          ? z.string().min(1, 'Selecione uma opção')
+          : z.string().optional()
         const selectSchema =
           optionValues.length > 0
-            ? (info.required
-                ? z.string().min(1, 'Selecione uma opção')
-                : z.string().optional()
-              ).refine(
+            ? baseSelectSchema.refine(
                 v => !v || optionValues.includes(v),
                 'Selecione uma opção válida'
               )
-            : info.required
-              ? z.string().min(1, 'Selecione uma opção')
-              : z.string().optional()
+            : baseSelectSchema
         dynamicSchema[fieldKey] = selectSchema
         break
       }
@@ -102,7 +94,7 @@ function createFormSchema(informacoesComplementares: InformacaoComplementar[]) {
         let multiSchema: z.ZodTypeAny = z.string()
         if (info.required) {
           multiSchema = multiSchema.refine(
-            (v: string) => typeof v === 'string' && v.trim().length > 0,
+            (v: unknown) => typeof v === 'string' && v.trim().length > 0,
             'Selecione ao menos uma opção'
           )
         } else {
