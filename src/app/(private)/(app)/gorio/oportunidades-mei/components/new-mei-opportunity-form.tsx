@@ -42,6 +42,7 @@ import {
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { refineMEIOpportunityDeadlines } from '@/lib/mei-opportunity-dates'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -58,7 +59,7 @@ const validateGoogleCloudStorageURL = (url: string | undefined) => {
 }
 
 // Create the full schema for complete validation (used for publishing)
-const fullFormSchema = z.object({
+const fullFormFields = z.object({
   orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
   subclasses: z
     .array(z.string())
@@ -124,7 +125,7 @@ const fullFormSchema = z.object({
 })
 
 // Create a minimal schema for draft validation
-const draftFormSchema = z.object({
+const draftFormFields = z.object({
   orgao_id: z.string().optional(),
   subclasses: z.array(z.string()).optional(),
   title: z.string().optional(),
@@ -146,6 +147,14 @@ const draftFormSchema = z.object({
     })
     .optional(),
 })
+
+// Data limite para execução >= prazo de expiração, inclusive no rascunho
+export const fullFormSchema = fullFormFields.superRefine(
+  refineMEIOpportunityDeadlines
+)
+export const draftFormSchema = draftFormFields.superRefine(
+  refineMEIOpportunityDeadlines
+)
 
 // Use the full schema as the main form schema
 const formSchema = fullFormSchema
@@ -550,6 +559,19 @@ export const NewMEIOpportunityForm = forwardRef<
       } catch (error) {
         if (error instanceof z.ZodError) {
           console.error('Validation errors:', error.errors)
+          const deadlineIssue = error.issues.find(
+            issue => issue.path[0] === 'service_execution_deadline'
+          )
+          if (deadlineIssue) {
+            form.setError('service_execution_deadline', {
+              type: 'custom',
+              message: deadlineIssue.message,
+            })
+            toast.error('Erro ao salvar rascunho', {
+              description: deadlineIssue.message,
+            })
+            return
+          }
           toast.error('Erro ao salvar rascunho', {
             description:
               'Ocorreu um erro de formato nos dados. Tente novamente.',
@@ -847,7 +869,14 @@ export const NewMEIOpportunityForm = forwardRef<
                       <FormControl>
                         <DateTimePicker
                           value={field.value}
-                          onChange={field.onChange}
+                          onChange={value => {
+                            field.onChange(value)
+                            // A data limite de execução é comparada com este
+                            // prazo: revalida para o erro aparecer ou sumir.
+                            if (form.getValues('service_execution_deadline')) {
+                              form.trigger('service_execution_deadline')
+                            }
+                          }}
                           placeholder="Selecionar data e hora"
                           disabled={isReadOnly}
                         />
