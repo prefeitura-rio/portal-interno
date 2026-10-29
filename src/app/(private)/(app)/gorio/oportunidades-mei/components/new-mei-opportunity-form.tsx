@@ -685,8 +685,8 @@ export const NewMEIOpportunityForm = forwardRef<
                         value={field.value || []}
                         onValueChange={field.onChange}
                         placeholder="Buscar e adicionar subclasses CNAE..."
-                        searchPlaceholder="Digite a subclasse (ex: 4724-5/00)"
-                        emptyMessage="Nenhum CNAE encontrado."
+                        searchPlaceholder="Digite o código (ex: 4724-5/00) ou o nome da atividade"
+                        emptyMessage="Nenhum CNAE permitido ao MEI encontrado."
                         disabled={isReadOnly}
                       />
                     </FormControl>
