@@ -8,6 +8,9 @@ import { describe, test } from 'node:test'
 const {
   DASHBOARD_ENROLLMENT_CONCURRENCY,
   DASHBOARD_PUBLISHED_STATUSES,
+  ENROLLMENT_COUNT_FRESH_TTL_MS,
+  ENROLLMENT_COUNT_STALE_TTL_MS,
+  EnrollmentCountCache,
   aggregateBySecretaria,
   attachSecretariaNames,
   buildCoursesDashboard,
@@ -65,6 +68,28 @@ function enrollmentsPage(total: number): { status: number; data: unknown } {
       },
     },
   }
+}
+
+/** Opções de contagem isoladas por teste: cache novo e sem esperas reais. */
+function countOptions(
+  overrides: {
+    cache?: InstanceType<typeof EnrollmentCountCache>
+    now?: () => number
+    sleep?: (ms: number) => Promise<void>
+    deadlineMs?: number
+    requestTimeoutMs?: number
+    concurrency?: number
+  } = {}
+) {
+  return {
+    cache: overrides.cache ?? new EnrollmentCountCache(overrides.now),
+    sleep: overrides.sleep ?? (async () => {}),
+    ...overrides,
+  }
+}
+
+function status(code: number, headers?: Record<string, string>) {
+  return { status: code, data: {}, headers: new Headers(headers) }
 }
 
 describe('status de curso publicado', () => {
@@ -240,11 +265,15 @@ describe('fetchAllPublishedCourses', () => {
 
 describe('countEnrollmentsByCourse', () => {
   test('conta cada curso e isola a falha de um deles', async () => {
-    const counts = await countEnrollmentsByCourse([1, 2, 3, 4], async id => {
-      if (id === 2) return { status: 500, data: {} }
-      if (id === 3) throw new Error('rede')
-      return enrollmentsPage(id * 10)
-    })
+    const { counts, stats } = await countEnrollmentsByCourse(
+      [1, 2, 3, 4],
+      async id => {
+        if (id === 2) return status(500)
+        if (id === 3) throw new Error('rede')
+        return enrollmentsPage(id * 10)
+      },
+      countOptions()
+    )
     assert.deepEqual(
       [...counts.entries()].sort(([a], [b]) => a - b),
       [
@@ -254,28 +283,281 @@ describe('countEnrollmentsByCourse', () => {
         [4, 40],
       ]
     )
+    assert.deepEqual(stats, {
+      fetched: 2,
+      fromCache: 0,
+      fromStale: 0,
+      failed: 2,
+      failures: { '500': 1, network: 1 },
+    })
   })
 
   test('respeita o limite de consultas simultâneas', async () => {
     let inFlight = 0
     let maxInFlight = 0
     const ids = Array.from({ length: 30 }, (_, index) => index + 1)
-    const counts = await countEnrollmentsByCourse(ids, async () => {
-      inFlight++
-      maxInFlight = Math.max(maxInFlight, inFlight)
-      await new Promise(resolve => setTimeout(resolve, 1))
-      inFlight--
-      return enrollmentsPage(1)
-    })
+    const { counts } = await countEnrollmentsByCourse(
+      ids,
+      async () => {
+        inFlight++
+        maxInFlight = Math.max(maxInFlight, inFlight)
+        await new Promise(resolve => setTimeout(resolve, 1))
+        inFlight--
+        return enrollmentsPage(1)
+      },
+      countOptions()
+    )
     assert.equal(counts.size, 30)
     assert.equal(maxInFlight, DASHBOARD_ENROLLMENT_CONCURRENCY)
+    // DEV-112: com 8 simultâneas a rajada esbarrava no limite da API Go
+    assert.ok(DASHBOARD_ENROLLMENT_CONCURRENCY <= 4)
   })
 
   test('sem cursos, não consulta nada', async () => {
-    const counts = await countEnrollmentsByCourse([], async () => {
-      throw new Error('não devia consultar')
-    })
+    const { counts } = await countEnrollmentsByCourse(
+      [],
+      async () => {
+        throw new Error('não devia consultar')
+      },
+      countOptions()
+    )
     assert.equal(counts.size, 0)
+  })
+
+  test('429, 5xx e erro de rede tentam de novo e o curso é contado', async () => {
+    const attempts = new Map<number, number>()
+    const { counts, stats } = await countEnrollmentsByCourse(
+      [1, 2, 3],
+      async id => {
+        const attempt = (attempts.get(id) ?? 0) + 1
+        attempts.set(id, attempt)
+        if (attempt === 1) {
+          if (id === 1) return status(429)
+          if (id === 2) return status(503)
+          throw new Error('rede')
+        }
+        return enrollmentsPage(id)
+      },
+      countOptions()
+    )
+    assert.deepEqual(
+      [...counts.entries()].sort(([a], [b]) => a - b),
+      [
+        [1, 1],
+        [2, 2],
+        [3, 3],
+      ]
+    )
+    assert.equal(stats.failed, 0)
+    assert.deepEqual(Object.fromEntries(attempts), { 1: 2, 2: 2, 3: 2 })
+  })
+
+  test('4xx que não é limite de taxa não tenta de novo', async () => {
+    let calls = 0
+    const { counts } = await countEnrollmentsByCourse(
+      [1],
+      async () => {
+        calls++
+        return status(404)
+      },
+      countOptions()
+    )
+    assert.equal(calls, 1)
+    assert.equal(counts.get(1), null)
+  })
+
+  test('respeita Retry-After e pausa todos os workers depois de um 429', async () => {
+    let clock = 0
+    const waits: number[] = []
+    const sentAt: number[] = []
+    let limited = false
+    const { counts } = await countEnrollmentsByCourse(
+      [1, 2, 3, 4],
+      async id => {
+        sentAt.push(clock)
+        if (id === 1 && !limited) {
+          limited = true
+          return status(429, { 'Retry-After': '2' })
+        }
+        return enrollmentsPage(id)
+      },
+      countOptions({
+        now: () => clock,
+        concurrency: 1,
+        sleep: async ms => {
+          waits.push(ms)
+          clock += ms
+        },
+      })
+    )
+    assert.deepEqual(waits, [2000])
+    // Nenhuma consulta depois do 429 sai antes do fim da pausa
+    assert.deepEqual(sentAt, [0, 2000, 2000, 2000, 2000])
+    assert.equal(counts.get(1), 1)
+  })
+
+  test('pausa de um 429 vale também para os outros workers', async () => {
+    let clock = 0
+    const sentAt = new Map<number, number[]>()
+    let limited = false
+    await countEnrollmentsByCourse(
+      [1, 2, 3, 4],
+      async id => {
+        sentAt.set(id, [...(sentAt.get(id) ?? []), clock])
+        if (id === 1 && !limited) {
+          limited = true
+          return status(429, { 'Retry-After': '3' })
+        }
+        // Os outros só respondem depois que o worker do curso 1 recebeu o 429
+        await new Promise(resolve => setTimeout(resolve, 5))
+        return enrollmentsPage(id)
+      },
+      countOptions({
+        now: () => clock,
+        concurrency: 2,
+        // A espera leva um tempo real: o outro worker pede o próximo curso
+        // enquanto o relógio ainda está no instante do 429
+        sleep: async ms => {
+          await new Promise(resolve => setTimeout(resolve, 20))
+          clock += ms
+        },
+      })
+    )
+    // O curso 2 saiu junto com o 1; os seguintes, só depois da pausa
+    assert.deepEqual(sentAt.get(2), [0])
+    for (const id of [3, 4]) {
+      assert.ok((sentAt.get(id)?.[0] ?? 0) >= 3000, `curso ${id}`)
+    }
+  })
+
+  test('contagem fresca no cache não é consultada de novo', async () => {
+    let clock = 0
+    const cache = new EnrollmentCountCache(() => clock)
+    const asked: number[] = []
+    const fetch = async (id: number) => {
+      asked.push(id)
+      return enrollmentsPage(id * 2)
+    }
+    await countEnrollmentsByCourse([1, 2], fetch, countOptions({ cache }))
+    clock += ENROLLMENT_COUNT_FRESH_TTL_MS - 1
+    const second = await countEnrollmentsByCourse(
+      [1, 2, 3],
+      fetch,
+      countOptions({ cache })
+    )
+    assert.deepEqual(asked, [1, 2, 3])
+    assert.deepEqual(
+      [...second.counts.entries()].sort(([a], [b]) => a - b),
+      [
+        [1, 2],
+        [2, 4],
+        [3, 6],
+      ]
+    )
+    assert.equal(second.stats.fromCache, 2)
+    assert.equal(second.stats.fetched, 1)
+
+    // Vencida a validade, consulta de novo
+    clock += 1
+    await countEnrollmentsByCourse([1], fetch, countOptions({ cache }))
+    assert.deepEqual(asked, [1, 2, 3, 1])
+  })
+
+  test('falha passageira usa a última contagem boa; acesso negado não', async () => {
+    let clock = 0
+    const cache = new EnrollmentCountCache(() => clock)
+    await countEnrollmentsByCourse(
+      [1, 2, 3],
+      async id => enrollmentsPage(id * 10),
+      countOptions({ cache })
+    )
+    clock += ENROLLMENT_COUNT_FRESH_TTL_MS
+    const { counts, stats } = await countEnrollmentsByCourse(
+      [1, 2, 3, 4],
+      async id => {
+        if (id === 1) return status(429)
+        if (id === 2) return status(403)
+        if (id === 3) throw new Error('rede')
+        return status(500)
+      },
+      countOptions({ cache })
+    )
+    assert.deepEqual(
+      [...counts.entries()].sort(([a], [b]) => a - b),
+      [
+        [1, 10],
+        [2, null],
+        [3, 30],
+        [4, null],
+      ]
+    )
+    assert.equal(stats.fromStale, 2)
+    assert.equal(stats.failed, 2)
+    assert.deepEqual(stats.failures, {
+      '429': 1,
+      '403': 1,
+      network: 1,
+      '500': 1,
+    })
+  })
+
+  test('reserva vencida não é usada', async () => {
+    let clock = 0
+    const cache = new EnrollmentCountCache(() => clock)
+    await countEnrollmentsByCourse(
+      [1],
+      async () => enrollmentsPage(5),
+      countOptions({ cache })
+    )
+    clock += ENROLLMENT_COUNT_STALE_TTL_MS
+    const { counts } = await countEnrollmentsByCourse(
+      [1],
+      async () => status(500),
+      countOptions({ cache })
+    )
+    assert.equal(counts.get(1), null)
+    assert.equal(cache.size, 0)
+  })
+
+  test('API travada não segura a carga: consulta lenta estoura e cai no prazo', async () => {
+    const started = Date.now()
+    const { counts, stats } = await countEnrollmentsByCourse(
+      [1, 2, 3, 4, 5, 6],
+      () => new Promise(() => {}),
+      {
+        cache: new EnrollmentCountCache(),
+        deadlineMs: 300,
+        requestTimeoutMs: 100,
+        concurrency: 2,
+      }
+    )
+    const elapsed = Date.now() - started
+    assert.ok(elapsed < 1500, `levou ${elapsed} ms`)
+    assert.equal(counts.size, 6)
+    assert.ok([...counts.values()].every(count => count === null))
+    assert.equal(stats.failed, 6)
+    assert.ok((stats.failures.timeout ?? 0) >= 1)
+  })
+
+  test('cursos sem reserva no cache são consultados primeiro', async () => {
+    let clock = 0
+    const cache = new EnrollmentCountCache(() => clock)
+    await countEnrollmentsByCourse(
+      [1, 2],
+      async id => enrollmentsPage(id),
+      countOptions({ cache })
+    )
+    clock += ENROLLMENT_COUNT_FRESH_TTL_MS
+    const asked: number[] = []
+    await countEnrollmentsByCourse(
+      [1, 2, 3, 4],
+      async id => {
+        asked.push(id)
+        return enrollmentsPage(id)
+      },
+      countOptions({ cache, concurrency: 1 })
+    )
+    assert.deepEqual(asked, [3, 4, 1, 2])
   })
 })
 
@@ -373,6 +655,7 @@ describe('buildCoursesDashboard', () => {
   test('consolida cursos de todas as páginas com as inscrições de cada um', async () => {
     const enrollmentCalls: number[] = []
     const result = await buildCoursesDashboard({
+      enrollmentCountOptions: countOptions(),
       listPublishedCoursesPage: async page =>
         page === 1
           ? coursesPage(
@@ -406,6 +689,13 @@ describe('buildCoursesDashboard', () => {
       totalEnrollments: 6,
       coursesWithoutEnrollmentCount: 0,
     })
+    assert.deepEqual(result.enrollmentStats, {
+      fetched: 3,
+      fromCache: 0,
+      fromStale: 0,
+      failed: 0,
+      failures: {},
+    })
     assert.deepEqual(
       result.summary.secretarias.map(row => [
         row.orgaoId,
@@ -421,6 +711,7 @@ describe('buildCoursesDashboard', () => {
 
   test('sem permissão na API Go, devolve o status sem contar inscrições', async () => {
     const result = await buildCoursesDashboard({
+      enrollmentCountOptions: countOptions(),
       listPublishedCoursesPage: async () => ({ status: 403, data: {} }),
       fetchCourseEnrollments: async () => {
         throw new Error('não devia consultar')
@@ -435,6 +726,7 @@ describe('buildCoursesDashboard', () => {
   test('devolve o nome de cada secretaria, consultando cada código uma vez', async () => {
     const asked: string[][] = []
     const result = await buildCoursesDashboard({
+      enrollmentCountOptions: countOptions(),
       listPublishedCoursesPage: async () =>
         coursesPage(
           [
@@ -486,6 +778,7 @@ describe('buildCoursesDashboard', () => {
   test('RMI travada não segura o consolidado: totais saem no prazo dos nomes', async () => {
     const started = Date.now()
     const result = await buildCoursesDashboard({
+      enrollmentCountOptions: countOptions(),
       listPublishedCoursesPage: async () =>
         coursesPage(
           [
@@ -515,6 +808,7 @@ describe('buildCoursesDashboard', () => {
 
   test('falha na busca de nomes não derruba os totais', async () => {
     const result = await buildCoursesDashboard({
+      enrollmentCountOptions: countOptions(),
       listPublishedCoursesPage: async () =>
         coursesPage([{ id: 1, orgao_id: '1000' }], 1, 1),
       fetchCourseEnrollments: async () => enrollmentsPage(7),

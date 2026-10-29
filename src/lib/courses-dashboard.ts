@@ -4,7 +4,10 @@
  * A API Go não tem endpoint de consolidado, então o BFF
  * `/api/courses/dashboard` lista os cursos publicados (todas as páginas) e
  * soma, por secretaria (`orgao_id`), os cursos e as inscrições de cada um
- * (`pagination.total` da listagem de inscrições do curso, sem filtro).
+ * (`pagination.total` da listagem de inscrições do curso, sem filtro). As
+ * contagens ficam num cache curto no servidor, com novas tentativas e uma
+ * reserva da última contagem boa (DEV-112): a rajada de uma consulta por
+ * curso esbarrava no limite de taxa e deixava a maioria sem contagem.
  *
  * O nome de cada secretaria também sai daqui (`resolveSecretarias`), em lote
  * controlado no servidor: pedir os nomes do navegador, um por linha e todos
@@ -37,13 +40,48 @@ export const DASHBOARD_COURSES_PAGE_SIZE = 1000
 /** Limite de páginas lidas, para não entrar em laço com resposta inválida. */
 export const DASHBOARD_MAX_COURSE_PAGES = 50
 
-/** Consultas simultâneas de inscrições, para não sobrecarregar a API Go. */
-export const DASHBOARD_ENROLLMENT_CONCURRENCY = 8
+/**
+ * Consultas simultâneas de inscrições. Cada carga consulta um curso por vez
+ * em cada worker: com 8, a rajada esbarrava no limite de taxa da API Go e
+ * deixava a maioria dos cursos sem contagem (DEV-112).
+ */
+export const DASHBOARD_ENROLLMENT_CONCURRENCY = 4
+
+/** Tentativas por curso (a primeira e as novas tentativas). */
+export const DASHBOARD_ENROLLMENT_MAX_ATTEMPTS = 3
+
+/** Espera antes da 2ª tentativa; dobra a cada nova tentativa. */
+export const DASHBOARD_ENROLLMENT_BASE_DELAY_MS = 500
+
+/** Maior espera entre tentativas, também para `Retry-After`. */
+export const DASHBOARD_ENROLLMENT_MAX_DELAY_MS = 5_000
+
+/** Tempo total para contar as inscrições de uma carga do dashboard. */
+export const DASHBOARD_ENROLLMENT_DEADLINE_MS = 20_000
+
+/** Tempo máximo de uma consulta (limitado também ao que resta do prazo). */
+export const DASHBOARD_ENROLLMENT_REQUEST_TIMEOUT_MS = 8_000
+
+/**
+ * Validade da contagem no cache: dentro dela, a carga seguinte (outro
+ * usuário, "Atualizar", revalidação automática) não consulta o curso de novo.
+ */
+export const ENROLLMENT_COUNT_FRESH_TTL_MS = 10 * 60 * 1000
+
+/**
+ * Por quanto tempo a última contagem boa serve de reserva quando a consulta
+ * do curso falha de forma passageira (limite de taxa, 5xx, rede, prazo).
+ */
+export const ENROLLMENT_COUNT_STALE_TTL_MS = 24 * 60 * 60 * 1000
+
+/** Limite de cursos guardados no cache. */
+export const ENROLLMENT_COUNT_CACHE_MAX_ENTRIES = 5_000
 
 /** Resposta de uma chamada à API Go (formato dos clientes Orval). */
 export interface DashboardApiResult {
   status: number
   data: unknown
+  headers?: Headers | null
 }
 
 export type ListPublishedCoursesPage = (
@@ -51,8 +89,10 @@ export type ListPublishedCoursesPage = (
   limit: number
 ) => Promise<DashboardApiResult>
 
+/** `signal` aborta a consulta quando ela passa do tempo dela. */
 export type FetchCourseEnrollments = (
-  courseId: number
+  courseId: number,
+  signal: AbortSignal
 ) => Promise<DashboardApiResult>
 
 export interface PublishedCourseRef {
@@ -106,7 +146,11 @@ export type ResolveSecretarias = (
 ) => Promise<ReadonlyMap<string, DepartmentLookup>>
 
 export type CoursesDashboardResult =
-  | { ok: true; summary: CoursesDashboardSummary }
+  | {
+      ok: true
+      summary: CoursesDashboardSummary
+      enrollmentStats: EnrollmentCountsStats
+    }
   | { ok: false; status: number }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -211,40 +255,310 @@ export async function fetchAllPublishedCourses(
   return { ok: false, status: 502 }
 }
 
+interface EnrollmentCountEntry {
+  count: number
+  storedAt: number
+}
+
 /**
- * Conta as inscrições de cada curso, com no máximo `concurrency` consultas
- * ao mesmo tempo. Falha de um curso não derruba os demais: ele fica com
- * `null` (fora da soma, e contado como sem contagem).
+ * Contagens de inscrições entre as cargas do dashboard. Guarda só contagens
+ * que a API Go devolveu; falha não fica. A mesma entrada serve de valor
+ * fresco (`getFresh`) e, depois, de reserva (`getStale`).
+ */
+export class EnrollmentCountCache {
+  private readonly entries = new Map<number, EnrollmentCountEntry>()
+  private readonly now: () => number
+  private readonly maxEntries: number
+
+  constructor(
+    now: () => number = Date.now,
+    maxEntries = ENROLLMENT_COUNT_CACHE_MAX_ENTRIES
+  ) {
+    this.now = now
+    this.maxEntries = maxEntries
+  }
+
+  private read(courseId: number, ttlMs: number): number | null {
+    const entry = this.entries.get(courseId)
+    if (!entry) return null
+    const age = this.now() - entry.storedAt
+    if (age >= ENROLLMENT_COUNT_STALE_TTL_MS) {
+      this.entries.delete(courseId)
+      return null
+    }
+    return age < ttlMs ? entry.count : null
+  }
+
+  getFresh(courseId: number): number | null {
+    return this.read(courseId, ENROLLMENT_COUNT_FRESH_TTL_MS)
+  }
+
+  getStale(courseId: number): number | null {
+    return this.read(courseId, ENROLLMENT_COUNT_STALE_TTL_MS)
+  }
+
+  set(courseId: number, count: number): void {
+    this.entries.delete(courseId)
+    this.entries.set(courseId, { count, storedAt: this.now() })
+    // Map guarda a ordem de inserção: o primeiro é o mais antigo
+    while (this.entries.size > this.maxEntries) {
+      const oldest = this.entries.keys().next().value
+      if (oldest === undefined) break
+      this.entries.delete(oldest)
+    }
+  }
+
+  get size(): number {
+    return this.entries.size
+  }
+}
+
+/** Cache do processo do servidor, compartilhado pelas cargas do dashboard. */
+export const enrollmentCountCache = new EnrollmentCountCache()
+
+export interface CountEnrollmentsOptions {
+  cache?: EnrollmentCountCache
+  concurrency?: number
+  maxAttempts?: number
+  deadlineMs?: number
+  requestTimeoutMs?: number
+  now?: () => number
+  sleep?: (ms: number) => Promise<void>
+}
+
+/** Como terminou a contagem de inscrições de uma carga (sem ids de curso). */
+export interface EnrollmentCountsStats {
+  /** Cursos contados por consulta à API Go nesta carga. */
+  fetched: number
+  /** Cursos com contagem fresca no cache, sem consulta. */
+  fromCache: number
+  /** Cursos cuja consulta falhou e que usaram a última contagem boa. */
+  fromStale: number
+  /** Cursos sem contagem (fora da soma). */
+  failed: number
+  /**
+   * Motivo da última falha de cada curso que não foi contado nesta carga
+   * (status HTTP, `network`, `timeout`, `invalid` ou `deadline`).
+   */
+  failures: Record<string, number>
+}
+
+export interface EnrollmentCountsResult {
+  counts: Map<number, number | null>
+  stats: EnrollmentCountsStats
+}
+
+const defaultSleep = (ms: number) =>
+  new Promise<void>(resolve => setTimeout(resolve, ms))
+
+function isRetryable(status: number): boolean {
+  return status === 429 || status >= 500
+}
+
+/**
+ * `Retry-After` em milissegundos: segundos inteiros ou data HTTP. `null`
+ * quando ausente ou inválido (mesma regra de `department-names.ts`).
+ */
+function retryAfterMs(
+  headers: Headers | null | undefined,
+  now: number
+): number | null {
+  const value = headers?.get('retry-after')?.trim()
+  if (!value) return null
+  if (/^\d+$/.test(value)) return Number(value) * 1000
+  const date = Date.parse(value)
+  if (Number.isNaN(date)) return null
+  return Math.max(0, date - now)
+}
+
+class EnrollmentRequestTimeout extends Error {}
+
+/**
+ * Consulta com tempo máximo: aborta o `signal` e rejeita ao estourar, mesmo
+ * que a chamada ignore o `signal`.
+ */
+async function fetchWithTimeout(
+  fetchEnrollments: FetchCourseEnrollments,
+  courseId: number,
+  timeoutMs: number
+): Promise<DashboardApiResult> {
+  const controller = new AbortController()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort()
+      reject(new EnrollmentRequestTimeout())
+    }, timeoutMs)
+  })
+  try {
+    return await Promise.race([
+      fetchEnrollments(courseId, controller.signal),
+      timeout,
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+type EnrollmentLookup =
+  | { ok: true; count: number }
+  /** `allowStale` é falso quando a API negou acesso ao curso (401/403). */
+  | { ok: false; reason: string; allowStale: boolean }
+
+/**
+ * Conta as inscrições de cada curso. Contagem fresca no cache não é
+ * consultada; as demais saem com no máximo `concurrency` consultas ao mesmo
+ * tempo, cada uma com tempo máximo. 429, 5xx, erro de rede e consulta lenta
+ * tentam de novo depois de `Retry-After` (ou de um recuo exponencial), até
+ * `maxAttempts` ou até o prazo da carga; depois de um 429, todos os workers
+ * esperam antes da próxima consulta, para não insistir na rajada. Curso que
+ * não deu para contar usa a última contagem boa do cache (salvo acesso
+ * negado) ou fica `null` (fora da soma, e contado como sem contagem).
+ * Esgotado o prazo, os cursos restantes não são consultados.
  */
 export async function countEnrollmentsByCourse(
   courseIds: readonly number[],
   fetchEnrollments: FetchCourseEnrollments,
-  concurrency = DASHBOARD_ENROLLMENT_CONCURRENCY
-): Promise<Map<number, number | null>> {
-  const counts = new Map<number, number | null>()
-  let next = 0
+  options: CountEnrollmentsOptions = {}
+): Promise<EnrollmentCountsResult> {
+  const cache = options.cache ?? enrollmentCountCache
+  const concurrency = options.concurrency ?? DASHBOARD_ENROLLMENT_CONCURRENCY
+  const maxAttempts = Math.max(
+    1,
+    options.maxAttempts ?? DASHBOARD_ENROLLMENT_MAX_ATTEMPTS
+  )
+  const now = options.now ?? Date.now
+  const sleep = options.sleep ?? defaultSleep
+  const requestTimeoutMs =
+    options.requestTimeoutMs ?? DASHBOARD_ENROLLMENT_REQUEST_TIMEOUT_MS
+  const deadline =
+    now() + (options.deadlineMs ?? DASHBOARD_ENROLLMENT_DEADLINE_MS)
 
-  async function worker(): Promise<void> {
-    while (next < courseIds.length) {
-      const courseId = courseIds[next]
-      next += 1
+  const counts = new Map<number, number | null>()
+  const stats: EnrollmentCountsStats = {
+    fetched: 0,
+    fromCache: 0,
+    fromStale: 0,
+    failed: 0,
+    failures: {},
+  }
+
+  // Cursos nunca contados vão antes dos que já têm reserva no cache: se o
+  // prazo acabar, quem fica sem consulta ainda tem um número
+  const withoutStale: number[] = []
+  const withStale: number[] = []
+  for (const courseId of new Set(courseIds)) {
+    const fresh = cache.getFresh(courseId)
+    if (fresh !== null) {
+      counts.set(courseId, fresh)
+      stats.fromCache += 1
+    } else if (cache.getStale(courseId) !== null) {
+      withStale.push(courseId)
+    } else {
+      withoutStale.push(courseId)
+    }
+  }
+  const pending = [...withoutStale, ...withStale]
+
+  let outOfTime = false
+  // Depois de um 429, nenhuma consulta sai antes deste instante
+  let pausedUntil = 0
+  const deadlineReached: EnrollmentLookup = {
+    ok: false,
+    reason: 'deadline',
+    allowStale: true,
+  }
+
+  async function lookup(courseId: number): Promise<EnrollmentLookup> {
+    let last: EnrollmentLookup = deadlineReached
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const pause = pausedUntil - now()
+      if (pause > 0) {
+        if (now() + pause >= deadline) {
+          outOfTime = true
+          return last
+        }
+        await sleep(pause)
+      }
+      if (outOfTime || now() >= deadline) {
+        outOfTime = true
+        return last
+      }
+
+      let retryAfter: number | null = null
       try {
-        const response = await fetchEnrollments(courseId)
-        counts.set(
+        const response = await fetchWithTimeout(
+          fetchEnrollments,
           courseId,
-          isSuccess(response.status)
-            ? parseEnrollmentTotal(response.data)
-            : null
+          Math.max(1, Math.min(requestTimeoutMs, deadline - now()))
         )
-      } catch {
-        counts.set(courseId, null)
+        if (isSuccess(response.status)) {
+          const count = parseEnrollmentTotal(response.data)
+          return count === null
+            ? { ok: false, reason: 'invalid', allowStale: true }
+            : { ok: true, count }
+        }
+        const reason = String(response.status)
+        if (response.status === 401 || response.status === 403) {
+          return { ok: false, reason, allowStale: false }
+        }
+        if (!isRetryable(response.status)) {
+          return { ok: false, reason, allowStale: true }
+        }
+        last = { ok: false, reason, allowStale: true }
+        retryAfter = retryAfterMs(response.headers, now())
+      } catch (error) {
+        last = {
+          ok: false,
+          reason:
+            error instanceof EnrollmentRequestTimeout ? 'timeout' : 'network',
+          allowStale: true,
+        }
+      }
+
+      if (attempt === maxAttempts) break
+      const delay = Math.min(
+        retryAfter ?? DASHBOARD_ENROLLMENT_BASE_DELAY_MS * 2 ** (attempt - 1),
+        DASHBOARD_ENROLLMENT_MAX_DELAY_MS
+      )
+      if (!last.ok && last.reason === '429') {
+        pausedUntil = Math.max(pausedUntil, now() + delay)
+      }
+      if (now() + delay >= deadline) {
+        outOfTime = true
+        break
+      }
+      await sleep(delay)
+    }
+    return last
+  }
+
+  let next = 0
+  async function worker(): Promise<void> {
+    while (next < pending.length) {
+      const courseId = pending[next]
+      next += 1
+      const found = outOfTime ? deadlineReached : await lookup(courseId)
+      if (found.ok) {
+        cache.set(courseId, found.count)
+        counts.set(courseId, found.count)
+        stats.fetched += 1
+        continue
+      }
+      stats.failures[found.reason] = (stats.failures[found.reason] ?? 0) + 1
+      const stale = found.allowStale ? cache.getStale(courseId) : null
+      counts.set(courseId, stale)
+      if (stale === null) {
+        stats.failed += 1
+      } else {
+        stats.fromStale += 1
       }
     }
   }
 
-  const workers = Math.max(1, Math.min(concurrency, courseIds.length))
+  const workers = Math.max(1, Math.min(concurrency, pending.length))
   await Promise.all(Array.from({ length: workers }, () => worker()))
-  return counts
+  return { counts, stats }
 }
 
 function compareTraction(a: SecretariaTraction, b: SecretariaTraction) {
@@ -330,6 +644,7 @@ export async function buildCoursesDashboard(deps: {
   listPublishedCoursesPage: ListPublishedCoursesPage
   fetchCourseEnrollments: FetchCourseEnrollments
   resolveSecretarias: ResolveSecretarias
+  enrollmentCountOptions?: CountEnrollmentsOptions
 }): Promise<CoursesDashboardResult> {
   const courses = await fetchAllPublishedCourses(deps.listPublishedCoursesPage)
   if (!courses.ok) return courses
@@ -344,10 +659,11 @@ export async function buildCoursesDashboard(deps: {
 
   // Inscrições vêm da API Go e nomes da RMI: as duas buscas correm juntas.
   // Falha inesperada na busca de nomes não derruba os totais.
-  const [counts, names] = await Promise.all([
+  const [enrollments, names] = await Promise.all([
     countEnrollmentsByCourse(
       courses.courses.map(course => course.id),
-      deps.fetchCourseEnrollments
+      deps.fetchCourseEnrollments,
+      deps.enrollmentCountOptions
     ),
     deps
       .resolveSecretarias(orgaoIds)
@@ -357,8 +673,9 @@ export async function buildCoursesDashboard(deps: {
   return {
     ok: true,
     summary: attachSecretariaNames(
-      aggregateBySecretaria(courses.courses, counts),
+      aggregateBySecretaria(courses.courses, enrollments.counts),
       names
     ),
+    enrollmentStats: enrollments.stats,
   }
 }

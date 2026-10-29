@@ -13,7 +13,8 @@ import { NextResponse } from 'next/server'
  * total de inscritos por secretaria. O RBAC (Casa Civil e admins) fica no
  * middleware, em `API_ROUTE_PERMISSIONS`; a API Go devolve a esses papéis os
  * cursos de todas as secretarias. Os nomes das secretarias vêm da RMI, em lote
- * controlado e com cache no servidor (`resolveDepartmentNames`).
+ * controlado e com cache no servidor (`resolveDepartmentNames`); as contagens
+ * de inscrições também têm cache e novas tentativas (`countEnrollmentsByCourse`).
  */
 export async function GET() {
   try {
@@ -25,8 +26,12 @@ export async function GET() {
           limit,
         }),
       // Só o total importa: uma inscrição por página basta
-      fetchCourseEnrollments: courseId =>
-        getApiV1CoursesCourseIdEnrollments(courseId, { page: 1, limit: 1 }),
+      fetchCourseEnrollments: (courseId, signal) =>
+        getApiV1CoursesCourseIdEnrollments(
+          courseId,
+          { page: 1, limit: 1 },
+          { signal }
+        ),
       resolveSecretarias: orgaoIds =>
         resolveDepartmentNames(orgaoIds, (cdUa, signal) =>
           getDepartmentsCdUa(cdUa, { signal })
@@ -42,6 +47,16 @@ export async function GET() {
         { error: 'Erro ao carregar os cursos publicados', success: false },
         { status }
       )
+    }
+
+    const { failed, fromStale, failures } = result.enrollmentStats
+    if (failed > 0 || fromStale > 0) {
+      // Só contagens agregadas por motivo: nada de ids, token ou dado pessoal
+      console.warn('Courses dashboard: enrollment counts incomplete', {
+        withoutCount: failed,
+        fromStale,
+        failures,
+      })
     }
 
     return NextResponse.json({ ...result.summary, success: true })
