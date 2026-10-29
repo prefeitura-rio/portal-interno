@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import ts from 'typescript'
 import {
   EXECUTION_BEFORE_EXPIRATION_MESSAGE,
+  SERVICE_EXECUTION_DEADLINE_REQUIRED_MESSAGE,
   isExecutionDeadlineBeforeExpiration,
 } from '../mei-opportunity-dates.ts'
 
@@ -207,10 +208,21 @@ describe('fullFormSchema do formulário de oportunidade MEI', () => {
     assert.equal(result.success, true)
   })
 
-  test('aceita oportunidade sem data limite de execução', () => {
-    const result = deadlineIssues(opportunity(undefined))
-    assert.deepEqual(result.otherIssues, [])
-    assert.equal(result.success, true)
+  // DEV-89: o campo é marcado como obrigatório (*) no formulário; ao criar,
+  // editar ou publicar, a ausência bloqueia o envio com erro no próprio campo.
+  test('rejeita oportunidade sem data limite de execução, no campo de execução', () => {
+    const result = fullFormSchema.safeParse(opportunity(undefined))
+    assert.equal(result.success, false)
+    const issues = result.success ? [] : result.error.issues
+    assert.deepEqual(
+      issues.map(issue => ({ path: issue.path, message: issue.message })),
+      [
+        {
+          path: ['service_execution_deadline'],
+          message: SERVICE_EXECUTION_DEADLINE_REQUIRED_MESSAGE,
+        },
+      ]
+    )
   })
 
   test('aponta o erro das datas mesmo com outros campos ainda inválidos', () => {
@@ -245,6 +257,8 @@ describe('draftFormSchema (salvar rascunho)', () => {
         service_execution_deadline: at(EXPIRATION),
       },
       { service_execution_deadline: at('2026-11-20T18:00:00-03:00') },
+      // DEV-89: no rascunho a data limite de execução segue opcional
+      { opportunity_expiration_date: at(EXPIRATION) },
       {},
     ]) {
       const result = deadlineIssues(draft, draftFormSchema)

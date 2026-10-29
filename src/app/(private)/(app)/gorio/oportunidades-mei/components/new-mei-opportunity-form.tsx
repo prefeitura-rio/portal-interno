@@ -42,7 +42,10 @@ import {
 import { DepartmentCombobox } from '@/components/ui/department-combobox'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { refineMEIOpportunityDeadlines } from '@/lib/mei-opportunity-dates'
+import {
+  SERVICE_EXECUTION_DEADLINE_REQUIRED_MESSAGE,
+  refineMEIOpportunityDeadlines,
+} from '@/lib/mei-opportunity-dates'
 import { isMEIImageURL } from '@/lib/mei-opportunity-images'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { requiredError } from '@/lib/zod-errors'
@@ -89,7 +92,9 @@ const fullFormFields = z.object({
   opportunity_expiration_date: z.date({
     error: requiredError('Prazo para expiração da oportunidade é obrigatório.'),
   }),
-  service_execution_deadline: z.date().optional(),
+  service_execution_deadline: z.date({
+    error: requiredError(SERVICE_EXECUTION_DEADLINE_REQUIRED_MESSAGE),
+  }),
   gallery_images: z
     .array(
       // Vazio é aceito (item da galeria sem imagem é descartado ao salvar)
