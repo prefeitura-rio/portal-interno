@@ -63,9 +63,10 @@ describe('menu lateral: grupo de Capacitação (DEV-71)', () => {
       ['Capacitação', 'Emprego e trabalho', 'Banco de currículos']
     )
     const capacitacao = group.menus.find(item => item.label === 'Capacitação')
+    // DEV-100 acrescentou o Dashboard de Capacitações no topo do submenu
     assert.deepEqual(
       capacitacao?.submenus?.map(item => ('href' in item ? item.href : null)),
-      ['/gorio/courses', '/gorio/courses/new']
+      ['/gorio/courses/dashboard', '/gorio/courses', '/gorio/courses/new']
     )
   })
 
@@ -84,5 +85,51 @@ describe('menu lateral: grupo de Capacitação (DEV-71)', () => {
     const filtered = getFilteredMenuList('/', ['go:admin'])
     const group = groupOf(filtered, 'Capacitação')
     assert.equal(group?.groupLabel, 'Oportunidades Cariocas')
+  })
+})
+
+describe('menu lateral: Dashboard de Capacitações (DEV-100)', () => {
+  function capacitacaoSubmenus(roles: string[]) {
+    const group = groupOf(getFilteredMenuList('/', roles), 'Capacitação')
+    const capacitacao = group?.menus.find(item => item.label === 'Capacitação')
+    return (
+      capacitacao?.submenus?.map(item => ('href' in item ? item.href : null)) ??
+      []
+    )
+  }
+
+  test('Casa Civil, admin e superadmin veem o Dashboard em Capacitação', () => {
+    for (const role of ['go:cursos:casa_civil', 'admin', 'superadmin']) {
+      assert.deepEqual(
+        capacitacaoSubmenus([role]),
+        ['/gorio/courses/dashboard', '/gorio/courses', '/gorio/courses/new'],
+        role
+      )
+    }
+  })
+
+  test('go:admin e o editor de cursos não veem o Dashboard', () => {
+    for (const role of ['go:admin', 'go:cursos:editor']) {
+      assert.deepEqual(
+        capacitacaoSubmenus([role]),
+        ['/gorio/courses', '/gorio/courses/new'],
+        role
+      )
+    }
+  })
+
+  test('o item do menu usa os mesmos papéis da rota', async () => {
+    const { ROUTE_PERMISSIONS } = await import('../route-permissions.ts')
+    const group = groupOf(getMenuList('/'), 'Capacitação')
+    const capacitacao = group?.menus.find(item => item.label === 'Capacitação')
+    const dashboard = capacitacao?.submenus?.find(
+      item => 'href' in item && item.href === '/gorio/courses/dashboard'
+    )
+    assert.ok(dashboard && 'href' in dashboard)
+    assert.equal(dashboard.label, 'Dashboard')
+    assert.deepEqual(
+      dashboard.allowedRoles,
+      ROUTE_PERMISSIONS['/gorio/courses/dashboard']
+    )
   })
 })

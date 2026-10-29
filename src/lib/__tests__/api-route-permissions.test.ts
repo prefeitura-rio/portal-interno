@@ -359,6 +359,61 @@ describe('middleware: RBAC das rotas de API (DEV-43)', () => {
   })
 })
 
+describe('Dashboard de Capacitações: só Casa Civil e admins (DEV-100)', () => {
+  const PAGE = '/gorio/courses/dashboard'
+  const API = '/api/courses/dashboard'
+  const ALLOWED = [['go:cursos:casa_civil'], ['admin'], ['superadmin']]
+  const DENIED = [
+    ['go:admin'],
+    ['go:cursos:editor'],
+    ['busca:services:admin'],
+    ['go:empregabilidade:admin'],
+    ['go:curriculos:admin'],
+  ]
+
+  async function callPage(token: string): Promise<Response> {
+    const request = new NextRequest(`http://localhost${PAGE}`, {
+      headers: { cookie: `access_token=${token}` },
+    })
+    const response = await middleware(request)
+    assert.ok(response)
+    return response
+  }
+
+  test('Casa Civil, admin (heimdall_admins) e superadmin acessam a página e a API', async () => {
+    for (const roles of ALLOWED) {
+      const token = userWith(roles)
+      assert.equal(passedThrough(await callPage(token)), true, roles.join())
+      assert.equal(passedThrough(await callApi(API, token)), true, roles.join())
+    }
+  })
+
+  test('outros papéis vão para /unauthorized na página e recebem 403 na API', async () => {
+    for (const roles of DENIED) {
+      const token = userWith(roles)
+      const page = await callPage(token)
+      assert.equal(page.status, 307, roles.join())
+      assert.match(page.headers.get('location') ?? '', /\/unauthorized$/)
+      await assertDenied(await callApi(API, token), 403)
+    }
+  })
+
+  test('o editor de cursos segue com acesso à listagem de cursos', async () => {
+    const token = userWith(['go:cursos:editor'])
+    assert.equal(passedThrough(await callApi('/api/courses', token)), true)
+  })
+
+  test('sem sessão: 401; sem papel ou Heimdall fora: 403', async () => {
+    await assertDenied(await callApi(API), 401)
+    await assertDenied(await callApi(API, userWith([], 'sem-papel')), 403)
+    await assertDenied(await callApi(API, userWith('erro')), 403)
+  })
+
+  test('a regra da rota literal vence a de /api/courses/[course-id]', () => {
+    assert.equal(findApiRoutePermission(API)?.pattern, API)
+  })
+})
+
 describe('API_ROUTE_PERMISSIONS', () => {
   const API_ROOT = new URL('../../app/api/', import.meta.url)
 
