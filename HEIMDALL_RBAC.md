@@ -437,6 +437,7 @@ O middleware já protege automaticamente baseado em `route-permissions.ts`:
 export const ROUTE_PERMISSIONS: Record<string, string[]> = {
   '/gorio/courses': [...COURSES_ROLES],        // admin, superadmin, go:admin, go:cursos:casa_civil, go:cursos:editor
   '/gorio/courses/new': [...COURSES_ROLES],
+  '/gorio/courses/dashboard': [...COURSES_DASHBOARD_ROLES], // admin, superadmin, go:cursos:casa_civil (DEV-100)
   '/gorio/courses/course/*': [...COURSES_ROLES],
   '/gorio/oportunidades-mei': ['admin', 'superadmin', 'go:admin'],
   '/gorio/empregabilidade': [...EMPREGO_TRABALHO_ROLES],

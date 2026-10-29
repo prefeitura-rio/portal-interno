@@ -1,5 +1,6 @@
 import type { UploadFolder } from '@/lib/upload-folders'
 import {
+  COURSES_DASHBOARD_ROLES,
   COURSES_ROLES,
   CURRICULOS_ROLES,
   EMPREGO_TRABALHO_ROLES,
@@ -30,6 +31,8 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
   // ANTIGO: '/gorio/courses': ['admin', 'superadmin', 'go:admin'],
   '/gorio/courses': [...COURSES_ROLES],
   '/gorio/courses/new': [...COURSES_ROLES],
+  // Dashboard de Capacitações (DEV-100): só Casa Civil e admins
+  '/gorio/courses/dashboard': [...COURSES_DASHBOARD_ROLES],
   '/gorio/courses/course/*': [...COURSES_ROLES],
 
   // GO Rio - MEI (only admin, superadmin, go:admin - NOT empregabilidade roles)
@@ -259,6 +262,7 @@ const BUSCA_SERVICES_ROLES = [
 const BACKOFFICE_API = anyOf(BACKOFFICE_ROLES)
 const ADMIN_API = anyOf(ADMIN_ROLES)
 const COURSES_API = anyOf(COURSES_ROLES)
+const COURSES_DASHBOARD_API = anyOf(COURSES_DASHBOARD_ROLES)
 const EMPREGO_TRABALHO_API = anyOf(EMPREGO_TRABALHO_ROLES)
 const CURRICULOS_API = anyOf(CURRICULOS_ROLES)
 const MEI_API = anyOf(MEI_ROLES)
@@ -315,6 +319,8 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   '/api/courses/[course-id]/request-changes': COURSES_API,
   '/api/courses/[course-id]/request-deletion': COURSES_API,
   '/api/courses/[course-id]/send-to-review': COURSES_API,
+  // Dashboard de Capacitações (página /gorio/courses/dashboard)
+  '/api/courses/dashboard': COURSES_DASHBOARD_API,
   '/api/courses/draft': COURSES_API,
   '/api/courses/drafts': COURSES_API,
   '/api/courses/in-review': COURSES_API,

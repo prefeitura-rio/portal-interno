@@ -4,7 +4,7 @@
 
 | Domínio | Rotas âncora | Código / client |
 |---------|--------------|-----------------|
-| Capacitação (cursos) | `/gorio/courses`, `/new`, `/course/[course-id]` | `gorio/`, `http-gorio/`, BFF courses |
+| Capacitação (cursos) | `/gorio/courses`, `/new`, `/course/[course-id]`, `/dashboard` (Casa Civil e admins) | `gorio/`, `http-gorio/`, BFF courses |
 | Empregabilidade | `/gorio/empregabilidade`, `/new`, `/[id]`, `/empresas`, `/empresas/[cnpj]` | `http-gorio/`, BFF empregabilidade |
 | Banco de currículos | `/gorio/banco-curriculos`, `/[cpf]` | `http-gorio/empregabilidade-banco-curriculos`, BFF `api/empregabilidade/banco-curriculos`; papéis `go:curriculos:*` |
 | MEI | `/gorio/oportunidades-mei`, `/new`, `/oportunidade-mei/[id]` | `http-gorio/`; papéis admin/go:admin; **feature flag** |

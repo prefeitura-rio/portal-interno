@@ -1,4 +1,8 @@
-import { COURSES_ROLES, CURRICULOS_ROLES } from '@/types/heimdall-roles'
+import {
+  COURSES_DASHBOARD_ROLES,
+  COURSES_ROLES,
+  CURRICULOS_ROLES,
+} from '@/types/heimdall-roles'
 import {
   Briefcase,
   FileUser,
@@ -80,6 +84,11 @@ export function getMenuList(pathname: string): Group[] {
           icon: GraduationCap,
           allowedRoles: [...COURSES_ROLES],
           submenus: [
+            {
+              href: '/gorio/courses/dashboard',
+              label: 'Dashboard',
+              allowedRoles: [...COURSES_DASHBOARD_ROLES],
+            },
             {
               href: '/gorio/courses',
               label: 'Cursos',

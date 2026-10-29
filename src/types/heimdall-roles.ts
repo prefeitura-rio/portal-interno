@@ -32,6 +32,19 @@ export const COURSES_ROLES = [
 export type CoursesRole = (typeof COURSES_ROLES)[number]
 
 /**
+ * Roles that see the Capacitação dashboard (DEV-100): Casa Civil and the
+ * platform admins (`admin` is the role of the Heimdall group
+ * `heimdall_admins`; `superadmin` has access to everything). They get the
+ * global consolidated view, without the secretaria filter. go:admin and
+ * go:cursos:editor do not see it.
+ */
+export const COURSES_DASHBOARD_ROLES = [
+  'admin',
+  'superadmin',
+  'go:cursos:casa_civil',
+] as const
+
+/**
  * Roles that grant access to the "Banco de currículos" module.
  * Both module roles only read the base. Associating a candidate to vagas also
  * needs an Emprego e trabalho role (or a total admin role).
