@@ -1,16 +1,19 @@
 import { getApiV1Courses } from '@/http-gorio/courses/courses'
 import { getApiV1CoursesCourseIdEnrollments } from '@/http-gorio/inscricoes/inscricoes'
+import { getDepartmentsCdUa } from '@/http-rmi/departments/departments'
 import {
   DASHBOARD_PUBLISHED_STATUSES,
   buildCoursesDashboard,
 } from '@/lib/courses-dashboard'
+import { resolveDepartmentNames } from '@/lib/department-names'
 import { NextResponse } from 'next/server'
 
 /**
  * Consolidado do Dashboard de Capacitações (DEV-100): cursos publicados e
  * total de inscritos por secretaria. O RBAC (Casa Civil e admins) fica no
  * middleware, em `API_ROUTE_PERMISSIONS`; a API Go devolve a esses papéis os
- * cursos de todas as secretarias.
+ * cursos de todas as secretarias. Os nomes das secretarias vêm da RMI, em lote
+ * controlado e com cache no servidor (`resolveDepartmentNames`).
  */
 export async function GET() {
   try {
@@ -24,6 +27,10 @@ export async function GET() {
       // Só o total importa: uma inscrição por página basta
       fetchCourseEnrollments: courseId =>
         getApiV1CoursesCourseIdEnrollments(courseId, { page: 1, limit: 1 }),
+      resolveSecretarias: orgaoIds =>
+        resolveDepartmentNames(orgaoIds, (cdUa, signal) =>
+          getDepartmentsCdUa(cdUa, { signal })
+        ),
     })
 
     if (!result.ok) {
