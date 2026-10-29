@@ -75,15 +75,15 @@ Este documento descreve a implementação de um sistema automático de refresh d
 
 **Localização**: `src/app/api/auth/token-status/route.ts`
 
-**Função**: Verifica o status atual dos tokens
-**Retorno**:
+**Função**: Verifica o status atual dos tokens. Devolve só metadados: os valores dos cookies HttpOnly `access_token` e `refresh_token` nunca vão para o browser.
+**Retorno** (`401` quando não há `access_token`):
 
 ```json
 {
   "authenticated": boolean,
-  "token": string | null,
-  "refreshToken": string | null,
   "isExpired": boolean,
+  "hasRefreshToken": boolean,
+  "expiresAt": number | null, // expiração do access token em epoch ms
   "message": string
 }
 ```
@@ -224,7 +224,7 @@ Para debug adicional, você pode adicionar temporariamente:
 ```typescript
 // No useTokenRefresh hook
 console.log('⏰ Token status:', {
-  expiresAt: new Date(tokenExpiry).toISOString(),
+  expiresAt: new Date(tokenData.expiresAt).toISOString(),
   minutesUntilExpiry,
   needsRefresh: minutesUntilExpiry <= refreshBeforeExpiry
 })
