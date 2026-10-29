@@ -26,7 +26,11 @@ export interface DepartmentApiResult {
   headers?: Headers | null
 }
 
-export type FetchDepartment = (cdUa: string) => Promise<DepartmentApiResult>
+/** `signal` aborta a consulta quando ela passa do tempo dela. */
+export type FetchDepartment = (
+  cdUa: string,
+  signal: AbortSignal
+) => Promise<DepartmentApiResult>
 
 /** Consultas simultâneas à RMI. */
 export const DEPARTMENT_NAME_CONCURRENCY = 2
@@ -42,6 +46,12 @@ export const DEPARTMENT_NAME_MAX_DELAY_MS = 5_000
 
 /** Tempo total para resolver os nomes de uma carga do dashboard. */
 export const DEPARTMENT_NAME_DEADLINE_MS = 20_000
+
+/**
+ * Tempo máximo de uma consulta (limitado também ao que resta do prazo): RMI
+ * lenta ou travada não pode segurar a resposta do consolidado.
+ */
+export const DEPARTMENT_NAME_REQUEST_TIMEOUT_MS = 5_000
 
 /** Validade do nome encontrado no cache (órgãos quase nunca mudam). */
 export const DEPARTMENT_FOUND_TTL_MS = 6 * 60 * 60 * 1000
@@ -167,6 +177,7 @@ export interface ResolveDepartmentNamesOptions {
   concurrency?: number
   maxAttempts?: number
   deadlineMs?: number
+  requestTimeoutMs?: number
   now?: () => number
   sleep?: (ms: number) => Promise<void>
 }
@@ -178,11 +189,41 @@ function isRetryable(status: number): boolean {
   return status === 429 || status >= 500
 }
 
+class DepartmentRequestTimeout extends Error {}
+
+/**
+ * Consulta com tempo máximo: aborta o `signal` e rejeita ao estourar, mesmo
+ * que a chamada ignore o `signal`.
+ */
+async function fetchWithTimeout(
+  fetchDepartment: FetchDepartment,
+  cdUa: string,
+  timeoutMs: number
+): Promise<DepartmentApiResult> {
+  const controller = new AbortController()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort()
+      reject(new DepartmentRequestTimeout())
+    }, timeoutMs)
+  })
+  try {
+    return await Promise.race([
+      fetchDepartment(cdUa, controller.signal),
+      timeout,
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /**
  * Nome de cada secretaria, com no máximo `concurrency` consultas à RMI ao
  * mesmo tempo. 429, 5xx e erro de rede tentam de novo depois de
  * `Retry-After` (ou de um recuo exponencial), até `maxAttempts` ou até o
- * prazo da carga; o que não resolver fica `unavailable` (e, esgotado o
+ * prazo da carga; cada consulta tem tempo máximo, limitado ao que resta do
+ * prazo; o que não resolver fica `unavailable` (e, esgotado o
  * prazo, os códigos restantes não são consultados). Códigos repetidos são
  * consultados uma vez.
  */
@@ -199,6 +240,8 @@ export async function resolveDepartmentNames(
   )
   const now = options.now ?? Date.now
   const sleep = options.sleep ?? defaultSleep
+  const requestTimeoutMs =
+    options.requestTimeoutMs ?? DEPARTMENT_NAME_REQUEST_TIMEOUT_MS
   const deadline = now() + (options.deadlineMs ?? DEPARTMENT_NAME_DEADLINE_MS)
 
   const result = new Map<string, DepartmentLookup>()
@@ -230,7 +273,11 @@ export async function resolveDepartmentNames(
 
       let retryAfterMs: number | null = null
       try {
-        const response = await fetchDepartment(cdUa)
+        const response = await fetchWithTimeout(
+          fetchDepartment,
+          cdUa,
+          Math.max(1, Math.min(requestTimeoutMs, deadline - now()))
+        )
         if (response.status >= 200 && response.status < 300) {
           const department = parseDepartment(response.data, cdUa)
           return department
@@ -243,7 +290,8 @@ export async function resolveDepartmentNames(
         if (!isRetryable(response.status)) return { status: 'unavailable' }
         retryAfterMs = parseRetryAfterMs(response.headers, now())
       } catch {
-        // Erro de rede: tenta de novo como um 5xx
+        // Erro de rede ou consulta lenta: tenta de novo como um 5xx (o prazo
+        // da carga, conferido no início da tentativa, encerra o laço)
       }
 
       if (attempt === maxAttempts) break

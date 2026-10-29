@@ -28,7 +28,9 @@ export async function GET() {
       fetchCourseEnrollments: courseId =>
         getApiV1CoursesCourseIdEnrollments(courseId, { page: 1, limit: 1 }),
       resolveSecretarias: orgaoIds =>
-        resolveDepartmentNames(orgaoIds, getDepartmentsCdUa),
+        resolveDepartmentNames(orgaoIds, (cdUa, signal) =>
+          getDepartmentsCdUa(cdUa, { signal })
+        ),
     })
 
     if (!result.ok) {

@@ -16,6 +16,9 @@ const {
   parseCoursesPage,
   parseEnrollmentTotal,
 } = await import('../courses-dashboard.ts')
+const { DepartmentNameCache, resolveDepartmentNames } = await import(
+  '../department-names.ts'
+)
 // Status da aba "Cursos Criados" (/api/courses) que a tabela mostra com o
 // selo "Publicado" ou com um status derivado de published
 const PUBLISHED_STATUSES_OF_CREATED_TAB = [
@@ -478,6 +481,36 @@ describe('buildCoursesDashboard', () => {
     )
     assert.equal(result.summary.secretariasWithoutName, 1)
     assert.equal(result.summary.totals.publishedCourses, 4)
+  })
+
+  test('RMI travada não segura o consolidado: totais saem no prazo dos nomes', async () => {
+    const started = Date.now()
+    const result = await buildCoursesDashboard({
+      listPublishedCoursesPage: async () =>
+        coursesPage(
+          [
+            { id: 1, orgao_id: '1000' },
+            { id: 2, orgao_id: '2000' },
+          ],
+          2,
+          1
+        ),
+      fetchCourseEnrollments: async id => enrollmentsPage(id * 10),
+      resolveSecretarias: ids =>
+        resolveDepartmentNames(ids, () => new Promise(() => {}), {
+          cache: new DepartmentNameCache(),
+          deadlineMs: 200,
+        }),
+    })
+    const elapsed = Date.now() - started
+    assert.ok(elapsed < 1500, `levou ${elapsed} ms`)
+    assert.ok(result.ok)
+    assert.deepEqual(result.summary.totals, {
+      publishedCourses: 2,
+      totalEnrollments: 30,
+      coursesWithoutEnrollmentCount: 0,
+    })
+    assert.equal(result.summary.secretariasWithoutName, 2)
   })
 
   test('falha na busca de nomes não derruba os totais', async () => {

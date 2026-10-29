@@ -227,6 +227,51 @@ describe('resolveDepartmentNames: novas tentativas', () => {
     }
   })
 
+  test('RMI que não responde: a consulta é abortada no prazo e o nome fica indisponível', async () => {
+    const signals: AbortSignal[] = []
+    const started = Date.now()
+    const names = await resolveDepartmentNames(
+      ['1000', '2000', '3000'],
+      (_cdUa, signal) => {
+        signals.push(signal)
+        // Nunca responde e ignora o signal
+        return new Promise<Result>(() => {})
+      },
+      { cache: new DepartmentNameCache(), deadlineMs: 300 }
+    )
+    const elapsed = Date.now() - started
+    assert.ok(elapsed < 1500, `levou ${elapsed} ms`)
+    for (const cdUa of ['1000', '2000', '3000']) {
+      assert.deepEqual(names.get(cdUa), { status: 'unavailable' })
+    }
+    assert.ok(signals.length > 0)
+    assert.ok(signals.every(signal => signal.aborted))
+  })
+
+  test('consulta lenta estoura o tempo dela e tenta de novo dentro do prazo', async () => {
+    let calls = 0
+    const names = await resolveDepartmentNames(
+      ['1000'],
+      (cdUa, signal) => {
+        calls += 1
+        if (calls === 1) {
+          return new Promise<Result>((_, reject) => {
+            signal.addEventListener('abort', () => reject(new Error('aborted')))
+          })
+        }
+        return Promise.resolve(department(cdUa))
+      },
+      {
+        cache: new DepartmentNameCache(),
+        requestTimeoutMs: 50,
+        deadlineMs: 5_000,
+        sleep: async () => {},
+      }
+    )
+    assert.equal(calls, 2)
+    assert.equal(names.get('1000')?.status, 'found')
+  })
+
   test('prazo da carga esgotado: o restante fica indisponível sem consultar', async () => {
     const clock = fakeClock()
     let calls = 0
