@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import { getScheduleVacancySummaries } from '../course-schedule-vacancies.ts'
+import {
+  formatScheduleOccupancyPercent,
+  getScheduleOccupancyPercent,
+  getScheduleVacancyStatus,
+  getScheduleVacancySummaries,
+} from '../course-schedule-vacancies.ts'
 
 describe('getScheduleVacancySummaries', () => {
   test('presencial: uma linha por turma com vagas, ocupadas e disponíveis', () => {
@@ -193,6 +198,87 @@ describe('getScheduleVacancySummaries', () => {
     assert.deepEqual(
       summaries.map(s => s.id),
       ['ok']
+    )
+  })
+})
+
+describe('getScheduleOccupancyPercent / formatScheduleOccupancyPercent', () => {
+  test('% Inscritos = Inscritos ÷ Vagas × 100, com 1 casa decimal', () => {
+    const cases: Array<[number, number, string]> = [
+      [20, 16, '80.0%'],
+      [20, 17, '85.0%'],
+      [10, 10, '100.0%'],
+      [5, 0, '0.0%'],
+      [3, 1, '33.3%'],
+      [3, 2, '66.7%'],
+    ]
+    for (const [vagas, ocupadas, esperado] of cases) {
+      assert.equal(
+        formatScheduleOccupancyPercent(
+          getScheduleOccupancyPercent({ vagas, ocupadas })
+        ),
+        esperado,
+        `${ocupadas}/${vagas}`
+      )
+    }
+  })
+
+  test('sem ocupação conhecida ou sem vagas não inventa percentual', () => {
+    assert.equal(
+      getScheduleOccupancyPercent({ vagas: 8, ocupadas: null }),
+      null
+    )
+    assert.equal(getScheduleOccupancyPercent({ vagas: 0, ocupadas: 0 }), null)
+    assert.equal(formatScheduleOccupancyPercent(null), '—')
+  })
+})
+
+describe('getScheduleVacancyStatus', () => {
+  test('esgotado com 0 vagas livres', () => {
+    assert.equal(
+      getScheduleVacancyStatus({ vagas: 10, disponiveis: 0 }),
+      'esgotado'
+    )
+    assert.equal(
+      getScheduleVacancyStatus({ vagas: 0, disponiveis: 0 }),
+      'esgotado'
+    )
+  })
+
+  test('disponível com mais de 20% das vagas livres', () => {
+    assert.equal(
+      getScheduleVacancyStatus({ vagas: 5, disponiveis: 5 }),
+      'disponivel'
+    )
+    assert.equal(
+      getScheduleVacancyStatus({ vagas: 1, disponiveis: 1 }),
+      'disponivel'
+    )
+    assert.equal(
+      getScheduleVacancyStatus({ vagas: 20, disponiveis: 5 }),
+      'disponivel'
+    )
+  })
+
+  test('quase lotado com vaga livre, mas no máximo 20% do total', () => {
+    assert.equal(
+      getScheduleVacancyStatus({ vagas: 20, disponiveis: 4 }),
+      'quase-lotado'
+    )
+    assert.equal(
+      getScheduleVacancyStatus({ vagas: 20, disponiveis: 3 }),
+      'quase-lotado'
+    )
+    assert.equal(
+      getScheduleVacancyStatus({ vagas: 10, disponiveis: 1 }),
+      'quase-lotado'
+    )
+  })
+
+  test('sem vagas restantes informadas não há status', () => {
+    assert.equal(
+      getScheduleVacancyStatus({ vagas: 8, disponiveis: null }),
+      null
     )
   })
 })
