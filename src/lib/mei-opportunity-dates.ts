@@ -3,6 +3,9 @@ import { type RefinementCtx, z } from 'zod'
 export const EXECUTION_BEFORE_EXPIRATION_MESSAGE =
   'A data limite para execução não pode ser anterior ao prazo de expiração da oportunidade.'
 
+export const SERVICE_EXECUTION_DEADLINE_REQUIRED_MESSAGE =
+  'Data limite para execução do serviço é obrigatória.'
+
 export interface MEIOpportunityDeadlines {
   opportunity_expiration_date?: Date | null
   service_execution_deadline?: Date | null

@@ -267,6 +267,7 @@ describe('formulário de oportunidade MEI (fullFormSchema)', () => {
       neighborhood: 'Centro',
       forma_pagamento: 'PIX',
       prazo_pagamento: '30 dias',
+      service_execution_deadline: new Date('2026-12-15T18:00:00-03:00'),
       cover_image:
         'https://storage.googleapis.com/rj-escritorio-dev-public/superapp/capa.png',
     })
