@@ -72,7 +72,7 @@ export function getMenuList(pathname: string): Group[] {
       ],
     },
     {
-      groupLabel: 'GO Rio',
+      groupLabel: 'Oportunidades Cariocas',
       menus: [
         {
           href: '',
