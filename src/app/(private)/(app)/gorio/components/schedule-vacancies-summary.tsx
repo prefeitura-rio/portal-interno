@@ -1,6 +1,5 @@
 'use client'
 
-import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
   Table,
@@ -11,9 +10,14 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
+  type ScheduleVacancyStatus,
   type ScheduleVacancySummary,
+  formatScheduleOccupancyPercent,
+  getScheduleOccupancyPercent,
+  getScheduleVacancyStatus,
   getScheduleVacancySummaries,
 } from '@/lib/course-schedule-vacancies'
+import { cn } from '@/lib/utils'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Users } from 'lucide-react'
 
@@ -70,47 +74,61 @@ export function ScheduleVacanciesSummary({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Local</TableHead>
+            <TableHead className="border-l-4 border-l-transparent">
+              Local
+            </TableHead>
             <TableHead>Turma</TableHead>
             <TableHead className="text-right">Vagas</TableHead>
-            <TableHead className="text-right">Ocupadas</TableHead>
+            <TableHead className="text-right">Inscritos</TableHead>
+            <TableHead className="text-right">% Inscritos</TableHead>
             <TableHead className="text-right">Disponíveis</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map(schedule => (
-            <TableRow key={schedule.id}>
-              <TableCell className="whitespace-normal">
-                {schedule.local}
-              </TableCell>
-              <TableCell className="whitespace-normal">
-                <div className="font-medium">{schedule.turma}</div>
-                {formatScheduleDetails(schedule) && (
-                  <div className="text-xs text-muted-foreground">
-                    {formatScheduleDetails(schedule)}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell className="text-right">{schedule.vagas}</TableCell>
-              <TableCell className="text-right">
-                {schedule.ocupadas ?? '—'}
-              </TableCell>
-              <TableCell className="text-right">
-                {schedule.disponiveis === null ? (
-                  '—'
-                ) : (
-                  <div className="flex items-center justify-end gap-2">
-                    {schedule.disponiveis === 0 && (
-                      <Badge variant="destructive">Esgotada</Badge>
-                    )}
-                    <span>{schedule.disponiveis}</span>
-                  </div>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
+          {data.map(schedule => {
+            const status = getScheduleVacancyStatus(schedule)
+            const statusStyle = status ? STATUS_STYLES[status] : null
+            return (
+              <TableRow key={schedule.id}>
+                <TableCell
+                  className={cn(
+                    'whitespace-normal border-l-4',
+                    statusStyle?.border ?? 'border-l-transparent'
+                  )}
+                >
+                  {schedule.local}
+                  {statusStyle && (
+                    <span className="sr-only">{` (${statusStyle.label})`}</span>
+                  )}
+                </TableCell>
+                <TableCell className="whitespace-normal">
+                  <div className="font-medium">{schedule.turma}</div>
+                  {formatScheduleDetails(schedule) && (
+                    <div className="text-xs text-muted-foreground">
+                      {formatScheduleDetails(schedule)}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className={NUMERIC_CELL}>{schedule.vagas}</TableCell>
+                <TableCell className={NUMERIC_CELL}>
+                  {schedule.ocupadas ?? '—'}
+                </TableCell>
+                <TableCell
+                  className={cn(NUMERIC_CELL, statusStyle?.percentText)}
+                >
+                  {formatScheduleOccupancyPercent(
+                    getScheduleOccupancyPercent(schedule)
+                  )}
+                </TableCell>
+                <TableCell className={NUMERIC_CELL}>
+                  {schedule.disponiveis ?? '—'}
+                </TableCell>
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
+      <ScheduleVacanciesLegend />
     </section>
   )
 }
@@ -123,9 +141,26 @@ function ScheduleVacanciesHeader() {
         Vagas por turma
       </h3>
       <p className="text-sm text-muted-foreground">
-        Ocupadas = inscrições confirmadas e concluídas na turma.
+        % Inscritos = percentual de vagas preenchidas em relação ao total de
+        vagas da turma (Inscritos ÷ Vagas).
       </p>
     </div>
+  )
+}
+
+function ScheduleVacanciesLegend() {
+  return (
+    <ul className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      {STATUS_ORDER.map(status => (
+        <li key={status} className="flex items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className={cn('size-2 rounded-full', STATUS_STYLES[status].dot)}
+          />
+          {STATUS_STYLES[status].legend}
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -146,4 +181,44 @@ async function fetchScheduleVacancies(
       ? body.course
       : null
   return getScheduleVacancySummaries(course)
+}
+
+const NUMERIC_CELL = 'text-right font-mono tabular-nums'
+
+const STATUS_ORDER: ScheduleVacancyStatus[] = [
+  'disponivel',
+  'quase-lotado',
+  'esgotado',
+]
+
+const STATUS_STYLES: Record<ScheduleVacancyStatus, StatusStyle> = {
+  disponivel: {
+    label: 'Disponível',
+    legend: 'Disponível (mais de 20% das vagas livres)',
+    border: 'border-l-green-600',
+    dot: 'bg-green-600',
+    percentText: '',
+  },
+  'quase-lotado': {
+    label: 'Quase lotado',
+    legend: 'Quase lotado (até 20% das vagas livres)',
+    border: 'border-l-amber-500',
+    dot: 'bg-amber-500',
+    percentText: 'text-amber-600 dark:text-amber-500',
+  },
+  esgotado: {
+    label: 'Esgotado',
+    legend: 'Esgotado (0 vagas)',
+    border: 'border-l-destructive',
+    dot: 'bg-destructive',
+    percentText: 'text-destructive',
+  },
+}
+
+interface StatusStyle {
+  label: string
+  legend: string
+  border: string
+  dot: string
+  percentText: string
 }

@@ -74,6 +74,44 @@ function formatLocationLabel(location: UnknownRecord): string {
   return address || neighborhood || 'Local não informado'
 }
 
+export type ScheduleVacancyStatus = 'disponivel' | 'quase-lotado' | 'esgotado'
+
+/**
+ * Fração mínima de vagas livres (estrita) para a turma contar como
+ * disponível: acima de 20% das vagas livres, ou seja, % Inscritos < 80%.
+ */
+const AVAILABLE_FREE_RATIO = 0.2
+
+/**
+ * % Inscritos = Inscritos ÷ Vagas × 100. null quando a ocupação não é
+ * conhecida ou a turma não tem vagas (divisão por zero).
+ */
+export function getScheduleOccupancyPercent(
+  summary: Pick<ScheduleVacancySummary, 'vagas' | 'ocupadas'>
+): number | null {
+  if (summary.ocupadas === null || summary.vagas <= 0) return null
+  return (summary.ocupadas / summary.vagas) * 100
+}
+
+export function formatScheduleOccupancyPercent(percent: number | null): string {
+  return percent === null ? '—' : `${percent.toFixed(1)}%`
+}
+
+/**
+ * Esgotado: nenhuma vaga livre. Disponível: mais de 20% das vagas livres.
+ * Quase lotado: o restante (há vaga, mas no máximo 20% do total).
+ * null quando a API não informou as vagas restantes.
+ */
+export function getScheduleVacancyStatus(
+  summary: Pick<ScheduleVacancySummary, 'vagas' | 'disponiveis'>
+): ScheduleVacancyStatus | null {
+  if (summary.disponiveis === null) return null
+  if (summary.disponiveis <= 0 || summary.vagas <= 0) return 'esgotado'
+  return summary.disponiveis / summary.vagas > AVAILABLE_FREE_RATIO
+    ? 'disponivel'
+    : 'quase-lotado'
+}
+
 /**
  * Lista as turmas do curso com total de vagas, ocupadas e disponíveis.
  * Aceita o curso cru da API, embrulhado ou não em `{ data }`.
