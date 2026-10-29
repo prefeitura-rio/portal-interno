@@ -8,7 +8,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { ensureAfter, isDayWithoutTimeAfter } from '@/lib/datetime-bounds'
 import { cn } from '@/lib/utils'
 import { format, set } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -24,9 +23,6 @@ interface DateTimePickerProps {
   id?: string
   disablePastDates?: boolean
   minDate?: Date
-  // Limite exclusivo de data e hora: dias sem horário posterior a ele ficam
-  // desabilitados e o valor escolhido nunca é igual ou anterior a ele.
-  after?: Date
 }
 
 export function DateTimePicker({
@@ -38,7 +34,6 @@ export function DateTimePicker({
   id,
   disablePastDates = false,
   minDate,
-  after,
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
@@ -74,18 +69,14 @@ export function DateTimePicker({
 
     // Parse the time and combine with the selected date
     const [hours, minutes, seconds] = timeValue.split(':').map(Number)
-    const newDateTime = ensureAfter(
-      set(date, {
-        hours: hours || 0,
-        minutes: minutes || 0,
-        seconds: seconds || 0,
-        milliseconds: 0,
-      }),
-      after
-    )
+    const newDateTime = set(date, {
+      hours: hours || 0,
+      minutes: minutes || 0,
+      seconds: seconds || 0,
+      milliseconds: 0,
+    })
 
     setSelectedDate(newDateTime)
-    setTimeValue(format(newDateTime, 'HH:mm:ss'))
     onChange?.(newDateTime)
     setOpen(false)
   }
@@ -97,18 +88,14 @@ export function DateTimePicker({
     if (selectedDate) {
       // Parse the new time and combine with existing date
       const [hours, minutes, seconds] = newTime.split(':').map(Number)
-      const newDateTime = ensureAfter(
-        set(selectedDate, {
-          hours: hours || 0,
-          minutes: minutes || 0,
-          seconds: seconds || 0,
-          milliseconds: 0,
-        }),
-        after
-      )
+      const newDateTime = set(selectedDate, {
+        hours: hours || 0,
+        minutes: minutes || 0,
+        seconds: seconds || 0,
+        milliseconds: 0,
+      })
 
       setSelectedDate(newDateTime)
-      setTimeValue(format(newDateTime, 'HH:mm:ss'))
       onChange?.(newDateTime)
     }
   }
@@ -164,7 +151,6 @@ export function DateTimePicker({
                   min.setHours(0, 0, 0, 0)
                   if (compareDate < min) return true
                 }
-                if (isDayWithoutTimeAfter(date, after)) return true
                 return false
               }}
             />
