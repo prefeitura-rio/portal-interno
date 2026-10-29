@@ -1,4 +1,6 @@
+import { getCurrentUserRoles } from '@/lib/heimdall-user'
 import { isJwtExpired } from '@/lib/jwt-utils'
+import { hasUploadFolderAccess } from '@/lib/route-permissions'
 import {
   DEFAULT_UPLOAD_FOLDER,
   UPLOAD_FOLDERS,
@@ -50,6 +52,13 @@ export async function POST(request: NextRequest) {
       { error: 'Pasta de upload inválida' },
       { status: 400 }
     )
+  }
+
+  if (!hasUploadFolderAccess(folder, await getCurrentUserRoles())) {
+    console.warn(
+      `[UPLOAD] Signed URL denied for folder "${folder}": missing required role (see UPLOAD_FOLDER_ROLES)`
+    )
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   if (!contentType || !ALLOWED_CONTENT_TYPES[contentType]) {
