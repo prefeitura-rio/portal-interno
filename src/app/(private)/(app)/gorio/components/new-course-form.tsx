@@ -58,8 +58,10 @@ import { Switch } from '@/components/ui/switch'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useRestrictedDepartmentIds } from '@/hooks/use-restricted-department-ids'
 import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
+import { formatCourseValidationErrors } from '@/lib/course-form-errors'
 import { refineTurmaEnrollmentEnd } from '@/lib/course-turma-dates'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
+import { requiredError } from '@/lib/zod-errors'
 import { Copy, Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { ClassDaysPicker } from './class-days-picker'
@@ -129,16 +131,16 @@ const scheduleSchema = z.object({
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
     .max(1000, { message: 'Número de vagas não pode exceder 1000.' }),
   enrollmentStartDate: z.date({
-    required_error: 'Data de início das inscrições é obrigatória.',
+    error: requiredError('Data de início das inscrições é obrigatória.'),
   }),
   enrollmentEndDate: z.date({
-    required_error: 'Data de fim das inscrições é obrigatória.',
+    error: requiredError('Data de fim das inscrições é obrigatória.'),
   }),
   classStartDate: z.date({
-    required_error: 'Data de início das aulas é obrigatória.',
+    error: requiredError('Data de início das aulas é obrigatória.'),
   }),
   classEndDate: z.date({
-    required_error: 'Data de fim das aulas é obrigatória.',
+    error: requiredError('Data de fim das aulas é obrigatória.'),
   }),
   classTime: z.string().min(1, { message: 'Horário das aulas é obrigatório.' }),
   classDays: z.string().min(1, { message: 'Dias de aula é obrigatório.' }),
@@ -169,10 +171,10 @@ const remoteScheduleSchema = z.object({
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
     .max(1000, { message: 'Número de vagas não pode exceder 1000.' }),
   enrollmentStartDate: z.date({
-    required_error: 'Data de início das inscrições é obrigatória.',
+    error: requiredError('Data de início das inscrições é obrigatória.'),
   }),
   enrollmentEndDate: z.date({
-    required_error: 'Data de fim das inscrições é obrigatória.',
+    error: requiredError('Data de fim das inscrições é obrigatória.'),
   }),
   classStartDate: z.date().optional().nullable(),
   classEndDate: z.date().optional().nullable(),
@@ -290,10 +292,10 @@ export const fullFormSchema = z
         .array(z.number())
         .min(1, { message: 'Pelo menos uma categoria é obrigatória.' }),
       enrollment_start_date: z.date({
-        required_error: 'Data de início é obrigatória.',
+        error: requiredError('Data de início é obrigatória.'),
       }),
       enrollment_end_date: z.date({
-        required_error: 'Data de término é obrigatória.',
+        error: requiredError('Data de término é obrigatória.'),
       }),
       theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
@@ -320,7 +322,7 @@ export const fullFormSchema = z
             'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       is_visible: z.boolean({
-        required_error: 'Visibilidade do curso é obrigatória.',
+        error: requiredError('Visibilidade do curso é obrigatória.'),
       }),
       auto_approve_enrollments: z.boolean().optional(),
       // Optional fields
@@ -377,10 +379,10 @@ export const fullFormSchema = z
         .array(z.number())
         .min(1, { message: 'Pelo menos uma categoria é obrigatória.' }),
       enrollment_start_date: z.date({
-        required_error: 'Data de início é obrigatória.',
+        error: requiredError('Data de início é obrigatória.'),
       }),
       enrollment_end_date: z.date({
-        required_error: 'Data de término é obrigatória.',
+        error: requiredError('Data de término é obrigatória.'),
       }),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
       modalidade: z.literal('PRESENCIAL'),
@@ -407,7 +409,7 @@ export const fullFormSchema = z
             'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       is_visible: z.boolean({
-        required_error: 'Visibilidade do curso é obrigatória.',
+        error: requiredError('Visibilidade do curso é obrigatória.'),
       }),
       auto_approve_enrollments: z.boolean().optional(),
       // Optional fields
@@ -466,10 +468,10 @@ export const fullFormSchema = z
         .array(z.number())
         .min(1, { message: 'Pelo menos uma categoria é obrigatória.' }),
       enrollment_start_date: z.date({
-        required_error: 'Data de início é obrigatória.',
+        error: requiredError('Data de início é obrigatória.'),
       }),
       enrollment_end_date: z.date({
-        required_error: 'Data de término é obrigatória.',
+        error: requiredError('Data de término é obrigatória.'),
       }),
       theme: z.enum(['Curso', 'Palestra', 'Oficina', 'Workshop']).optional(),
       orgao_id: z.string().min(1, { message: 'Órgão é obrigatório.' }),
@@ -496,7 +498,7 @@ export const fullFormSchema = z
             'Imagem de capa deve ser uma URL do bucket do Google Cloud Storage.',
         }),
       is_visible: z.boolean({
-        required_error: 'Visibilidade do curso é obrigatória.',
+        error: requiredError('Visibilidade do curso é obrigatória.'),
       }),
       auto_approve_enrollments: z.boolean().optional(),
       // Link para formação - obrigatório para LIVRE_FORMACAO_ONLINE
@@ -1879,67 +1881,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     }
 
     // Helper function to format validation errors for toast messages
-    const formatValidationErrors = (error: z.ZodError): string => {
-      const requiredFields = error.errors
-        .filter(
-          err =>
-            err.code === 'too_small' ||
-            err.code === 'invalid_type' ||
-            err.code === 'invalid_string' ||
-            err.code === 'invalid_date'
-        )
-        .map(err => {
-          const path = err.path.join('.')
-          // Map technical field names to user-friendly labels
-          const fieldLabels: Record<string, string> = {
-            title: 'Título',
-            description: 'Descrição',
-            category: 'Categorias',
-            enrollment_start_date: 'Data de início das inscrições',
-            enrollment_end_date: 'Data de fim das inscrições',
-            orgao_id: 'Órgão',
-            modalidade: 'Modalidade',
-            workload: 'Carga horária',
-            target_audience: 'Público-alvo',
-            institutional_logo: 'Logo institucional',
-            cover_image: 'Imagem de capa',
-            is_visible: 'Visibilidade do curso',
-            locations: 'Unidades',
-            'locations.0.address': 'Endereço da unidade',
-            'locations.0.neighborhood': 'Bairro',
-            'locations.0.schedules': 'Turmas',
-            'locations.0.schedules.0.enrollmentStartDate':
-              'Início das inscrições da turma',
-            'locations.0.schedules.0.enrollmentEndDate':
-              'Fim das inscrições da turma',
-            remote_class: 'Turmas online',
-            'remote_class.0.vacancies': 'Número de vagas',
-            'remote_class.0.enrollmentStartDate':
-              'Início das inscrições da turma',
-            'remote_class.0.enrollmentEndDate': 'Fim das inscrições da turma',
-            'remote_class.0.classStartDate': 'Data de início das aulas',
-            'remote_class.0.classEndDate': 'Data de fim das aulas',
-            'remote_class.0.classTime': 'Horário das aulas',
-            'remote_class.0.classDays': 'Dias de aula',
-          }
-
-          // Try to get user-friendly label, otherwise use path
-          return fieldLabels[path] || path
-        })
-
-      if (requiredFields.length > 0) {
-        const uniqueFields = Array.from(new Set(requiredFields))
-        if (uniqueFields.length === 1) {
-          return `Por favor, preencha o campo obrigatório: ${uniqueFields[0]}.`
-        }
-        if (uniqueFields.length <= 3) {
-          return `Por favor, preencha os campos obrigatórios: ${uniqueFields.join(', ')}.`
-        }
-        return `Por favor, preencha os ${uniqueFields.length} campos obrigatórios destacados no formulário.`
-      }
-
-      return 'Por favor, verifique os campos obrigatórios destacados no formulário.'
-    }
+    const formatValidationErrors = (error: z.ZodError): string =>
+      formatCourseValidationErrors(error.issues)
 
     // Expose methods to parent component via ref
     useImperativeHandle(ref, () => ({
@@ -2378,7 +2321,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         }
       } catch (error) {
         if (error instanceof z.ZodError) {
-          console.error('Validation errors:', error.errors)
+          console.error('Validation errors:', error.issues)
           const errorMessage = formatValidationErrors(error)
           toast.error('Campos obrigatórios não preenchidos', {
             description: errorMessage,
@@ -2433,7 +2376,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         }
       } catch (error) {
         if (error instanceof z.ZodError) {
-          console.error('Validation errors:', error.errors)
+          console.error('Validation errors:', error.issues)
           const errorMessage = formatValidationErrors(error)
           toast.error('Erro ao salvar rascunho', {
             description: errorMessage,
@@ -2502,7 +2445,7 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
         toast.success('Curso publicado com sucesso!')
       } catch (error) {
         if (error instanceof z.ZodError) {
-          console.error('Validation errors:', error.errors)
+          console.error('Validation errors:', error.issues)
           const errorMessage = formatValidationErrors(error)
           toast.error('Campos obrigatórios não preenchidos', {
             description: errorMessage,

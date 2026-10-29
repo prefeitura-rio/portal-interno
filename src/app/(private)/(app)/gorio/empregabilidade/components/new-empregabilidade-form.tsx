@@ -42,6 +42,7 @@ import {
 } from '@/lib/date-validation'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { cn } from '@/lib/utils'
+import { requiredError } from '@/lib/zod-errors'
 import { hasEditorComCuradoriaRestrictions } from '@/types/heimdall-roles'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -170,7 +171,7 @@ export function toFormAcessibilidadePcd(
 // ============================================
 
 // Schema para validação de rascunho (5 campos obrigatórios)
-const draftValidationSchema = z.object({
+export const draftValidationSchema = z.object({
   titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
   descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
   contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
@@ -184,7 +185,7 @@ const draftValidationSchema = z.object({
 })
 
 // Schema para validação de publicação (10 campos obrigatórios; valor_vaga opcional)
-const publishValidationSchema = z.object({
+export const publishValidationSchema = z.object({
   titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
   descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
   contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
@@ -200,7 +201,7 @@ const publishValidationSchema = z.object({
     .nullish(),
   bairro: z.string().min(1, { message: 'Bairro é obrigatório.' }),
   data_limite: z
-    .date({ required_error: 'Data limite é obrigatória.' })
+    .date({ error: requiredError('Data limite é obrigatória.') })
     .refine(isDateInFuture, { message: FUTURE_DATE_ERROR_MESSAGE }),
   id_orgao_parceiro: z
     .string()
@@ -227,7 +228,7 @@ const validateForPublish = (
     form.clearErrors()
 
     // Aplicar erros a cada campo
-    result.error.errors.forEach(error => {
+    result.error.issues.forEach(error => {
       const fieldName = error.path[0] as keyof FormData
       form.setError(fieldName, {
         type: 'manual',
@@ -236,7 +237,7 @@ const validateForPublish = (
     })
 
     // Mostrar toast com lista de campos faltantes
-    const errorMessages = result.error.errors.map(e => e.message)
+    const errorMessages = result.error.issues.map(e => e.message)
     toast.error('Campos obrigatórios não preenchidos', {
       description: errorMessages.join(', '),
     })
@@ -258,7 +259,7 @@ const validateForDraft = (
     form.clearErrors()
 
     // Aplicar erros a cada campo
-    result.error.errors.forEach(error => {
+    result.error.issues.forEach(error => {
       const fieldName = error.path[0] as keyof FormData
       form.setError(fieldName, {
         type: 'manual',
@@ -267,7 +268,7 @@ const validateForDraft = (
     })
 
     // Mostrar toast com lista de campos faltantes
-    const errorMessages = result.error.errors.map(e => e.message)
+    const errorMessages = result.error.issues.map(e => e.message)
     toast.error('Campos obrigatórios não preenchidos', {
       description: errorMessages.join(', '),
     })

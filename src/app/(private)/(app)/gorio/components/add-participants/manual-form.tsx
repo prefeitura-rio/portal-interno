@@ -66,7 +66,7 @@ const baseManualSchema = z.object({
     .optional()
     .or(z.literal('')),
   schedule_id: z.string().optional(),
-  custom_fields: z.record(z.any()).optional(),
+  custom_fields: z.record(z.string(), z.any()).optional(),
 })
 
 type BaseManualFormData = z.infer<typeof baseManualSchema>
