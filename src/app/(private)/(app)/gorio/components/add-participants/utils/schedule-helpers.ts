@@ -6,6 +6,11 @@ export interface ScheduleOption {
   locationId: string
   locationAddress: string
   isOnline?: boolean
+  /**
+   * Local no formato antigo, sem lista de turmas: o id é o do local (ou um
+   * UUID aleatório), não o de uma turma.
+   */
+  isLegacyLocation?: boolean
 }
 
 interface Schedule {
@@ -84,6 +89,7 @@ export function getScheduleOptions(
           locationId: location.id || '',
           locationAddress: location.address || '',
           isOnline: false,
+          isLegacyLocation: true,
         })
       }
       return
@@ -115,6 +121,19 @@ export function getScheduleOptions(
   })
 
   return options
+}
+
+/**
+ * Turmas oferecidas no filtro da lista de inscritos: só as que têm id de
+ * turma. O local de formato antigo não casa com o `schedule_id` das
+ * inscrições e já é coberto pelo filtro de unidade.
+ */
+export function getFilterableScheduleOptions(
+  courseData?: CourseData | null
+): ScheduleOption[] {
+  return getScheduleOptions(courseData).filter(
+    option => !option.isLegacyLocation
+  )
 }
 
 export interface UnitOption {

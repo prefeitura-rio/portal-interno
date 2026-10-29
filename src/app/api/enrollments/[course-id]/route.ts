@@ -12,9 +12,8 @@ import type {
 import {
   type EnrollmentsPage,
   buildScheduleLocationIndex,
-  fetchAllEnrollmentPages,
   hasClassFilter,
-  matchesClassFilter,
+  loadClassFilteredEnrollments,
   paginateLocally,
   parseClassFilterParams,
 } from '@/lib/enrollment-class-filters'
@@ -92,7 +91,7 @@ export async function GET(
         : []
 
     // Filtro por turma/unidade: a API Go não filtra por turma, então busca
-    // todas as inscrições do curso (com status/busca), filtra e pagina aqui.
+    // todas as inscrições do curso, filtra, resume e pagina aqui.
     if (hasClassFilter(classFilter)) {
       if (courseResponse.status !== 200) {
         return NextResponse.json(
@@ -104,18 +103,21 @@ export async function GET(
         (courseResponse.data as any)?.data
       )
 
-      let apiSummary: any
-      const allPages = await fetchAllEnrollmentPages<ModelsInscricao>(
-        async (fetchPageNumber, fetchLimit) => {
+      const loaded = await loadClassFilteredEnrollments<ModelsInscricao>(
+        async (fetchPageNumber, fetchLimit, query) => {
           const pageResponse = await getApiV1CoursesCourseIdEnrollments(
             Number.parseInt(courseId, 10),
-            { page: fetchPageNumber, limit: fetchLimit, status, search }
+            {
+              page: fetchPageNumber,
+              limit: fetchLimit,
+              status: query.status,
+              search: query.search,
+            }
           )
           if (pageResponse.status !== 200) {
             return { error: pageResponse.status }
           }
           const pageData = (pageResponse.data as any)?.data
-          if (fetchPageNumber === 1) apiSummary = pageData?.summary
           const items: ModelsInscricao[] = Array.isArray(pageData?.enrollments)
             ? pageData.enrollments
             : []
@@ -124,11 +126,14 @@ export async function GET(
             total: Number(pageData?.pagination?.total) || items.length,
           }
           return pageResult
-        }
+        },
+        classFilter,
+        scheduleLocationIndex,
+        { status, search }
       )
 
-      if (!allPages.ok) {
-        if (allPages.reason === 'too_many') {
+      if (!loaded.ok) {
+        if (loaded.reason === 'too_many') {
           return NextResponse.json(
             {
               error:
@@ -139,20 +144,18 @@ export async function GET(
         }
         return NextResponse.json(
           { error: 'Failed to fetch enrollments from external API' },
-          { status: allPages.status }
+          { status: loaded.status }
         )
       }
 
-      const filtered = allPages.items.filter(enrollment =>
-        matchesClassFilter(enrollment, classFilter, scheduleLocationIndex)
-      )
-      const localPage = paginateLocally(filtered, page, limit)
+      const localPage = paginateLocally(loaded.items, page, limit)
 
       const responseData: EnrollmentResponse = {
         enrollments: localPage.items.map(enrollment =>
           convertApiEnrollmentToFrontend(enrollment, courseCustomFields)
         ),
-        summary: buildEnrollmentSummary(apiSummary),
+        // Cards de resumo seguem o filtro de turma/unidade
+        summary: buildEnrollmentSummary(loaded.summary),
         pagination: localPage.pagination,
       }
       return NextResponse.json(responseData)

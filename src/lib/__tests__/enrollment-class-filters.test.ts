@@ -8,8 +8,10 @@ const {
   CLASS_FILTER_MAX_IDS,
   appendClassFilterParams,
   buildScheduleLocationIndex,
+  countEnrollmentsByStatus,
   fetchAllEnrollmentPages,
   hasClassFilter,
+  loadClassFilteredEnrollments,
   matchesClassFilter,
   paginateLocally,
   parseClassFilterParams,
@@ -17,9 +19,10 @@ const {
   resolveEnrollmentUnitId,
 } = await import('../enrollment-class-filters.ts')
 
-const { getScheduleOptions, getUnitOptions } = await import(
-  '../../app/(private)/(app)/gorio/components/add-participants/utils/schedule-helpers.ts'
-)
+const { getFilterableScheduleOptions, getScheduleOptions, getUnitOptions } =
+  await import(
+    '../../app/(private)/(app)/gorio/components/add-participants/utils/schedule-helpers.ts'
+  )
 
 const UNIT_A = 'aaaaaaaa-0000-4000-8000-000000000001'
 const UNIT_B = 'bbbbbbbb-0000-4000-8000-000000000002'
@@ -321,5 +324,276 @@ describe('opções de unidade e turma do curso', () => {
       assert.equal(frontIndex.get(schedule.id), schedule.locationId)
       assert.ok(unitIds.has(schedule.locationId))
     }
+  })
+})
+
+// DEV-54: curso de formato antigo (local sem lista de turmas) e cards de
+// resumo que seguem o filtro de turma/unidade.
+
+const UNIT_LEGACY = 'cccccccc-0000-4000-8000-000000000003'
+
+const legacyCourse = {
+  modalidade: 'PRESENCIAL',
+  locations: [
+    {
+      id: UNIT_LEGACY,
+      address: 'Praça Antiga, 10',
+      neighborhood: 'Méier',
+      classTime: '09:00 - 11:00',
+      classDays: 'Sábado',
+    },
+  ],
+}
+
+describe('curso de formato antigo', () => {
+  test('a turma sintética do local antigo fica fora do filtro de turma', () => {
+    const all = getScheduleOptions(legacyCourse)
+    assert.equal(all.length, 1)
+    assert.equal(all[0].id, UNIT_LEGACY)
+    assert.equal(all[0].isLegacyLocation, true)
+    assert.deepEqual(getFilterableScheduleOptions(legacyCourse), [])
+  })
+
+  test('local antigo sem id (UUID aleatório) também fica fora', () => {
+    const course = {
+      modalidade: 'PRESENCIAL',
+      locations: [
+        { address: 'Rua Sem Id', classTime: '10h', classDays: 'Seg' },
+      ],
+    }
+    assert.equal(getScheduleOptions(course).length, 1)
+    assert.deepEqual(getFilterableScheduleOptions(course), [])
+  })
+
+  test('curso com lista de turmas mantém todas as turmas no filtro', () => {
+    assert.deepEqual(
+      getFilterableScheduleOptions(frontCourse),
+      getScheduleOptions(frontCourse)
+    )
+  })
+
+  test('curso misto: só o local antigo sai do filtro de turma', () => {
+    const mixed = {
+      ...frontCourse,
+      locations: [...frontCourse.locations, ...legacyCourse.locations],
+    }
+    const ids = getFilterableScheduleOptions(mixed).map(option => option.id)
+    assert.deepEqual(ids, [TURMA_A1, TURMA_A2, TURMA_B1])
+  })
+
+  test('o local antigo continua no filtro de unidade', () => {
+    assert.deepEqual(getUnitOptions(legacyCourse), [
+      { id: UNIT_LEGACY, label: 'Praça Antiga (Méier)' },
+    ])
+  })
+
+  test('filtro de unidade casa as inscrições do local antigo', () => {
+    const legacyIndex = buildScheduleLocationIndex(legacyCourse)
+    assert.equal(legacyIndex.get(UNIT_LEGACY), UNIT_LEGACY)
+
+    const manual = { schedule_id: UNIT_LEGACY }
+    const citizen = { schedule_id: null, enrolled_unit: { id: UNIT_LEGACY } }
+    const other = { schedule_id: null, enrolled_unit: { id: UNIT_A } }
+    const filter = { scheduleIds: [], unitIds: [UNIT_LEGACY] }
+    assert.deepEqual(
+      [manual, citizen, other].filter(e =>
+        matchesClassFilter(e, filter, legacyIndex)
+      ),
+      [manual, citizen]
+    )
+  })
+})
+
+describe('countEnrollmentsByStatus', () => {
+  test('conta por situação no formato do resumo da API Go', () => {
+    assert.deepEqual(
+      countEnrollmentsByStatus([
+        { status: 'approved' },
+        { status: 'approved' },
+        { status: 'pending' },
+        { status: 'rejected' },
+        { status: 'cancelled' },
+        { status: 'concluded' },
+        { status: null },
+      ]),
+      {
+        total: 7,
+        pending: 1,
+        approved: 2,
+        rejected: 1,
+        cancelled: 1,
+        concluded: 1,
+      }
+    )
+  })
+
+  test('lista vazia zera tudo', () => {
+    assert.deepEqual(countEnrollmentsByStatus([]), {
+      total: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      cancelled: 0,
+      concluded: 0,
+    })
+  })
+})
+
+describe('loadClassFilteredEnrollments', () => {
+  type Row = {
+    id: string
+    name: string
+    status: string
+    schedule_id?: string | null
+    enrolled_unit?: { id?: string | null } | null
+  }
+  const rows: Row[] = [
+    { id: '1', name: 'Ana', status: 'approved', schedule_id: TURMA_A1 },
+    { id: '2', name: 'Bia', status: 'pending', schedule_id: TURMA_A1 },
+    { id: '3', name: 'Caio', status: 'pending', schedule_id: TURMA_A2 },
+    { id: '4', name: 'Duda', status: 'approved', schedule_id: TURMA_B1 },
+    { id: '5', name: 'Eva', status: 'concluded', schedule_id: TURMA_B1 },
+    {
+      id: '6',
+      name: 'Ana Lima',
+      status: 'cancelled',
+      schedule_id: null,
+      enrolled_unit: { id: UNIT_B },
+    },
+  ]
+
+  function fakeApi() {
+    const queries: Array<{ status?: string; search?: string }> = []
+    const fetchPage = async (
+      page: number,
+      limit: number,
+      query: { status?: string; search?: string }
+    ) => {
+      if (page === 1) queries.push(query)
+      const matching = rows.filter(
+        row =>
+          (!query.status || row.status === query.status) &&
+          (!query.search || row.name.includes(query.search))
+      )
+      const start = (page - 1) * limit
+      return {
+        items: matching.slice(start, start + limit),
+        total: matching.length,
+      }
+    }
+    return { queries, fetchPage }
+  }
+
+  const ids = (items: Row[]) => items.map(row => row.id)
+
+  test('resumo conta só a turma filtrada, em todas as situações', async () => {
+    const api = fakeApi()
+    const result = await loadClassFilteredEnrollments(
+      api.fetchPage,
+      { scheduleIds: [TURMA_A1], unitIds: [] },
+      index,
+      {},
+      2,
+      10
+    )
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.deepEqual(ids(result.items), ['1', '2'])
+    assert.deepEqual(result.summary, {
+      total: 2,
+      pending: 1,
+      approved: 1,
+      rejected: 0,
+      cancelled: 0,
+      concluded: 0,
+    })
+    assert.deepEqual(api.queries, [{}])
+  })
+
+  test('por unidade: resumo da unidade, inclusive inscrição antiga', async () => {
+    const result = await loadClassFilteredEnrollments(
+      fakeApi().fetchPage,
+      { scheduleIds: [], unitIds: [UNIT_B] },
+      index,
+      {}
+    )
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.deepEqual(ids(result.items), ['4', '5', '6'])
+    assert.equal(result.summary.total, 3)
+    assert.equal(result.summary.approved, 1)
+    assert.equal(result.summary.concluded, 1)
+    assert.equal(result.summary.cancelled, 1)
+  })
+
+  test('status restringe a lista, não o resumo, sem nova leitura', async () => {
+    const api = fakeApi()
+    const result = await loadClassFilteredEnrollments(
+      api.fetchPage,
+      { scheduleIds: [], unitIds: [UNIT_A] },
+      index,
+      { status: 'pending' }
+    )
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.deepEqual(ids(result.items), ['2', '3'])
+    assert.equal(result.summary.total, 3)
+    assert.equal(result.summary.approved, 1)
+    assert.equal(result.summary.pending, 2)
+    assert.deepEqual(api.queries, [{}])
+  })
+
+  test('busca usa a API e não muda o resumo da turma/unidade', async () => {
+    const api = fakeApi()
+    const result = await loadClassFilteredEnrollments(
+      api.fetchPage,
+      { scheduleIds: [], unitIds: [UNIT_B] },
+      index,
+      { status: 'cancelled', search: 'Ana' }
+    )
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.deepEqual(ids(result.items), ['6'])
+    assert.equal(result.summary.total, 3)
+    assert.deepEqual(api.queries, [{}, { status: 'cancelled', search: 'Ana' }])
+  })
+
+  test('erro e curso grande demais são repassados', async () => {
+    const failing = await loadClassFilteredEnrollments(
+      async () => ({ error: 503 }),
+      { scheduleIds: [TURMA_A1], unitIds: [] },
+      index,
+      {}
+    )
+    assert.deepEqual(failing, { ok: false, reason: 'upstream', status: 503 })
+
+    const tooMany = await loadClassFilteredEnrollments(
+      fakeApi().fetchPage,
+      { scheduleIds: [TURMA_A1], unitIds: [] },
+      index,
+      {},
+      1,
+      2
+    )
+    assert.deepEqual(tooMany, { ok: false, reason: 'too_many', total: 6 })
+
+    let call = 0
+    const searchFails = await loadClassFilteredEnrollments(
+      async (page, limit, query) => {
+        call += 1
+        return query.search
+          ? { error: 502 }
+          : fakeApi().fetchPage(page, limit, query)
+      },
+      { scheduleIds: [TURMA_A1], unitIds: [] },
+      index,
+      { search: 'Ana' }
+    )
+    assert.deepEqual(searchFails, {
+      ok: false,
+      reason: 'upstream',
+      status: 502,
+    })
+    assert.equal(call, 2)
   })
 })
