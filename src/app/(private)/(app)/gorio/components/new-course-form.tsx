@@ -59,7 +59,17 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { useRestrictedDepartmentIds } from '@/hooks/use-restricted-department-ids'
 import { getCachedCategorias, setCachedCategorias } from '@/lib/categoria-utils'
 import { formatCourseValidationErrors } from '@/lib/course-form-errors'
-import { refineTurmaEnrollmentEnd } from '@/lib/course-turma-dates'
+import {
+  CLEARED_TURMA_DATE,
+  type TurmaDateField,
+  type TurmaDates,
+  parseTurmaApiDate,
+  refineTurmaDateOrder,
+  refineTurmaDatesPresent,
+  requiredTurmaDateError,
+  turmaDateMin,
+  turmaDatesToClear,
+} from '@/lib/course-turma-dates'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { requiredError } from '@/lib/zod-errors'
 import { Copy, Plus, Trash2 } from 'lucide-react'
@@ -131,16 +141,18 @@ const scheduleSchema = z.object({
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
     .max(1000, { message: 'Número de vagas não pode exceder 1000.' }),
   enrollmentStartDate: z.date({
-    error: requiredError('Data de início das inscrições é obrigatória.'),
+    error: requiredTurmaDateError(
+      'Data de início das inscrições é obrigatória.'
+    ),
   }),
   enrollmentEndDate: z.date({
-    error: requiredError('Data de fim das inscrições é obrigatória.'),
+    error: requiredTurmaDateError('Data de fim das inscrições é obrigatória.'),
   }),
   classStartDate: z.date({
-    error: requiredError('Data de início das aulas é obrigatória.'),
+    error: requiredTurmaDateError('Data de início das aulas é obrigatória.'),
   }),
   classEndDate: z.date({
-    error: requiredError('Data de fim das aulas é obrigatória.'),
+    error: requiredTurmaDateError('Data de fim das aulas é obrigatória.'),
   }),
   classTime: z.string().min(1, { message: 'Horário das aulas é obrigatório.' }),
   classDays: z.string().min(1, { message: 'Dias de aula é obrigatório.' }),
@@ -171,10 +183,12 @@ const remoteScheduleSchema = z.object({
     .min(1, { message: 'Número de vagas deve ser maior que 0.' })
     .max(1000, { message: 'Número de vagas não pode exceder 1000.' }),
   enrollmentStartDate: z.date({
-    error: requiredError('Data de início das inscrições é obrigatória.'),
+    error: requiredTurmaDateError(
+      'Data de início das inscrições é obrigatória.'
+    ),
   }),
   enrollmentEndDate: z.date({
-    error: requiredError('Data de fim das inscrições é obrigatória.'),
+    error: requiredTurmaDateError('Data de fim das inscrições é obrigatória.'),
   }),
   classStartDate: z.date().optional().nullable(),
   classEndDate: z.date().optional().nullable(),
@@ -552,8 +566,6 @@ export const fullFormSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.modalidade === 'LIVRE_FORMACAO_ONLINE') return
-    const msg =
-      'A data final das aulas deve ser igual ou posterior à data inicial.'
     if (data.modalidade === 'ONLINE') {
       data.remote_class.forEach((schedule, i) => {
         const hasStart = !!schedule.classStartDate
@@ -562,16 +574,6 @@ export const fullFormSchema = z
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: 'Preencha as duas datas de aula ou deixe ambas em branco.',
-            path: ['remote_class', i, 'classEndDate'],
-          })
-        } else if (
-          hasStart &&
-          hasEnd &&
-          schedule.classEndDate! < schedule.classStartDate!
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: msg,
             path: ['remote_class', i, 'classEndDate'],
           })
         }
@@ -588,16 +590,6 @@ export const fullFormSchema = z
                 'Preencha as duas datas de aula ou deixe ambas em branco.',
               path: ['locations', li, 'schedules', si, 'classEndDate'],
             })
-          } else if (
-            hasStart &&
-            hasEnd &&
-            schedule.classEndDate < schedule.classStartDate
-          ) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: msg,
-              path: ['locations', li, 'schedules', si, 'classEndDate'],
-            })
           }
         })
       })
@@ -605,65 +597,18 @@ export const fullFormSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.modalidade === 'LIVRE_FORMACAO_ONLINE') return
-    // Enrollment period is now per-turma: class start must be on/after the
-    // turma's own enrollment opening, and the turma's enrollment end must be
-    // on/after its opening.
-    const msgClass =
-      'A data de início das aulas deve ser igual ou posterior ao início das inscrições.'
-    const msgEnrollment =
-      'O fim das inscrições deve ser igual ou posterior ao início das inscrições.'
+    // O período de inscrições é de cada turma, e as quatro datas seguem a
+    // ordem estrita Início inscrições < Fim inscrições < Início aulas < Fim
+    // aulas (o calendário já bloqueia; aqui é a trava do salvamento).
     if (data.modalidade === 'ONLINE') {
       data.remote_class.forEach((schedule, i) => {
-        if (
-          schedule.enrollmentStartDate &&
-          schedule.enrollmentEndDate &&
-          schedule.enrollmentEndDate < schedule.enrollmentStartDate
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: msgEnrollment,
-            path: ['remote_class', i, 'enrollmentEndDate'],
-          })
-        }
-        if (
-          schedule.classStartDate &&
-          schedule.enrollmentStartDate &&
-          schedule.classStartDate < schedule.enrollmentStartDate
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: msgClass,
-            path: ['remote_class', i, 'classStartDate'],
-          })
-        }
-        refineTurmaEnrollmentEnd(ctx, schedule, ['remote_class', i])
+        refineTurmaDateOrder(ctx, schedule, ['remote_class', i])
       })
     } else {
       // PRESENCIAL
       data.locations.forEach((location, li) => {
         location.schedules.forEach((schedule, si) => {
-          if (
-            schedule.enrollmentStartDate &&
-            schedule.enrollmentEndDate &&
-            schedule.enrollmentEndDate < schedule.enrollmentStartDate
-          ) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: msgEnrollment,
-              path: ['locations', li, 'schedules', si, 'enrollmentEndDate'],
-            })
-          }
-          if (
-            schedule.enrollmentStartDate &&
-            schedule.classStartDate < schedule.enrollmentStartDate
-          ) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: msgClass,
-              path: ['locations', li, 'schedules', si, 'classStartDate'],
-            })
-          }
-          refineTurmaEnrollmentEnd(ctx, schedule, [
+          refineTurmaDateOrder(ctx, schedule, [
             'locations',
             li,
             'schedules',
@@ -773,8 +718,8 @@ export const draftFormSchema = z
                 vacancies: z.number().optional(),
                 enrollmentStartDate: z.date().optional().nullable(),
                 enrollmentEndDate: z.date().optional().nullable(),
-                classStartDate: z.date().optional(),
-                classEndDate: z.date().optional(),
+                classStartDate: z.date().optional().nullable(),
+                classEndDate: z.date().optional().nullable(),
                 classTime: z.string().optional(),
                 classDays: z.string().optional(),
               })
@@ -799,66 +744,28 @@ export const draftFormSchema = z
       .optional(),
   })
   .superRefine((data, ctx) => {
-    const msgStart =
-      'A data de início das aulas deve ser igual ou posterior ao início das inscrições.'
-    const msgEnd =
-      'A data final das aulas deve ser igual ou posterior à data inicial.'
-    const msgEnrollment =
-      'O fim das inscrições deve ser igual ou posterior ao início das inscrições.'
     const validateTurma = (
-      schedule: {
-        enrollmentStartDate?: Date | null
-        enrollmentEndDate?: Date | null
-        classStartDate?: Date | null
-        classEndDate?: Date | null
-      },
-      path: (string | number)[]
+      schedule: TurmaDates,
+      path: (string | number)[],
+      classDates: 'required' | 'pair'
     ) => {
-      if (
-        schedule.enrollmentStartDate &&
-        schedule.enrollmentEndDate &&
-        schedule.enrollmentEndDate < schedule.enrollmentStartDate
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: msgEnrollment,
-          path: [...path, 'enrollmentEndDate'],
-        })
-      }
-      if (
-        schedule.classStartDate &&
-        schedule.enrollmentStartDate &&
-        schedule.classStartDate < schedule.enrollmentStartDate
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: msgStart,
-          path: [...path, 'classStartDate'],
-        })
-      }
-      if (
-        schedule.classStartDate &&
-        schedule.classEndDate &&
-        schedule.classEndDate < schedule.classStartDate
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: msgEnd,
-          path: [...path, 'classEndDate'],
-        })
-      }
-      refineTurmaEnrollmentEnd(ctx, schedule, path)
+      refineTurmaDatesPresent(ctx, schedule, path, classDates)
+      refineTurmaDateOrder(ctx, schedule, path)
     }
     if (data.locations) {
       data.locations.forEach((location, li) => {
         ;(location.schedules ?? []).forEach((schedule, si) => {
-          validateTurma(schedule, ['locations', li, 'schedules', si])
+          validateTurma(
+            schedule,
+            ['locations', li, 'schedules', si],
+            'required'
+          )
         })
       })
     }
     if (data.remote_class) {
       data.remote_class.forEach((schedule, i) => {
-        validateTurma(schedule, ['remote_class', i])
+        validateTurma(schedule, ['remote_class', i], 'pair')
       })
     }
   })
@@ -1291,12 +1198,12 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                       (data.enrollment_end_date
                         ? new Date(data.enrollment_end_date)
                         : new Date()),
-                  classStartDate: schedule.class_start_date
-                    ? new Date(schedule.class_start_date)
-                    : schedule.classStartDate || new Date(),
-                  classEndDate: schedule.class_end_date
-                    ? new Date(schedule.class_end_date)
-                    : schedule.classEndDate || new Date(),
+                  classStartDate:
+                    parseTurmaApiDate(schedule.class_start_date) ??
+                    (schedule.classStartDate || new Date()),
+                  classEndDate:
+                    parseTurmaApiDate(schedule.class_end_date) ??
+                    (schedule.classEndDate || new Date()),
                   classTime: schedule.class_time || schedule.classTime || '',
                   classDays: schedule.class_days || schedule.classDays || '',
                 })),
@@ -1362,12 +1269,8 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                     (data.enrollment_end_date
                       ? new Date(data.enrollment_end_date)
                       : new Date()),
-                classStartDate: schedule.class_start_date
-                  ? new Date(schedule.class_start_date)
-                  : null,
-                classEndDate: schedule.class_end_date
-                  ? new Date(schedule.class_end_date)
-                  : null,
+                classStartDate: parseTurmaApiDate(schedule.class_start_date),
+                classEndDate: parseTurmaApiDate(schedule.class_end_date),
                 classTime: schedule.class_time || null,
                 classDays: schedule.class_days || null,
               }))
@@ -1447,6 +1350,24 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
     const watchedAccessibility = form.watch('accessibility')
     const watchedLocations = form.watch('locations')
     const watchedRemoteClass = form.watch('remote_class')
+
+    // Depois que uma data da turma muda, limpa as posteriores que ficaram
+    // iguais ou anteriores a ela: o usuário as escolhe de novo no calendário,
+    // que já bloqueia o que não vale (sem mensagem de erro).
+    const clearTurmaDatesAfter = (
+      turmaPath:
+        | `remote_class.${number}`
+        | `locations.${number}.schedules.${number}`,
+      field: TurmaDateField
+    ) => {
+      const turma: TurmaDates | undefined = form.getValues(turmaPath)
+      if (!turma) return
+      for (const later of turmaDatesToClear(turma, field)) {
+        const path = `${turmaPath}.${later}` as const
+        form.setValue(path, CLEARED_TURMA_DATE, { shouldDirty: true })
+        form.clearErrors(path)
+      }
+    }
 
     // Course-level enrollment period, derived from the turmas (earliest
     // opening → latest closing). Null for LIVRE_FORMACAO_ONLINE, which has no
@@ -3072,19 +2993,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                       <DateTimePicker
                                         value={field.value || undefined}
                                         onChange={date => {
-                                          field.onChange(date)
-                                          if (date) {
-                                            const endDate = form.getValues(
-                                              `remote_class.${index}.enrollmentEndDate`
-                                            )
-                                            if (endDate && endDate < date) {
-                                              form.setValue(
-                                                `remote_class.${index}.enrollmentEndDate`,
-                                                date,
-                                                { shouldValidate: true }
-                                              )
-                                            }
-                                          }
+                                          field.onChange(
+                                            date ?? CLEARED_TURMA_DATE
+                                          )
+                                          clearTurmaDatesAfter(
+                                            `remote_class.${index}`,
+                                            'enrollmentStartDate'
+                                          )
                                         }}
                                         placeholder="Selecionar data e hora de início"
                                         disabled={isReadOnly}
@@ -3103,14 +3018,22 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                     <FormControl>
                                       <DateTimePicker
                                         value={field.value || undefined}
-                                        onChange={field.onChange}
+                                        onChange={date => {
+                                          field.onChange(
+                                            date ?? CLEARED_TURMA_DATE
+                                          )
+                                          clearTurmaDatesAfter(
+                                            `remote_class.${index}`,
+                                            'enrollmentEndDate'
+                                          )
+                                        }}
                                         placeholder="Selecionar data e hora de fim"
                                         disabled={isReadOnly}
-                                        minDate={
-                                          form.watch(
-                                            `remote_class.${index}.enrollmentStartDate`
-                                          ) || undefined
-                                        }
+                                        after={turmaDateMin(
+                                          form.watch(`remote_class.${index}`) ??
+                                            {},
+                                          'enrollmentEndDate'
+                                        )}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -3130,27 +3053,21 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                       <DateTimePicker
                                         value={field.value || undefined}
                                         onChange={date => {
-                                          field.onChange(date)
-                                          if (date) {
-                                            const endDate = form.getValues(
-                                              `remote_class.${index}.classEndDate`
-                                            )
-                                            if (endDate && endDate < date) {
-                                              form.setValue(
-                                                `remote_class.${index}.classEndDate`,
-                                                date,
-                                                { shouldValidate: true }
-                                              )
-                                            }
-                                          }
+                                          field.onChange(
+                                            date ?? CLEARED_TURMA_DATE
+                                          )
+                                          clearTurmaDatesAfter(
+                                            `remote_class.${index}`,
+                                            'classStartDate'
+                                          )
                                         }}
                                         placeholder="Selecionar data e hora de início"
                                         disabled={isReadOnly}
-                                        minDate={
-                                          form.watch(
-                                            `remote_class.${index}.enrollmentStartDate`
-                                          ) || undefined
-                                        }
+                                        after={turmaDateMin(
+                                          form.watch(`remote_class.${index}`) ??
+                                            {},
+                                          'classStartDate'
+                                        )}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -3166,14 +3083,18 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                     <FormControl>
                                       <DateTimePicker
                                         value={field.value || undefined}
-                                        onChange={field.onChange}
+                                        onChange={date =>
+                                          field.onChange(
+                                            date ?? CLEARED_TURMA_DATE
+                                          )
+                                        }
                                         placeholder="Selecionar data e hora de fim"
                                         disabled={isReadOnly}
-                                        minDate={
-                                          form.watch(
-                                            `remote_class.${index}.classStartDate`
-                                          ) || undefined
-                                        }
+                                        after={turmaDateMin(
+                                          form.watch(`remote_class.${index}`) ??
+                                            {},
+                                          'classEndDate'
+                                        )}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -3479,23 +3400,13 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                               <DateTimePicker
                                                 value={field.value || undefined}
                                                 onChange={date => {
-                                                  field.onChange(date)
-                                                  if (date) {
-                                                    const endDate =
-                                                      form.getValues(
-                                                        `locations.${index}.schedules.${scheduleIndex}.enrollmentEndDate`
-                                                      )
-                                                    if (
-                                                      endDate &&
-                                                      endDate < date
-                                                    ) {
-                                                      form.setValue(
-                                                        `locations.${index}.schedules.${scheduleIndex}.enrollmentEndDate`,
-                                                        date,
-                                                        { shouldValidate: true }
-                                                      )
-                                                    }
-                                                  }
+                                                  field.onChange(
+                                                    date ?? CLEARED_TURMA_DATE
+                                                  )
+                                                  clearTurmaDatesAfter(
+                                                    `locations.${index}.schedules.${scheduleIndex}`,
+                                                    'enrollmentStartDate'
+                                                  )
                                                 }}
                                                 placeholder="Selecionar data e hora de início"
                                                 disabled={isReadOnly}
@@ -3516,14 +3427,23 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                             <FormControl>
                                               <DateTimePicker
                                                 value={field.value || undefined}
-                                                onChange={field.onChange}
+                                                onChange={date => {
+                                                  field.onChange(
+                                                    date ?? CLEARED_TURMA_DATE
+                                                  )
+                                                  clearTurmaDatesAfter(
+                                                    `locations.${index}.schedules.${scheduleIndex}`,
+                                                    'enrollmentEndDate'
+                                                  )
+                                                }}
                                                 placeholder="Selecionar data e hora de fim"
                                                 disabled={isReadOnly}
-                                                minDate={
+                                                after={turmaDateMin(
                                                   form.watch(
-                                                    `locations.${index}.schedules.${scheduleIndex}.enrollmentStartDate`
-                                                  ) || undefined
-                                                }
+                                                    `locations.${index}.schedules.${scheduleIndex}`
+                                                  ) ?? {},
+                                                  'enrollmentEndDate'
+                                                )}
                                               />
                                             </FormControl>
                                             <FormMessage />
@@ -3545,31 +3465,22 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                               <DateTimePicker
                                                 value={field.value}
                                                 onChange={date => {
-                                                  field.onChange(date)
-                                                  if (date) {
-                                                    const endDate =
-                                                      form.getValues(
-                                                        `locations.${index}.schedules.${scheduleIndex}.classEndDate`
-                                                      )
-                                                    if (
-                                                      endDate &&
-                                                      endDate < date
-                                                    ) {
-                                                      form.setValue(
-                                                        `locations.${index}.schedules.${scheduleIndex}.classEndDate`,
-                                                        date,
-                                                        { shouldValidate: true }
-                                                      )
-                                                    }
-                                                  }
+                                                  field.onChange(
+                                                    date ?? CLEARED_TURMA_DATE
+                                                  )
+                                                  clearTurmaDatesAfter(
+                                                    `locations.${index}.schedules.${scheduleIndex}`,
+                                                    'classStartDate'
+                                                  )
                                                 }}
                                                 placeholder="Selecionar data e hora de início"
                                                 disabled={isReadOnly}
-                                                minDate={
+                                                after={turmaDateMin(
                                                   form.watch(
-                                                    `locations.${index}.schedules.${scheduleIndex}.enrollmentStartDate`
-                                                  ) || undefined
-                                                }
+                                                    `locations.${index}.schedules.${scheduleIndex}`
+                                                  ) ?? {},
+                                                  'classStartDate'
+                                                )}
                                               />
                                             </FormControl>
                                             <FormMessage />
@@ -3587,14 +3498,19 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                             <FormControl>
                                               <DateTimePicker
                                                 value={field.value}
-                                                onChange={field.onChange}
+                                                onChange={date =>
+                                                  field.onChange(
+                                                    date ?? CLEARED_TURMA_DATE
+                                                  )
+                                                }
                                                 placeholder="Selecionar data e hora de fim"
                                                 disabled={isReadOnly}
-                                                minDate={
+                                                after={turmaDateMin(
                                                   form.watch(
-                                                    `locations.${index}.schedules.${scheduleIndex}.classStartDate`
-                                                  ) || undefined
-                                                }
+                                                    `locations.${index}.schedules.${scheduleIndex}`
+                                                  ) ?? {},
+                                                  'classEndDate'
+                                                )}
                                               />
                                             </FormControl>
                                             <FormMessage />
