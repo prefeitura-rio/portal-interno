@@ -45,6 +45,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { refineMEIOpportunityDeadlines } from '@/lib/mei-opportunity-dates'
 import { isMEIImageURL } from '@/lib/mei-opportunity-images'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
+import { requiredError } from '@/lib/zod-errors'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -86,7 +87,7 @@ const fullFormFields = z.object({
     .string()
     .min(1, { message: 'Prazo de pagamento é obrigatório.' }),
   opportunity_expiration_date: z.date({
-    required_error: 'Prazo para expiração da oportunidade é obrigatório.',
+    error: requiredError('Prazo para expiração da oportunidade é obrigatório.'),
   }),
   service_execution_deadline: z.date().optional(),
   gallery_images: z
@@ -495,7 +496,7 @@ export const NewMEIOpportunityForm = forwardRef<
         }
       } catch (error) {
         if (error instanceof z.ZodError) {
-          console.error('Validation errors:', error.errors)
+          console.error('Validation errors:', error.issues)
           toast.error('Erro de validação', {
             description: 'Por favor, verifique os campos destacados.',
           })
@@ -543,7 +544,7 @@ export const NewMEIOpportunityForm = forwardRef<
         }
       } catch (error) {
         if (error instanceof z.ZodError) {
-          console.error('Validation errors:', error.errors)
+          console.error('Validation errors:', error.issues)
           const deadlineIssue = error.issues.find(
             issue => issue.path[0] === 'service_execution_deadline'
           )
@@ -607,7 +608,7 @@ export const NewMEIOpportunityForm = forwardRef<
         }
       } catch (error) {
         if (error instanceof z.ZodError) {
-          console.error('Validation errors:', error.errors)
+          console.error('Validation errors:', error.issues)
           toast.error('Erro de validação', {
             description:
               'Por favor, verifique os campos destacados antes de publicar.',
