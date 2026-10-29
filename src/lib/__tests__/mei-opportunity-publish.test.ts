@@ -84,6 +84,25 @@ describe('getMEIOpportunityPublishPendingFields', () => {
     )
   })
 
+  test('rascunho sem data limite de execução impede a publicação (obrigatória desde DEV-89)', () => {
+    assert.deepEqual(
+      getMEIOpportunityPublishPendingFields({
+        ...completeDraft,
+        service_execution_deadline: undefined,
+      }),
+      ['Data limite para execução do serviço']
+    )
+    assert.deepEqual(
+      getMEIOpportunityPublishPendingFields(
+        toMEIOpportunityFormValues({
+          ...completeDraft,
+          service_execution_deadline: null,
+        })
+      ),
+      ['Data limite para execução do serviço']
+    )
+  })
+
   test('rascunho sem prazo de expiração impede a publicação', () => {
     assert.deepEqual(
       getMEIOpportunityPublishPendingFields({
