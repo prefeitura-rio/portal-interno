@@ -1,3 +1,4 @@
+import type { UploadFolder } from '@/lib/upload-folders'
 import {
   COURSES_ROLES,
   CURRICULOS_ROLES,
@@ -298,7 +299,8 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   '/api/empregabilidade/regimes-contratacao': BACKOFFICE_API,
   '/api/empregabilidade/tipos-pcd': BACKOFFICE_API,
 
-  // Upload de imagens (cursos, empresas e oportunidades MEI)
+  // Upload de imagens (cursos, empresas e oportunidades MEI). O handler
+  // confere a pasta pedida com UPLOAD_FOLDER_ROLES.
   '/api/upload/signed-url': {
     kind: 'roles',
     anyOfEach: [[...COURSES_ROLES, ...EMPREGO_TRABALHO_ROLES]],
@@ -413,6 +415,37 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   '/api/heimdall/readyz': ADMIN_API,
   '/api/heimdall/usuarios': ADMIN_API,
   '/api/heimdall/usuarios/[cpf]': ADMIN_API,
+}
+
+/**
+ * Papéis exigidos por pasta de `/api/upload/signed-url`: os mesmos da página
+ * que envia imagens para ela. A regra da rota em `API_ROUTE_PERMISSIONS` só
+ * deixa entrar quem tem papel de algum desses módulos; o handler confere a
+ * `folder` do corpo com esta tabela.
+ */
+export const UPLOAD_FOLDER_ROLES: Record<UploadFolder, readonly string[]> = {
+  // /gorio/courses
+  courses: COURSES_ROLES,
+  // /gorio/empregabilidade/empresas e /gorio/empregabilidade/new/empresa
+  empresas: EMPREGO_TRABALHO_ROLES,
+  // /gorio/oportunidades-mei
+  mei: MEI_ROLES,
+}
+
+/**
+ * Confere se os papéis do usuário (do Heimdall) cobrem a pasta de upload.
+ * Sem papéis (Heimdall indisponível ou usuário sem papel), nega.
+ */
+export function hasUploadFolderAccess(
+  folder: UploadFolder,
+  userRoles: readonly string[] | null | undefined
+): boolean {
+  if (!userRoles || userRoles.length === 0) {
+    return false
+  }
+
+  const allowedRoles = UPLOAD_FOLDER_ROLES[folder]
+  return userRoles.some(role => allowedRoles.includes(role))
 }
 
 function splitPath(path: string): string[] {
