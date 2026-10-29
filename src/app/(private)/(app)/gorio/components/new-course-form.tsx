@@ -3498,7 +3498,11 @@ export const NewCourseForm = forwardRef<NewCourseFormRef, NewCourseFormProps>(
                                             <FormControl>
                                               <DateTimePicker
                                                 value={field.value}
-                                                onChange={field.onChange}
+                                                onChange={date =>
+                                                  field.onChange(
+                                                    date ?? CLEARED_TURMA_DATE
+                                                  )
+                                                }
                                                 placeholder="Selecionar data e hora de fim"
                                                 disabled={isReadOnly}
                                                 after={turmaDateMin(
