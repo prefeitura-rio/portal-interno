@@ -15,7 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { useCnaesBySubclasse } from '@/hooks/use-cnaes'
+import { findMeiCnae, searchMeiCnaes } from '@/lib/mei-cnaes'
 import { cn } from '@/lib/utils'
 import { CheckIcon, ChevronsUpDownIcon, XIcon } from 'lucide-react'
 import * as React from 'react'
@@ -41,8 +41,8 @@ export function CnaeSubclasseSelect({
   value = [],
   onValueChange,
   placeholder = 'Buscar por subclasse CNAE...',
-  searchPlaceholder = 'Digite a subclasse (ex: 4724-5/00)',
-  emptyMessage = 'Nenhum CNAE encontrado.',
+  searchPlaceholder = 'Digite o código ou o nome da atividade',
+  emptyMessage = 'Nenhum CNAE permitido ao MEI encontrado.',
   className,
   disabled = false,
   maxDisplay = 3,
@@ -50,21 +50,15 @@ export function CnaeSubclasseSelect({
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState('')
 
-  const { cnaes, isLoading } = useCnaesBySubclasse(
-    search,
-    open && search.trim().length > 0
-  )
+  // Só as subclasses do Anexo XI da Resolução CGSN nº 140/2018 (lista local)
+  const results = React.useMemo(() => searchMeiCnaes(search), [search])
 
-  const handleSelect = (selectedSubclasse: string, denominacao: string) => {
-    // Check if already selected
-    if (value.includes(selectedSubclasse)) {
+  const handleToggle = (subclasse: string) => {
+    if (value.includes(subclasse)) {
+      onValueChange?.(value.filter(v => v !== subclasse))
       return
     }
-
-    const newValue = [...value, selectedSubclasse]
-    onValueChange?.(newValue)
-    setSearch('')
-    setOpen(false)
+    onValueChange?.([...value, subclasse])
   }
 
   const handleRemove = (
@@ -76,22 +70,20 @@ export function CnaeSubclasseSelect({
     onValueChange?.(value.filter(v => v !== valueToRemove))
   }
 
-  // Map of selected subclasses to their denominacoes
-  // We need to track this separately since we only store subclasse strings
-  const [selectedDenominacoes, setSelectedDenominacoes] = React.useState<
+  // Descrição das subclasses salvas que não estão no Anexo XI (oportunidades
+  // antigas): busca no RMI só para exibir; elas não aparecem para seleção
+  const [legacyDenominacoes, setLegacyDenominacoes] = React.useState<
     Record<string, string>
   >({})
 
-  // Fetch denominacoes for existing selected subclasses on mount and when value changes
   React.useEffect(() => {
+    const missingSubclasses = value.filter(
+      subclasse => !findMeiCnae(subclasse) && !legacyDenominacoes[subclasse]
+    )
+
+    if (missingSubclasses.length === 0) return
+
     const fetchDenominacoes = async () => {
-      const missingSubclasses = value.filter(
-        subclasse => !selectedDenominacoes[subclasse]
-      )
-
-      if (missingSubclasses.length === 0) return
-
-      // Fetch each missing subclass using the API route
       const fetchPromises = missingSubclasses.map(async subclasse => {
         try {
           const params = new URLSearchParams({
@@ -120,10 +112,10 @@ export function CnaeSubclasseSelect({
         }
       })
 
-      const results = await Promise.all(fetchPromises)
-      setSelectedDenominacoes(prev => {
+      const fetched = await Promise.all(fetchPromises)
+      setLegacyDenominacoes(prev => {
         const updated = { ...prev }
-        results.forEach(({ subclasse, denominacao }) => {
+        fetched.forEach(({ subclasse, denominacao }) => {
           updated[subclasse] = denominacao
         })
         return updated
@@ -131,21 +123,12 @@ export function CnaeSubclasseSelect({
     }
 
     fetchDenominacoes()
-  }, [value, selectedDenominacoes])
+  }, [value, legacyDenominacoes])
 
-  // Update denominacoes when CNAEs are found from search
-  React.useEffect(() => {
-    cnaes.forEach(cnae => {
-      if (cnae.subclasse && value.includes(cnae.subclasse)) {
-        setSelectedDenominacoes(prev => ({
-          ...prev,
-          [cnae.subclasse!]: (cnae.denominacao ||
-            cnae.subclasse ||
-            '') as string,
-        }))
-      }
-    })
-  }, [cnaes, value])
+  const getDenominacao = (subclasse: string) =>
+    findMeiCnae(subclasse)?.denominacao ||
+    legacyDenominacoes[subclasse] ||
+    subclasse
 
   const displayText = () => {
     if (value.length === 0) {
@@ -164,7 +147,7 @@ export function CnaeSubclasseSelect({
             className="mr-1 max-w-full inline-flex items-center gap-1"
           >
             <span className="truncate max-w-[200px]">
-              {selectedDenominacoes[subclasse] || subclasse}
+              {getDenominacao(subclasse)}
             </span>
             <span
               role="button"
@@ -222,37 +205,20 @@ export function CnaeSubclasseSelect({
             onValueChange={setSearch}
           />
           <CommandList>
-            <CommandEmpty>
-              {isLoading
-                ? 'Buscando...'
-                : search.trim().length === 0
-                  ? 'Digite uma subclasse CNAE para buscar'
-                  : emptyMessage}
-            </CommandEmpty>
+            <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
-              {cnaes.map(cnae => {
-                if (!cnae.subclasse) return null
-
+              {results.map(({ cnae, ocupacoesEncontradas }) => {
                 const isSelected = value.includes(cnae.subclasse)
                 return (
                   <CommandItem
-                    key={cnae.id || cnae.subclasse}
+                    key={cnae.subclasse}
                     value={cnae.subclasse}
-                    onSelect={() => {
-                      if (!isSelected && cnae.denominacao) {
-                        handleSelect(cnae.subclasse!, cnae.denominacao)
-                        setSelectedDenominacoes(prev => ({
-                          ...prev,
-                          [cnae.subclasse!]: cnae.denominacao as string,
-                        }))
-                      }
-                    }}
+                    onSelect={() => handleToggle(cnae.subclasse)}
                     className="flex items-center gap-2"
-                    disabled={isSelected}
                   >
                     <div
                       className={cn(
-                        'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                        'mr-2 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-primary',
                         isSelected
                           ? 'bg-primary text-primary-foreground'
                           : 'opacity-50 [&_svg]:invisible'
@@ -261,12 +227,13 @@ export function CnaeSubclasseSelect({
                       <CheckIcon className="h-4 w-4" />
                     </div>
                     <div className="flex flex-col flex-1 min-w-0">
-                      <span className="font-medium ">
-                        {cnae.denominacao || cnae.subclasse}
+                      <span className="font-medium">{cnae.denominacao}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {cnae.subclasse}
                       </span>
-                      {cnae.subclasse && (
+                      {ocupacoesEncontradas.length > 0 && (
                         <span className="text-xs text-muted-foreground">
-                          {cnae.subclasse}
+                          Ocupação: {ocupacoesEncontradas.join('; ')}
                         </span>
                       )}
                     </div>
