@@ -1,3 +1,7 @@
+import {
+  TOMBAMENTOS_PAGE_SIZE,
+  listAllTombamentos,
+} from '@/lib/tombamento-duplicates'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -21,12 +25,16 @@ export interface TombamentoRequest {
 export interface TombamentosResponse {
   data: {
     tombamentos: Tombamento[]
-    total: number
-    page: number
-    per_page: number
+    found?: number
+    out_of?: number
+    page?: number
   }
   success: boolean
 }
+
+export type CreateTombamentoResult =
+  | { ok: true; tombamento: Tombamento }
+  | { ok: false; status: number | null; error: string }
 
 export interface TombamentoByOldServiceResponse {
   tombamento: Tombamento
@@ -118,8 +126,41 @@ export function useTombamentos() {
     []
   )
 
+  const fetchAllTombamentos = useCallback(async (): Promise<
+    Tombamento[] | null
+  > => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      return await listAllTombamentos<Tombamento>(async (page, perPage) => {
+        const searchParams = new URLSearchParams({
+          page: page.toString(),
+          per_page: perPage.toString(),
+        })
+        const response = await fetch(`/api/tombamentos?${searchParams}`)
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch tombamentos')
+        }
+
+        return (data as TombamentosResponse).data ?? {}
+      }, TOMBAMENTOS_PAGE_SIZE)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
+      console.error('Error fetching all tombamentos:', err)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const createTombamento = useCallback(
-    async (tombamentoData: TombamentoRequest): Promise<Tombamento | null> => {
+    async (
+      tombamentoData: TombamentoRequest
+    ): Promise<CreateTombamentoResult> => {
       try {
         setLoading(true)
         setError(null)
@@ -135,16 +176,22 @@ export function useTombamentos() {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to create tombamento')
+          const errorMessage =
+            typeof data?.error === 'string' && data.error
+              ? data.error
+              : 'Failed to create tombamento'
+          setError(errorMessage)
+          console.error('Error creating tombamento:', errorMessage)
+          return { ok: false, status: response.status, error: errorMessage }
         }
 
-        return data.tombamento
+        return { ok: true, tombamento: data.tombamento }
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Unknown error'
         setError(errorMessage)
         console.error('Error creating tombamento:', err)
-        return null
+        return { ok: false, status: null, error: errorMessage }
       } finally {
         setLoading(false)
       }
@@ -158,15 +205,7 @@ export function useTombamentos() {
         setLoading(true)
         setError(null)
 
-        const response = await fetch(`/api/tombamentos/${tombamentoId}`, {
-          method: 'DELETE',
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to delete tombamento')
-        }
+        await requestTombamentoDeletion(tombamentoId)
 
         toast.success('Tombamento removido com sucesso!')
         return true
@@ -184,12 +223,72 @@ export function useTombamentos() {
     []
   )
 
+  /**
+   * Remove todos os tombamentos de um serviço (DEV-147: serviço com registros
+   * duplicados, criados antes da checagem do BFF). Devolve os ids removidos;
+   * os que falharem continuam no backend e aparecem na próxima leitura.
+   */
+  const deleteTombamentos = useCallback(
+    async (tombamentoIds: readonly string[]): Promise<string[]> => {
+      setLoading(true)
+      setError(null)
+
+      const removed: string[] = []
+      let lastError: string | null = null
+      try {
+        for (const tombamentoId of tombamentoIds) {
+          try {
+            await requestTombamentoDeletion(tombamentoId)
+            removed.push(tombamentoId)
+          } catch (err) {
+            lastError = err instanceof Error ? err.message : 'Unknown error'
+            console.error('Error deleting tombamento:', err)
+          }
+        }
+      } finally {
+        setLoading(false)
+      }
+
+      if (lastError) {
+        setError(lastError)
+        toast.error(
+          removed.length > 0
+            ? `${removed.length} de ${tombamentoIds.length} tombamentos removidos. Tente novamente para remover os restantes.`
+            : 'Erro ao remover tombamento. Tente novamente.'
+        )
+      } else if (removed.length > 0) {
+        toast.success(
+          removed.length > 1
+            ? `${removed.length} tombamentos removidos com sucesso!`
+            : 'Tombamento removido com sucesso!'
+        )
+      }
+
+      return removed
+    },
+    []
+  )
+
   return {
     loading,
     error,
     fetchTombamentos,
+    fetchAllTombamentos,
     fetchTombamentoByOldService,
     createTombamento,
     deleteTombamento,
+    deleteTombamentos,
+  }
+}
+
+async function requestTombamentoDeletion(tombamentoId: string): Promise<void> {
+  const response = await fetch(
+    `/api/tombamentos/${encodeURIComponent(tombamentoId)}`,
+    { method: 'DELETE' }
+  )
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to delete tombamento')
   }
 }
