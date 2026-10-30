@@ -3,6 +3,7 @@ import {
   getApiV1CoursesCourseId,
   putApiV1CoursesCourseId,
 } from '@/http-gorio/courses/courses'
+import { courseApiErrorMessage } from '@/lib/course-api-error-message'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
@@ -125,9 +126,15 @@ export async function DELETE(
       })
     }
 
-    // Handle error responses
+    // Repassa a mensagem da API de cursos para o toast mostrar a causa (DEV-94)
     return NextResponse.json(
-      { error: 'Failed to delete course from external API' },
+      {
+        error: courseApiErrorMessage(
+          'Failed to delete course from external API',
+          response.status,
+          response.data
+        ),
+      },
       { status: response.status }
     )
   } catch (error) {
