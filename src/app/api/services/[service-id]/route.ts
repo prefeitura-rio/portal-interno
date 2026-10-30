@@ -7,6 +7,7 @@ import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import { getCurrentUserRoles } from '@/lib/heimdall-user'
 import {
   SERVICE_CURATION_DENIAL_MESSAGES,
+  findServiceById,
   getServiceDeleteDenial,
   getServiceUpdateDenial,
   isServiceCurator,
@@ -113,7 +114,10 @@ export async function PUT(
           { status: currentResponse.status }
         )
       }
-      const currentService = currentResponse.data.services?.[0]
+      const currentService = findServiceById(
+        currentResponse.data.services,
+        serviceId
+      )
       if (!currentService) {
         return NextResponse.json(
           { error: 'Service not found' },

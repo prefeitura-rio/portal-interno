@@ -6,6 +6,7 @@ import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import { getCurrentUserRoles } from '@/lib/heimdall-user'
 import {
   SERVICE_CURATION_DENIAL_MESSAGES,
+  findServiceById,
   getServiceSendToApprovalDenial,
 } from '@/lib/service-curation-guard'
 import { convertApiToFrontend } from '@/types/service'
@@ -42,14 +43,11 @@ export async function PATCH(
       )
     }
 
-    const servicesData = getResponse.data
-    const services = servicesData.services || []
+    const currentService = findServiceById(getResponse.data.services, serviceId)
 
-    if (services.length === 0) {
+    if (!currentService) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 })
     }
-
-    const currentService = services[0]
 
     const denial = getServiceSendToApprovalDenial(
       await getCurrentUserRoles(),

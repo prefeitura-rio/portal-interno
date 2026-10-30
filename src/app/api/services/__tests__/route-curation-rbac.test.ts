@@ -124,6 +124,10 @@ const CURATORS = [
   ['busca:services:editor', 'busca:services:admin'],
 ]
 
+// A busca stub sempre devolve `servico-sintetico`, como a API de busca faria
+// com o filtro `id:=servico-publicado? || status:=0`
+const FORGED_ID = 'servico-publicado? || status:=0'
+
 const IN_EDITION: ServiceStub = { status: 0, awaiting_approval: false }
 const AWAITING_APPROVAL: ServiceStub = { status: 0, awaiting_approval: true }
 const PUBLISHED: ServiceStub = { status: 1, awaiting_approval: false }
@@ -140,7 +144,8 @@ function serviceBody(fields: Record<string, unknown>): Record<string, unknown> {
 async function update(
   roles: string[] | undefined,
   current: ServiceStub | null,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  serviceId = 'servico-sintetico'
 ): Promise<{ status: number; data: Record<string, unknown> }> {
   testGlobals.__dev125Roles = roles
   testGlobals.__dev125Current = current
@@ -153,7 +158,7 @@ async function update(
     }
   )
   const response = await PUT(request, {
-    params: Promise.resolve({ 'service-id': 'servico-sintetico' }),
+    params: Promise.resolve({ 'service-id': serviceId }),
   })
   return { status: response.status, data: await response.json() }
 }
@@ -172,13 +177,10 @@ async function create(
   return { status: response.status, data: await response.json() }
 }
 
-const SERVICE_PARAMS = {
-  params: Promise.resolve({ 'service-id': 'servico-sintetico' }),
-}
-
 async function sendToApproval(
   roles: string[] | undefined,
-  current: ServiceStub | null
+  current: ServiceStub | null,
+  serviceId = 'servico-sintetico'
 ): Promise<{ status: number; data: Record<string, unknown> }> {
   testGlobals.__dev125Roles = roles
   testGlobals.__dev125Current = current
@@ -186,7 +188,9 @@ async function sendToApproval(
     'https://admin.test/api/services/servico-sintetico/send-to-approval',
     { method: 'PATCH' }
   )
-  const response = await SEND_TO_APPROVAL(request, SERVICE_PARAMS)
+  const response = await SEND_TO_APPROVAL(request, {
+    params: Promise.resolve({ 'service-id': serviceId }),
+  })
   return { status: response.status, data: await response.json() }
 }
 
@@ -199,7 +203,9 @@ async function remove(
     'https://admin.test/api/services/servico-sintetico',
     { method: 'DELETE' }
   )
-  const response = await DELETE(request, SERVICE_PARAMS)
+  const response = await DELETE(request, {
+    params: Promise.resolve({ 'service-id': 'servico-sintetico' }),
+  })
   return { status: response.status }
 }
 
@@ -262,6 +268,17 @@ describe('PUT /api/services/[id]: curadoria só para o admin (DEV-125)', () => {
       assert.equal(status, 200)
     }
     assert.equal(testGlobals.__dev125Writes?.length, 3)
+  })
+
+  test('id forjado que faz a busca devolver outro serviço: 404, sem gravar', async () => {
+    const { status } = await update(
+      EDITOR,
+      IN_EDITION,
+      serviceBody({ status: 0 }),
+      FORGED_ID
+    )
+    assert.equal(status, 404)
+    assert.deepEqual(testGlobals.__dev125Writes, [])
   })
 
   test('Editor recebe 404 para serviço inexistente, sem gravar', async () => {
@@ -340,6 +357,14 @@ describe('PATCH /api/services/[id]/send-to-approval: só de serviço em edição
       ]),
       [[0, true]]
     )
+  })
+
+  test('id forjado que faz a busca devolver outro serviço: 404, sem gravar', async () => {
+    for (const roles of [EDITOR, ['busca:services:admin']]) {
+      const { status } = await sendToApproval(roles, IN_EDITION, FORGED_ID)
+      assert.equal(status, 404)
+    }
+    assert.deepEqual(testGlobals.__dev125Writes, [])
   })
 
   test('serviço inexistente: 404', async () => {

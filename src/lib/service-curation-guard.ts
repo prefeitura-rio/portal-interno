@@ -29,6 +29,19 @@ export const SERVICE_CURATION_DENIAL_MESSAGES: Record<
   tombamento: 'Somente o administrador de Serviços pode tombar um serviço',
 }
 
+/**
+ * Acha o serviço com exatamente o id da URL no resultado da busca por id.
+ * A API de busca monta o filtro sem escape e a gravação usa o id cru no
+ * caminho, então um id forjado (`<id>? || status:=0`) faria a busca devolver
+ * outro serviço e a checagem olharia o serviço errado (DEV-125).
+ */
+export function findServiceById<T extends { id?: string }>(
+  services: readonly T[] | null | undefined,
+  serviceId: string
+): T | undefined {
+  return services?.find(service => service.id === serviceId)
+}
+
 /** Admin do módulo Serviços municipais (o mesmo `isBuscaServicesAdmin` da UI). */
 export function isServiceCurator(
   roles: readonly string[] | null | undefined
