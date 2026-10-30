@@ -427,9 +427,9 @@ describe('aprovar e publicar exigem o papel que a UI exige (DEV-125)', () => {
     ['/api/courses/publish-directly', 'POST'],
   ]
   const SERVICE_ADMIN_ROUTES: [string, string][] = [
-    ['/api/services/abc/publish', 'PUT'],
-    ['/api/services/abc/unpublish', 'PUT'],
-    ['/api/services/abc/send-to-edition', 'PUT'],
+    ['/api/services/abc/publish', 'PATCH'],
+    ['/api/services/abc/unpublish', 'PATCH'],
+    ['/api/services/abc/send-to-edition', 'PATCH'],
     ['/api/services/abc/rollback', 'POST'],
   ]
 
@@ -511,7 +511,7 @@ describe('aprovar e publicar exigem o papel que a UI exige (DEV-125)', () => {
       ['/api/services', 'GET'],
       ['/api/services', 'POST'],
       ['/api/services/abc', 'PUT'],
-      ['/api/services/abc/send-to-approval', 'PUT'],
+      ['/api/services/abc/send-to-approval', 'PATCH'],
       ['/api/services/abc/versions', 'GET'],
       ['/api/services/abc/versions/compare', 'GET'],
     ]) {

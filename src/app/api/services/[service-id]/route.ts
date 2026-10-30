@@ -4,6 +4,12 @@ import {
   putApiV1AdminServicesId,
 } from '@/http-busca-search/admin/admin'
 import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
+import { getCurrentUserRoles } from '@/lib/heimdall-user'
+import {
+  SERVICE_CURATION_DENIAL_MESSAGES,
+  getServiceUpdateDenial,
+  isServiceCurator,
+} from '@/lib/service-curation-guard'
 import { convertApiToFrontend } from '@/types/service'
 import { revalidateTag } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -91,6 +97,38 @@ export async function PUT(
         },
         { status: 400 }
       )
+    }
+
+    const roles = await getCurrentUserRoles()
+    if (!isServiceCurator(roles)) {
+      const currentResponse = await getApiV1AdminServices({
+        field: 'id',
+        value: serviceId,
+        per_page: 1,
+      })
+      if (currentResponse.status !== 200) {
+        return NextResponse.json(
+          { error: 'Failed to fetch service from API' },
+          { status: currentResponse.status }
+        )
+      }
+      const currentService = currentResponse.data.services?.[0]
+      if (!currentService) {
+        return NextResponse.json(
+          { error: 'Service not found' },
+          { status: 404 }
+        )
+      }
+      const denial = getServiceUpdateDenial(roles, body, currentService)
+      if (denial) {
+        console.warn(
+          `[SERVICES] Update denied (${denial}): missing busca:services:admin role`
+        )
+        return NextResponse.json(
+          { error: SERVICE_CURATION_DENIAL_MESSAGES[denial] },
+          { status: 403 }
+        )
+      }
     }
 
     const serviceRequest: ModelsPrefRioServiceRequest = body
