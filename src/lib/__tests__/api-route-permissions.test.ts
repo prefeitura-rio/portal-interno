@@ -46,6 +46,8 @@ const { resetHeimdallUserServerCache } = await import(
 )
 const { API_ROUTE_PERMISSIONS, findApiRoutePermission, hasApiRouteAccess } =
   await import('../route-permissions.ts')
+const { canApproveCourses, canPublishCourses, isBuscaServicesAdmin } =
+  await import('../../types/heimdall-roles.ts')
 
 // CPF sintético (dígitos verificadores válidos, sem titular real)
 const CPF = '52998224725'
@@ -247,7 +249,7 @@ describe('middleware: RBAC das rotas de API (DEV-43)', () => {
         ['go:cursos:casa_civil'],
       ],
       ['/api/enrollments/7', ['busca:services:editor'], ['go:cursos:editor']],
-      ['/api/services/abc/publish', ['go:admin'], ['busca:services:editor']],
+      ['/api/services/abc/publish', ['go:admin'], ['busca:services:admin']],
       ['/api/oportunidades-mei/3', ['go:empregabilidade:admin'], ['go:admin']],
     ]
     for (const [path, denied, allowed] of cases) {
@@ -411,6 +413,189 @@ describe('Dashboard de Capacitações: só Casa Civil e admins (DEV-100)', () =>
 
   test('a regra da rota literal vence a de /api/courses/[course-id]', () => {
     assert.equal(findApiRoutePermission(API)?.pattern, API)
+  })
+})
+
+// DEV-125: a UI só mostra Aprovar/Publicar (cursos) à Casa Civil e
+// Publicar/Despublicar/Enviar para edição/Reverter (serviços) ao admin do
+// módulo, mas as rotas aceitavam qualquer papel do módulo, inclusive o Editor.
+describe('aprovar e publicar exigem o papel que a UI exige (DEV-125)', () => {
+  const COURSE_CURATION_ROUTES: [string, string][] = [
+    ['/api/courses/7/approve', 'PUT'],
+    ['/api/courses/7/publish', 'PUT'],
+    ['/api/courses/7/publish-directly', 'PUT'],
+    ['/api/courses/publish-directly', 'POST'],
+  ]
+  const SERVICE_ADMIN_ROUTES: [string, string][] = [
+    ['/api/services/abc/publish', 'PATCH'],
+    ['/api/services/abc/unpublish', 'PATCH'],
+    ['/api/services/abc/send-to-edition', 'PATCH'],
+    ['/api/services/abc/rollback', 'POST'],
+    ['/api/tombamentos/xyz', 'DELETE'],
+  ]
+
+  test('cursos: Editor recebe 403 ao aprovar ou publicar', async () => {
+    const editor = userWith(['go:cursos:editor'])
+    for (const [path, method] of COURSE_CURATION_ROUTES) {
+      await assertDenied(await callApi(path, editor, method), 403)
+    }
+  })
+
+  test('cursos: Casa Civil, go:admin, admin e superadmin seguem para o handler', async () => {
+    for (const roles of [
+      ['go:cursos:casa_civil'],
+      ['go:admin'],
+      ['admin'],
+      ['superadmin'],
+      ['go:cursos:editor', 'go:cursos:casa_civil'],
+    ]) {
+      const token = userWith(roles)
+      for (const [path, method] of COURSE_CURATION_ROUTES) {
+        assert.equal(
+          passedThrough(await callApi(path, token, method)),
+          true,
+          `${method} ${path} com ${roles.join(',')}`
+        )
+      }
+    }
+  })
+
+  test('cursos: o Editor segue com criar, editar, enviar e propor edição/exclusão', async () => {
+    const editor = userWith(['go:cursos:editor'])
+    for (const [path, method] of [
+      ['/api/courses', 'GET'],
+      ['/api/courses/new', 'POST'],
+      ['/api/courses/draft', 'POST'],
+      ['/api/courses/send-to-review', 'POST'],
+      ['/api/courses/7', 'PUT'],
+      ['/api/courses/7/send-to-review', 'PUT'],
+      ['/api/courses/7/request-changes', 'PUT'],
+      ['/api/courses/7/request-deletion', 'PUT'],
+      ['/api/enrollments/7', 'GET'],
+    ]) {
+      assert.equal(
+        passedThrough(await callApi(path, editor, method)),
+        true,
+        `${method} ${path}`
+      )
+    }
+  })
+
+  test('serviços: Editor recebe 403 ao publicar, despublicar, devolver ou reverter', async () => {
+    const editor = userWith(['busca:services:editor'])
+    for (const [path, method] of SERVICE_ADMIN_ROUTES) {
+      await assertDenied(await callApi(path, editor, method), 403)
+    }
+  })
+
+  test('serviços: busca:services:admin, admin e superadmin seguem para o handler', async () => {
+    for (const roles of [
+      ['busca:services:admin'],
+      ['admin'],
+      ['superadmin'],
+      ['busca:services:editor', 'busca:services:admin'],
+    ]) {
+      const token = userWith(roles)
+      for (const [path, method] of SERVICE_ADMIN_ROUTES) {
+        assert.equal(
+          passedThrough(await callApi(path, token, method)),
+          true,
+          `${method} ${path} com ${roles.join(',')}`
+        )
+      }
+    }
+  })
+
+  test('serviços: o Editor segue com listar, editar, enviar para aprovação e ver versões', async () => {
+    const editor = userWith(['busca:services:editor'])
+    for (const [path, method] of [
+      ['/api/services', 'GET'],
+      ['/api/services', 'POST'],
+      ['/api/services/abc', 'PUT'],
+      ['/api/services/abc/send-to-approval', 'PATCH'],
+      ['/api/services/abc/versions', 'GET'],
+      ['/api/services/abc/versions/compare', 'GET'],
+      ['/api/tombamentos', 'GET'],
+      ['/api/tombamentos/by-old-service', 'GET'],
+    ]) {
+      assert.equal(
+        passedThrough(await callApi(path, editor, method)),
+        true,
+        `${method} ${path}`
+      )
+    }
+  })
+
+  test('papéis de outro módulo e go:admin (serviços) recebem 403', async () => {
+    for (const roles of [
+      ['go:empregabilidade:admin'],
+      ['busca:services:admin'],
+    ]) {
+      const token = userWith(roles)
+      for (const [path, method] of COURSE_CURATION_ROUTES) {
+        await assertDenied(await callApi(path, token, method), 403)
+      }
+    }
+    for (const roles of [['go:admin'], ['go:cursos:casa_civil']]) {
+      const token = userWith(roles)
+      for (const [path, method] of SERVICE_ADMIN_ROUTES) {
+        await assertDenied(await callApi(path, token, method), 403)
+      }
+    }
+  })
+
+  test('sem sessão: 401; sem papel ou Heimdall fora: 403', async () => {
+    for (const [path, method] of [
+      ...COURSE_CURATION_ROUTES,
+      ...SERVICE_ADMIN_ROUTES,
+    ]) {
+      await assertDenied(await callApi(path, undefined, method), 401)
+      await assertDenied(
+        await callApi(path, userWith([], 'sem-papel'), method),
+        403
+      )
+      await assertDenied(await callApi(path, userWith('erro'), method), 403)
+    }
+  })
+
+  test('a regra de cada rota é a mesma lista que mostra o botão na UI', () => {
+    const allRoles = [
+      'admin',
+      'superadmin',
+      'go:admin',
+      'go:cursos:casa_civil',
+      'go:cursos:editor',
+      'busca:services:admin',
+      'busca:services:editor',
+      'go:empregabilidade:admin',
+      'go:empregabilidade:editor_sem_curadoria',
+      'go:empregabilidade:editor_com_curadoria',
+      'go:curriculos:admin',
+      'go:curriculos:editor',
+    ]
+    for (const [path] of COURSE_CURATION_ROUTES) {
+      const rule = findApiRoutePermission(path)
+      assert.ok(rule, path)
+      for (const role of allRoles) {
+        const roles = [role]
+        assert.equal(
+          hasApiRouteAccess(rule.permission, roles),
+          canApproveCourses(roles) && canPublishCourses(roles),
+          `${path} com ${role}`
+        )
+      }
+    }
+    for (const [path] of SERVICE_ADMIN_ROUTES) {
+      const rule = findApiRoutePermission(path)
+      assert.ok(rule, path)
+      for (const role of allRoles) {
+        assert.equal(
+          hasApiRouteAccess(rule.permission, [role]),
+          isBuscaServicesAdmin([role]),
+          `${path} com ${role}`
+        )
+      }
+    }
   })
 })
 

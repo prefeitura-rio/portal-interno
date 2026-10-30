@@ -5,6 +5,11 @@ import {
 } from '@/http-busca-search/admin/admin'
 import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import type { GetApiV1AdminServicesParams } from '@/http-busca-search/models/getApiV1AdminServicesParams'
+import { getCurrentUserRoles } from '@/lib/heimdall-user'
+import {
+  SERVICE_CURATION_DENIAL_MESSAGES,
+  getServiceCreateDenial,
+} from '@/lib/service-curation-guard'
 import type { ServiceListItem, ServiceStatus } from '@/types/service'
 import { convertApiToFrontend } from '@/types/service'
 import { revalidateTag } from 'next/cache'
@@ -158,6 +163,17 @@ export async function POST(request: Request) {
           error: 'Required fields missing: nome_servico, resumo, orgao_gestor',
         },
         { status: 400 }
+      )
+    }
+
+    const denial = getServiceCreateDenial(await getCurrentUserRoles(), body)
+    if (denial) {
+      console.warn(
+        `[SERVICES] Create denied (${denial}): missing busca:services:admin role`
+      )
+      return NextResponse.json(
+        { error: SERVICE_CURATION_DENIAL_MESSAGES[denial] },
+        { status: 403 }
       )
     }
 
