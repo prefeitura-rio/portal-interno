@@ -6,9 +6,13 @@ import { describe, test } from 'node:test'
 
 const {
   TOMBAMENTOS_PAGE_SIZE,
+  compareTombamentoAge,
+  createKeyedLock,
   findTombamentosByNewService,
   groupTombamentosByNewService,
   listAllTombamentos,
+  pickSurvivingTombamento,
+  waitForTombamentoVisible,
 } = await import('../tombamento-duplicates.ts')
 
 interface TombamentoStub {
@@ -115,5 +119,152 @@ describe('groupTombamentosByNewService', () => {
       ['b']
     )
     assert.equal(grouped.size, 2)
+  })
+})
+
+describe('compareTombamentoAge e pickSurvivingTombamento', () => {
+  test('ids sequenciais do Typesense: vale o valor numérico, não o texto', () => {
+    assert.ok(
+      compareTombamentoAge(tombamento('9', 's'), tombamento('10', 's')) < 0
+    )
+    assert.ok(
+      compareTombamentoAge(tombamento('100', 's'), tombamento('99', 's')) > 0
+    )
+    assert.equal(
+      compareTombamentoAge(tombamento('7', 's'), tombamento('7', 's')),
+      0
+    )
+  })
+
+  test('ids não numéricos: criado_em e, empatando, o id como texto', () => {
+    assert.ok(
+      compareTombamentoAge(
+        { id: 'b', id_servico_novo: 's', criado_em: 10 },
+        { id: 'a', id_servico_novo: 's', criado_em: 20 }
+      ) < 0
+    )
+    assert.ok(
+      compareTombamentoAge(
+        { id: 'a', id_servico_novo: 's', criado_em: 10 },
+        { id: 'b', id_servico_novo: 's', criado_em: 10 }
+      ) < 0
+    )
+  })
+
+  test('fica o mais antigo, em qualquer ordem de chegada', () => {
+    const items = [
+      tombamento('1002', 's'),
+      tombamento('998', 's'),
+      tombamento('1000', 's'),
+    ]
+    assert.equal(pickSurvivingTombamento(items)?.id, '998')
+    assert.equal(pickSurvivingTombamento([...items].reverse())?.id, '998')
+    assert.equal(pickSurvivingTombamento([]), undefined)
+  })
+})
+
+describe('waitForTombamentoVisible', () => {
+  const noSleep = async () => undefined
+
+  test('relê até o registro aparecer e devolve a leitura em que apareceu', async () => {
+    let reads = 0
+    const result = await waitForTombamentoVisible(
+      async () => {
+        reads++
+        return reads < 3
+          ? [tombamento('1', 's')]
+          : [tombamento('1', 's'), tombamento('2', 's')]
+      },
+      '2',
+      5,
+      0,
+      noSleep
+    )
+    assert.equal(reads, 3)
+    assert.deepEqual(
+      result?.map(item => item.id),
+      ['1', '2']
+    )
+  })
+
+  test('leitura que falha conta como "ainda não apareceu"', async () => {
+    let reads = 0
+    const result = await waitForTombamentoVisible(
+      async () => {
+        reads++
+        if (reads === 1) throw new Error('falha sintética')
+        return [tombamento('2', 's')]
+      },
+      '2',
+      5,
+      0,
+      noSleep
+    )
+    assert.equal(reads, 2)
+    assert.deepEqual(
+      result?.map(item => item.id),
+      ['2']
+    )
+  })
+
+  test('sem aparecer no limite de leituras: null', async () => {
+    let reads = 0
+    const sleeps: number[] = []
+    const result = await waitForTombamentoVisible(
+      async () => {
+        reads++
+        return []
+      },
+      '2',
+      4,
+      250,
+      async ms => {
+        sleeps.push(ms)
+      }
+    )
+    assert.equal(result, null)
+    assert.equal(reads, 4)
+    assert.deepEqual(sleeps, [250, 250, 250])
+  })
+})
+
+describe('createKeyedLock', () => {
+  test('mesma chave roda uma de cada vez, na ordem de chegada; chave diferente não espera', async () => {
+    const withLock = createKeyedLock()
+    const events: string[] = []
+    let releaseFirst: () => void = () => undefined
+    const firstGate = new Promise<void>(resolve => {
+      releaseFirst = resolve
+    })
+
+    const first = withLock('s', async () => {
+      events.push('a:start')
+      await firstGate
+      events.push('a:end')
+      return 'a'
+    })
+    const second = withLock('s', async () => {
+      events.push('b:start')
+      return 'b'
+    })
+    const other = withLock('outro', async () => {
+      events.push('c:start')
+      return 'c'
+    })
+
+    assert.equal(await other, 'c')
+    assert.deepEqual(events, ['a:start', 'c:start'])
+    releaseFirst()
+    assert.deepEqual(await Promise.all([first, second]), ['a', 'b'])
+    assert.deepEqual(events, ['a:start', 'c:start', 'a:end', 'b:start'])
+  })
+
+  test('uma tarefa que falha não trava as seguintes da mesma chave', async () => {
+    const withLock = createKeyedLock()
+    const failing = withLock('s', async () => {
+      throw new Error('falha sintética')
+    })
+    await assert.rejects(failing, /falha sintética/)
+    assert.equal(await withLock('s', async () => 'ok'), 'ok')
   })
 })

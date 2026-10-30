@@ -36,12 +36,21 @@ const STUBS: Record<string, string> = {
     }
   `),
   '@/http-busca-search/tombamentos/tombamentos': moduleUrl(`
+    function createdTombamentos() {
+      return globalThis.__dev125Writes
+        .filter(write => write.method === 'POST_TOMBAMENTO')
+        .map((write, index) => ({ id: 'tombamento-sintetico-' + index, ...write.body }))
+    }
     export async function getApiV1AdminTombamentos() {
-      return { status: 200, data: { tombamentos: [] } }
+      return { status: 200, data: { tombamentos: createdTombamentos() } }
     }
     export async function postApiV1AdminTombamentos(body) {
       globalThis.__dev125Writes.push({ method: 'POST_TOMBAMENTO', body })
-      return { status: 201, data: { id: 'tombamento-sintetico', ...body } }
+      const created = createdTombamentos()
+      return { status: 201, data: created[created.length - 1] }
+    }
+    export async function deleteApiV1AdminTombamentosId() {
+      return { status: 204, data: {} }
     }
   `),
   '@/http-busca-search/admin/admin': moduleUrl(`
@@ -400,7 +409,7 @@ describe('POST /api/tombamentos: só o admin de Serviços tomba (DEV-125)', () =
       body: JSON.stringify({
         origem: '1746_v2_llm',
         id_servico_antigo: 'servico-antigo-sintetico',
-        id_servico_novo: 'servico-sintetico',
+        id_servico_novo: `servico-sintetico-${roles?.join('-') ?? 'sem-papel'}`,
       }),
     })
     const response = await CREATE_TOMBAMENTO(request)
