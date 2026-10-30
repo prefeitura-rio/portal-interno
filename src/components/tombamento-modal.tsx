@@ -54,7 +54,10 @@ interface TombamentoModalProps {
   serviceId: string
   serviceTitle: string
   onSuccess?: () => void
-  /** O serviço já tinha tombamento (409): recarregue o estado da tela. */
+  /**
+   * O serviço já tinha tombamento (409) ou o BFF não pôde confirmar o novo
+   * (502/503): recarregue o estado da tela.
+   */
   onDuplicate?: () => void
 }
 
@@ -100,6 +103,9 @@ export function TombamentoModal({
         toast.error(result.error)
         form.reset()
         onOpenChange(false)
+        onDuplicate?.()
+      } else if (result.status === 502 || result.status === 503) {
+        toast.error(result.error)
         onDuplicate?.()
       } else {
         toast.error('Erro ao criar tombamento. Tente novamente.')
