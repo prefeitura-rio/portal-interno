@@ -3,6 +3,12 @@ import {
   putApiV1AdminServicesId,
 } from '@/http-busca-search/admin/admin'
 import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
+import { getCurrentUserRoles } from '@/lib/heimdall-user'
+import {
+  SERVICE_CURATION_DENIAL_MESSAGES,
+  findServiceById,
+  getServiceSendToApprovalDenial,
+} from '@/lib/service-curation-guard'
 import { convertApiToFrontend } from '@/types/service'
 import { revalidateTag } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -37,14 +43,25 @@ export async function PATCH(
       )
     }
 
-    const servicesData = getResponse.data
-    const services = servicesData.services || []
+    const currentService = findServiceById(getResponse.data.services, serviceId)
 
-    if (services.length === 0) {
+    if (!currentService) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 })
     }
 
-    const currentService = services[0]
+    const denial = getServiceSendToApprovalDenial(
+      await getCurrentUserRoles(),
+      currentService
+    )
+    if (denial) {
+      console.warn(
+        `[SERVICES] Send to approval denied (${denial}): missing busca:services:admin role`
+      )
+      return NextResponse.json(
+        { error: SERVICE_CURATION_DENIAL_MESSAGES[denial] },
+        { status: 403 }
+      )
+    }
 
     // Prepare the service data with status = 0 (draft) and awaiting_approval = true
     const serviceRequest = {

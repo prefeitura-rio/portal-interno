@@ -1,5 +1,8 @@
 import type { UploadFolder } from '@/lib/upload-folders'
 import {
+  BUSCA_SERVICES_ADMIN_ROLES,
+  BUSCA_SERVICES_ROLES,
+  COURSES_CASA_CIVIL_ROLES,
   COURSES_DASHBOARD_ROLES,
   COURSES_ROLES,
   CURRICULOS_ROLES,
@@ -252,21 +255,20 @@ const BACKOFFICE_ROLES = [
 ] as const
 const ADMIN_ROLES = ['admin', 'superadmin'] as const
 const MEI_ROLES = ['admin', 'superadmin', 'go:admin'] as const
-const BUSCA_SERVICES_ROLES = [
-  'admin',
-  'superadmin',
-  'busca:services:admin',
-  'busca:services:editor',
-] as const
 
 const BACKOFFICE_API = anyOf(BACKOFFICE_ROLES)
 const ADMIN_API = anyOf(ADMIN_ROLES)
 const COURSES_API = anyOf(COURSES_ROLES)
+// Aprovar/publicar curso: só a curadoria (Casa Civil), como na UI (DEV-125)
+const COURSES_CASA_CIVIL_API = anyOf(COURSES_CASA_CIVIL_ROLES)
 const COURSES_DASHBOARD_API = anyOf(COURSES_DASHBOARD_ROLES)
 const EMPREGO_TRABALHO_API = anyOf(EMPREGO_TRABALHO_ROLES)
 const CURRICULOS_API = anyOf(CURRICULOS_ROLES)
 const MEI_API = anyOf(MEI_ROLES)
 const BUSCA_SERVICES_API = anyOf(BUSCA_SERVICES_ROLES)
+// Publicar/despublicar/devolver/reverter serviço: só o admin do módulo, como
+// na UI (DEV-125)
+const BUSCA_SERVICES_ADMIN_API = anyOf(BUSCA_SERVICES_ADMIN_ROLES)
 
 /**
  * Papéis exigidos por rota de API, aplicados pelo middleware antes do handler.
@@ -275,8 +277,10 @@ const BUSCA_SERVICES_API = anyOf(BUSCA_SERVICES_ROLES)
  * entre colchetes casa um segmento qualquer). Cada rota repete os papéis da
  * página que a consome (`ROUTE_PERMISSIONS`); catálogos sem dado pessoal
  * (secretarias, categorias, CNAEs, listas de domínio) valem para qualquer papel
- * do backoffice. Rota sem entrada aqui é negada (403): toda rota nova em
- * `src/app/api` precisa de uma regra.
+ * do backoffice. Rota de uma ação que a UI mostra só a parte dos papéis do
+ * módulo (aprovar/publicar) exige essa parte, não o módulo inteiro. Rota sem
+ * entrada aqui é negada (403): toda rota nova em `src/app/api` precisa de uma
+ * regra.
  */
 export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   // Autenticação e saúde: precisam funcionar sem sessão (ou com ela expirada)
@@ -313,9 +317,11 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   // GO Rio - Capacitação (página /gorio/courses)
   '/api/courses': COURSES_API,
   '/api/courses/[course-id]': COURSES_API,
-  '/api/courses/[course-id]/approve': COURSES_API,
-  '/api/courses/[course-id]/publish': COURSES_API,
-  '/api/courses/[course-id]/publish-directly': COURSES_API,
+  '/api/courses/[course-id]/approve': COURSES_CASA_CIVIL_API,
+  '/api/courses/[course-id]/publish': COURSES_CASA_CIVIL_API,
+  '/api/courses/[course-id]/publish-directly': COURSES_CASA_CIVIL_API,
+  // "Enviar para edição" (em revisão) é da Casa Civil, mas a mesma rota faz o
+  // "Propor edição" do Editor (curso publicado ou encerrado)
   '/api/courses/[course-id]/request-changes': COURSES_API,
   '/api/courses/[course-id]/request-deletion': COURSES_API,
   '/api/courses/[course-id]/send-to-review': COURSES_API,
@@ -326,7 +332,7 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   '/api/courses/in-review': COURSES_API,
   '/api/courses/needs-changes': COURSES_API,
   '/api/courses/new': COURSES_API,
-  '/api/courses/publish-directly': COURSES_API,
+  '/api/courses/publish-directly': COURSES_CASA_CIVIL_API,
   '/api/courses/send-to-review': COURSES_API,
   '/api/enrollments/[course-id]': COURSES_API,
   '/api/enrollments/[course-id]/[enrollment-id]': COURSES_API,
@@ -384,15 +390,16 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   // Serviços Municipais (página /servicos-municipais/servicos)
   '/api/services': BUSCA_SERVICES_API,
   '/api/services/[service-id]': BUSCA_SERVICES_API,
-  '/api/services/[service-id]/publish': BUSCA_SERVICES_API,
-  '/api/services/[service-id]/rollback': BUSCA_SERVICES_API,
+  '/api/services/[service-id]/publish': BUSCA_SERVICES_ADMIN_API,
+  '/api/services/[service-id]/rollback': BUSCA_SERVICES_ADMIN_API,
   '/api/services/[service-id]/send-to-approval': BUSCA_SERVICES_API,
-  '/api/services/[service-id]/send-to-edition': BUSCA_SERVICES_API,
-  '/api/services/[service-id]/unpublish': BUSCA_SERVICES_API,
+  '/api/services/[service-id]/send-to-edition': BUSCA_SERVICES_ADMIN_API,
+  '/api/services/[service-id]/unpublish': BUSCA_SERVICES_ADMIN_API,
   '/api/services/[service-id]/versions': BUSCA_SERVICES_API,
   '/api/services/[service-id]/versions/compare': BUSCA_SERVICES_API,
   '/api/tombamentos': BUSCA_SERVICES_API,
-  '/api/tombamentos/[tombamento-id]': BUSCA_SERVICES_API,
+  // Só DELETE (Destombar), que a UI mostra só ao admin do módulo
+  '/api/tombamentos/[tombamento-id]': BUSCA_SERVICES_ADMIN_API,
   '/api/tombamentos/by-old-service': BUSCA_SERVICES_API,
 
   // Superadmin - vínculos CPF-Secretaria (página /superadmin/vinculos-secretaria)

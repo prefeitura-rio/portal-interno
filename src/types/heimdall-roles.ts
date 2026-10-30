@@ -45,6 +45,39 @@ export const COURSES_DASHBOARD_ROLES = [
 ] as const
 
 /**
+ * Roles of the Casa Civil curation of courses (DEV-125): approve and publish
+ * courses. The same set as `hasCasaCivilAccess`, which shows those buttons in
+ * the UI; go:cursos:editor is not here.
+ */
+export const COURSES_CASA_CIVIL_ROLES = [
+  'admin',
+  'superadmin',
+  'go:admin',
+  'go:cursos:casa_civil',
+] as const
+
+/**
+ * Roles that grant access to the "Serviços municipais" module.
+ */
+export const BUSCA_SERVICES_ROLES = [
+  'admin',
+  'superadmin',
+  'busca:services:admin',
+  'busca:services:editor',
+] as const
+
+/**
+ * Roles that approve services (DEV-125): publish, unpublish, send to edition
+ * and roll back. The same set as `isBuscaServicesAdmin`, which shows those
+ * buttons in the UI; busca:services:editor is not here.
+ */
+export const BUSCA_SERVICES_ADMIN_ROLES = [
+  'admin',
+  'superadmin',
+  'busca:services:admin',
+] as const
+
+/**
  * Roles that grant access to the "Banco de currículos" module.
  * Both module roles only read the base. Associating a candidate to vagas also
  * needs an Emprego e trabalho role (or a total admin role).
