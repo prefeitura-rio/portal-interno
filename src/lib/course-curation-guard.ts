@@ -80,29 +80,43 @@ export function canDeleteCourse(
 }
 
 /**
+ * Chave do corpo dobrada como o `encoding/json` do Go casa nomes de campo
+ * (`unicode.ToUpper(unicode.ToLower(r))` por caractere): `Status`, `STATUS` e
+ * `ſtatus` (U+017F) chegam ao campo `status` do app-go-api. A dobra do JS pode
+ * expandir um caractere (`ß` → `SS`), o que só casa a mais, nunca a menos.
+ */
+function foldJsonKey(key: string): string {
+  return Array.from(key, char => char.toLowerCase().toUpperCase()).join('')
+}
+
+/** Chaves do corpo que a API de cursos lê como `status`. */
+export function courseStatusKeys(body: unknown): string[] {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return []
+  return Object.keys(body).filter(key => foldJsonKey(key) === 'STATUS')
+}
+
+/**
  * `PUT /courses/:id` sem curadoria: salvar o curso sem mudar o status. A UI do
  * Editor reenvia o status atual (ou `published` para um curso `finished`);
  * publicar (`opened`), reabrir, cancelar ou mudar qualquer outro status pelo
- * corpo é da Casa Civil. Corpo sem `status` não muda status por aqui.
+ * corpo é da Casa Civil. Uma chave de status que não seja exatamente `status`
+ * só serviria para escapar desta conferência e é recusada.
  */
 export function canUpdateCourseStatus(
   roles: string[] | undefined,
   currentStatus: string,
-  requestedStatus: unknown
+  body: unknown
 ): boolean {
   if (hasCourseCurationAccess(roles)) return true
-  if (requestedStatus === undefined) return true
+  const keys = courseStatusKeys(body)
+  if (keys.length === 0) return true
+  if (keys.some(key => key !== 'status')) return false
+  const requestedStatus = (body as { status?: unknown }).status
   if (typeof requestedStatus !== 'string') return false
   return (
     normalizeCourseStatus(requestedStatus) ===
     normalizeCourseStatus(currentStatus)
   )
-}
-
-/** Status pedido no corpo do PUT, ou `undefined` quando o corpo não traz. */
-export function requestedCourseStatus(body: unknown): unknown {
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return undefined
-  return (body as { status?: unknown }).status
 }
 
 export const COURSE_CURATION_FORBIDDEN_MESSAGE =

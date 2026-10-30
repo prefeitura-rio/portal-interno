@@ -7,8 +7,8 @@ import { courseApiErrorMessage } from '@/lib/course-api-error-message'
 import {
   canDeleteCourse,
   canUpdateCourseStatus,
+  courseStatusKeys,
   denyCourseCurationAction,
-  requestedCourseStatus,
 } from '@/lib/course-curation-guard'
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -77,13 +77,12 @@ export async function PUT(
     const numericCourseId = Number.parseInt(courseId, 10)
 
     // DEV-127: a API de cursos grava o `status` do corpo para qualquer papel
-    const requestedStatus = requestedCourseStatus(body)
-    if (requestedStatus !== undefined) {
+    if (courseStatusKeys(body).length > 0) {
       const denial = await denyCourseCurationAction(
         numericCourseId,
         'PUT status',
         (roles, currentStatus) =>
-          canUpdateCourseStatus(roles, currentStatus, requestedStatus)
+          canUpdateCourseStatus(roles, currentStatus, body)
       )
       if (denial) return denial
     }

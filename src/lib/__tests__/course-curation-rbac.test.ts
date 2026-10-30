@@ -307,6 +307,27 @@ describe('PUT /api/courses/[id] com status no corpo (DEV-127)', () => {
     }
   })
 
+  test('Editor não escapa com outra caixa da chave status (403)', async () => {
+    // O encoding/json do Go casa `Status`, `STATUS` e `ſtatus` (U+017F) com o
+    // campo `status`, e com chave repetida vale a última.
+    const bodies: Array<Record<string, unknown>> = [
+      { Status: 'opened' },
+      { STATUS: 'opened' },
+      { ſtatus: 'opened' },
+      { sTaTuS: 'published' },
+      { status: 'draft', Status: 'opened' },
+    ]
+    for (const body of bodies) {
+      testGlobals.__dev127Calls = []
+      const { status } = await updateCourse(EDITOR, 'draft', {
+        title: 'Curso sintético',
+        ...body,
+      })
+      assert.equal(status, 403, JSON.stringify(body))
+      assert.deepEqual(backendCalls('PUT'), [], JSON.stringify(body))
+    }
+  })
+
   test('Casa Civil publica pelo PUT (status opened)', async () => {
     for (const roles of CURATION_ROLES) {
       testGlobals.__dev127Calls = []
