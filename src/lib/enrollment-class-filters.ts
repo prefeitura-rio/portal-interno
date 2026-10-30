@@ -89,6 +89,9 @@ function nonEmptyString(value: unknown): string | undefined {
 /**
  * Mapa turma (schedule id) → unidade (location id) a partir dos `locations`
  * do curso, no formato da API Go ou no formato já transformado do front.
+ *
+ * Local no formato antigo (sem lista de turmas) mapeia o próprio id: a
+ * inscrição manual desse curso pode gravar o id do local como `schedule_id`.
  */
 export function buildScheduleLocationIndex(
   course: unknown
@@ -99,7 +102,11 @@ export function buildScheduleLocationIndex(
   for (const location of course.locations) {
     if (!isRecord(location)) continue
     const locationId = nonEmptyString(location.id)
-    if (!locationId || !Array.isArray(location.schedules)) continue
+    if (!locationId) continue
+    if (!Array.isArray(location.schedules) || location.schedules.length === 0) {
+      index.set(locationId, locationId)
+      continue
+    }
     for (const schedule of location.schedules) {
       if (!isRecord(schedule)) continue
       const scheduleId = nonEmptyString(schedule.id)
@@ -140,6 +147,58 @@ export function matchesClassFilter(
     if (!unitId || !filter.unitIds.includes(unitId)) return false
   }
   return true
+}
+
+export interface StatusCountable {
+  status?: string | null
+}
+
+/** Resumo por situação no formato da API Go (`data.summary`). */
+export interface EnrollmentStatusCounts {
+  total: number
+  pending: number
+  approved: number
+  rejected: number
+  cancelled: number
+  concluded: number
+}
+
+/**
+ * Conta as inscrições por situação, como o resumo da API Go faz para o curso
+ * inteiro. Usado quando há filtro de turma/unidade, para os cards de resumo
+ * refletirem só as inscrições filtradas.
+ */
+export function countEnrollmentsByStatus(
+  enrollments: StatusCountable[]
+): EnrollmentStatusCounts {
+  const counts: EnrollmentStatusCounts = {
+    total: enrollments.length,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    cancelled: 0,
+    concluded: 0,
+  }
+  for (const enrollment of enrollments) {
+    switch (enrollment.status) {
+      case 'pending':
+        counts.pending += 1
+        break
+      case 'approved':
+        counts.approved += 1
+        break
+      case 'rejected':
+        counts.rejected += 1
+        break
+      case 'cancelled':
+        counts.cancelled += 1
+        break
+      case 'concluded':
+        counts.concluded += 1
+        break
+    }
+  }
+  return counts
 }
 
 export interface EnrollmentsPage<T> {
@@ -187,6 +246,71 @@ export async function fetchAllEnrollmentPages<T>(
   }
 
   return { ok: true, items, firstPage: first }
+}
+
+export interface EnrollmentListQuery {
+  status?: string
+  search?: string
+}
+
+export type LoadClassFilteredResult<T> =
+  | { ok: true; items: T[]; summary: EnrollmentStatusCounts }
+  | { ok: false; reason: 'upstream'; status: number }
+  | { ok: false; reason: 'too_many'; total: number }
+
+/**
+ * Inscrições do curso que casam com o filtro de turma/unidade.
+ *
+ * `summary` segue o resumo da API Go, que conta o curso inteiro sem status
+ * nem busca: aqui conta as inscrições da turma/unidade em todas as situações.
+ * `items` é a lista restrita também por status e busca. O status é filtrado
+ * localmente; a busca (regra da API Go) exige uma segunda leitura com ela.
+ */
+export async function loadClassFilteredEnrollments<
+  T extends ClassFilterableEnrollment & StatusCountable,
+>(
+  fetchPage: (
+    page: number,
+    limit: number,
+    query: EnrollmentListQuery
+  ) => Promise<EnrollmentsPage<T> | { error: number }>,
+  filter: ClassFilter,
+  scheduleLocationIndex: Map<string, string>,
+  query: EnrollmentListQuery,
+  pageSize: number = ENROLLMENTS_FETCH_PAGE_SIZE,
+  maxPages: number = ENROLLMENTS_FETCH_MAX_PAGES
+): Promise<LoadClassFilteredResult<T>> {
+  const fetchMatching = async (
+    pageQuery: EnrollmentListQuery
+  ): Promise<FetchAllEnrollmentsResult<T>> => {
+    const result = await fetchAllEnrollmentPages<T>(
+      (page, limit) => fetchPage(page, limit, pageQuery),
+      pageSize,
+      maxPages
+    )
+    if (!result.ok) return result
+    return {
+      ...result,
+      items: result.items.filter(enrollment =>
+        matchesClassFilter(enrollment, filter, scheduleLocationIndex)
+      ),
+    }
+  }
+
+  const classResult = await fetchMatching({})
+  if (!classResult.ok) return classResult
+  const summary = countEnrollmentsByStatus(classResult.items)
+
+  if (query.search) {
+    const listResult = await fetchMatching(query)
+    if (!listResult.ok) return listResult
+    return { ok: true, items: listResult.items, summary }
+  }
+
+  const items = query.status
+    ? classResult.items.filter(enrollment => enrollment.status === query.status)
+    : classResult.items
+  return { ok: true, items, summary }
 }
 
 export interface LocalPage<T> {

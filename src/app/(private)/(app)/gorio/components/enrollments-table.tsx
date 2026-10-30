@@ -63,6 +63,7 @@ import { useEnrollments } from '@/hooks/use-enrollments'
 import { calcAgeFromBirthDate } from '@/lib/calc-age'
 import {
   buildScheduleLocationIndex,
+  hasClassFilter,
   resolveEnrollmentUnitId,
 } from '@/lib/enrollment-class-filters'
 import { getEnrollmentRmiDivergence } from '@/lib/enrollment-rmi-consistency'
@@ -73,6 +74,7 @@ import * as XLSX from 'xlsx'
 import { AddParticipantsModal } from './add-participants'
 import type { CourseData } from './add-participants/types'
 import {
+  getFilterableScheduleOptions,
   getScheduleOptions,
   getUnitOptions,
 } from './add-participants/utils/schedule-helpers'
@@ -289,13 +291,15 @@ export function EnrollmentsTable({
       locations: courseLocations,
       remote_class: courseRemoteClass,
     }
-    const schedules = getScheduleOptions(courseClasses)
+    const allSchedules = getScheduleOptions(courseClasses)
     const units = getUnitOptions(courseClasses)
     return {
-      schedules,
+      // Local de formato antigo fica fora do filtro de turma (sem id de
+      // turma); o filtro de unidade o cobre.
+      schedules: getFilterableScheduleOptions(courseClasses),
       units,
       scheduleLabels: new Map(
-        schedules.map(option => [option.id, option.label])
+        allSchedules.map(option => [option.id, option.label])
       ),
       unitLabels: new Map(units.map(option => [option.id, option.label])),
       scheduleLocationIndex: buildScheduleLocationIndex(courseClasses),
@@ -1554,6 +1558,11 @@ export function EnrollmentsTable({
       </div>
 
       {/* Summary */}
+      {summary && hasClassFilter(filters) && (
+        <p className="text-sm text-muted-foreground">
+          Resumo das inscrições da turma ou unidade filtrada.
+        </p>
+      )}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {/* <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
