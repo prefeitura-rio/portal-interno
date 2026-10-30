@@ -4,6 +4,12 @@ import {
   putApiV1CoursesCourseId,
 } from '@/http-gorio/courses/courses'
 import { courseApiErrorMessage } from '@/lib/course-api-error-message'
+import {
+  canDeleteCourse,
+  canUpdateCourseStatus,
+  courseStatusKeys,
+  denyCourseCurationAction,
+} from '@/lib/course-curation-guard'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
@@ -68,12 +74,21 @@ export async function PUT(
     }
 
     const body = await request.json()
+    const numericCourseId = Number.parseInt(courseId, 10)
+
+    // DEV-127: a API de cursos grava o `status` do corpo para qualquer papel
+    if (courseStatusKeys(body).length > 0) {
+      const denial = await denyCourseCurationAction(
+        numericCourseId,
+        'PUT status',
+        (roles, currentStatus) =>
+          canUpdateCourseStatus(roles, currentStatus, body)
+      )
+      if (denial) return denial
+    }
 
     // Use the proper HTTP client function instead of direct fetch
-    const response = await putApiV1CoursesCourseId(
-      Number.parseInt(courseId, 10),
-      body
-    )
+    const response = await putApiV1CoursesCourseId(numericCourseId, body)
 
     if (response.status === 200) {
       return NextResponse.json({
@@ -113,10 +128,18 @@ export async function DELETE(
       )
     }
 
-    // Use the proper HTTP client function instead of direct fetch
-    const response = await deleteApiV1CoursesCourseId(
-      Number.parseInt(courseId, 10)
+    const numericCourseId = Number.parseInt(courseId, 10)
+
+    // DEV-127: o Editor só exclui rascunho; `pending_deletion` é da Casa Civil
+    const denial = await denyCourseCurationAction(
+      numericCourseId,
+      'DELETE',
+      canDeleteCourse
     )
+    if (denial) return denial
+
+    // Use the proper HTTP client function instead of direct fetch
+    const response = await deleteApiV1CoursesCourseId(numericCourseId)
 
     if (response.status === 200) {
       return NextResponse.json({
