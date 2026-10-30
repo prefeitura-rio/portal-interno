@@ -35,6 +35,15 @@ const STUBS: Record<string, string> = {
       return globalThis.__dev125Roles
     }
   `),
+  '@/http-busca-search/tombamentos/tombamentos': moduleUrl(`
+    export async function getApiV1AdminTombamentos() {
+      return { status: 200, data: { tombamentos: [] } }
+    }
+    export async function postApiV1AdminTombamentos(body) {
+      globalThis.__dev125Writes.push({ method: 'POST_TOMBAMENTO', body })
+      return { status: 201, data: { id: 'tombamento-sintetico', ...body } }
+    }
+  `),
   '@/http-busca-search/admin/admin': moduleUrl(`
     function service(fields) {
       return {
@@ -64,6 +73,7 @@ const STUBS: Record<string, string> = {
       return { status: 201, data: service(body) }
     }
     export async function deleteApiV1AdminServicesId() {
+      globalThis.__dev125Writes.push({ method: 'DELETE', body: {} })
       return { status: 204 }
     }
   `),
@@ -99,8 +109,12 @@ registerHooks({
 })
 
 const { NextRequest } = await import('next/server')
-const { PUT } = await import('../[service-id]/route.ts')
+const { PUT, DELETE } = await import('../[service-id]/route.ts')
 const { POST } = await import('../route.ts')
+const { PATCH: SEND_TO_APPROVAL } = await import(
+  '../[service-id]/send-to-approval/route.ts'
+)
+const { POST: CREATE_TOMBAMENTO } = await import('../../tombamentos/route.ts')
 
 const EDITOR = ['busca:services:editor']
 const CURATORS = [
@@ -156,6 +170,37 @@ async function create(
   })
   const response = await POST(request)
   return { status: response.status, data: await response.json() }
+}
+
+const SERVICE_PARAMS = {
+  params: Promise.resolve({ 'service-id': 'servico-sintetico' }),
+}
+
+async function sendToApproval(
+  roles: string[] | undefined,
+  current: ServiceStub | null
+): Promise<{ status: number; data: Record<string, unknown> }> {
+  testGlobals.__dev125Roles = roles
+  testGlobals.__dev125Current = current
+  const request = new NextRequest(
+    'https://admin.test/api/services/servico-sintetico/send-to-approval',
+    { method: 'PATCH' }
+  )
+  const response = await SEND_TO_APPROVAL(request, SERVICE_PARAMS)
+  return { status: response.status, data: await response.json() }
+}
+
+async function remove(
+  roles: string[] | undefined
+): Promise<{ status: number }> {
+  testGlobals.__dev125Roles = roles
+  testGlobals.__dev125Current = IN_EDITION
+  const request = new NextRequest(
+    'https://admin.test/api/services/servico-sintetico',
+    { method: 'DELETE' }
+  )
+  const response = await DELETE(request, SERVICE_PARAMS)
+  return { status: response.status }
 }
 
 beforeEach(() => {
@@ -270,5 +315,84 @@ describe('POST /api/services: criar publicado só para o admin (DEV-125)', () =>
       const { status } = await create(roles, serviceBody({ status: 1 }))
       assert.equal(status, 200, roles.join(','))
     }
+  })
+})
+
+describe('PATCH /api/services/[id]/send-to-approval: só de serviço em edição (DEV-125)', () => {
+  test('Editor não envia serviço publicado nem em aprovação: 403 e nada é gravado', async () => {
+    for (const current of [PUBLISHED, AWAITING_APPROVAL]) {
+      const { status, data } = await sendToApproval(EDITOR, current)
+      assert.equal(status, 403)
+      assert.equal(typeof data.error, 'string')
+    }
+    const { status } = await sendToApproval(undefined, PUBLISHED)
+    assert.equal(status, 403)
+    assert.deepEqual(testGlobals.__dev125Writes, [])
+  })
+
+  test('Editor segue enviando serviço em edição para aprovação', async () => {
+    const { status } = await sendToApproval(EDITOR, IN_EDITION)
+    assert.equal(status, 200)
+    assert.deepEqual(
+      testGlobals.__dev125Writes?.map(write => [
+        write.body.status,
+        write.body.awaiting_approval,
+      ]),
+      [[0, true]]
+    )
+  })
+
+  test('serviço inexistente: 404', async () => {
+    const { status } = await sendToApproval(EDITOR, null)
+    assert.equal(status, 404)
+  })
+})
+
+describe('DELETE /api/services/[id]: só o admin de Serviços exclui (DEV-125)', () => {
+  test('Editor e sem papéis recebem 403 e nada é excluído', async () => {
+    for (const roles of [EDITOR, undefined]) {
+      const { status } = await remove(roles)
+      assert.equal(status, 403)
+    }
+    assert.deepEqual(testGlobals.__dev125Writes, [])
+  })
+
+  test('admin de Serviços, admin e superadmin excluem', async () => {
+    for (const roles of CURATORS) {
+      const { status } = await remove(roles)
+      assert.equal(status, 200, roles.join(','))
+    }
+    assert.equal(testGlobals.__dev125Writes?.length, CURATORS.length)
+  })
+})
+
+describe('POST /api/tombamentos: só o admin de Serviços tomba (DEV-125)', () => {
+  async function tombar(roles: string[] | undefined): Promise<number> {
+    testGlobals.__dev125Roles = roles
+    const request = new Request('https://admin.test/api/tombamentos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origem: '1746_v2_llm',
+        id_servico_antigo: 'servico-antigo-sintetico',
+        id_servico_novo: 'servico-sintetico',
+      }),
+    })
+    const response = await CREATE_TOMBAMENTO(request)
+    return response.status
+  }
+
+  test('Editor e sem papéis recebem 403 e nada é gravado', async () => {
+    for (const roles of [EDITOR, undefined]) {
+      assert.equal(await tombar(roles), 403)
+    }
+    assert.deepEqual(testGlobals.__dev125Writes, [])
+  })
+
+  test('admin de Serviços, admin e superadmin tombam', async () => {
+    for (const roles of CURATORS) {
+      assert.equal(await tombar(roles), 200, roles.join(','))
+    }
+    assert.equal(testGlobals.__dev125Writes?.length, CURATORS.length)
   })
 })

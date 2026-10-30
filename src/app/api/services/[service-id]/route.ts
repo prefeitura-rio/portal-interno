@@ -7,6 +7,7 @@ import type { ModelsPrefRioServiceRequest } from '@/http-busca-search/models'
 import { getCurrentUserRoles } from '@/lib/heimdall-user'
 import {
   SERVICE_CURATION_DENIAL_MESSAGES,
+  getServiceDeleteDenial,
   getServiceUpdateDenial,
   isServiceCurator,
 } from '@/lib/service-curation-guard'
@@ -179,6 +180,17 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Service ID is required' },
         { status: 400 }
+      )
+    }
+
+    const denial = getServiceDeleteDenial(await getCurrentUserRoles())
+    if (denial) {
+      console.warn(
+        `[SERVICES] Delete denied (${denial}): missing busca:services:admin role`
+      )
+      return NextResponse.json(
+        { error: SERVICE_CURATION_DENIAL_MESSAGES[denial] },
+        { status: 403 }
       )
     }
 

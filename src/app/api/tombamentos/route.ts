@@ -3,6 +3,11 @@ import {
   getApiV1AdminTombamentos,
   postApiV1AdminTombamentos,
 } from '@/http-busca-search/tombamentos/tombamentos'
+import { getCurrentUserRoles } from '@/lib/heimdall-user'
+import {
+  SERVICE_CURATION_DENIAL_MESSAGES,
+  getTombamentoCreateDenial,
+} from '@/lib/service-curation-guard'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -79,6 +84,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const denial = getTombamentoCreateDenial(await getCurrentUserRoles())
+    if (denial) {
+      console.warn(
+        `[TOMBAMENTOS] Create denied (${denial}): missing busca:services:admin role`
+      )
+      return NextResponse.json(
+        { error: SERVICE_CURATION_DENIAL_MESSAGES[denial] },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
 
     console.log('🚀 Creating tombamento with data:', body)

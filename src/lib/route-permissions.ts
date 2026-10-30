@@ -398,7 +398,8 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   '/api/services/[service-id]/versions': BUSCA_SERVICES_API,
   '/api/services/[service-id]/versions/compare': BUSCA_SERVICES_API,
   '/api/tombamentos': BUSCA_SERVICES_API,
-  '/api/tombamentos/[tombamento-id]': BUSCA_SERVICES_API,
+  // Só DELETE (Destombar), que a UI mostra só ao admin do módulo
+  '/api/tombamentos/[tombamento-id]': BUSCA_SERVICES_ADMIN_API,
   '/api/tombamentos/by-old-service': BUSCA_SERVICES_API,
 
   // Superadmin - vínculos CPF-Secretaria (página /superadmin/vinculos-secretaria)

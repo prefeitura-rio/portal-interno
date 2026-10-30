@@ -431,6 +431,7 @@ describe('aprovar e publicar exigem o papel que a UI exige (DEV-125)', () => {
     ['/api/services/abc/unpublish', 'PATCH'],
     ['/api/services/abc/send-to-edition', 'PATCH'],
     ['/api/services/abc/rollback', 'POST'],
+    ['/api/tombamentos/xyz', 'DELETE'],
   ]
 
   test('cursos: Editor recebe 403 ao aprovar ou publicar', async () => {
@@ -514,6 +515,8 @@ describe('aprovar e publicar exigem o papel que a UI exige (DEV-125)', () => {
       ['/api/services/abc/send-to-approval', 'PATCH'],
       ['/api/services/abc/versions', 'GET'],
       ['/api/services/abc/versions/compare', 'GET'],
+      ['/api/tombamentos', 'GET'],
+      ['/api/tombamentos/by-old-service', 'GET'],
     ]) {
       assert.equal(
         passedThrough(await callApi(path, editor, method)),

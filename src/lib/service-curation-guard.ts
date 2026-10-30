@@ -13,6 +13,8 @@ export type ServiceCurationDenial =
   | 'publish'
   | 'edit_published'
   | 'edit_awaiting_approval'
+  | 'delete'
+  | 'tombamento'
 
 export const SERVICE_CURATION_DENIAL_MESSAGES: Record<
   ServiceCurationDenial,
@@ -23,6 +25,8 @@ export const SERVICE_CURATION_DENIAL_MESSAGES: Record<
     'Somente o administrador de Serviços pode alterar um serviço publicado',
   edit_awaiting_approval:
     'Somente o administrador de Serviços pode alterar um serviço em aprovação',
+  delete: 'Somente o administrador de Serviços pode excluir um serviço',
+  tombamento: 'Somente o administrador de Serviços pode tombar um serviço',
 }
 
 /** Admin do módulo Serviços municipais (o mesmo `isBuscaServicesAdmin` da UI). */
@@ -82,4 +86,34 @@ export function getServiceUpdateDenial(
     return 'edit_awaiting_approval'
   }
   return null
+}
+
+/**
+ * DEV-125: enviar para aprovação só parte de serviço em edição (na UI, o
+ * Editor só vê o botão nesse status); de um serviço publicado, a rota o
+ * tiraria do ar.
+ */
+export function getServiceSendToApprovalDenial(
+  roles: readonly string[] | null | undefined,
+  current: ServiceCurationFields
+): ServiceCurationDenial | null {
+  return getServiceUpdateDenial(
+    roles,
+    { status: SERVICE_STATUS_DRAFT },
+    current
+  )
+}
+
+/** DEV-125: excluir serviço é ação do admin de Serviços, como na UI. */
+export function getServiceDeleteDenial(
+  roles: readonly string[] | null | undefined
+): ServiceCurationDenial | null {
+  return isServiceCurator(roles) ? null : 'delete'
+}
+
+/** DEV-125: tombar serviço é ação do admin de Serviços, como na UI. */
+export function getTombamentoCreateDenial(
+  roles: readonly string[] | null | undefined
+): ServiceCurationDenial | null {
+  return isServiceCurator(roles) ? null : 'tombamento'
 }
