@@ -24,7 +24,8 @@ import {
 } from '@/hooks/use-heimdall-user'
 import { useServiceOperationsWithTombamento } from '@/hooks/use-service-operations-with-tombamento'
 import { useServices } from '@/hooks/use-services'
-import { useTombamentos } from '@/hooks/use-tombamentos'
+import { type Tombamento, useTombamentos } from '@/hooks/use-tombamentos'
+import { groupTombamentosByNewService } from '@/lib/tombamento-duplicates'
 import type {
   ServiceListItem,
   ServiceStatus,
@@ -153,7 +154,7 @@ export function ServicesDataTable() {
     handleTombamentoSuccess: handlePublishTombamentoSuccess,
     handleTombamentoCancel: handlePublishTombamentoCancel,
   } = useServiceOperationsWithTombamento()
-  const { fetchTombamentos, deleteTombamento } = useTombamentos()
+  const { fetchAllTombamentos, deleteTombamentos } = useTombamentos()
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'last_update', desc: true },
@@ -215,9 +216,17 @@ export function ServicesDataTable() {
     Map<string, boolean>
   >(new Map())
   const [tombamentosData, setTombamentosData] = React.useState<
-    Map<string, { id: string; origem: string; id_servico_antigo: string }>
+    Map<string, Tombamento[]>
   >(new Map())
   const [tombamentosLoading, setTombamentosLoading] = React.useState(false)
+
+  // DEV-147: agrupa sem descartar registros, para que um serviço com mais de
+  // um tombamento tenha todos visíveis e removíveis no "Destombar".
+  const applyTombamentos = React.useCallback((tombamentos: Tombamento[]) => {
+    const grouped = groupTombamentosByNewService(tombamentos)
+    setTombamentosMap(new Map([...grouped.keys()].map(id => [id, true])))
+    setTombamentosData(grouped)
+  }, [])
 
   // Use the services hook to fetch data from API
   const {
@@ -265,31 +274,13 @@ export function ServicesDataTable() {
     const checkTombamentos = async () => {
       setTombamentosLoading(true)
       try {
-        const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
+        const tombamentos = await fetchAllTombamentos()
 
         // Prevent state update if effect was cancelled (component unmounted or deps changed)
         if (isCancelled) return
 
-        if (tombamentosResponse?.data?.tombamentos) {
-          const tombamentos = tombamentosResponse.data.tombamentos
-          const newTombamentosMap = new Map<string, boolean>()
-          const newTombamentosData = new Map<
-            string,
-            { id: string; origem: string; id_servico_antigo: string }
-          >()
-
-          // Create a map of service IDs that have tombamentos
-          tombamentos.forEach(tombamento => {
-            newTombamentosMap.set(tombamento.id_servico_novo, true)
-            newTombamentosData.set(tombamento.id_servico_novo, {
-              id: tombamento.id,
-              origem: tombamento.origem,
-              id_servico_antigo: tombamento.id_servico_antigo,
-            })
-          })
-
-          setTombamentosMap(newTombamentosMap)
-          setTombamentosData(newTombamentosData)
+        if (tombamentos) {
+          applyTombamentos(tombamentos)
         }
       } catch (error) {
         if (!isCancelled) {
@@ -308,7 +299,7 @@ export function ServicesDataTable() {
     return () => {
       isCancelled = true
     }
-  }, [services, activeTab, fetchTombamentos])
+  }, [services, activeTab, fetchAllTombamentos, applyTombamentos])
 
   /**
    * Sync URL → State (handles browser back/forward navigation ONLY)
@@ -586,34 +577,53 @@ export function ServicesDataTable() {
 
   const handleDestombarService = React.useCallback(
     (serviceId: string, serviceTitle: string) => {
-      const tombamentoData = tombamentosData.get(serviceId)
-      if (!tombamentoData) return
+      const serviceTombamentos = tombamentosData.get(serviceId) ?? []
+      if (serviceTombamentos.length === 0) return
+
+      const duplicateNotice =
+        serviceTombamentos.length > 1
+          ? ` Este serviço tem ${serviceTombamentos.length} tombamentos registrados; todos serão removidos.`
+          : ''
 
       openConfirmDialog({
         title: 'Destombar Serviço',
-        description: `Tem certeza que deseja destombar o serviço "${serviceTitle}"? Isso irá reverter a migração e o serviço antigo voltará a aparecer normalmente.`,
+        description: `Tem certeza que deseja destombar o serviço "${serviceTitle}"? Isso irá reverter a migração e o serviço antigo voltará a aparecer normalmente.${duplicateNotice}`,
         confirmText: 'Destombar',
         variant: 'destructive',
         onConfirm: async () => {
           try {
             console.log('🔄 Starting destombar service operation...')
-            const success = await deleteTombamento(tombamentoData.id)
+            const removedIds = await deleteTombamentos(
+              serviceTombamentos.map(tombamento => tombamento.id)
+            )
+            const remaining = serviceTombamentos.filter(
+              tombamento => !removedIds.includes(tombamento.id)
+            )
 
-            if (success) {
-              // Immediately update local state to remove the tombamento
-              setTombamentosMap(prev => {
-                const newMap = new Map(prev)
+            // Immediately update local state with what is left in the backend
+            setTombamentosMap(prev => {
+              const newMap = new Map(prev)
+              if (remaining.length > 0) {
+                newMap.set(serviceId, true)
+              } else {
                 newMap.delete(serviceId)
-                return newMap
-              })
-              setTombamentosData(prev => {
-                const newData = new Map(prev)
+              }
+              return newMap
+            })
+            setTombamentosData(prev => {
+              const newData = new Map(prev)
+              if (remaining.length > 0) {
+                newData.set(serviceId, remaining)
+              } else {
                 newData.delete(serviceId)
-                return newData
-              })
-              console.log('✅ Tombamento removed from local state')
+              }
+              return newData
+            })
+
+            if (remaining.length > 0) {
+              console.error('❌ Failed to remove every tombamento of service')
             } else {
-              console.error('❌ Failed to destombar service')
+              console.log('✅ Tombamento removed from local state')
             }
           } catch (error) {
             console.error('❌ Error in destombar service flow:', error)
@@ -622,7 +632,7 @@ export function ServicesDataTable() {
       })
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [openConfirmDialog, deleteTombamento, tombamentosData]
+    [openConfirmDialog, deleteTombamentos, tombamentosData]
   )
 
   const handleSendToApproval = React.useCallback(
@@ -688,26 +698,9 @@ export function ServicesDataTable() {
     const refreshTombamentos = async () => {
       setTombamentosLoading(true)
       try {
-        const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
-        if (tombamentosResponse?.data?.tombamentos) {
-          const tombamentos = tombamentosResponse.data.tombamentos
-          const newTombamentosMap = new Map<string, boolean>()
-          const newTombamentosData = new Map<
-            string,
-            { id: string; origem: string; id_servico_antigo: string }
-          >()
-
-          tombamentos.forEach(tombamento => {
-            newTombamentosMap.set(tombamento.id_servico_novo, true)
-            newTombamentosData.set(tombamento.id_servico_novo, {
-              id: tombamento.id,
-              origem: tombamento.origem,
-              id_servico_antigo: tombamento.id_servico_antigo,
-            })
-          })
-
-          setTombamentosMap(newTombamentosMap)
-          setTombamentosData(newTombamentosData)
+        const tombamentos = await fetchAllTombamentos()
+        if (tombamentos) {
+          applyTombamentos(tombamentos)
         }
       } catch (error) {
         console.error('Error refreshing tombamentos:', error)
@@ -717,7 +710,7 @@ export function ServicesDataTable() {
     }
 
     refreshTombamentos()
-  }, [fetchTombamentos])
+  }, [fetchAllTombamentos, applyTombamentos])
 
   // Define table columns
   const columns = React.useMemo<ColumnDef<ServiceListItem>[]>(() => {
@@ -1294,6 +1287,7 @@ export function ServicesDataTable() {
           serviceId={selectedServiceForTombamento.id}
           serviceTitle={selectedServiceForTombamento.title}
           onSuccess={handleTombamentoSuccess}
+          onDuplicate={handleTombamentoSuccess}
         />
       )}
 
@@ -1309,6 +1303,7 @@ export function ServicesDataTable() {
           serviceId={selectedPublishServiceForTombamento.id}
           serviceTitle={selectedPublishServiceForTombamento.title}
           onSuccess={handlePublishTombamentoSuccess}
+          onDuplicate={handleTombamentoSuccess}
         />
       )}
     </div>

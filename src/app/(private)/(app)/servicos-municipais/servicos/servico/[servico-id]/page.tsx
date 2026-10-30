@@ -43,6 +43,7 @@ import {
   transformToFormData,
 } from '@/lib/service-data-transformer'
 import { mapFormDataToPreview } from '@/lib/service-preview-mapper'
+import { findTombamentosByNewService } from '@/lib/tombamento-duplicates'
 import type { ServiceStatusConfig } from '@/types/service'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -130,7 +131,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [shouldShowTombamentoModal, setShouldShowTombamentoModal] =
     useState(false)
   const [tombamentoLoading, setTombamentoLoading] = useState(false)
-  const [tombamentoData, setTombamentoData] = useState<Tombamento | null>(null)
+  const [serviceTombamentos, setServiceTombamentos] = useState<Tombamento[]>([])
   const [showDestombamentoDialog, setShowDestombamentoDialog] = useState(false)
   const [activeTab, setActiveTab] = useState('details')
   const [hasFormChanges, setHasFormChanges] = useState(false)
@@ -165,7 +166,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     deleteService,
     loading: operationLoading,
   } = useServiceOperations()
-  const { fetchTombamentos, deleteTombamento } = useTombamentos()
+  const { fetchAllTombamentos, deleteTombamentos } = useTombamentos()
   const isBuscaServicesAdmin = useIsBuscaServicesAdmin()
   const canEditServices = useCanEditBuscaServices()
 
@@ -374,20 +375,25 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }
 
   const handleConfirmDestombamento = async () => {
-    if (!tombamentoData) return
+    if (serviceTombamentos.length === 0) return
 
     try {
       setTombamentoLoading(true)
       console.log('🔄 Starting destombar service operation...')
-      const success = await deleteTombamento(tombamentoData.id)
+      const removedIds = await deleteTombamentos(
+        serviceTombamentos.map(tombamento => tombamento.id)
+      )
+      const remaining = serviceTombamentos.filter(
+        tombamento => !removedIds.includes(tombamento.id)
+      )
+      setServiceTombamentos(remaining)
+      setIsServiceTombado(remaining.length > 0)
 
-      if (success) {
-        setIsServiceTombado(false)
-        setTombamentoData(null)
+      if (remaining.length === 0) {
         setShowDestombamentoDialog(false)
         console.log('✅ Tombamento removed successfully')
       } else {
-        console.error('❌ Failed to destombar service')
+        console.error('❌ Failed to remove every tombamento of service')
       }
     } catch (error) {
       console.error('❌ Error in destombar service flow:', error)
@@ -432,44 +438,42 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }
 
   // Check if service is tombado when service is loaded
-  useEffect(() => {
-    const checkTombamento = async () => {
-      if (servicoId && service?.status === 'published') {
-        setTombamentoLoading(true)
-        try {
-          const tombamentosResponse = await fetchTombamentos({ per_page: 100 })
-          if (tombamentosResponse?.data?.tombamentos) {
-            const tombamentos = tombamentosResponse.data.tombamentos
-            const tombamento = tombamentos.find(
-              tombamento => tombamento.id_servico_novo === servicoId
-            )
-            const isTombado = !!tombamento
-            setIsServiceTombado(isTombado)
-
-            if (tombamento) {
-              setTombamentoData(tombamento)
-            } else {
-              setTombamentoData(null)
-            }
-
-            // Show tombamento modal if requested and service is not already tombado
-            if (shouldShowTombamentoModal && !isTombado) {
-              setShowTombamentoModal(true)
-              setShouldShowTombamentoModal(false)
-            }
-          }
-        } catch (error) {
-          console.error('Error checking tombamento:', error)
-        } finally {
-          setTombamentoLoading(false)
-        }
-      } else {
-        setTombamentoLoading(false)
-      }
+  const checkTombamento = useCallback(async () => {
+    if (!servicoId || service?.status !== 'published') {
+      setTombamentoLoading(false)
+      return
     }
 
+    setTombamentoLoading(true)
+    try {
+      const tombamentos = await fetchAllTombamentos()
+      if (tombamentos) {
+        const found = findTombamentosByNewService(tombamentos, servicoId)
+        const isTombado = found.length > 0
+        setIsServiceTombado(isTombado)
+        setServiceTombamentos(found)
+
+        // Show tombamento modal if requested and service is not already tombado
+        if (shouldShowTombamentoModal && !isTombado) {
+          setShowTombamentoModal(true)
+          setShouldShowTombamentoModal(false)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking tombamento:', error)
+    } finally {
+      setTombamentoLoading(false)
+    }
+  }, [
+    servicoId,
+    service?.status,
+    fetchAllTombamentos,
+    shouldShowTombamentoModal,
+  ])
+
+  useEffect(() => {
     checkTombamento()
-  }, [servicoId, service?.status, fetchTombamentos, shouldShowTombamentoModal])
+  }, [checkTombamento])
 
   // Function to determine which buttons should be shown based on user role and service status
   // Returns buttons organized by category: primary actions, secondary actions, and destructive actions
@@ -1014,15 +1018,17 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
         </div>
 
         {/* Tombamento Information Card */}
-        {isServiceTombado && tombamentoData && (
-          <TombadoServiceInfo
-            origem={tombamentoData.origem}
-            idServicoAntigo={tombamentoData.id_servico_antigo}
-            criadoEm={tombamentoData.criado_em}
-            criadoPor={tombamentoData.criado_por}
-            observacoes={tombamentoData.observacoes}
-          />
-        )}
+        {isServiceTombado &&
+          serviceTombamentos.map(tombamento => (
+            <TombadoServiceInfo
+              key={tombamento.id}
+              origem={tombamento.origem}
+              idServicoAntigo={tombamento.id_servico_antigo}
+              criadoEm={tombamento.criado_em}
+              criadoPor={tombamento.criado_por}
+              observacoes={tombamento.observacoes}
+            />
+          ))}
 
         <Tabs
           value={activeTab}
@@ -1120,7 +1126,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           open={showDestombamentoDialog}
           onOpenChange={setShowDestombamentoDialog}
           title="Destombar Serviço"
-          description="Tem certeza que deseja destombar este serviço? Isso irá reverter a migração e o serviço antigo voltará a aparecer normalmente."
+          description={`Tem certeza que deseja destombar este serviço? Isso irá reverter a migração e o serviço antigo voltará a aparecer normalmente.${
+            serviceTombamentos.length > 1
+              ? ` Este serviço tem ${serviceTombamentos.length} tombamentos registrados; todos serão removidos.`
+              : ''
+          }`}
           confirmText="Destombar"
           cancelText="Cancelar"
           variant="destructive"
@@ -1169,6 +1179,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             serviceId={servicoId}
             serviceTitle={service.title}
             onSuccess={handleTombamentoSuccess}
+            onDuplicate={checkTombamento}
           />
         )}
 

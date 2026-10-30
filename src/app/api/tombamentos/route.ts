@@ -1,4 +1,7 @@
-import type { GetApiV1AdminTombamentosParams } from '@/http-busca-search/models'
+import type {
+  GetApiV1AdminTombamentosParams,
+  ModelsTombamento,
+} from '@/http-busca-search/models'
 import {
   getApiV1AdminTombamentos,
   postApiV1AdminTombamentos,
@@ -8,7 +11,24 @@ import {
   SERVICE_CURATION_DENIAL_MESSAGES,
   getTombamentoCreateDenial,
 } from '@/lib/service-curation-guard'
+import {
+  TOMBAMENTO_DUPLICATE_MESSAGE,
+  type TombamentosPage,
+  findTombamentosByNewService,
+  listAllTombamentos,
+} from '@/lib/tombamento-duplicates'
 import { NextResponse } from 'next/server'
+
+async function fetchTombamentosPage(
+  page: number,
+  perPage: number
+): Promise<TombamentosPage<ModelsTombamento>> {
+  const response = await getApiV1AdminTombamentos({ page, per_page: perPage })
+  if (response.status !== 200) {
+    throw new Error(`Tombamentos API returned ${response.status}`)
+  }
+  return response.data
+}
 
 export async function GET(request: Request) {
   try {
@@ -121,6 +141,52 @@ export async function POST(request: Request) {
       )
     }
 
+    if (
+      typeof body.id_servico_antigo !== 'string' ||
+      typeof body.id_servico_novo !== 'string'
+    ) {
+      return NextResponse.json(
+        { error: 'id_servico_antigo and id_servico_novo must be strings' },
+        { status: 400 }
+      )
+    }
+
+    // DEV-147: a API de busca aceita mais de um tombamento para o mesmo
+    // serviço novo. Sem conseguir ler a lista atual não há como garantir
+    // isso, então a criação é recusada (falha fechada).
+    let existing: ModelsTombamento[]
+    try {
+      existing = findTombamentosByNewService(
+        await listAllTombamentos(fetchTombamentosPage),
+        body.id_servico_novo
+      )
+    } catch (error) {
+      console.error(
+        '[TOMBAMENTOS] Could not check existing tombamentos before create:',
+        error instanceof Error ? error.message : error
+      )
+      return NextResponse.json(
+        {
+          error:
+            'Não foi possível verificar os tombamentos existentes. Tente novamente.',
+        },
+        { status: 502 }
+      )
+    }
+
+    if (existing.length > 0) {
+      console.warn(
+        `[TOMBAMENTOS] Create refused: service ${body.id_servico_novo} already has ${existing.length} tombamento(s)`
+      )
+      return NextResponse.json(
+        {
+          error: TOMBAMENTO_DUPLICATE_MESSAGE,
+          tombamentos_existentes: existing.map(tombamento => tombamento.id),
+        },
+        { status: 409 }
+      )
+    }
+
     const tombamentoRequest = {
       origem: body.origem,
       id_servico_antigo: body.id_servico_antigo,
@@ -138,6 +204,16 @@ export async function POST(request: Request) {
         tombamento: response.data,
         success: true,
       })
+    }
+
+    if (response.status === 409) {
+      const apiMessage = Object.values(response.data ?? {}).find(
+        value => typeof value === 'string' && value.trim() !== ''
+      )
+      return NextResponse.json(
+        { error: apiMessage ?? TOMBAMENTO_DUPLICATE_MESSAGE },
+        { status: 409 }
+      )
     }
 
     return NextResponse.json(

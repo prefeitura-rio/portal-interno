@@ -54,6 +54,8 @@ interface TombamentoModalProps {
   serviceId: string
   serviceTitle: string
   onSuccess?: () => void
+  /** O serviço já tinha tombamento (409): recarregue o estado da tela. */
+  onDuplicate?: () => void
 }
 
 export function TombamentoModal({
@@ -62,6 +64,7 @@ export function TombamentoModal({
   serviceId,
   serviceTitle,
   onSuccess,
+  onDuplicate,
 }: TombamentoModalProps) {
   const { createTombamento, loading } = useTombamentos()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -88,11 +91,16 @@ export function TombamentoModal({
 
       const result = await createTombamento(tombamentoData)
 
-      if (result) {
+      if (result.ok) {
         toast.success('Tombamento criado com sucesso!')
         form.reset()
         onOpenChange(false)
         onSuccess?.()
+      } else if (result.status === 409) {
+        toast.error(result.error)
+        form.reset()
+        onOpenChange(false)
+        onDuplicate?.()
       } else {
         toast.error('Erro ao criar tombamento. Tente novamente.')
       }
