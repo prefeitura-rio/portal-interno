@@ -15,6 +15,9 @@ const {
   attachSecretariaNames,
   buildCoursesDashboard,
   countEnrollmentsByCourse,
+  DASHBOARD_COURSES_BASE_DELAY_MS,
+  DASHBOARD_COURSES_MAX_ATTEMPTS,
+  DASHBOARD_COURSES_MAX_DELAY_MS,
   fetchAllPublishedCourses,
   parseCoursesPage,
   parseEnrollmentTotal,
@@ -66,6 +69,18 @@ function enrollmentsPage(total: number): { status: number; data: unknown } {
         pagination: { page: 1, limit: 1, total, total_pages: total },
         summary: { total },
       },
+    },
+  }
+}
+
+/** Opções da listagem de cursos por teste: sem esperas reais. */
+function listOptions(
+  overrides: { slept?: number[]; deadlineMs?: number } = {}
+) {
+  return {
+    deadlineMs: overrides.deadlineMs,
+    sleep: async (ms: number) => {
+      overrides.slept?.push(ms)
     },
   }
 }
@@ -221,21 +236,204 @@ describe('fetchAllPublishedCourses', () => {
     )
   })
 
-  test('falha de uma página derruba o consolidado com o status dela', async () => {
-    const result = await fetchAllPublishedCourses(async page =>
-      page === 1
-        ? coursesPage([{ id: 1 }], 2, 2)
-        : { status: 503, data: 'indisponível' }
+  test('falha persistente de uma página derruba o consolidado com o status dela', async () => {
+    const result = await fetchAllPublishedCourses(
+      async page =>
+        page === 1
+          ? coursesPage([{ id: 1 }], 2, 2)
+          : { status: 503, data: 'indisponível' },
+      1000,
+      50,
+      listOptions()
     )
-    assert.deepEqual(result, { ok: false, status: 503 })
+    assert.deepEqual(result, {
+      ok: false,
+      status: 503,
+      reason: '503',
+      page: 2,
+      attempts: DASHBOARD_COURSES_MAX_ATTEMPTS,
+    })
   })
 
-  test('resposta inválida vira 502', async () => {
-    const result = await fetchAllPublishedCourses(async () => ({
-      status: 200,
-      data: '<html>',
-    }))
-    assert.deepEqual(result, { ok: false, status: 502 })
+  test('resposta inválida persistente vira 502', async () => {
+    const result = await fetchAllPublishedCourses(
+      async () => ({ status: 200, data: '<html>' }),
+      1000,
+      50,
+      listOptions()
+    )
+    assert.deepEqual(result, {
+      ok: false,
+      status: 502,
+      reason: 'invalid',
+      page: 1,
+      attempts: DASHBOARD_COURSES_MAX_ATTEMPTS,
+    })
+  })
+
+  // DEV-115: uma rajada de cargas do dashboard esbarrava no limite de taxa
+  // na listagem de cursos e derrubava o consolidado inteiro
+  test('429, 5xx, erro de rede e resposta inválida tentam de novo e a página é lida', async () => {
+    for (const failure of [
+      async () => ({ status: 429, data: {} }),
+      async () => ({ status: 502, data: 'bad gateway' }),
+      async () => {
+        throw new TypeError('fetch failed')
+      },
+      async () => ({ status: 200, data: '<html>' }),
+    ]) {
+      const calls: number[] = []
+      const slept: number[] = []
+      let page2Attempts = 0
+      const result = await fetchAllPublishedCourses(
+        async page => {
+          calls.push(page)
+          if (page === 1) return coursesPage([{ id: 1 }], 2, 2)
+          page2Attempts++
+          return page2Attempts === 1
+            ? failure()
+            : coursesPage([{ id: 2 }], 2, 2)
+        },
+        1000,
+        50,
+        listOptions({ slept })
+      )
+      assert.deepEqual(result, {
+        ok: true,
+        courses: [
+          { id: 1, orgaoId: null },
+          { id: 2, orgaoId: null },
+        ],
+      })
+      assert.deepEqual(calls, [1, 2, 2])
+      assert.deepEqual(slept, [DASHBOARD_COURSES_BASE_DELAY_MS])
+    }
+  })
+
+  test('recuo exponencial entre as tentativas e respeito ao Retry-After', async () => {
+    const slept: number[] = []
+    let attempts = 0
+    const result = await fetchAllPublishedCourses(
+      async () => {
+        attempts++
+        return { status: 503, data: {} }
+      },
+      1000,
+      50,
+      listOptions({ slept })
+    )
+    assert.equal(result.ok, false)
+    assert.equal(attempts, DASHBOARD_COURSES_MAX_ATTEMPTS)
+    assert.deepEqual(slept, [
+      DASHBOARD_COURSES_BASE_DELAY_MS,
+      DASHBOARD_COURSES_BASE_DELAY_MS * 2,
+    ])
+
+    const sleptRetryAfter: number[] = []
+    let calls = 0
+    const retried = await fetchAllPublishedCourses(
+      async () => {
+        calls++
+        return calls === 1
+          ? {
+              status: 429,
+              data: {},
+              headers: new Headers({ 'Retry-After': '2' }),
+            }
+          : calls === 2
+            ? {
+                status: 429,
+                data: {},
+                headers: new Headers({ 'Retry-After': '120' }),
+              }
+            : coursesPage([{ id: 7 }], 1, 1)
+      },
+      1000,
+      50,
+      listOptions({ slept: sleptRetryAfter, deadlineMs: 60_000 })
+    )
+    assert.ok(retried.ok)
+    // Retry-After longo é limitado à maior espera
+    assert.deepEqual(sleptRetryAfter, [2000, DASHBOARD_COURSES_MAX_DELAY_MS])
+  })
+
+  test('401, 403 e 4xx que não é limite de taxa não tentam de novo', async () => {
+    for (const status of [401, 403, 400, 404]) {
+      let calls = 0
+      const slept: number[] = []
+      const result = await fetchAllPublishedCourses(
+        async () => {
+          calls++
+          return { status, data: {} }
+        },
+        1000,
+        50,
+        listOptions({ slept })
+      )
+      assert.deepEqual(result, {
+        ok: false,
+        status,
+        reason: String(status),
+        page: 1,
+        attempts: 1,
+      })
+      assert.equal(calls, 1)
+      assert.deepEqual(slept, [])
+    }
+  })
+
+  test('erro de rede persistente vira 502 com o motivo', async () => {
+    const result = await fetchAllPublishedCourses(
+      async () => {
+        throw new TypeError('fetch failed')
+      },
+      1000,
+      50,
+      listOptions()
+    )
+    assert.deepEqual(result, {
+      ok: false,
+      status: 502,
+      reason: 'network',
+      page: 1,
+      attempts: DASHBOARD_COURSES_MAX_ATTEMPTS,
+    })
+  })
+
+  test('não espera além do prazo: nova tentativa que passaria dele não é feita', async () => {
+    const clock = { now: 0 }
+    const slept: number[] = []
+    let calls = 0
+    const result = await fetchAllPublishedCourses(
+      async () => {
+        calls++
+        return {
+          status: 429,
+          data: {},
+          headers: new Headers({ 'Retry-After': '4' }),
+        }
+      },
+      1000,
+      50,
+      {
+        maxAttempts: 5,
+        deadlineMs: 6_000,
+        now: () => clock.now,
+        sleep: async ms => {
+          slept.push(ms)
+          clock.now += ms
+        },
+      }
+    )
+    assert.deepEqual(slept, [4000])
+    assert.equal(calls, 2)
+    assert.deepEqual(result, {
+      ok: false,
+      status: 429,
+      reason: '429',
+      page: 1,
+      attempts: 2,
+    })
   })
 
   test('não entra em laço quando a API anuncia páginas sem fim', async () => {
@@ -249,7 +447,13 @@ describe('fetchAllPublishedCourses', () => {
       5
     )
     assert.equal(calls, 5)
-    assert.deepEqual(result, { ok: false, status: 502 })
+    assert.deepEqual(result, {
+      ok: false,
+      status: 502,
+      reason: 'too_many_pages',
+      page: 5,
+      attempts: 1,
+    })
   })
 
   test('página vazia encerra a leitura', async () => {
@@ -720,7 +924,13 @@ describe('buildCoursesDashboard', () => {
         throw new Error('não devia consultar')
       },
     })
-    assert.deepEqual(result, { ok: false, status: 403 })
+    assert.deepEqual(result, {
+      ok: false,
+      status: 403,
+      reason: '403',
+      page: 1,
+      attempts: 1,
+    })
   })
 
   test('devolve o nome de cada secretaria, consultando cada código uma vez', async () => {

@@ -151,7 +151,7 @@ export type CoursesDashboardResult =
       summary: CoursesDashboardSummary
       enrollmentStats: EnrollmentCountsStats
     }
-  | { ok: false; status: number }
+  | PublishedCoursesFailure
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -218,28 +218,132 @@ function isSuccess(status: number): boolean {
   return status >= 200 && status < 300
 }
 
+/** Tentativas por página de cursos (a primeira e as novas tentativas). */
+export const DASHBOARD_COURSES_MAX_ATTEMPTS = 3
+
+/** Espera antes da 2ª tentativa de uma página; dobra a cada nova tentativa. */
+export const DASHBOARD_COURSES_BASE_DELAY_MS = 500
+
+/** Maior espera entre tentativas de uma página, também para `Retry-After`. */
+export const DASHBOARD_COURSES_MAX_DELAY_MS = 5_000
+
+/**
+ * Prazo para as esperas entre tentativas da listagem de cursos: uma nova
+ * tentativa que só sairia depois dele não é feita.
+ */
+export const DASHBOARD_COURSES_DEADLINE_MS = 15_000
+
+export interface FetchPublishedCoursesOptions {
+  maxAttempts?: number
+  deadlineMs?: number
+  now?: () => number
+  sleep?: (ms: number) => Promise<void>
+}
+
+/**
+ * Falha da listagem de cursos publicados. `reason` é o status HTTP da última
+ * tentativa, `network` (a chamada lançou erro), `invalid` (resposta fora do
+ * formato) ou `too_many_pages`; `page` e `attempts` dizem onde parou. Nada de
+ * ids, token ou dado pessoal: serve para o log de diagnóstico.
+ */
+export interface PublishedCoursesFailure {
+  ok: false
+  status: number
+  reason: string
+  page: number
+  attempts: number
+}
+
+type CoursesPageLookup =
+  | { ok: true; page: CoursesPage }
+  | { ok: false; status: number; reason: string; attempts: number }
+
 /**
  * Lê todas as páginas de cursos publicados, sem repetir curso (a lista pode
- * mudar entre uma página e outra). Falha de qualquer página devolve o status
- * dela (ou 502 para resposta inválida): um consolidado sem parte dos cursos
- * seria um número errado.
+ * mudar entre uma página e outra). Cada página tenta de novo em falha
+ * passageira (429, 5xx, erro de rede ou resposta inválida), depois de
+ * `Retry-After` (ou de um recuo exponencial), até `maxAttempts` ou até o
+ * prazo das esperas (DEV-115: uma rajada de cargas do dashboard esbarrava no
+ * limite de taxa e derrubava o consolidado inteiro). 401, 403 e os demais 4xx
+ * não tentam de novo. Página que não deu para ler devolve o status dela (ou
+ * 502 para resposta inválida, erro de rede ou páginas demais) e o motivo: um
+ * consolidado sem parte dos cursos seria um número errado.
  */
 export async function fetchAllPublishedCourses(
   listPage: ListPublishedCoursesPage,
   pageSize = DASHBOARD_COURSES_PAGE_SIZE,
-  maxPages = DASHBOARD_MAX_COURSE_PAGES
+  maxPages = DASHBOARD_MAX_COURSE_PAGES,
+  options: FetchPublishedCoursesOptions = {}
 ): Promise<
-  { ok: true; courses: PublishedCourseRef[] } | { ok: false; status: number }
+  { ok: true; courses: PublishedCourseRef[] } | PublishedCoursesFailure
 > {
+  const maxAttempts = Math.max(
+    1,
+    options.maxAttempts ?? DASHBOARD_COURSES_MAX_ATTEMPTS
+  )
+  const now = options.now ?? Date.now
+  const sleep = options.sleep ?? defaultSleep
+  const deadline = now() + (options.deadlineMs ?? DASHBOARD_COURSES_DEADLINE_MS)
+
+  async function readPage(page: number): Promise<CoursesPageLookup> {
+    let last: CoursesPageLookup = {
+      ok: false,
+      status: 502,
+      reason: 'network',
+      attempts: 0,
+    }
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      let retryAfter: number | null = null
+      try {
+        const response = await listPage(page, pageSize)
+        if (isSuccess(response.status)) {
+          const parsed = parseCoursesPage(response.data)
+          if (parsed) return { ok: true, page: parsed }
+          last = {
+            ok: false,
+            status: 502,
+            reason: 'invalid',
+            attempts: attempt,
+          }
+        } else {
+          last = {
+            ok: false,
+            status: response.status,
+            reason: String(response.status),
+            attempts: attempt,
+          }
+          if (!isRetryable(response.status)) return last
+          retryAfter = retryAfterMs(response.headers, now())
+        }
+      } catch {
+        last = { ok: false, status: 502, reason: 'network', attempts: attempt }
+      }
+
+      if (attempt === maxAttempts) break
+      const delay = Math.min(
+        retryAfter ?? DASHBOARD_COURSES_BASE_DELAY_MS * 2 ** (attempt - 1),
+        DASHBOARD_COURSES_MAX_DELAY_MS
+      )
+      if (now() + delay >= deadline) break
+      await sleep(delay)
+    }
+    return last
+  }
+
   const byId = new Map<number, PublishedCourseRef>()
 
   for (let page = 1; page <= maxPages; page++) {
-    const response = await listPage(page, pageSize)
-    if (!isSuccess(response.status)) {
-      return { ok: false, status: response.status }
+    const result = await readPage(page)
+    if (!result.ok) {
+      return {
+        ok: false,
+        status: result.status,
+        reason: result.reason,
+        page,
+        attempts: result.attempts,
+      }
     }
-    const parsed = parseCoursesPage(response.data)
-    if (!parsed) return { ok: false, status: 502 }
+    const parsed = result.page
 
     for (const course of parsed.courses) {
       if (!byId.has(course.id)) byId.set(course.id, course)
@@ -252,7 +356,13 @@ export async function fetchAllPublishedCourses(
   }
 
   // Mais páginas do que o limite: o consolidado ficaria incompleto
-  return { ok: false, status: 502 }
+  return {
+    ok: false,
+    status: 502,
+    reason: 'too_many_pages',
+    page: maxPages,
+    attempts: 1,
+  }
 }
 
 interface EnrollmentCountEntry {
@@ -645,8 +755,14 @@ export async function buildCoursesDashboard(deps: {
   fetchCourseEnrollments: FetchCourseEnrollments
   resolveSecretarias: ResolveSecretarias
   enrollmentCountOptions?: CountEnrollmentsOptions
+  courseListOptions?: FetchPublishedCoursesOptions
 }): Promise<CoursesDashboardResult> {
-  const courses = await fetchAllPublishedCourses(deps.listPublishedCoursesPage)
+  const courses = await fetchAllPublishedCourses(
+    deps.listPublishedCoursesPage,
+    DASHBOARD_COURSES_PAGE_SIZE,
+    DASHBOARD_MAX_COURSE_PAGES,
+    deps.courseListOptions
+  )
   if (!courses.ok) return courses
 
   const orgaoIds = [

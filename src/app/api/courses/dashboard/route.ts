@@ -39,6 +39,13 @@ export async function GET() {
     })
 
     if (!result.ok) {
+      // Só status, motivo e onde parou: nada de ids, token ou dado pessoal
+      console.error('Courses dashboard: published courses listing failed', {
+        status: result.status,
+        reason: result.reason,
+        page: result.page,
+        attempts: result.attempts,
+      })
       // Sessão inválida ou sem permissão na API Go segue como está; o resto
       // é falha da API de cursos
       const status =
