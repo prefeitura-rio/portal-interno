@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import {
+  countScheduleOutcomes,
   formatScheduleOccupancyPercent,
   getScheduleOccupancyPercent,
+  getScheduleOutcomeCounts,
   getScheduleVacancyStatus,
   getScheduleVacancySummaries,
 } from '../course-schedule-vacancies.ts'
@@ -280,5 +282,77 @@ describe('getScheduleVacancyStatus', () => {
       getScheduleVacancyStatus({ vagas: 8, disponiveis: null }),
       null
     )
+  })
+})
+
+describe('countScheduleOutcomes', () => {
+  test('conta recusados e concluídos separados por turma', () => {
+    const counts = countScheduleOutcomes([
+      { id: 'e1', schedule_id: 'sch-1', status: 'rejected' },
+      { id: 'e2', schedule_id: 'sch-1', status: 'rejected' },
+      { id: 'e3', schedule_id: 'sch-1', status: 'concluded' },
+      { id: 'e4', schedule_id: 'sch-2', status: 'concluded' },
+      { id: 'e5', schedule_id: 'sch-2', status: 'concluded' },
+    ])
+    assert.deepEqual(getScheduleOutcomeCounts(counts, 'sch-1'), {
+      recusados: 2,
+      concluidos: 1,
+    })
+    assert.deepEqual(getScheduleOutcomeCounts(counts, 'sch-2'), {
+      recusados: 0,
+      concluidos: 2,
+    })
+  })
+
+  test('outros status não entram nas colunas', () => {
+    const counts = countScheduleOutcomes([
+      { id: 'e1', schedule_id: 'sch-1', status: 'pending' },
+      { id: 'e2', schedule_id: 'sch-1', status: 'approved' },
+      { id: 'e3', schedule_id: 'sch-1', status: 'cancelled' },
+      { id: 'e4', schedule_id: 'sch-1', status: 'rejected' },
+    ])
+    assert.deepEqual(getScheduleOutcomeCounts(counts, 'sch-1'), {
+      recusados: 1,
+      concluidos: 0,
+    })
+  })
+
+  test('turma sem inscrição recusada nem concluída tem zeros', () => {
+    const counts = countScheduleOutcomes([
+      { id: 'e1', schedule_id: 'sch-1', status: 'rejected' },
+    ])
+    assert.deepEqual(getScheduleOutcomeCounts(counts, 'sch-9'), {
+      recusados: 0,
+      concluidos: 0,
+    })
+  })
+
+  test('inscrição sem turma ou malformada é ignorada', () => {
+    const counts = countScheduleOutcomes([
+      { id: 'e1', status: 'rejected' },
+      { id: 'e2', schedule_id: '', status: 'concluded' },
+      { id: 'e3', schedule_id: null, status: 'rejected' },
+      { id: 'e4', schedule_id: 42, status: 'rejected' },
+      null,
+      'texto',
+      ['sch-1'],
+    ])
+    assert.equal(counts.size, 0)
+  })
+
+  test('a mesma inscrição repetida entre páginas conta uma vez', () => {
+    const counts = countScheduleOutcomes([
+      { id: 'e1', schedule_id: 'sch-1', status: 'rejected' },
+      { id: 'e1', schedule_id: 'sch-1', status: 'rejected' },
+      { id: 'e2', schedule_id: 'sch-1', status: 'concluded' },
+    ])
+    assert.deepEqual(getScheduleOutcomeCounts(counts, 'sch-1'), {
+      recusados: 1,
+      concluidos: 1,
+    })
+  })
+
+  test('lista vazia não tem turma', () => {
+    assert.equal(countScheduleOutcomes([]).size, 0)
   })
 })

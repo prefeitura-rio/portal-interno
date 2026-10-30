@@ -112,6 +112,66 @@ export function getScheduleVacancyStatus(
     : 'quase-lotado'
 }
 
+/** Inscrições da turma por desfecho (Recusados e Concluídos). */
+export interface ScheduleOutcomeCounts {
+  /** Inscrições com status `rejected`. */
+  recusados: number
+  /** Inscrições com status `concluded`. */
+  concluidos: number
+}
+
+/** Status de inscrição contados nas colunas de desfecho por turma. */
+export const SCHEDULE_OUTCOME_STATUSES = ['rejected', 'concluded'] as const
+
+const EMPTY_OUTCOME_COUNTS: ScheduleOutcomeCounts = {
+  recusados: 0,
+  concluidos: 0,
+}
+
+/**
+ * Conta, por turma (`schedule_id`), as inscrições recusadas e concluídas.
+ * Inscrições sem turma, com outro status ou malformadas são ignoradas, e a
+ * mesma inscrição (por `id`) conta uma vez só.
+ */
+export function countScheduleOutcomes(
+  enrollments: unknown[]
+): Map<string, ScheduleOutcomeCounts> {
+  const counts = new Map<string, ScheduleOutcomeCounts>()
+  const seen = new Set<string>()
+
+  for (const enrollment of enrollments) {
+    if (!isRecord(enrollment)) continue
+    const scheduleId = asText(enrollment.schedule_id)
+    if (!scheduleId) continue
+
+    const enrollmentId = asText(enrollment.id)
+    if (enrollmentId) {
+      if (seen.has(enrollmentId)) continue
+      seen.add(enrollmentId)
+    }
+
+    const current = counts.get(scheduleId) ?? { ...EMPTY_OUTCOME_COUNTS }
+    if (enrollment.status === 'rejected') {
+      current.recusados += 1
+    } else if (enrollment.status === 'concluded') {
+      current.concluidos += 1
+    } else {
+      continue
+    }
+    counts.set(scheduleId, current)
+  }
+
+  return counts
+}
+
+/** Desfechos da turma; turma sem inscrição recusada nem concluída tem zeros. */
+export function getScheduleOutcomeCounts(
+  counts: Map<string, ScheduleOutcomeCounts>,
+  scheduleId: string
+): ScheduleOutcomeCounts {
+  return counts.get(scheduleId) ?? { ...EMPTY_OUTCOME_COUNTS }
+}
+
 /**
  * Lista as turmas do curso com total de vagas, ocupadas e disponíveis.
  * Aceita o curso cru da API, embrulhado ou não em `{ data }`.

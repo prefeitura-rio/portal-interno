@@ -10,13 +10,21 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
+  SCHEDULE_OUTCOME_STATUSES,
+  type ScheduleOutcomeCounts,
   type ScheduleVacancyStatus,
   type ScheduleVacancySummary,
+  countScheduleOutcomes,
   formatScheduleOccupancyPercent,
   getScheduleOccupancyPercent,
+  getScheduleOutcomeCounts,
   getScheduleVacancyStatus,
   getScheduleVacancySummaries,
 } from '@/lib/course-schedule-vacancies'
+import {
+  type EnrollmentsPage,
+  fetchAllEnrollmentPages,
+} from '@/lib/enrollment-class-filters'
 import { cn } from '@/lib/utils'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Users } from 'lucide-react'
@@ -38,6 +46,12 @@ export function ScheduleVacanciesSummary({
   const { data, isPending, isError } = useQuery({
     queryKey: ['course-schedule-vacancies', courseId, refreshKey],
     queryFn: () => fetchScheduleVacancies(courseId),
+    enabled: !!courseId,
+    placeholderData: keepPreviousData,
+  })
+  const outcomes = useQuery({
+    queryKey: ['course-schedule-outcomes', courseId, refreshKey],
+    queryFn: () => fetchScheduleOutcomes(courseId),
     enabled: !!courseId,
     placeholderData: keepPreviousData,
   })
@@ -82,12 +96,17 @@ export function ScheduleVacanciesSummary({
             <TableHead className="text-right">Inscritos</TableHead>
             <TableHead className="text-right">% Inscritos</TableHead>
             <TableHead className="text-right">Disponíveis</TableHead>
+            <TableHead className="text-right">Recusados</TableHead>
+            <TableHead className="text-right">Concluídos</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map(schedule => {
             const status = getScheduleVacancyStatus(schedule)
             const statusStyle = status ? STATUS_STYLES[status] : null
+            const outcome = outcomes.data
+              ? getScheduleOutcomeCounts(outcomes.data, schedule.id)
+              : null
             return (
               <TableRow key={schedule.id}>
                 <TableCell
@@ -123,11 +142,22 @@ export function ScheduleVacanciesSummary({
                 <TableCell className={NUMERIC_CELL}>
                   {schedule.disponiveis ?? '—'}
                 </TableCell>
+                <TableCell className={NUMERIC_CELL}>
+                  {outcome?.recusados ?? '—'}
+                </TableCell>
+                <TableCell className={NUMERIC_CELL}>
+                  {outcome?.concluidos ?? '—'}
+                </TableCell>
               </TableRow>
             )
           })}
         </TableBody>
       </Table>
+      {outcomes.isError && (
+        <p className="text-xs text-destructive">
+          Não foi possível carregar os recusados e concluídos por turma.
+        </p>
+      )}
       <ScheduleVacanciesLegend />
     </section>
   )
@@ -181,6 +211,62 @@ async function fetchScheduleVacancies(
       ? body.course
       : null
   return getScheduleVacancySummaries(course)
+}
+
+async function fetchScheduleOutcomes(
+  courseId: string
+): Promise<Map<string, ScheduleOutcomeCounts>> {
+  const lists = await Promise.all(
+    SCHEDULE_OUTCOME_STATUSES.map(status =>
+      fetchAllEnrollmentsWithStatus(courseId, status)
+    )
+  )
+  return countScheduleOutcomes(lists.flat())
+}
+
+async function fetchAllEnrollmentsWithStatus(
+  courseId: string,
+  status: string
+): Promise<unknown[]> {
+  const result = await fetchAllEnrollmentPages<unknown>(async (page, limit) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      perPage: String(limit),
+      status,
+    })
+    const response = await fetch(
+      `/api/enrollments/${encodeURIComponent(courseId)}?${params.toString()}`
+    )
+    if (!response.ok) return { error: response.status }
+    return parseEnrollmentsPage(await response.json())
+  })
+  if (!result.ok) {
+    throw new Error(
+      result.reason === 'too_many'
+        ? `Inscrições demais para contar por turma (${result.total})`
+        : `Falha ao buscar inscrições (${result.status})`
+    )
+  }
+  return result.items
+}
+
+function parseEnrollmentsPage(body: unknown): EnrollmentsPage<unknown> {
+  if (typeof body !== 'object' || body === null) return { items: [], total: 0 }
+  const items =
+    'enrollments' in body && Array.isArray(body.enrollments)
+      ? body.enrollments
+      : []
+  const pagination =
+    'pagination' in body &&
+    typeof body.pagination === 'object' &&
+    body.pagination !== null
+      ? body.pagination
+      : null
+  const total =
+    pagination && 'total' in pagination && typeof pagination.total === 'number'
+      ? pagination.total
+      : items.length
+  return { items, total }
 }
 
 const NUMERIC_CELL = 'text-right font-mono tabular-nums'
