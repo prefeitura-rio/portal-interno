@@ -1,3 +1,7 @@
+import {
+  canRequestCourseChanges,
+  denyCourseCurationAction,
+} from '@/lib/course-curation-guard'
 import { revalidateTag } from 'next/cache'
 import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -23,6 +27,15 @@ export async function PUT(
         { status: 401 }
       )
     }
+
+    // DEV-127: o Editor só propõe edição de curso publicado; devolver curso em
+    // revisão é da Casa Civil
+    const denial = await denyCourseCurationAction(
+      Number.parseInt(courseId, 10),
+      'request-changes',
+      canRequestCourseChanges
+    )
+    if (denial) return denial
 
     // Chamar backend API
     const baseUrl = process.env.COURSES_BASE_API_URL
