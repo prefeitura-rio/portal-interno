@@ -49,6 +49,13 @@ export function extractCourseStatus(body: unknown): string | undefined {
   return typeof status === 'string' && status ? status : undefined
 }
 
+/** Id do curso só com dígitos, ou `null` para qualquer outra coisa. */
+export function parseCourseId(courseId: string): number | null {
+  if (!/^\d+$/.test(courseId)) return null
+  const id = Number(courseId)
+  return Number.isSafeInteger(id) ? id : null
+}
+
 /** Quem tem a curadoria de cursos (Casa Civil, go:admin, admin, superadmin). */
 export function hasCourseCurationAccess(roles: string[] | undefined): boolean {
   return hasCasaCivilAccess(roles)

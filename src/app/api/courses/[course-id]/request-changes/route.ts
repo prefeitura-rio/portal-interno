@@ -1,6 +1,7 @@
 import {
   canRequestCourseChanges,
   denyCourseCurationAction,
+  parseCourseId,
 } from '@/lib/course-curation-guard'
 import { revalidateTag } from 'next/cache'
 import { cookies } from 'next/headers'
@@ -28,10 +29,20 @@ export async function PUT(
       )
     }
 
+    // DEV-127: o mesmo id numérico vale para a conferência e para a ação; um
+    // id como `42/../43` faria a conferência ler um curso e a API agir em outro
+    const numericCourseId = parseCourseId(courseId)
+    if (numericCourseId === null) {
+      return NextResponse.json(
+        { error: 'ID do curso inválido', success: false },
+        { status: 400 }
+      )
+    }
+
     // DEV-127: o Editor só propõe edição de curso publicado; devolver curso em
     // revisão é da Casa Civil
     const denial = await denyCourseCurationAction(
-      Number.parseInt(courseId, 10),
+      numericCourseId,
       'request-changes',
       canRequestCourseChanges
     )
@@ -40,7 +51,7 @@ export async function PUT(
     // Chamar backend API
     const baseUrl = process.env.COURSES_BASE_API_URL
     const response = await fetch(
-      `${baseUrl}/api/v1/courses/${courseId}/request-changes`,
+      `${baseUrl}/api/v1/courses/${numericCourseId}/request-changes`,
       {
         method: 'PUT',
         headers: {

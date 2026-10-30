@@ -126,6 +126,7 @@ const COURSE_ID = '42'
 const params = () => Promise.resolve({ 'course-id': COURSE_ID })
 
 const EDITOR = ['go:cursos:editor']
+const CASA_CIVIL = ['go:cursos:casa_civil']
 const CURATION_ROLES = [
   ['go:cursos:casa_civil'],
   ['go:admin'],
@@ -212,6 +213,25 @@ describe('PUT /api/courses/[id]/request-changes (DEV-127)', () => {
       assert.equal(status, 200, `roles=${roles}`)
       assert.equal(backendCalls('PUT request-changes').length, 1)
       assert.deepEqual(backendCalls('GET'), [], 'curadoria não lê o curso')
+    }
+  })
+
+  test('id que não é só dígitos é recusado (400) antes de ler ou agir', async () => {
+    for (const courseId of ['42/../43', '42%2F..%2F43', '42abc', ' 42', '']) {
+      testGlobals.__dev127Calls = []
+      for (const roles of [EDITOR, CASA_CIVIL]) {
+        testGlobals.__dev127Roles = roles
+        testGlobals.__dev127CourseStatus = 'published'
+        const request = new NextRequest(
+          'https://admin.test/api/courses/x/request-changes',
+          { method: 'PUT' }
+        )
+        const response = await requestChangesRoute.PUT(request, {
+          params: Promise.resolve({ 'course-id': courseId }),
+        })
+        assert.equal(response.status, 400, `${courseId} roles=${roles}`)
+      }
+      assert.deepEqual(testGlobals.__dev127Calls, [], courseId)
     }
   })
 
