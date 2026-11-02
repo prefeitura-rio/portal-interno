@@ -45,6 +45,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import {
   SERVICE_EXECUTION_DEADLINE_REQUIRED_MESSAGE,
   refineMEIOpportunityDeadlines,
+  refineMEIOpportunityExpirationInFuture,
 } from '@/lib/mei-opportunity-dates'
 import { isMEIImageURL } from '@/lib/mei-opportunity-images'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
@@ -145,6 +146,11 @@ export const fullFormSchema = fullFormFields.superRefine(
 )
 export const draftFormSchema = draftFormFields.superRefine(
   refineMEIOpportunityDeadlines
+)
+// Criação de oportunidade: além das regras acima, o prazo de expiração precisa
+// ser posterior ao momento da validação (a oportunidade não nasce vencida)
+export const newOpportunityFormSchema = fullFormSchema.superRefine(
+  refineMEIOpportunityExpirationInFuture
 )
 
 // Rótulos dos campos, na ordem em que aparecem no formulário
@@ -316,7 +322,9 @@ export const NewMEIOpportunityForm = forwardRef<
       : undefined
 
     const form = useForm({
-      resolver: zodResolver(formSchema),
+      resolver: zodResolver(
+        initialData ? formSchema : newOpportunityFormSchema
+      ),
       defaultValues: savedValues
         ? {
             ...savedValues,
@@ -334,7 +342,7 @@ export const NewMEIOpportunityForm = forwardRef<
             neighborhood: '',
             forma_pagamento: '',
             prazo_pagamento: '',
-            opportunity_expiration_date: new Date(),
+            opportunity_expiration_date: undefined,
             service_execution_deadline: undefined,
             gallery_images: [''],
             cover_image: '',
@@ -504,6 +512,10 @@ export const NewMEIOpportunityForm = forwardRef<
       remove(index)
     }
 
+    // Na criação, os dois seletores de data só aceitam data e hora posteriores
+    // ao momento atual (o schema confere de novo ao enviar)
+    const minDateTime = initialData ? undefined : new Date()
+
     const handleSubmit = (data: PartialFormData) => {
       if (initialData) {
         // Editing an existing opportunity
@@ -523,7 +535,9 @@ export const NewMEIOpportunityForm = forwardRef<
     const confirmCreateOpportunity = async (values: PartialFormData) => {
       try {
         // Validate the complete form data
-        const validatedData = fullFormSchema.parse(values)
+        const validatedData = (
+          initialData ? fullFormSchema : newOpportunityFormSchema
+        ).parse(values)
 
         // Transform to snake_case for backend
         const transformedData = transformFormDataToSnakeCase(validatedData)
@@ -934,6 +948,7 @@ export const NewMEIOpportunityForm = forwardRef<
                           }}
                           placeholder="Selecionar data e hora"
                           disabled={isReadOnly}
+                          after={minDateTime}
                         />
                       </FormControl>
                       <FormMessage />
@@ -954,6 +969,7 @@ export const NewMEIOpportunityForm = forwardRef<
                           onChange={field.onChange}
                           placeholder="Selecionar data e hora"
                           disabled={isReadOnly}
+                          after={minDateTime}
                         />
                       </FormControl>
                       <FormMessage />

@@ -6,8 +6,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import ts from 'typescript'
 import {
   EXECUTION_BEFORE_EXPIRATION_MESSAGE,
+  EXPIRATION_NOT_IN_FUTURE_MESSAGE,
   SERVICE_EXECUTION_DEADLINE_REQUIRED_MESSAGE,
   isExecutionDeadlineBeforeExpiration,
+  isExpirationNotInFuture,
 } from '../mei-opportunity-dates.ts'
 
 // DEV-70: a data limite para execução do serviço não pode ser anterior ao
@@ -75,9 +77,10 @@ registerHooks({
   },
 })
 
-const { draftFormSchema, fullFormSchema } = await import(
-  '../../app/(private)/(app)/gorio/oportunidades-mei/components/new-mei-opportunity-form.tsx'
-)
+const { draftFormSchema, fullFormSchema, newOpportunityFormSchema } =
+  await import(
+    '../../app/(private)/(app)/gorio/oportunidades-mei/components/new-mei-opportunity-form.tsx'
+  )
 
 const at = (iso: string) => new Date(iso)
 
@@ -265,5 +268,132 @@ describe('draftFormSchema (salvar rascunho)', () => {
       assert.deepEqual(result.otherIssues, [])
       assert.equal(result.success, true)
     }
+  })
+})
+
+// DEV-164: uma oportunidade nova não pode nascer vencida; o prazo de expiração
+// precisa ser posterior ao momento atual.
+describe('isExpirationNotInFuture', () => {
+  const NOW = at('2026-11-02T14:00:00-03:00')
+
+  test('prazo anterior ou igual ao momento atual é inválido', () => {
+    assert.equal(
+      isExpirationNotInFuture(at('2026-11-01T14:00:00-03:00'), NOW),
+      true
+    )
+    assert.equal(
+      isExpirationNotInFuture(at('2026-11-02T13:59:59-03:00'), NOW),
+      true
+    )
+    assert.equal(isExpirationNotInFuture(new Date(NOW), NOW), true)
+  })
+
+  test('prazo posterior ao momento atual é válido', () => {
+    assert.equal(
+      isExpirationNotInFuture(at('2026-11-02T14:00:01-03:00'), NOW),
+      false
+    )
+    assert.equal(
+      isExpirationNotInFuture(at('2026-12-02T14:00:00-03:00'), NOW),
+      false
+    )
+  })
+
+  test('sem prazo, ou com data inválida, a obrigatoriedade responde', () => {
+    assert.equal(isExpirationNotInFuture(undefined, NOW), false)
+    assert.equal(isExpirationNotInFuture(null, NOW), false)
+    assert.equal(isExpirationNotInFuture(new Date('data inválida'), NOW), false)
+  })
+
+  test('sem `now`, compara com o instante da chamada', () => {
+    assert.equal(isExpirationNotInFuture(new Date(Date.now() - 1000)), true)
+    assert.equal(
+      isExpirationNotInFuture(new Date(Date.now() + 60 * 60 * 1000)),
+      false
+    )
+  })
+})
+
+describe('newOpportunityFormSchema (criar oportunidade)', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000
+  const fromNow = (ms: number) => new Date(Date.now() + ms).toISOString()
+
+  function issuesOf(data: unknown) {
+    const result = newOpportunityFormSchema.safeParse(data)
+    const issues = result.success ? [] : result.error.issues
+    return {
+      success: result.success,
+      issues: issues.map(issue => ({
+        path: issue.path,
+        message: issue.message,
+      })),
+    }
+  }
+
+  test('aceita prazo de expiração e data de execução no futuro', () => {
+    const result = issuesOf(opportunity(fromNow(10 * DAY_MS), fromNow(DAY_MS)))
+    assert.deepEqual(result.issues, [])
+    assert.equal(result.success, true)
+  })
+
+  test('recusa prazo de expiração no passado, no campo de expiração', () => {
+    const result = issuesOf(
+      opportunity(fromNow(10 * DAY_MS), fromNow(-60 * 1000))
+    )
+    assert.equal(result.success, false)
+    assert.deepEqual(result.issues, [
+      {
+        path: ['opportunity_expiration_date'],
+        message: EXPIRATION_NOT_IN_FUTURE_MESSAGE,
+      },
+    ])
+  })
+
+  test('recusa o antigo valor inicial (a hora em que a página abriu)', () => {
+    const openedAt = new Date()
+    const result = issuesOf({
+      ...opportunity(fromNow(10 * DAY_MS)),
+      opportunity_expiration_date: openedAt,
+    })
+    assert.equal(result.success, false)
+    assert.deepEqual(result.issues, [
+      {
+        path: ['opportunity_expiration_date'],
+        message: EXPIRATION_NOT_IN_FUTURE_MESSAGE,
+      },
+    ])
+  })
+
+  test('data de execução no passado com expiração futura segue recusada (DEV-70)', () => {
+    const result = issuesOf(opportunity(fromNow(-DAY_MS), fromNow(DAY_MS)))
+    assert.equal(result.success, false)
+    assert.deepEqual(result.issues, [
+      {
+        path: ['service_execution_deadline'],
+        message: EXECUTION_BEFORE_EXPIRATION_MESSAGE,
+      },
+    ])
+  })
+
+  test('sem prazo de expiração, o erro é o de campo obrigatório', () => {
+    const result = issuesOf({
+      ...opportunity(fromNow(10 * DAY_MS)),
+      opportunity_expiration_date: undefined,
+    })
+    assert.equal(result.success, false)
+    assert.deepEqual(result.issues, [
+      {
+        path: ['opportunity_expiration_date'],
+        message: 'Prazo para expiração da oportunidade é obrigatório.',
+      },
+    ])
+  })
+
+  test('edição (fullFormSchema) não exige prazo futuro: oportunidade encerrada segue editável', () => {
+    const result = deadlineIssues(
+      opportunity('2025-12-15T18:00:00-03:00', '2025-11-30T18:00:00-03:00')
+    )
+    assert.deepEqual(result.otherIssues, [])
+    assert.equal(result.success, true)
   })
 })
