@@ -1,10 +1,12 @@
+import { validateCourseDates } from '@/lib/course-publish-dates'
 import { revalidateTag } from 'next/cache'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 /**
  * Endpoint para criar curso e publicar diretamente (Casa Civil).
- * Flow: 1) Cria curso como draft
+ * Flow: 0) Valida as datas das turmas, como approve e publish (DEV-152)
+ *       1) Cria curso como draft
  *       2) Envia para revisão (draft → in_review)
  *       3) Aprova (backend já publica diretamente: in_review → published)
  */
@@ -35,6 +37,15 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'URL da API de cursos não configurada', success: false },
         { status: 500 }
+      )
+    }
+
+    // Mesma checagem de datas de approve/publish, antes de criar o rascunho
+    const dateError = validateCourseDates(body)
+    if (dateError) {
+      return NextResponse.json(
+        { error: dateError, success: false },
+        { status: 422 }
       )
     }
 
