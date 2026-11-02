@@ -1,12 +1,13 @@
+import { fetchCourseDatesError } from '@/lib/course-publish-dates'
 import { revalidateTag } from 'next/cache'
 import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 
 /**
  * Endpoint para publicar um curso draft diretamente (Casa Civil).
- * Flow: 1) Envia para revisão (draft → in_review)
- *       2) Aprova (in_review → approved)
- *       3) Publica (approved → published)
+ * Flow: 0) Valida as datas das turmas, como approve e publish (DEV-152)
+ *       1) Envia para revisão (draft → in_review)
+ *       2) Aprova (backend já publica diretamente: in_review → published)
  */
 export async function PUT(
   request: NextRequest,
@@ -37,6 +38,20 @@ export async function PUT(
     const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken.value}`,
+    }
+
+    // Step 0: mesma checagem de datas de approve/publish, antes de qualquer
+    // transição, para o atalho não contornar a regra nem deixar o curso em revisão
+    const dateError = await fetchCourseDatesError(
+      baseUrl,
+      courseId,
+      accessToken.value
+    )
+    if (dateError) {
+      return NextResponse.json(
+        { error: dateError, success: false },
+        { status: 422 }
+      )
     }
 
     // Step 1: Send to review (draft → in_review)
