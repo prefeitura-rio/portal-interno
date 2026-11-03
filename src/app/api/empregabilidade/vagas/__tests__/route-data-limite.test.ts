@@ -46,6 +46,10 @@ const STUBS: Record<string, string> = {
       record({ fn: 'publish', id })
       return { status: 200, data: { id, status: 'publicado_ativo' } }
     }
+    export async function putApiV1EmpregabilidadeVagasIdSendToApproval(id) {
+      record({ fn: 'send-to-approval', id })
+      return { status: 200, data: { id, status: 'em_aprovacao' } }
+    }
     export async function deleteApiV1EmpregabilidadeVagasId(id) {
       record({ fn: 'delete', id })
       return { status: 200, data: {} }
@@ -85,6 +89,8 @@ registerHooks({
 const newRoute = await import('../new/route.ts')
 const vagaRoute = await import('../[id]/route.ts')
 const publishRoute = await import('../[id]/publish/route.ts')
+const newSendToApprovalRoute = await import('../new/send-to-approval/route.ts')
+const sendToApprovalRoute = await import('../[id]/send-to-approval/route.ts')
 const {
   DATA_LIMITE_INVALID_MESSAGE,
   DATA_LIMITE_NOT_IN_FUTURE_MESSAGE,
@@ -338,6 +344,78 @@ describe('PUT /api/empregabilidade/vagas/[id]/publish (DEV-167)', () => {
       calls().map(call => call.fn),
       ['publish']
     )
+  })
+})
+
+describe('POST /api/empregabilidade/vagas/new/send-to-approval (DEV-168)', () => {
+  const cases: Array<[string, unknown, string]> = [
+    ['no passado', 'past', DATA_LIMITE_NOT_IN_FUTURE_MESSAGE],
+    ['ausente', undefined, DATA_LIMITE_REQUIRED_MESSAGE],
+    ['vazia', '  ', DATA_LIMITE_REQUIRED_MESSAGE],
+    ['inválida', '31/12/2099', DATA_LIMITE_INVALID_MESSAGE],
+  ]
+  for (const [label, value, message] of cases) {
+    test(`recusa com 400 data limite ${label}, sem criar a vaga`, async () => {
+      const dataLimite = value === 'past' ? pastIso() : value
+      const response = await newSendToApprovalRoute.POST(
+        jsonRequest('POST', publishableFields(dataLimite))
+      )
+      assert.equal(response.status, 400)
+      const body = await response.json()
+      assert.equal(body.error, message)
+      assert.deepEqual(body.invalidFields, ['Data Limite'])
+      assert.deepEqual(calls(), [])
+    })
+  }
+
+  test('cria e envia para aprovação com data limite futura', async () => {
+    const response = await newSendToApprovalRoute.POST(
+      jsonRequest('POST', publishableFields(futureIso()))
+    )
+    assert.equal(response.status, 200)
+    assert.deepEqual(
+      calls().map(call => call.fn),
+      ['create', 'send-to-approval']
+    )
+  })
+})
+
+describe('PUT /api/empregabilidade/vagas/[id]/send-to-approval (DEV-168)', () => {
+  const cases: Array<[string, unknown, string]> = [
+    ['no passado', 'past', DATA_LIMITE_NOT_IN_FUTURE_MESSAGE],
+    ['ausente', undefined, DATA_LIMITE_REQUIRED_MESSAGE],
+    ['nula', null, DATA_LIMITE_REQUIRED_MESSAGE],
+    ['inválida', 'data-invalida', DATA_LIMITE_INVALID_MESSAGE],
+  ]
+  for (const [label, value, message] of cases) {
+    test(`recusa com 400 vaga com data limite ${label}, sem enviar`, async () => {
+      const dataLimite = value === 'past' ? pastIso() : value
+      testGlobals.__dev167Vaga = {
+        status: 'em_edicao',
+        ...publishableFields(),
+        ...(value === undefined ? {} : { data_limite: dataLimite }),
+      }
+      const response = await sendToApprovalRoute.PUT(jsonRequest('PUT', {}), {
+        params: params(),
+      })
+      assert.equal(response.status, 400)
+      const body = await response.json()
+      assert.equal(body.error, message)
+      assert.deepEqual(body.invalidFields, ['Data Limite'])
+      assert.deepEqual(calls(), [])
+    })
+  }
+
+  test('envia para aprovação vaga com data limite futura', async () => {
+    testGlobals.__dev167Vaga = {
+      status: 'em_edicao',
+      ...publishableFields(futureIso()),
+    }
+    const response = await sendToApprovalRoute.PUT(jsonRequest('PUT', {}), {
+      params: params(),
+    })
+    assert.equal(response.status, 200)
+    assert.deepEqual(calls(), [{ fn: 'send-to-approval', id: VAGA_ID }])
   })
 })
 
