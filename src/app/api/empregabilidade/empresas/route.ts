@@ -51,7 +51,18 @@ async function lookupReceitaFederal(cnpj: string): Promise<ReceitaLookup> {
       }
     }
 
-    console.error('Receita Federal lookup failed:', { status: response.status })
+    const status: number = response.status
+    if (status === 401 || status === 403) {
+      return {
+        ok: false,
+        status,
+        error:
+          'Sem autorização para consultar o CNPJ na Receita Federal. Entre novamente e tente de novo.',
+        code: 'RECEITA_UNAUTHORIZED',
+      }
+    }
+
+    console.error('Receita Federal lookup failed:', { status })
     return unavailable
   } catch (error) {
     console.error(

@@ -378,6 +378,16 @@ describe('POST /api/empregabilidade/empresas — Receita Federal (DEV-181)', () 
     })
   }
 
+  for (const status of [401, 403]) {
+    test(`consulta recusada por autorização (${status}) devolve ${status}, sem criar`, async () => {
+      testGlobals.__dev181Receita = { status, data: { error: 'unauthorized' } }
+      const response = await post(VALID_CNPJ)
+      assert.equal(response.status, status)
+      assert.equal((await response.json()).code, 'RECEITA_UNAUTHORIZED')
+      assert.deepEqual(calls(), [])
+    })
+  }
+
   test('dígito verificador errado é recusado antes de consultar a Receita', async () => {
     const response = await post(INVALID_CNPJS[0])
     assert.equal(response.status, 400)
