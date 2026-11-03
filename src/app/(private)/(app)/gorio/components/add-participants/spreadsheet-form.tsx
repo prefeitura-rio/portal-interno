@@ -6,6 +6,7 @@ import {
   type SubmittedEnrollmentData,
   fetchEnrollmentRmiDivergences,
 } from '@/lib/enrollment-rmi-consistency'
+import { summarizeImportJobForLog } from '@/lib/import-job-log'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -541,7 +542,6 @@ export function SpreadsheetForm({
               }
 
               const uploadData = await uploadResponse.json()
-              console.log('Upload response:', uploadData)
 
               // Step 2: Extract job_id from the response
               const jobId = uploadData?.data?.job_id
@@ -574,28 +574,31 @@ export function SpreadsheetForm({
                 }
 
                 const statusData = await statusResponse.json()
-                console.log(`Job status (attempt ${attempts}):`, statusData)
 
                 const jobData = statusData?.data || statusData
                 const status = jobData?.status
+                // Só o resumo: errors[].data traz a linha da planilha (CPF,
+                // nome, contatos e endereço do cidadão).
+                const jobSummary = summarizeImportJobForLog(jobData)
+                console.log(`Job status (attempt ${attempts}):`, jobSummary)
 
                 if (status === 'completed') {
                   jobCompleted = true
                   finalStatusData = jobData
-                  console.log('Job completed!', JSON.stringify(jobData))
+                  console.log('Job completed!', jobSummary)
                   break // Exit loop
                 }
 
                 if (status === 'failed') {
                   jobCompleted = true
                   finalStatusData = jobData
-                  console.log('Job failed!', JSON.stringify(jobData))
+                  console.log('Job failed!', jobSummary)
                   break // Exit loop
                 }
 
                 if (status === 'processing' || status === 'pending') {
                   console.log(
-                    `Job still ${status}... Progress: ${jobData?.progress || 0}%`
+                    `Job still ${status}... Progress: ${jobSummary.progress ?? 0}%`
                   )
                 }
               }
