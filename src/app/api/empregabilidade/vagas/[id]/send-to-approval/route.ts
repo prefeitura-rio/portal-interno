@@ -2,6 +2,10 @@ import {
   getApiV1EmpregabilidadeVagasId,
   putApiV1EmpregabilidadeVagasIdSendToApproval,
 } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
+import {
+  DATA_LIMITE_FIELD_LABEL,
+  validateVagaDataLimite,
+} from '@/lib/empregabilidade-vaga-dates'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -23,6 +27,18 @@ export async function PUT(
       return NextResponse.json(
         { error: 'Vaga não encontrada' },
         { status: 404 }
+      )
+    }
+
+    // A vaga enviada para aprovação segue para publicação: a data limite
+    // salva precisa ser futura, com o mesmo critério do formulário (DEV-168)
+    const dataLimiteError = validateVagaDataLimite(
+      currentVagaResponse.data.data_limite
+    )
+    if (dataLimiteError) {
+      return NextResponse.json(
+        { error: dataLimiteError, invalidFields: [DATA_LIMITE_FIELD_LABEL] },
+        { status: 400 }
       )
     }
 
