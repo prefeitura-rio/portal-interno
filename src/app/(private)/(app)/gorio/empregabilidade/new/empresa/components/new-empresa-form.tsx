@@ -20,6 +20,7 @@ import {
 import { ImageUpload } from '@/components/ui/image-upload'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { validateCNPJ } from '@/lib/cnpj-validator'
 import { Building2, Globe, Info, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -34,12 +35,6 @@ const formatCNPJ = (cnpj: string): string => {
     /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
     '$1.$2.$3/$4-$5'
   )
-}
-
-// Validate CNPJ format (basic validation)
-const validateCNPJ = (cnpj: string): boolean => {
-  const numbers = cnpj.replace(/\D/g, '')
-  return numbers.length === 14
 }
 
 // Form schema

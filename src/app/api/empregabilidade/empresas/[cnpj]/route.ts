@@ -4,6 +4,7 @@ import {
   putApiV1EmpregabilidadeEmpresasCnpj,
 } from '@/http-gorio/empregabilidade-empresas/empregabilidade-empresas'
 import type { EmpregabilidadeEmpresa } from '@/http-gorio/models/empregabilidadeEmpresa'
+import { getCNPJValidationError } from '@/lib/cnpj-validator'
 import { revalidateTag } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -126,6 +127,7 @@ export async function GET(
  * ├─────────────────┼──────────────────────────────────────────────┤
  * │ cnpj (param)    │ - Required                                   │
  * │                 │ - After stripping: exactly 14 digits          │
+ * │                 │ - Valid check digits (DEV-180)                │
  * ├─────────────────┼──────────────────────────────────────────────┤
  * │ body.cnpj       │ - Optional (backend may require consistency)  │
  * │                 │ - If present: must match param CNPJ           │
@@ -166,7 +168,7 @@ export async function PUT(
     // Step 3: Strip mask from param CNPJ
     const cnpjNumbers = cnpj.replace(/\D/g, '')
 
-    // Step 4: Validate param CNPJ format
+    // Step 4: Validate param CNPJ format and check digits (DEV-180)
     if (cnpjNumbers.length !== 14) {
       return NextResponse.json(
         {
@@ -176,6 +178,10 @@ export async function PUT(
         },
         { status: 400 }
       )
+    }
+    const cnpjError = getCNPJValidationError(cnpjNumbers)
+    if (cnpjError) {
+      return NextResponse.json({ error: cnpjError }, { status: 400 })
     }
 
     // Step 5: Parse request body

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
+import { completeCNPJ } from '@/lib/cnpj-validator'
 import { Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -43,7 +44,13 @@ export default function NewEmpresaPage() {
 
       // Map form data to API format
       const apiData = {
-        cnpj: cnpjNumbers || (needsStagingDefaults ? '00000000000000' : ''),
+        // Staging sem CNPJ: CNPJ sintético com dígitos verificadores válidos,
+        // que o BFF passou a exigir (DEV-180)
+        cnpj:
+          cnpjNumbers ||
+          (needsStagingDefaults
+            ? completeCNPJ(`${String(randomId).padStart(8, '0')}0001`)
+            : ''),
         razao_social:
           data.empresa_nome ||
           (needsStagingDefaults ? `EMPRESA TESTE ${randomId}` : ''),
