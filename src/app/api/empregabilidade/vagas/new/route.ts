@@ -4,6 +4,10 @@ import {
 } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
 import type { EmpregabilidadeVaga } from '@/http-gorio/models/empregabilidadeVaga'
 import { toApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
+import {
+  DATA_LIMITE_FIELD_LABEL,
+  validateVagaDataLimite,
+} from '@/lib/empregabilidade-vaga-dates'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -48,6 +52,16 @@ export async function POST(request: Request) {
           error: `Campos obrigatórios faltando: ${missingFields.join(', ')}`,
           missingFields,
         },
+        { status: 400 }
+      )
+    }
+
+    // Esta rota cria e já publica a vaga: a data limite precisa ser futura
+    // (DEV-167), com o mesmo critério do formulário
+    const dataLimiteError = validateVagaDataLimite(body.data_limite)
+    if (dataLimiteError) {
+      return NextResponse.json(
+        { error: dataLimiteError, invalidFields: [DATA_LIMITE_FIELD_LABEL] },
         { status: 400 }
       )
     }
