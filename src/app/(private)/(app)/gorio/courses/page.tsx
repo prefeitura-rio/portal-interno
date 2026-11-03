@@ -27,6 +27,7 @@ import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useDepartment } from '@/hooks/use-department'
 import type { CourseTab } from '@/lib/courses-tab-counts'
 import { formatTabLabelWithCount } from '@/lib/empregabilidade-vagas-counts'
+import { GORIO_MODULE_LABEL } from '@/lib/module-labels'
 import type {
   CourseListItem,
   CourseStatus,
@@ -947,7 +948,7 @@ export default function Courses() {
         <div className="flex flex-col gap-2">
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>GO Rio</BreadcrumbItem>
+              <BreadcrumbItem>{GORIO_MODULE_LABEL}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>Cursos</BreadcrumbPage>

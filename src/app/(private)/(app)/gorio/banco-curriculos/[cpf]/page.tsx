@@ -17,6 +17,7 @@ import {
   getBancoCurriculosErrorStatus,
   useBancoCurriculo,
 } from '@/hooks/use-banco-curriculos'
+import { GORIO_MODULE_LABEL } from '@/lib/module-labels'
 import { ArrowLeft, BriefcaseBusiness } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -63,7 +64,7 @@ export default function BancoCurriculoDetalhePage({
       <div className="space-y-6">
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem>GO Rio</BreadcrumbItem>
+            <BreadcrumbItem>{GORIO_MODULE_LABEL}</BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
