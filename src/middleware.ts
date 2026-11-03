@@ -4,6 +4,7 @@ import {
   NextResponse,
 } from 'next/server'
 import { isJwtExpired } from './lib'
+import { checkCsrfOrigin } from './lib/csrf-origin'
 import { getLogUserRef, redactCpfForLog } from './lib/log-user-ref'
 import {
   getUserFromHeimdallWithCache,
@@ -59,6 +60,17 @@ function apiErrorResponse(status: 401 | 403, error: string): NextResponse {
 async function handleApiRequest(request: NextRequest): Promise<NextResponse> {
   const path = request.nextUrl.pathname
   const route = findApiRoutePermission(path)
+
+  // CSRF: mutação vinda de outra origem é recusada antes de tudo, inclusive
+  // nas rotas públicas (refresh), porque o navegador anexa os cookies
+  // SameSite=Lax de sessão em requisições de sites irmãos (DEV-198)
+  const csrf = checkCsrfOrigin(request)
+  if (!csrf.allowed) {
+    console.warn(
+      `[MIDDLEWARE] API ${request.method} ${route?.pattern ?? redactCpfForLog(path)} rejected: ${csrf.reason} request (CSRF)`
+    )
+    return apiErrorResponse(403, 'Forbidden')
+  }
 
   if (route?.permission.kind === 'public') {
     return NextResponse.next()
