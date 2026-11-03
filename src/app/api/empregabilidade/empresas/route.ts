@@ -3,6 +3,7 @@ import {
   postApiV1EmpregabilidadeEmpresas,
 } from '@/http-gorio/empregabilidade-empresas/empregabilidade-empresas'
 import type { EmpregabilidadeEmpresa } from '@/http-gorio/models/empregabilidadeEmpresa'
+import { cleanCNPJ, getCNPJValidationError } from '@/lib/cnpj-validator'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -67,16 +68,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate CNPJ format (14 digits only - no mask)
-    const cnpjNumbers = body.cnpj.replace(/\D/g, '')
-    if (cnpjNumbers.length !== 14) {
-      return NextResponse.json(
-        {
-          error: 'CNPJ inválido. Deve conter 14 dígitos.',
-        },
-        { status: 400 }
-      )
+    // Validate CNPJ: 14 digits and check digits (DEV-180). The form also
+    // checks it, but a direct call to this route must not bypass it.
+    const cnpjError = getCNPJValidationError(body.cnpj)
+    if (cnpjError) {
+      return NextResponse.json({ error: cnpjError }, { status: 400 })
     }
+    body.cnpj = cleanCNPJ(body.cnpj)
 
     console.log('Creating empresa with data:', JSON.stringify(body, null, 2))
 
