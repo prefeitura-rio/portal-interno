@@ -13,7 +13,12 @@ import { fileURLToPath } from 'node:url'
 const SRC_ROOT = new URL('../../../../../', import.meta.url)
 
 type ApiCall = { fn: string; cnpj?: string; body?: Record<string, unknown> }
-type TestGlobals = typeof globalThis & { __dev180Calls?: ApiCall[] }
+type ReceitaReply = { status: number; data: unknown } | 'throw'
+type TestGlobals = typeof globalThis & {
+  __dev180Calls?: ApiCall[]
+  __dev181Lookups?: string[]
+  __dev181Receita?: ReceitaReply
+}
 const testGlobals = globalThis as TestGlobals
 
 function moduleUrl(source: string): string {
@@ -46,6 +51,17 @@ const STUBS: Record<string, string> = {
     export async function deleteApiV1EmpregabilidadeEmpresasCnpj(cnpj) {
       record({ fn: 'delete', cnpj })
       return { status: 200, data: {} }
+    }
+    export async function getApiV1EmpregabilidadeEmpresasConsultaCnpjCnpj(cnpj) {
+      globalThis.__dev181Lookups?.push(cnpj)
+      const reply = globalThis.__dev181Receita
+      if (reply === 'throw') {
+        throw new TypeError('fetch failed')
+      }
+      return reply ?? {
+        status: 200,
+        data: { cnpj, razao_social: 'EMPRESA SINTETICA OFICIAL LTDA' },
+      }
     }
   `),
 }
@@ -123,6 +139,9 @@ function calls(): ApiCall[] {
 
 beforeEach(() => {
   testGlobals.__dev180Calls = []
+  testGlobals.__dev181Lookups = []
+  testGlobals.__dev181Receita = undefined
+  Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_ENVIRONMENT')
 })
 
 describe('validador de CNPJ (DEV-180)', () => {
@@ -286,6 +305,95 @@ describe('GET e DELETE /api/empregabilidade/empresas/[cnpj] (DEV-180)', () => {
     assert.deepEqual(
       calls().map(call => call.fn),
       ['get', 'delete']
+    )
+  })
+})
+
+// DEV-181: decisão de produto (Frederico Zolio) — fora de staging o POST confere
+// o CNPJ na Receita Federal (consulta RMI da API) e cria com a razão social
+// oficial; Receita fora do ar recusa; staging mantém o atalho de teste.
+describe('POST /api/empregabilidade/empresas — Receita Federal (DEV-181)', () => {
+  const OFFICIAL_NAME = 'EMPRESA SINTETICA OFICIAL LTDA'
+
+  async function post(cnpj: string, razaoSocial = 'Nome digitado livremente') {
+    return empresasRoute.POST(
+      jsonRequest('POST', { ...empresaBody(cnpj), razao_social: razaoSocial })
+    )
+  }
+
+  for (const environment of [undefined, 'production']) {
+    test(`fora de staging (${environment ?? 'sem variável'}) cria com a razão social oficial`, async () => {
+      if (environment) {
+        process.env.NEXT_PUBLIC_ENVIRONMENT = environment
+      }
+      const response = await post(VALID_CNPJ_MASKED)
+      assert.equal(response.status, 200)
+      assert.deepEqual(testGlobals.__dev181Lookups, [VALID_CNPJ])
+      assert.deepEqual(
+        calls().map(call => [
+          call.fn,
+          call.body?.cnpj,
+          call.body?.razao_social,
+        ]),
+        [['create', VALID_CNPJ, OFFICIAL_NAME]]
+      )
+    })
+  }
+
+  test('CNPJ que não existe na Receita é recusado com 422, sem criar', async () => {
+    testGlobals.__dev181Receita = {
+      status: 404,
+      data: { error: 'CNPJ não encontrado' },
+    }
+    const response = await post(OTHER_VALID_CNPJ)
+    assert.equal(response.status, 422)
+    const body = await response.json()
+    assert.equal(body.code, 'CNPJ_NOT_FOUND')
+    assert.match(body.error, /não encontrado/)
+    assert.deepEqual(testGlobals.__dev181Lookups, [OTHER_VALID_CNPJ])
+    assert.deepEqual(calls(), [])
+  })
+
+  test('CNPJ recusado pela consulta (400) não cria a empresa', async () => {
+    testGlobals.__dev181Receita = { status: 400, data: { error: 'inválido' } }
+    const response = await post(VALID_CNPJ)
+    assert.equal(response.status, 400)
+    assert.equal((await response.json()).code, 'CNPJ_INVALID')
+    assert.deepEqual(calls(), [])
+  })
+
+  for (const [label, reply] of [
+    ['500 da consulta', { status: 500, data: { error: 'RMI fora do ar' } }],
+    ['502 do gateway', { status: 502, data: 'Bad Gateway' }],
+    ['erro de rede', 'throw'],
+    ['200 sem razão social', { status: 200, data: { cnpj: VALID_CNPJ } }],
+  ] as const) {
+    test(`Receita indisponível (${label}) recusa com 503, sem criar`, async () => {
+      testGlobals.__dev181Receita = reply as ReceitaReply
+      const response = await post(VALID_CNPJ)
+      assert.equal(response.status, 503)
+      const body = await response.json()
+      assert.equal(body.code, 'RECEITA_UNAVAILABLE')
+      assert.deepEqual(calls(), [])
+    })
+  }
+
+  test('dígito verificador errado é recusado antes de consultar a Receita', async () => {
+    const response = await post(INVALID_CNPJS[0])
+    assert.equal(response.status, 400)
+    assert.deepEqual(testGlobals.__dev181Lookups, [])
+    assert.deepEqual(calls(), [])
+  })
+
+  test('em staging não consulta a Receita e mantém a razão social enviada', async () => {
+    process.env.NEXT_PUBLIC_ENVIRONMENT = 'staging'
+    testGlobals.__dev181Receita = { status: 404, data: {} }
+    const response = await post(VALID_CNPJ, 'EMPRESA TESTE 123')
+    assert.equal(response.status, 200)
+    assert.deepEqual(testGlobals.__dev181Lookups, [])
+    assert.deepEqual(
+      calls().map(call => [call.fn, call.body?.cnpj, call.body?.razao_social]),
+      [['create', VALID_CNPJ, 'EMPRESA TESTE 123']]
     )
   })
 })

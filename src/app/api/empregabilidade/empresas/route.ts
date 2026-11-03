@@ -1,11 +1,66 @@
 import {
   getApiV1EmpregabilidadeEmpresas,
+  getApiV1EmpregabilidadeEmpresasConsultaCnpjCnpj,
   postApiV1EmpregabilidadeEmpresas,
 } from '@/http-gorio/empregabilidade-empresas/empregabilidade-empresas'
 import type { EmpregabilidadeEmpresa } from '@/http-gorio/models/empregabilidadeEmpresa'
 import { cleanCNPJ, getCNPJValidationError } from '@/lib/cnpj-validator'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
+
+const CNPJ_NOT_FOUND_MESSAGE =
+  'CNPJ não encontrado na base de dados da Receita Federal. Verifique se o número está correto.'
+const RECEITA_UNAVAILABLE_MESSAGE =
+  'Não foi possível consultar o CNPJ na Receita Federal agora. Tente novamente em alguns minutos.'
+
+type ReceitaLookup =
+  | { ok: true; razaoSocial: string }
+  | { ok: false; status: number; error: string; code: string }
+
+async function lookupReceitaFederal(cnpj: string): Promise<ReceitaLookup> {
+  const unavailable: ReceitaLookup = {
+    ok: false,
+    status: 503,
+    error: RECEITA_UNAVAILABLE_MESSAGE,
+    code: 'RECEITA_UNAVAILABLE',
+  }
+
+  try {
+    const response = await getApiV1EmpregabilidadeEmpresasConsultaCnpjCnpj(cnpj)
+
+    if (response.status === 200) {
+      const razaoSocial = response.data?.razao_social?.trim()
+      return razaoSocial ? { ok: true, razaoSocial } : unavailable
+    }
+
+    if (response.status === 404) {
+      return {
+        ok: false,
+        status: 422,
+        error: CNPJ_NOT_FOUND_MESSAGE,
+        code: 'CNPJ_NOT_FOUND',
+      }
+    }
+
+    if (response.status === 400) {
+      return {
+        ok: false,
+        status: 400,
+        error: 'CNPJ inválido ou formato incorreto.',
+        code: 'CNPJ_INVALID',
+      }
+    }
+
+    console.error('Receita Federal lookup failed:', { status: response.status })
+    return unavailable
+  } catch (error) {
+    console.error(
+      'Receita Federal lookup error:',
+      error instanceof Error ? error.message : 'Unknown error'
+    )
+    return unavailable
+  }
+}
 
 export async function GET(request: Request) {
   try {
@@ -75,6 +130,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: cnpjError }, { status: 400 })
     }
     body.cnpj = cleanCNPJ(body.cnpj)
+
+    // DEV-181: outside staging the company must exist at the Receita Federal
+    // (RMI) and is created with the official razão social. Staging keeps the
+    // form's shortcut to create test companies without the lookup.
+    if (process.env.NEXT_PUBLIC_ENVIRONMENT !== 'staging') {
+      const receita = await lookupReceitaFederal(body.cnpj)
+      if (!receita.ok) {
+        return NextResponse.json(
+          { error: receita.error, code: receita.code },
+          { status: receita.status }
+        )
+      }
+      body.razao_social = receita.razaoSocial
+    }
 
     console.log('Creating empresa with data:', JSON.stringify(body, null, 2))
 
