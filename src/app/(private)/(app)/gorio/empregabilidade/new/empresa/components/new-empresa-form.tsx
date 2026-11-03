@@ -20,22 +20,9 @@ import {
 import { ImageUpload } from '@/components/ui/image-upload'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { validateCNPJ } from '@/lib/cnpj-validator'
+import { cleanCNPJ, formatCNPJ, validateCNPJ } from '@/lib/cnpj-validator'
 import { Building2, Globe, Info, Search } from 'lucide-react'
 import { toast } from 'sonner'
-
-// Format CNPJ: XX.XXX.XXX/XXXX-XX
-const formatCNPJ = (cnpj: string): string => {
-  // Remove all non-numeric characters
-  const numbers = cnpj.replace(/\D/g, '')
-  // CNPJ must have 14 digits
-  if (numbers.length !== 14) return cnpj
-  // Format: XX.XXX.XXX/XXXX-XX
-  return numbers.replace(
-    /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
-    '$1.$2.$3/$4-$5'
-  )
-}
 
 // Form schema
 const formSchema = z.object({
@@ -112,9 +99,10 @@ export function NewEmpresaForm({
     mode: 'onChange',
   })
 
-  // Handle CNPJ input formatting
+  // Handle CNPJ input formatting (numeric or alphanumeric CNPJ, DEV-182):
+  // letters are shown in uppercase and the mask is applied once complete
   const handleCNPJChange = (value: string) => {
-    const formatted = formatCNPJ(value)
+    const formatted = formatCNPJ(value.toUpperCase())
     form.setValue('cnpj', formatted)
   }
 
@@ -133,7 +121,7 @@ export function NewEmpresaForm({
 
     setIsSearching(true)
     try {
-      const cnpjNumbers = cnpj.replace(/\D/g, '')
+      const cnpjNumbers = cleanCNPJ(cnpj)
 
       console.log('Searching CNPJ via RMI:', cnpjNumbers)
 

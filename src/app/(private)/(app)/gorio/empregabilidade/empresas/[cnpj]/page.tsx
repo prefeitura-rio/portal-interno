@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEmpresa } from '@/hooks/use-empresa'
+import { formatCNPJ } from '@/lib/cnpj-validator'
 import { formatDateBR } from '@/lib/format'
 import { Building2, Calendar, Globe, Pencil } from 'lucide-react'
 import Link from 'next/link'
@@ -53,21 +54,6 @@ export default function ViewEmpresaPage({
 
   // Fetch empresa using custom hook
   const { empresa, loading, error } = useEmpresa(cnpj)
-
-  /**
-   * Format CNPJ for display
-   * Input: "12345678000190"
-   * Output: "12.345.678/0001-90"
-   */
-  const formatCNPJ = (value: string): string => {
-    if (!value) return ''
-    const numbers = value.replace(/\D/g, '')
-    if (numbers.length !== 14) return value
-    return numbers.replace(
-      /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
-      '$1.$2.$3/$4-$5'
-    )
-  }
 
   /**
    * Format date for display

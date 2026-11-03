@@ -98,12 +98,16 @@ registerHooks({
 const { NextRequest } = await import('next/server')
 const empresasRoute = await import('../route.ts')
 const empresaRoute = await import('../[cnpj]/route.ts')
+const consultaRoute = await import('../consulta-cnpj/[cnpj]/route.ts')
 const {
   CNPJ_CHECK_DIGITS_MESSAGE,
   CNPJ_LENGTH_MESSAGE,
   CNPJ_REQUIRED_MESSAGE,
+  cleanCNPJ,
   completeCNPJ,
+  formatCNPJ,
   getCNPJValidationError,
+  normalizeCNPJ,
   validateCNPJ,
 } = await import('../../../../../lib/cnpj-validator.ts')
 
@@ -405,5 +409,179 @@ describe('POST /api/empregabilidade/empresas — Receita Federal (DEV-181)', () 
       calls().map(call => [call.fn, call.body?.cnpj, call.body?.razao_social]),
       [['create', VALID_CNPJ, 'EMPRESA TESTE 123']]
     )
+  })
+})
+
+// DEV-182: CNPJ alfanumérico da Receita Federal (12 posições A–Z/0–9 + 2
+// dígitos verificadores; valor de cada caractere = código ASCII − 48). A
+// go-api passou a aceitá-lo (DEV-183); o BFF e o formulário descartavam as
+// letras e recusavam o CNPJ por tamanho.
+describe('CNPJ alfanumérico (DEV-182)', () => {
+  // Exemplo oficial da Receita Federal e CNPJs sintéticos com DV válido
+  const ALNUM_CNPJ = '12ABC34501DE35'
+  const ALNUM_CNPJ_MASKED = '12.ABC.345/01DE-35'
+  const OTHER_ALNUM_CNPJ = 'A1B2C3D4E5F668'
+  // DV errado; DV com letra; caractere fora do formato
+  const INVALID_ALNUM_CNPJS = [
+    '12ABC34501DE36',
+    '12ABC34501DE3A',
+    'A1B2C3D4E5F6A8',
+  ]
+
+  test('validador aceita o exemplo oficial, com e sem máscara, e em minúsculas', () => {
+    assert.equal(validateCNPJ(ALNUM_CNPJ), true)
+    assert.equal(validateCNPJ(ALNUM_CNPJ_MASKED), true)
+    assert.equal(validateCNPJ('12.abc.345/01de-35'), true)
+    assert.equal(validateCNPJ(OTHER_ALNUM_CNPJ), true)
+    assert.equal(validateCNPJ('ZZZZZZZZ000191'), true)
+  })
+
+  test('validador recusa DV errado e DV com letra', () => {
+    assert.equal(
+      getCNPJValidationError('12ABC34501DE36'),
+      CNPJ_CHECK_DIGITS_MESSAGE
+    )
+    assert.equal(getCNPJValidationError('12ABC34501DE3A'), CNPJ_LENGTH_MESSAGE)
+    assert.equal(getCNPJValidationError('A1B2C3D4E5F6A8'), CNPJ_LENGTH_MESSAGE)
+  })
+
+  test('limpeza preserva letras (em maiúsculas) e descarta só a máscara', () => {
+    assert.equal(cleanCNPJ(ALNUM_CNPJ_MASKED), ALNUM_CNPJ)
+    assert.equal(cleanCNPJ('12.abc.345/01de-35'), ALNUM_CNPJ)
+    assert.equal(cleanCNPJ(VALID_CNPJ_MASKED), VALID_CNPJ)
+    assert.equal(normalizeCNPJ(ALNUM_CNPJ_MASKED), ALNUM_CNPJ)
+    assert.equal(normalizeCNPJ('12ABC34501DE'), null)
+    assert.equal(normalizeCNPJ('12ABC34501DE3A'), null)
+  })
+
+  test('máscara XX.XXX.XXX/XXXX-XX vale para numérico e alfanumérico', () => {
+    assert.equal(formatCNPJ(ALNUM_CNPJ), ALNUM_CNPJ_MASKED)
+    assert.equal(formatCNPJ('12abc34501de35'), ALNUM_CNPJ_MASKED)
+    assert.equal(formatCNPJ(VALID_CNPJ), VALID_CNPJ_MASKED)
+    assert.equal(formatCNPJ('12.ABC'), '12.ABC')
+    assert.equal(formatCNPJ(''), '')
+  })
+
+  test('completeCNPJ aceita base alfanumérica', () => {
+    assert.equal(completeCNPJ('12ABC34501DE'), ALNUM_CNPJ)
+    assert.equal(completeCNPJ('A1B2C3D4E5F6'), OTHER_ALNUM_CNPJ)
+    assert.throws(() => completeCNPJ('12abc34501de'))
+    assert.throws(() => completeCNPJ('12ABC-4501DE'))
+  })
+
+  test('POST cria empresa com CNPJ alfanumérico mascarado, enviado sem máscara', async () => {
+    const response = await empresasRoute.POST(
+      jsonRequest('POST', empresaBody(ALNUM_CNPJ_MASKED))
+    )
+    assert.equal(response.status, 200)
+    assert.deepEqual(testGlobals.__dev181Lookups, [ALNUM_CNPJ])
+    assert.deepEqual(
+      calls().map(call => [call.fn, call.body?.cnpj]),
+      [['create', ALNUM_CNPJ]]
+    )
+  })
+
+  for (const cnpj of INVALID_ALNUM_CNPJS) {
+    test(`POST recusa com 400 ${cnpj}, sem consultar nem criar`, async () => {
+      const response = await empresasRoute.POST(
+        jsonRequest('POST', empresaBody(cnpj))
+      )
+      assert.equal(response.status, 400)
+      assert.deepEqual(testGlobals.__dev181Lookups, [])
+      assert.deepEqual(calls(), [])
+    })
+  }
+
+  test('PUT atualiza empresa com CNPJ alfanumérico', async () => {
+    const response = await empresaRoute.PUT(
+      jsonRequest('PUT', empresaBody(ALNUM_CNPJ_MASKED)),
+      params(ALNUM_CNPJ)
+    )
+    assert.equal(response.status, 200)
+    assert.deepEqual(
+      calls().map(call => [call.fn, call.cnpj, call.body?.cnpj]),
+      [['update', ALNUM_CNPJ, ALNUM_CNPJ]]
+    )
+  })
+
+  test('PUT recusa DV alfanumérico errado e CNPJ do corpo diferente do da URL', async () => {
+    const wrongDigit = await empresaRoute.PUT(
+      jsonRequest('PUT', empresaBody('12ABC34501DE36')),
+      params('12ABC34501DE36')
+    )
+    assert.equal(wrongDigit.status, 400)
+    assert.equal((await wrongDigit.json()).error, CNPJ_CHECK_DIGITS_MESSAGE)
+    const mismatch = await empresaRoute.PUT(
+      jsonRequest('PUT', empresaBody(OTHER_ALNUM_CNPJ)),
+      params(ALNUM_CNPJ)
+    )
+    assert.equal(mismatch.status, 400)
+    assert.deepEqual(calls(), [])
+  })
+
+  test('GET e DELETE endereçam a empresa pelo CNPJ alfanumérico', async () => {
+    const getResponse = await empresaRoute.GET(
+      new Request('http://localhost'),
+      params(ALNUM_CNPJ_MASKED)
+    )
+    assert.equal(getResponse.status, 200)
+    const deleteResponse = await empresaRoute.DELETE(
+      new Request('http://localhost', { method: 'DELETE' }),
+      params('12abc34501de35')
+    )
+    assert.equal(deleteResponse.status, 200)
+    assert.deepEqual(
+      calls().map(call => [call.fn, call.cnpj]),
+      [
+        ['get', ALNUM_CNPJ],
+        ['delete', ALNUM_CNPJ],
+      ]
+    )
+  })
+
+  test('GET e DELETE seguem recusando o que não tem formato de CNPJ', async () => {
+    for (const cnpj of ['12ABC34501DE', '12ABC34501DE3A', '12ABC34501DE35X']) {
+      const getResponse = await empresaRoute.GET(
+        new Request('http://localhost'),
+        params(cnpj)
+      )
+      assert.equal(getResponse.status, 400, cnpj)
+      const deleteResponse = await empresaRoute.DELETE(
+        new Request('http://localhost', { method: 'DELETE' }),
+        params(cnpj)
+      )
+      assert.equal(deleteResponse.status, 400, cnpj)
+    }
+    assert.deepEqual(calls(), [])
+  })
+
+  test('consulta-cnpj repassa à API o CNPJ alfanumérico sem máscara', async () => {
+    const response = await consultaRoute.GET(
+      new Request('http://localhost'),
+      params(ALNUM_CNPJ_MASKED)
+    )
+    assert.equal(response.status, 200)
+    assert.deepEqual(testGlobals.__dev181Lookups, [ALNUM_CNPJ])
+  })
+
+  test('consulta-cnpj segue repassando o CNPJ numérico só com os dígitos', async () => {
+    const response = await consultaRoute.GET(
+      new Request('http://localhost'),
+      params(VALID_CNPJ_MASKED)
+    )
+    assert.equal(response.status, 200)
+    assert.deepEqual(testGlobals.__dev181Lookups, [VALID_CNPJ])
+  })
+
+  test('consulta-cnpj recusa com 400 o que não tem formato de CNPJ, sem consultar', async () => {
+    for (const cnpj of ['12ABC34501DE', '12ABC34501DE3A', '1122233300018']) {
+      const response = await consultaRoute.GET(
+        new Request('http://localhost'),
+        params(cnpj)
+      )
+      assert.equal(response.status, 400, cnpj)
+      assert.equal((await response.json()).error, CNPJ_LENGTH_MESSAGE)
+    }
+    assert.deepEqual(testGlobals.__dev181Lookups, [])
   })
 })

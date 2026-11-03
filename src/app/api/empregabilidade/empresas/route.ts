@@ -134,8 +134,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate CNPJ: 14 digits and check digits (DEV-180). The form also
-    // checks it, but a direct call to this route must not bypass it.
+    // Validate CNPJ: 14 characters, numeric or alphanumeric (DEV-182), and
+    // check digits (DEV-180). The form also checks it, but a direct call to
+    // this route must not bypass it.
     const cnpjError = getCNPJValidationError(body.cnpj)
     if (cnpjError) {
       return NextResponse.json({ error: cnpjError }, { status: 400 })

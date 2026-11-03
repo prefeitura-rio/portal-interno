@@ -1,4 +1,5 @@
 import { getApiV1EmpregabilidadeEmpresasConsultaCnpjCnpj } from '@/http-gorio/empregabilidade-empresas/empregabilidade-empresas'
+import { CNPJ_LENGTH_MESSAGE, normalizeCNPJ } from '@/lib/cnpj-validator'
 import { NextResponse } from 'next/server'
 
 export async function GET(
@@ -8,14 +9,13 @@ export async function GET(
   try {
     const { cnpj } = await params
 
-    // Remove mask from CNPJ to get only numbers
-    const cnpjNumbers = cnpj.replace(/\D/g, '')
-
-    // Validate CNPJ has 14 digits
-    if (cnpjNumbers.length !== 14) {
+    // Remove mask from CNPJ, keeping digits and letters (alphanumeric CNPJ,
+    // DEV-182), and validate its shape: 12 letters or digits + 2 digits
+    const cnpjNumbers = normalizeCNPJ(cnpj)
+    if (!cnpjNumbers) {
       return NextResponse.json(
         {
-          error: 'CNPJ inválido. Deve conter 14 dígitos.',
+          error: CNPJ_LENGTH_MESSAGE,
         },
         { status: 400 }
       )

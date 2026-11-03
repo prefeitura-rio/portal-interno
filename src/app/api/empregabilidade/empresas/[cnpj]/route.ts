@@ -4,7 +4,12 @@ import {
   putApiV1EmpregabilidadeEmpresasCnpj,
 } from '@/http-gorio/empregabilidade-empresas/empregabilidade-empresas'
 import type { EmpregabilidadeEmpresa } from '@/http-gorio/models/empregabilidadeEmpresa'
-import { getCNPJValidationError } from '@/lib/cnpj-validator'
+import {
+  CNPJ_LENGTH_MESSAGE,
+  cleanCNPJ,
+  getCNPJValidationError,
+  normalizeCNPJ,
+} from '@/lib/cnpj-validator'
 import { revalidateTag } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -19,19 +24,19 @@ import { type NextRequest, NextResponse } from 'next/server'
  * │ Input           │ Validation                                    │
  * ├─────────────────┼──────────────────────────────────────────────┤
  * │ cnpj (param)    │ - Required (checked)                         │
- * │                 │ - After stripping mask: exactly 14 digits     │
- * │                 │ - Only numeric characters                     │
+ * │                 │ - After stripping mask: 14 characters         │
+ * │                 │ - 12 letters/digits + 2 digits (DEV-182)      │
  * └─────────────────┴──────────────────────────────────────────────┘
  *
  * DATA FLOW:
  * 1. Extract cnpj from URL params
- * 2. Strip all non-numeric characters (remove mask if present)
- * 3. Validate: exactly 14 digits
+ * 2. Remove mask, keeping digits and uppercase letters
+ * 3. Validate: 12 letters/digits + 2 check digits
  * 4. Call Orval client: getApiV1EmpregabilidadeEmpresasCnpj(cnpj)
  * 5. Handle responses: 200 (success), 404 (not found), 500 (error)
  *
  * ERROR SCENARIOS:
- * - 400: Missing CNPJ, invalid format (not 14 digits)
+ * - 400: Missing CNPJ, invalid format (not 14 characters)
  * - 404: CNPJ not found in database
  * - 500: Backend error, network error
  */
@@ -48,18 +53,18 @@ export async function GET(
       return NextResponse.json({ error: 'CNPJ é obrigatório' }, { status: 400 })
     }
 
-    // Step 3: Strip mask and extract only digits
-    // Input: "12.345.678/0001-90" or "12345678000190"
-    // Output: "12345678000190"
-    const cnpjNumbers = cnpj.replace(/\D/g, '')
-
-    // Step 4: Validate CNPJ format (exactly 14 digits)
-    if (cnpjNumbers.length !== 14) {
+    // Step 3: Strip mask, keeping digits and letters (alphanumeric CNPJ, DEV-182)
+    // Input: "12.345.678/0001-90", "12345678000190" or "12.ABC.345/01DE-35"
+    // Output: "12345678000190" or "12ABC34501DE35"
+    // Step 4: Validate CNPJ shape (12 letters or digits + 2 digits)
+    const cnpjNumbers = normalizeCNPJ(cnpj)
+    if (!cnpjNumbers) {
+      const received = cleanCNPJ(cnpj)
       return NextResponse.json(
         {
-          error: 'CNPJ inválido. Deve conter exatamente 14 dígitos.',
-          received: cnpjNumbers,
-          length: cnpjNumbers.length,
+          error: CNPJ_LENGTH_MESSAGE,
+          received,
+          length: received.length,
         },
         { status: 400 }
       )
@@ -126,7 +131,7 @@ export async function GET(
  * │ Input           │ Validation                                    │
  * ├─────────────────┼──────────────────────────────────────────────┤
  * │ cnpj (param)    │ - Required                                   │
- * │                 │ - After stripping: exactly 14 digits          │
+ * │                 │ - After stripping: 14 characters (DEV-182)    │
  * │                 │ - Valid check digits (DEV-180)                │
  * ├─────────────────┼──────────────────────────────────────────────┤
  * │ body.cnpj       │ - Optional (backend may require consistency)  │
@@ -139,7 +144,7 @@ export async function GET(
  * DATA FLOW:
  * 1. Extract cnpj from URL params
  * 2. Parse and validate request body
- * 3. Validate CNPJ format (14 digits)
+ * 3. Validate CNPJ format (14 characters)
  * 4. Validate required fields (razao_social)
  * 5. If body.cnpj present, ensure it matches param cnpj
  * 6. Call Orval client: putApiV1EmpregabilidadeEmpresasCnpj(cnpj, body)
@@ -165,16 +170,16 @@ export async function PUT(
       return NextResponse.json({ error: 'CNPJ é obrigatório' }, { status: 400 })
     }
 
-    // Step 3: Strip mask from param CNPJ
-    const cnpjNumbers = cnpj.replace(/\D/g, '')
-
+    // Step 3: Strip mask from param CNPJ (letters kept: alphanumeric CNPJ, DEV-182)
     // Step 4: Validate param CNPJ format and check digits (DEV-180)
-    if (cnpjNumbers.length !== 14) {
+    const cnpjNumbers = normalizeCNPJ(cnpj)
+    if (!cnpjNumbers) {
+      const received = cleanCNPJ(cnpj)
       return NextResponse.json(
         {
-          error: 'CNPJ inválido. Deve conter exatamente 14 dígitos.',
-          received: cnpjNumbers,
-          length: cnpjNumbers.length,
+          error: CNPJ_LENGTH_MESSAGE,
+          received,
+          length: received.length,
         },
         { status: 400 }
       )
@@ -200,7 +205,7 @@ export async function PUT(
     // Step 7: If body contains cnpj, validate it matches param cnpj
     // This prevents accidentally updating wrong empresa
     if (body.cnpj) {
-      const bodyCnpjNumbers = body.cnpj.replace(/\D/g, '')
+      const bodyCnpjNumbers = cleanCNPJ(body.cnpj)
       if (bodyCnpjNumbers !== cnpjNumbers) {
         return NextResponse.json(
           {
@@ -292,12 +297,12 @@ export async function PUT(
  * │ Input           │ Validation                                    │
  * ├─────────────────┼──────────────────────────────────────────────┤
  * │ cnpj (param)    │ - Required                                   │
- * │                 │ - After stripping: exactly 14 digits          │
+ * │                 │ - After stripping: 14 characters (DEV-182)    │
  * └─────────────────┴──────────────────────────────────────────────┘
  *
  * DATA FLOW:
  * 1. Extract cnpj from URL params
- * 2. Validate CNPJ format (14 digits)
+ * 2. Validate CNPJ format (14 characters)
  * 3. Call Orval client: deleteApiV1EmpregabilidadeEmpresasCnpj(cnpj)
  * 4. Revalidate cache tags
  * 5. Return success message
@@ -326,16 +331,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'CNPJ é obrigatório' }, { status: 400 })
     }
 
-    // Step 3: Strip mask from CNPJ
-    const cnpjNumbers = cnpj.replace(/\D/g, '')
-
-    // Step 4: Validate CNPJ format
-    if (cnpjNumbers.length !== 14) {
+    // Step 3: Strip mask from CNPJ (letters kept: alphanumeric CNPJ, DEV-182)
+    // Step 4: Validate CNPJ shape
+    const cnpjNumbers = normalizeCNPJ(cnpj)
+    if (!cnpjNumbers) {
+      const received = cleanCNPJ(cnpj)
       return NextResponse.json(
         {
-          error: 'CNPJ inválido. Deve conter exatamente 14 dígitos.',
-          received: cnpjNumbers,
-          length: cnpjNumbers.length,
+          error: CNPJ_LENGTH_MESSAGE,
+          received,
+          length: received.length,
         },
         { status: 400 }
       )

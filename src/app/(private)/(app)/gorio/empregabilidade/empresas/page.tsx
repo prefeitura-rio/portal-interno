@@ -22,6 +22,7 @@ import {
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEmpresas } from '@/hooks/use-empresas'
 import type { EmpregabilidadeEmpresa } from '@/http-gorio/models'
+import { formatCNPJ } from '@/lib/cnpj-validator'
 import { formatDateBR } from '@/lib/format'
 import {
   type Column,
@@ -54,21 +55,6 @@ import { toast } from 'sonner'
  * UTILITY FUNCTIONS
  * ============================================================================
  */
-
-/**
- * Format CNPJ for display
- * Input: "12345678000190"
- * Output: "12.345.678/0001-90"
- */
-function formatCNPJ(cnpj: string): string {
-  if (!cnpj) return ''
-  const numbers = cnpj.replace(/\D/g, '')
-  if (numbers.length !== 14) return cnpj
-  return numbers.replace(
-    /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
-    '$1.$2.$3/$4-$5'
-  )
-}
 
 /**
  * ============================================================================
