@@ -1,4 +1,5 @@
 import { getApiV1JobsJobIdStatus } from '@/http-gorio/jobs/jobs'
+import { summarizeImportJobForLog } from '@/lib/import-job-log'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
@@ -14,7 +15,10 @@ export async function GET(
 
     const response = await getApiV1JobsJobIdStatus(jobId)
 
-    console.log('Job status response:', JSON.stringify(response.data, null, 2))
+    console.log('Job status response:', {
+      httpStatus: response.status,
+      ...summarizeImportJobForLog(response.data),
+    })
 
     if (response.status === 200) {
       return NextResponse.json(response.data, { status: 200 })
