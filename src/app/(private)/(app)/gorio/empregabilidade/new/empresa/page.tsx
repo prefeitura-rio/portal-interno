@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
-import { completeCNPJ } from '@/lib/cnpj-validator'
+import { cleanCNPJ, completeCNPJ } from '@/lib/cnpj-validator'
 import { Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -32,8 +32,8 @@ export default function NewEmpresaPage() {
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
 
-      // Remove mask from CNPJ to get only numbers
-      const cnpjNumbers = data.cnpj?.replace(/\D/g, '') || ''
+      // Remove mask from CNPJ, keeping letters (alphanumeric CNPJ, DEV-182)
+      const cnpjNumbers = data.cnpj ? cleanCNPJ(data.cnpj) : ''
 
       // Check if we're in staging and missing empresa_nome (CNPJ not searched)
       const isStaging = process.env.NEXT_PUBLIC_ENVIRONMENT === 'staging'

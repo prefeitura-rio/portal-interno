@@ -13,6 +13,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useEmpresa } from '@/hooks/use-empresa'
+import { cleanCNPJ, formatCNPJ } from '@/lib/cnpj-validator'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { use, useState } from 'react'
@@ -66,28 +67,13 @@ export default function EditEmpresaPage({
   const { empresa, loading, error } = useEmpresa(cnpj)
 
   /**
-   * Format CNPJ for display
-   * Input: "12345678000190"
-   * Output: "12.345.678/0001-90"
-   */
-  const formatCNPJ = (value: string): string => {
-    if (!value) return ''
-    const numbers = value.replace(/\D/g, '')
-    if (numbers.length !== 14) return value
-    return numbers.replace(
-      /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
-      '$1.$2.$3/$4-$5'
-    )
-  }
-
-  /**
    * Handle form submission
    *
    * DATA TRANSFORMATION:
    * Form → API:
    * - empresa_nome → razao_social
    * - logo_url → url_logo
-   * - cnpj (formatted) → cnpj (14 digits)
+   * - cnpj (formatted) → cnpj (14 characters, without mask)
    *
    * VALIDATION:
    * - All fields present
@@ -116,8 +102,8 @@ export default function EditEmpresaPage({
     setIsSubmitting(true)
 
     try {
-      // Step 1: Strip CNPJ mask to get 14 digits
-      const cnpjNumbers = cnpj.replace(/\D/g, '')
+      // Step 1: Strip CNPJ mask, keeping letters (alphanumeric CNPJ, DEV-182)
+      const cnpjNumbers = cleanCNPJ(cnpj)
 
       console.log('[EditEmpresaPage] Updating empresa:', {
         cnpj: cnpjNumbers,

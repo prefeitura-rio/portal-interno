@@ -1,4 +1,5 @@
 import type { EmpregabilidadeEmpresa } from '@/http-gorio/models'
+import { cleanCNPJ, normalizeCNPJ } from '@/lib/cnpj-validator'
 import { useCallback, useEffect, useState } from 'react'
 
 /**
@@ -67,15 +68,14 @@ export function useEmpresa(cnpj: string | null): UseEmpresaResult {
       setLoading(true)
       setError(null)
 
-      // Strip CNPJ mask to get only numbers
-      // Input: "12.345.678/0001-90" or "12345678000190"
-      // Output: "12345678000190"
-      const cnpjNumbers = cnpj.replace(/\D/g, '')
-
-      // Validate CNPJ has exactly 14 digits
-      if (cnpjNumbers.length !== 14) {
+      // Strip CNPJ mask, keeping letters (alphanumeric CNPJ, DEV-182)
+      // Input: "12.345.678/0001-90", "12345678000190" or "12.ABC.345/01DE-35"
+      // Output: "12345678000190" or "12ABC34501DE35"
+      // and validate its shape: 12 letters or digits + 2 digits
+      const cnpjNumbers = normalizeCNPJ(cnpj)
+      if (!cnpjNumbers) {
         throw new Error(
-          `CNPJ inválido: esperado 14 dígitos, recebido ${cnpjNumbers.length}`
+          `CNPJ inválido: esperado 14 caracteres, recebido ${cleanCNPJ(cnpj).length}`
         )
       }
 
