@@ -38,6 +38,7 @@ import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useVaga } from '@/hooks/use-vaga'
 import { fromApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
 import { formatDateBR } from '@/lib/format'
+import { GORIO_MODULE_LABEL } from '@/lib/module-labels'
 import {
   type VagaStatus,
   vagaStatusConfig,
@@ -819,7 +820,7 @@ export default function EmpregabilidadeDetailPage({
         <div className="flex flex-col gap-2">
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>GO Rio</BreadcrumbItem>
+              <BreadcrumbItem>{GORIO_MODULE_LABEL}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>

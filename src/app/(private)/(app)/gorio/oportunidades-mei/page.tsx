@@ -8,6 +8,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
+import { GORIO_MODULE_LABEL } from '@/lib/module-labels'
 
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
@@ -25,7 +26,7 @@ export default function OportunidadesMEIPage() {
         <div className="flex flex-col gap-2">
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>Go Rio</BreadcrumbItem>
+              <BreadcrumbItem>{GORIO_MODULE_LABEL}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>Oportunidades MEI</BreadcrumbPage>

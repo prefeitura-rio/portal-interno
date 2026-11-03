@@ -8,6 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { GORIO_MODULE_LABEL } from '@/lib/module-labels'
 import { Suspense } from 'react'
 import { BancoCurriculosTable } from './components/banco-curriculos-table'
 
@@ -17,7 +18,7 @@ export default function BancoCurriculosPage() {
       <div className="space-y-4">
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem>GO Rio</BreadcrumbItem>
+            <BreadcrumbItem>{GORIO_MODULE_LABEL}</BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>Banco de currículos</BreadcrumbPage>

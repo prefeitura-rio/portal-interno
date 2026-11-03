@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/breadcrumb'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
+import { GORIO_MODULE_LABEL } from '@/lib/module-labels'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -147,7 +148,7 @@ export default function NewCourse() {
         <div className="flex flex-col gap-2">
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>GO Rio</BreadcrumbItem>
+              <BreadcrumbItem>{GORIO_MODULE_LABEL}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>

@@ -30,6 +30,7 @@ import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useCourse } from '@/hooks/use-course'
 import { useDepartment } from '@/hooks/use-department'
+import { GORIO_MODULE_LABEL } from '@/lib/module-labels'
 import type { CourseStatusConfig } from '@/types/course'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -1386,7 +1387,7 @@ export default function CourseDetailPage({
         <div className="flex flex-col gap-2">
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>GO Rio</BreadcrumbItem>
+              <BreadcrumbItem>{GORIO_MODULE_LABEL}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>

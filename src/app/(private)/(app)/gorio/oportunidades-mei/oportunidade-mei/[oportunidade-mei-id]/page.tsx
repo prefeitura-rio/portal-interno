@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useMEIOpportunity } from '@/hooks/use-mei-opportunity'
 import { useMEIOpportunityOperations } from '@/hooks/use-mei-opportunity-operations'
+import { GORIO_MODULE_LABEL } from '@/lib/module-labels'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -415,7 +416,7 @@ export default function MEIOpportunityDetailPage({
         <div className="flex flex-col gap-2">
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>GO Rio</BreadcrumbItem>
+              <BreadcrumbItem>{GORIO_MODULE_LABEL}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
