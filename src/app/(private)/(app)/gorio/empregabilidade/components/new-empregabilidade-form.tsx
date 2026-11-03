@@ -1013,6 +1013,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                         placeholder="Selecione a data e hora limite"
                         disabled={isReadOnly}
                         disablePastDates={true}
+                        after={new Date()}
                       />
                     </FormControl>
                     <FormMessage />

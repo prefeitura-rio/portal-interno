@@ -2,6 +2,10 @@ import {
   getApiV1EmpregabilidadeVagasId,
   putApiV1EmpregabilidadeVagasIdPublish,
 } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
+import {
+  DATA_LIMITE_FIELD_LABEL,
+  validateVagaDataLimite,
+} from '@/lib/empregabilidade-vaga-dates'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -61,6 +65,15 @@ export async function PUT(
           error: `Campos obrigatórios para publicação faltando: ${missingFields.join(', ')}`,
           missingFields,
         },
+        { status: 400 }
+      )
+    }
+
+    // A vaga só é publicada com data limite futura (DEV-167)
+    const dataLimiteError = validateVagaDataLimite(vaga.data_limite)
+    if (dataLimiteError) {
+      return NextResponse.json(
+        { error: dataLimiteError, invalidFields: [DATA_LIMITE_FIELD_LABEL] },
         { status: 400 }
       )
     }
