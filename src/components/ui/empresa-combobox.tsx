@@ -18,6 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { formatCNPJ } from '@/lib/cnpj-validator'
+import { getEmpresaSearchParams } from '@/lib/empresa-search'
 import { cn } from '@/lib/utils'
 
 const limit = 30
@@ -29,17 +31,6 @@ function getEmpresaDisplayName(empresa: EmpregabilidadeEmpresa): string {
     empresa.cnpj ||
     'Empresa sem nome'
   )
-}
-
-/** Returns true if the string looks like a CNPJ (only digits, length 14 or more when stripped) */
-function isCnpjSearch(value: string): boolean {
-  const digits = value.replace(/\D/g, '')
-  return digits.length >= 14
-}
-
-/** Extracts 14 digits for CNPJ param */
-function extractCnpj(value: string): string {
-  return value.replace(/\D/g, '').slice(0, 14)
 }
 
 interface EmpresaComboboxProps {
@@ -83,12 +74,11 @@ export function EmpresaCombobox({
         url.searchParams.set('page', currentPage.toString())
         url.searchParams.set('page_size', limit.toString())
 
-        if (searchQuery.trim()) {
-          if (isCnpjSearch(searchQuery)) {
-            url.searchParams.set('cnpj', extractCnpj(searchQuery))
-          } else {
-            url.searchParams.set('search', searchQuery.trim())
-          }
+        const searchParams = getEmpresaSearchParams(searchQuery)
+        if (searchParams && 'cnpj' in searchParams) {
+          url.searchParams.set('cnpj', searchParams.cnpj)
+        } else if (searchParams) {
+          url.searchParams.set('search', searchParams.search)
         }
 
         const response = await fetch(url.toString())
@@ -299,15 +289,7 @@ export function EmpresaCombobox({
                       </span>
                       {empresa.cnpj && (
                         <span className="text-xs text-muted-foreground">
-                          CNPJ:{' '}
-                          {empresa.cnpj.replace(/\D/g, '').length === 14
-                            ? empresa.cnpj
-                                .replace(/\D/g, '')
-                                .replace(
-                                  /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
-                                  '$1.$2.$3/$4-$5'
-                                )
-                            : empresa.cnpj}
+                          CNPJ: {formatCNPJ(empresa.cnpj)}
                         </span>
                       )}
                     </div>
