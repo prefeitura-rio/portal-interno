@@ -8,6 +8,11 @@ import {
   previewBodyForLog,
   readKeycloakTokenResponse,
 } from '@/lib/keycloak-token-response'
+import {
+  OAUTH_STATE_COOKIE_NAME,
+  clearOAuthStateCookie,
+  verifyOAuthState,
+} from '@/lib/oauth-state'
 // src/app/api/auth/callback/keycloak/route.ts
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -38,9 +43,12 @@ function getAppBaseUrl(req: NextRequest): URL {
 }
 
 function redirectToLoginError(appBaseUrl: URL): NextResponse {
-  return NextResponse.redirect(
+  const res = NextResponse.redirect(
     new URL(REDIRECT_WHEN_LOGIN_FAILED_ROUTE, appBaseUrl.origin)
   )
+  // O state é de uso único: qualquer desfecho do callback o consome
+  clearOAuthStateCookie(res)
+  return res
 }
 
 export async function GET(req: NextRequest) {
@@ -50,6 +58,20 @@ export async function GET(req: NextRequest) {
   if (!code) {
     console.warn('[KEYCLOAK_CALLBACK] Callback without authorization code:', {
       error: previewBodyForLog(searchParams.get('error') ?? '') || null,
+    })
+    return redirectToLoginError(appBaseUrl)
+  }
+
+  // CSRF de login (DEV-262): o code só é trocado se o state devolvido pelo
+  // Keycloak for o mesmo gravado no cookie quando este navegador iniciou o
+  // login (/api/auth/login ou o redirect do middleware)
+  const stateCheck = verifyOAuthState(
+    searchParams.get('state'),
+    req.cookies.get(OAUTH_STATE_COOKIE_NAME)?.value
+  )
+  if (!stateCheck.ok) {
+    console.warn('[KEYCLOAK_CALLBACK] Rejected callback: invalid OAuth state', {
+      reason: stateCheck.reason,
     })
     return redirectToLoginError(appBaseUrl)
   }
@@ -124,6 +146,7 @@ export async function GET(req: NextRequest) {
     httpOnly: true,
     maxAge: 0,
   })
+  clearOAuthStateCookie(res)
 
   return res
 }

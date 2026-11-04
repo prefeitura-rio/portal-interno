@@ -2,11 +2,10 @@
 
 import govbrLogo from '@/assets/govbr.svg'
 import { ThemeAwareVideo } from '@/components/ui/custom/theme-aware-video'
+import { LOGIN_ROUTE } from '@/constants/url'
 import { VIDEO_SOURCES } from '@/constants/videos-sources'
 import { useViewportHeight } from '@/hooks/useViewport'
-import { REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE } from '@/middleware'
 import Image from 'next/image'
-import Link from 'next/link'
 
 export default function LoginError() {
   const { isBelowBreakpoint } = useViewportHeight(648)
@@ -34,8 +33,9 @@ export default function LoginError() {
           </p>
 
           <div className="flex justify-center pb-2">
-            <Link
-              href={REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE}
+            {/* Navegação completa: a rota de login responde com redirect ao Keycloak */}
+            <a
+              href={LOGIN_ROUTE}
               className="flex w-[216px] h-[55px] px-6 py-4 justify-center items-center gap-3 rounded-2xl bg-card transition-colors"
             >
               <Image
@@ -45,7 +45,7 @@ export default function LoginError() {
                 height={30}
                 className="object-contain"
               />
-            </Link>
+            </a>
           </div>
         </div>
       </div>

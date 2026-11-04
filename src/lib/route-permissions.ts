@@ -285,6 +285,7 @@ const BUSCA_SERVICES_ADMIN_API = anyOf(BUSCA_SERVICES_ADMIN_ROLES)
 export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   // Autenticação e saúde: precisam funcionar sem sessão (ou com ela expirada)
   '/api/auth/callback/keycloak': PUBLIC_API,
+  '/api/auth/login': PUBLIC_API,
   '/api/auth/logout': PUBLIC_API,
   '/api/auth/refresh': PUBLIC_API,
   '/api/auth/token-status': PUBLIC_API,

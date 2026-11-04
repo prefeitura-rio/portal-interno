@@ -42,6 +42,7 @@ const { previewBodyForLog, readKeycloakTokenResponse } = await import(
 const { refreshAccessToken } = await import('../token-refresh.ts')
 const { GET } = await import('../../app/api/auth/callback/keycloak/route.ts')
 const { NextRequest } = await import('next/server.js')
+const { OAUTH_STATE_COOKIE_NAME } = await import('../oauth-state.ts')
 
 const APP_ORIGIN = 'https://admin.portal.invalid'
 const KEYCLOAK_BASE_URL = 'https://keycloak.invalid/realms/teste/openid'
@@ -94,8 +95,16 @@ function mockFetch(handler: () => Promise<Response>): void {
   globalThis.fetch = mock.fn(handler) as unknown as typeof fetch
 }
 
+// DEV-262: o callback só troca o code com o state do cookie; estes cenários
+// simulam um login legítimo, iniciado neste navegador
+const OAUTH_STATE = 'state-sintetico-de-43-caracteres-base64url_'
+
 function callbackRequest(query: string): InstanceType<typeof NextRequest> {
-  return new NextRequest(`${CALLBACK_URL}${query}`)
+  const url = new URL(`${CALLBACK_URL}${query}`)
+  url.searchParams.set('state', OAUTH_STATE)
+  return new NextRequest(url, {
+    headers: { cookie: `${OAUTH_STATE_COOKIE_NAME}=${OAUTH_STATE}` },
+  })
 }
 
 function loggedFailure(calls: ConsoleCall[]): Record<string, unknown> {
