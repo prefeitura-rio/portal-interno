@@ -67,7 +67,7 @@
     "nuqs": "^2.8.9",
     "postcss": "^8.5.10",
     "react": "19.2.7",
-    "react-day-picker": "^10.0.1",
+    "react-day-picker": "^10.0.2",
     "react-dom": "19.2.7",
     "react-easy-crop": "^6.2.3",
     "react-google-recaptcha-v3": "^1.11.0",
