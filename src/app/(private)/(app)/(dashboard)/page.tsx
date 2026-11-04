@@ -1,13 +1,13 @@
 import { ContentLayout } from '@/components/admin-panel/content-layout'
+import { LOGIN_ROUTE } from '@/constants/url'
 import { getUserInfoFromToken } from '@/lib/user-info'
 import { redirect } from 'next/navigation'
 
 export default async function Dashboard() {
   const userInfo = await getUserInfoFromToken()
   if (!userInfo.cpf) {
-    redirect(
-      `${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_BASE_URL}/auth?client_id=${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_REDIRECT_URI}&response_type=code`
-    )
+    // Server Component não grava cookie: a rota de login grava o state
+    redirect(LOGIN_ROUTE)
   }
   return (
     <ContentLayout title="Dashboard">

@@ -1,3 +1,4 @@
+import { LOGIN_ROUTE } from '@/constants/url'
 import { useRef, useState } from 'react'
 
 export function useLogout() {
@@ -9,7 +10,9 @@ export function useLogout() {
 
     setIsLoading(true)
     try {
-      // uri de redirecionamento do keycloak
+      // destino do gov.br após o logout (URL já registrada lá; abre só no
+      // iframe oculto). Sem state, o callback recusa qualquer code que venha
+      // dela (DEV-262)
       const redirectUri = `${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_BASE_URL}/auth?client_id=${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_REDIRECT_URI}&response_type=code`
       // primeiro faz logout do keycloak
       await fetch('/api/auth/logout')
@@ -37,8 +40,8 @@ export function useLogout() {
             }
             iframeRef.current = null
           }
-          // Redireciona o usuário após o logout do govbr
-          window.location.href = redirectUri
+          // Redireciona o usuário ao login (com state) após o logout do govbr
+          window.location.href = LOGIN_ROUTE
         }, 0) // coloca em ultima prioridade na stack de execução
       }
 
@@ -55,7 +58,7 @@ export function useLogout() {
           }
           iframeRef.current = null
         }
-        window.location.href = redirectUri
+        window.location.href = LOGIN_ROUTE
       }
     } catch (error) {
       console.error('Logout failed:', error)

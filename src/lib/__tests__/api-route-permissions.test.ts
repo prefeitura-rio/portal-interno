@@ -303,6 +303,7 @@ describe('middleware: RBAC das rotas de API (DEV-43)', () => {
     for (const path of [
       '/api/health',
       '/api/auth/callback/keycloak',
+      '/api/auth/login',
       '/api/auth/refresh',
       '/api/auth/logout',
       '/api/auth/token-status',
@@ -667,6 +668,7 @@ describe('API_ROUTE_PERMISSIONS', () => {
       .sort()
     assert.deepEqual(publicRoutes, [
       '/api/auth/callback/keycloak',
+      '/api/auth/login',
       '/api/auth/logout',
       '/api/auth/refresh',
       '/api/auth/token-status',

@@ -17,7 +17,10 @@ export function SessionExpiredHandler() {
           // First logout from Keycloak
           await fetch('/api/auth/logout')
 
-          // Then logout from gov.br via hidden iframe
+          // Then logout from gov.br via hidden iframe. The post-logout target
+          // is the URL registered at gov.br; it carries no OAuth state, so the
+          // callback rejects any code coming from it (DEV-262). The login
+          // button of this page goes through LOGIN_ROUTE instead.
           const redirectUri = `${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_BASE_URL}/auth?client_id=${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_REDIRECT_URI}&response_type=code`
           const govbrLogoutUrl = `${process.env.NEXT_PUBLIC_GOVBR_BASE_URL}logout?post_logout_redirect_uri=${encodeURIComponent(redirectUri)}`
 
