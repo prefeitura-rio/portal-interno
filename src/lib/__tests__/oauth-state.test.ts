@@ -101,6 +101,16 @@ function stateSetCookie(response: Response): string {
   return header
 }
 
+/** Callback recusado não mexe no state de um login legítimo em andamento. */
+function assertStateUntouched(response: Response): void {
+  assert.equal(
+    response.headers
+      .getSetCookie()
+      .some(value => value.startsWith(`${OAUTH_STATE_COOKIE_NAME}=`)),
+    false
+  )
+}
+
 function assertStateCleared(response: Response): void {
   const header = stateSetCookie(response)
   assert.match(header, new RegExp(`^${OAUTH_STATE_COOKIE_NAME}=;`))
@@ -284,7 +294,7 @@ describe('GET /api/auth/callback/keycloak valida o state (DEV-262)', () => {
     assert.equal(tokenCalls, 0)
     assert.equal(response.cookies.get('access_token'), undefined)
     assert.equal(response.cookies.get('refresh_token'), undefined)
-    assertStateCleared(response)
+    assertStateUntouched(response)
   })
 
   test('sem cookie de state (login não iniciado neste navegador): recusa', async () => {
@@ -309,6 +319,51 @@ describe('GET /api/auth/callback/keycloak valida o state (DEV-262)', () => {
 
     assert.equal(response.headers.get('location'), LOGIN_ERROR_URL)
     assert.equal(tokenCalls, 0)
+    assert.equal(response.cookies.get('access_token'), undefined)
+    assertStateUntouched(response)
+  })
+
+  test('callback sem state (iframe do logout do gov.br) não derruba o login em andamento', async () => {
+    const start = login(request(`${APP_ORIGIN}/api/auth/login`))
+    const state = start.cookies.get(OAUTH_STATE_COOKIE_NAME)?.value
+    assert.ok(state)
+
+    const stray = await callback(
+      request(`${CALLBACK_URL}?code=codigo-sem-state`, {
+        [OAUTH_STATE_COOKIE_NAME]: state,
+      })
+    )
+    assert.equal(stray.headers.get('location'), LOGIN_ERROR_URL)
+    assertStateUntouched(stray)
+
+    const legit = await callback(
+      request(`${CALLBACK_URL}?code=codigo-legitimo&state=${state}`, {
+        [OAUTH_STATE_COOKIE_NAME]: state,
+      })
+    )
+    assert.equal(legit.headers.get('location'), `${APP_ORIGIN}/`)
+    assert.equal(tokenCalls, 1)
+    assertStateCleared(legit)
+  })
+
+  test('state certo e falha na troca do code: consome o state', async () => {
+    globalThis.fetch = (async () => {
+      tokenCalls++
+      return new Response('{"error":"invalid_grant"}', {
+        status: 400,
+        headers: { 'content-type': 'application/json' },
+      })
+    }) as typeof fetch
+    const state = generateOAuthState()
+
+    const response = await callback(
+      request(`${CALLBACK_URL}?code=codigo-expirado&state=${state}`, {
+        [OAUTH_STATE_COOKIE_NAME]: state,
+      })
+    )
+
+    assert.equal(response.headers.get('location'), LOGIN_ERROR_URL)
+    assert.equal(tokenCalls, 1)
     assert.equal(response.cookies.get('access_token'), undefined)
     assertStateCleared(response)
   })

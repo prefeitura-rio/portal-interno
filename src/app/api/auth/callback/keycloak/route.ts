@@ -42,12 +42,22 @@ function getAppBaseUrl(req: NextRequest): URL {
   return new URL('/', req.nextUrl.origin)
 }
 
-function redirectToLoginError(appBaseUrl: URL): NextResponse {
+/**
+ * Redireciona à página de erro de login. Com `consumeState`, apaga o cookie do
+ * state (uso único): só depois que o state da query bateu com ele. Um callback
+ * recusado não apaga o state de um login legítimo em andamento neste navegador
+ * (requisição forjada, iframe do logout do gov.br).
+ */
+function redirectToLoginError(
+  appBaseUrl: URL,
+  { consumeState }: { consumeState: boolean }
+): NextResponse {
   const res = NextResponse.redirect(
     new URL(REDIRECT_WHEN_LOGIN_FAILED_ROUTE, appBaseUrl.origin)
   )
-  // O state é de uso único: qualquer desfecho do callback o consome
-  clearOAuthStateCookie(res)
+  if (consumeState) {
+    clearOAuthStateCookie(res)
+  }
   return res
 }
 
@@ -59,7 +69,7 @@ export async function GET(req: NextRequest) {
     console.warn('[KEYCLOAK_CALLBACK] Callback without authorization code:', {
       error: previewBodyForLog(searchParams.get('error') ?? '') || null,
     })
-    return redirectToLoginError(appBaseUrl)
+    return redirectToLoginError(appBaseUrl, { consumeState: false })
   }
 
   // CSRF de login (DEV-262): o code só é trocado se o state devolvido pelo
@@ -73,7 +83,7 @@ export async function GET(req: NextRequest) {
     console.warn('[KEYCLOAK_CALLBACK] Rejected callback: invalid OAuth state', {
       reason: stateCheck.reason,
     })
-    return redirectToLoginError(appBaseUrl)
+    return redirectToLoginError(appBaseUrl, { consumeState: false })
   }
 
   const tokenUrl = `${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_BASE_URL}/token`
@@ -96,7 +106,7 @@ export async function GET(req: NextRequest) {
     console.error('[KEYCLOAK_CALLBACK] Token request failed:', {
       error: error instanceof Error ? error.message : String(error),
     })
-    return redirectToLoginError(appBaseUrl)
+    return redirectToLoginError(appBaseUrl, { consumeState: true })
   }
 
   const result = await readKeycloakTokenResponse(response)
@@ -106,7 +116,7 @@ export async function GET(req: NextRequest) {
       reason: result.reason,
       ...result.diagnostics,
     })
-    return redirectToLoginError(appBaseUrl)
+    return redirectToLoginError(appBaseUrl, { consumeState: true })
   }
 
   const { tokens } = result

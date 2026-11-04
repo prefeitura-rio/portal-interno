@@ -122,7 +122,7 @@ export function redirectToKeycloakLogin(request: NextRequest): NextResponse {
   return response
 }
 
-/** Apaga o cookie do `state` (uso único: o callback sempre o consome). */
+/** Apaga o cookie do `state` (uso único: o callback o consome quando bate). */
 export function clearOAuthStateCookie(response: NextResponse): void {
   response.cookies.set(OAUTH_STATE_COOKIE_NAME, '', {
     ...OAUTH_STATE_COOKIE_CONFIG,
