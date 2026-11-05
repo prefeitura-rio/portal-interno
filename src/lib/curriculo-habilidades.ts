@@ -1,57 +1,102 @@
-import type { EmpregabilidadeCurriculoCompleto } from '@/http-gorio/models'
-
 /**
- * "Habilidades e competências" do currículo, como a ficha do Banco de
- * Currículos exibe (DEV-347). Os itens ficam na ordem em que a API os envia
- * (A–Z); currículos antigos, sem esses campos, viram seção vazia.
+ * Seção "Habilidades e competências" do currículo do candidato, lida do
+ * `curriculo_snapshot` da candidatura (app-go-api: `area_atuacao`,
+ * `conhecimentos` e `comportamentos_atitudes`, itens de catálogo `{id, nome}`).
+ *
+ * Currículos antigos não têm esses campos, ou os têm `null`/`[]`: tudo isso é
+ * tratado como "sem dados", sem quebrar a gaveta.
  */
 
-export interface ItemHabilidade {
-  id?: number
+/** Quantos chips cada grupo mostra antes do botão "Ver todos". */
+export const HABILIDADES_CHIPS_LIMIT = 9
+
+export interface CatalogoItemSnapshot {
+  id?: number | null
+  nome?: string | null
+}
+
+export interface HabilidadesSnapshot {
+  area_atuacao?: CatalogoItemSnapshot | null
+  conhecimentos?: Array<CatalogoItemSnapshot | null> | null
+  comportamentos_atitudes?: Array<CatalogoItemSnapshot | null> | null
+}
+
+export interface HabilidadeChip {
+  key: string
   nome: string
 }
 
-export interface HabilidadesDoCurriculo {
-  /** Nome da área de atuação, ou `null` quando não informada. */
+export interface HabilidadesCompetencias {
   areaAtuacao: string | null
-  conhecimentos: ItemHabilidade[]
-  comportamentosAtitudes: ItemHabilidade[]
+  conhecimentos: HabilidadeChip[]
+  comportamentos: HabilidadeChip[]
 }
 
-function nomeDoItem(item: unknown): string {
-  if (!item || typeof item !== 'object') return ''
-  const nome = (item as { nome?: unknown }).nome
-  return typeof nome === 'string' ? nome.trim() : ''
+export interface VisibleChips {
+  visible: HabilidadeChip[]
+  /** Quantos chips ficam fora da lista recolhida (o N de "Ver todos (+N)"). */
+  hiddenCount: number
 }
 
-function itensComNome(itens: unknown): ItemHabilidade[] {
-  if (!Array.isArray(itens)) return []
+/**
+ * Extrai a seção do snapshot. Devolve `null` (seção oculta) quando área,
+ * conhecimentos e comportamentos estão todos ausentes, nulos ou vazios.
+ * Os chips mantêm a ordem recebida da API.
+ */
+export function extractHabilidadesCompetencias(
+  snapshot: HabilidadesSnapshot | null | undefined
+): HabilidadesCompetencias | null {
+  if (!snapshot || typeof snapshot !== 'object') return null
 
-  const resultado: ItemHabilidade[] = []
-  for (const item of itens) {
-    const nome = nomeDoItem(item)
-    if (!nome) continue
-    const id = (item as { id?: unknown }).id
-    resultado.push(typeof id === 'number' ? { id, nome } : { nome })
-  }
-  return resultado
-}
-
-export function habilidadesDoCurriculo(
-  curriculo: EmpregabilidadeCurriculoCompleto | null | undefined
-): HabilidadesDoCurriculo {
-  return {
-    areaAtuacao: nomeDoItem(curriculo?.area_atuacao) || null,
-    conhecimentos: itensComNome(curriculo?.conhecimentos),
-    comportamentosAtitudes: itensComNome(curriculo?.comportamentos_atitudes),
-  }
-}
-
-/** Sem área, conhecimentos nem comportamentos, a seção mostra só "Não informado". */
-export function temHabilidades(habilidades: HabilidadesDoCurriculo): boolean {
-  return (
-    habilidades.areaAtuacao !== null ||
-    habilidades.conhecimentos.length > 0 ||
-    habilidades.comportamentosAtitudes.length > 0
+  const areaAtuacao = catalogoItemNome(snapshot.area_atuacao)
+  const conhecimentos = toChips(snapshot.conhecimentos, 'conhecimento')
+  const comportamentos = toChips(
+    snapshot.comportamentos_atitudes,
+    'comportamento'
   )
+
+  if (!areaAtuacao && conhecimentos.length === 0 && comportamentos.length === 0)
+    return null
+
+  return { areaAtuacao, conhecimentos, comportamentos }
+}
+
+/** Chips exibidos de um grupo: até `limit` recolhido, todos quando expandido. */
+export function getVisibleChips(
+  chips: HabilidadeChip[],
+  expanded: boolean,
+  limit: number = HABILIDADES_CHIPS_LIMIT
+): VisibleChips {
+  const hiddenCount = Math.max(chips.length - limit, 0)
+  if (expanded || hiddenCount === 0) return { visible: chips, hiddenCount }
+  return { visible: chips.slice(0, limit), hiddenCount }
+}
+
+/** Rótulo do botão que expande ou recolhe um grupo; `null` quando não há botão. */
+export function getToggleChipsLabel(
+  hiddenCount: number,
+  expanded: boolean
+): string | null {
+  if (hiddenCount <= 0) return null
+  return expanded ? 'Ver menos' : `Ver todos (+${hiddenCount})`
+}
+
+function catalogoItemNome(item: unknown): string | null {
+  if (!item || typeof item !== 'object') return null
+  const nome = (item as CatalogoItemSnapshot).nome
+  if (typeof nome !== 'string') return null
+  const trimmed = nome.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function toChips(items: unknown, prefix: string): HabilidadeChip[] {
+  if (!Array.isArray(items)) return []
+  const chips: HabilidadeChip[] = []
+  items.forEach((item, index) => {
+    const nome = catalogoItemNome(item)
+    if (!nome) return
+    const id = (item as CatalogoItemSnapshot).id
+    chips.push({ key: `${prefix}-${id ?? 'sem-id'}-${index}`, nome })
+  })
+  return chips
 }

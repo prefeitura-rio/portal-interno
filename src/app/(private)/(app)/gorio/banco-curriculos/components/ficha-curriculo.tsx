@@ -12,10 +12,9 @@ import type {
 } from '@/http-gorio/models'
 import { formatCPF } from '@/lib/cpf-validator'
 import {
-  type HabilidadesDoCurriculo,
-  type ItemHabilidade,
-  habilidadesDoCurriculo,
-  temHabilidades,
+  type HabilidadeChip,
+  type HabilidadesCompetencias,
+  extractHabilidadesCompetencias,
 } from '@/lib/curriculo-habilidades'
 import { formatDateBR } from '@/lib/format'
 import { sanitizeRmiValue } from '@/lib/rmi-value'
@@ -77,7 +76,7 @@ export function FichaCurriculo({ curriculo }: FichaCurriculoProps) {
   const idiomas = completo?.idiomas ?? []
   const resumo = sanitizeRmiValue(completo?.resumo_profissional)
   const temNomeSocial = !!sanitizeRmiValue(curriculo.nome_social)
-  const habilidades = habilidadesDoCurriculo(completo)
+  const habilidades = extractHabilidadesCompetencias(completo)
 
   return (
     <div className="space-y-8">
@@ -152,7 +151,7 @@ export function FichaCurriculo({ curriculo }: FichaCurriculoProps) {
       </Secao>
 
       <Secao titulo="Habilidades e competências">
-        <HabilidadesCompetencias habilidades={habilidades} />
+        <HabilidadesDaFicha habilidades={habilidades} />
       </Secao>
 
       <Secao titulo="Conquistas e certificados">
@@ -265,12 +264,14 @@ function BlocoExperiencia({
   )
 }
 
-function HabilidadesCompetencias({
+// Na ficha a seção fica sempre aberta e mostra todos os chips, sem limite e
+// sem contagem (DEV-347); a gaveta de candidatura usa outro componente.
+function HabilidadesDaFicha({
   habilidades,
 }: {
-  habilidades: HabilidadesDoCurriculo
+  habilidades: HabilidadesCompetencias | null
 }) {
-  if (!temHabilidades(habilidades)) return <NaoInformado />
+  if (!habilidades) return <NaoInformado />
 
   return (
     <div className="space-y-4">
@@ -283,13 +284,13 @@ function HabilidadesCompetencias({
       {habilidades.conhecimentos.length > 0 && (
         <GrupoDeChips
           titulo="Conhecimentos"
-          itens={habilidades.conhecimentos}
+          chips={habilidades.conhecimentos}
         />
       )}
-      {habilidades.comportamentosAtitudes.length > 0 && (
+      {habilidades.comportamentos.length > 0 && (
         <GrupoDeChips
           titulo="Comportamentos e atitudes"
-          itens={habilidades.comportamentosAtitudes}
+          chips={habilidades.comportamentos}
         />
       )}
     </div>
@@ -298,19 +299,22 @@ function HabilidadesCompetencias({
 
 function GrupoDeChips({
   titulo,
-  itens,
+  chips,
 }: {
   titulo: string
-  itens: ItemHabilidade[]
+  chips: HabilidadeChip[]
 }) {
   return (
     <div className="space-y-2">
       <h4 className="text-sm text-muted-foreground">{titulo}</h4>
       <ul className="flex flex-wrap gap-2">
-        {itens.map((item, index) => (
-          <li key={item.id ?? `${titulo}-${index}`} className="max-w-full">
-            <Badge variant="secondary" className="whitespace-normal">
-              {item.nome}
+        {chips.map(chip => (
+          <li key={chip.key} className="max-w-full">
+            <Badge
+              variant="secondary"
+              className="max-w-full whitespace-normal text-left"
+            >
+              {chip.nome}
             </Badge>
           </li>
         ))}

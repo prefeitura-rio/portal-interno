@@ -1,3 +1,4 @@
+import type { CatalogoItemSnapshot } from '@/lib/curriculo-habilidades'
 import { useCallback, useEffect, useState } from 'react'
 
 export type CandidatoStatus = 'pending' | 'approved' | 'rejected' | 'cancelled'
@@ -51,6 +52,10 @@ export interface CurriculoSnapshot {
     disponibilidade?: { descricao?: string }
     tempo_procurando_emprego?: string
   }
+  /** Habilidades e competências: ausentes, `null` ou `[]` em currículos antigos. */
+  area_atuacao?: CatalogoItemSnapshot | null
+  conhecimentos?: Array<CatalogoItemSnapshot | null> | null
+  comportamentos_atitudes?: Array<CatalogoItemSnapshot | null> | null
 }
 
 export interface Candidato {
