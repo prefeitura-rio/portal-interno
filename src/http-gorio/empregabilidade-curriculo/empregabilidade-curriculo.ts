@@ -40,7 +40,11 @@ import type {
   EmpregabilidadeCurriculoSituacaoInteresses,
   EmpregabilidadeExperienciaProfissionalAccordionRequest,
   EmpregabilidadeFormacaoAccordionRequest,
+  EmpregabilidadeHabilidadesCompetencias,
+  EmpregabilidadeHabilidadesCompetenciasSave,
   GetApiV1EmpregabilidadeCurriculoConquistasId400,
+  GetApiV1EmpregabilidadeCurriculoConquistasId401,
+  GetApiV1EmpregabilidadeCurriculoConquistasId403,
   GetApiV1EmpregabilidadeCurriculoConquistasId404,
   GetApiV1EmpregabilidadeCurriculoConquistasId500,
   GetApiV1EmpregabilidadeCurriculoCpf403,
@@ -64,15 +68,23 @@ import type {
   GetApiV1EmpregabilidadeCurriculoCpfSituacaoInteresses404,
   GetApiV1EmpregabilidadeCurriculoCpfSituacaoInteresses500,
   GetApiV1EmpregabilidadeCurriculoCursosComplementaresId400,
+  GetApiV1EmpregabilidadeCurriculoCursosComplementaresId401,
+  GetApiV1EmpregabilidadeCurriculoCursosComplementaresId403,
   GetApiV1EmpregabilidadeCurriculoCursosComplementaresId404,
   GetApiV1EmpregabilidadeCurriculoCursosComplementaresId500,
   GetApiV1EmpregabilidadeCurriculoExperienciasId400,
+  GetApiV1EmpregabilidadeCurriculoExperienciasId401,
+  GetApiV1EmpregabilidadeCurriculoExperienciasId403,
   GetApiV1EmpregabilidadeCurriculoExperienciasId404,
   GetApiV1EmpregabilidadeCurriculoExperienciasId500,
   GetApiV1EmpregabilidadeCurriculoFormacoesId400,
+  GetApiV1EmpregabilidadeCurriculoFormacoesId401,
+  GetApiV1EmpregabilidadeCurriculoFormacoesId403,
   GetApiV1EmpregabilidadeCurriculoFormacoesId404,
   GetApiV1EmpregabilidadeCurriculoFormacoesId500,
   GetApiV1EmpregabilidadeCurriculoIdiomasId400,
+  GetApiV1EmpregabilidadeCurriculoIdiomasId401,
+  GetApiV1EmpregabilidadeCurriculoIdiomasId403,
   GetApiV1EmpregabilidadeCurriculoIdiomasId404,
   GetApiV1EmpregabilidadeCurriculoIdiomasId500,
   PostApiV1EmpregabilidadeCurriculoConquistas400,
@@ -133,6 +145,7 @@ import type {
   PutApiV1EmpregabilidadeCurriculoSituacaoInteresses400,
   PutApiV1EmpregabilidadeCurriculoSituacaoInteresses401,
   PutApiV1EmpregabilidadeCurriculoSituacaoInteresses500,
+  ResponseErrorResponse,
 } from '../models'
 
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
@@ -968,6 +981,16 @@ export type getApiV1EmpregabilidadeCurriculoConquistasIdResponse400 = {
   status: 400
 }
 
+export type getApiV1EmpregabilidadeCurriculoConquistasIdResponse401 = {
+  data: GetApiV1EmpregabilidadeCurriculoConquistasId401
+  status: 401
+}
+
+export type getApiV1EmpregabilidadeCurriculoConquistasIdResponse403 = {
+  data: GetApiV1EmpregabilidadeCurriculoConquistasId403
+  status: 403
+}
+
 export type getApiV1EmpregabilidadeCurriculoConquistasIdResponse404 = {
   data: GetApiV1EmpregabilidadeCurriculoConquistasId404
   status: 404
@@ -984,6 +1007,8 @@ export type getApiV1EmpregabilidadeCurriculoConquistasIdResponseSuccess =
   }
 export type getApiV1EmpregabilidadeCurriculoConquistasIdResponseError = (
   | getApiV1EmpregabilidadeCurriculoConquistasIdResponse400
+  | getApiV1EmpregabilidadeCurriculoConquistasIdResponse401
+  | getApiV1EmpregabilidadeCurriculoConquistasIdResponse403
   | getApiV1EmpregabilidadeCurriculoConquistasIdResponse404
   | getApiV1EmpregabilidadeCurriculoConquistasIdResponse500
 ) & {
@@ -1229,6 +1254,18 @@ export type getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse400 =
     status: 400
   }
 
+export type getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse401 =
+  {
+    data: GetApiV1EmpregabilidadeCurriculoCursosComplementaresId401
+    status: 401
+  }
+
+export type getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse403 =
+  {
+    data: GetApiV1EmpregabilidadeCurriculoCursosComplementaresId403
+    status: 403
+  }
+
 export type getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse404 =
   {
     data: GetApiV1EmpregabilidadeCurriculoCursosComplementaresId404
@@ -1248,6 +1285,8 @@ export type getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponseSucces
 export type getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponseError =
   (
     | getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse400
+    | getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse401
+    | getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse403
     | getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse404
     | getApiV1EmpregabilidadeCurriculoCursosComplementaresIdResponse500
   ) & {
@@ -1489,6 +1528,16 @@ export type getApiV1EmpregabilidadeCurriculoExperienciasIdResponse400 = {
   status: 400
 }
 
+export type getApiV1EmpregabilidadeCurriculoExperienciasIdResponse401 = {
+  data: GetApiV1EmpregabilidadeCurriculoExperienciasId401
+  status: 401
+}
+
+export type getApiV1EmpregabilidadeCurriculoExperienciasIdResponse403 = {
+  data: GetApiV1EmpregabilidadeCurriculoExperienciasId403
+  status: 403
+}
+
 export type getApiV1EmpregabilidadeCurriculoExperienciasIdResponse404 = {
   data: GetApiV1EmpregabilidadeCurriculoExperienciasId404
   status: 404
@@ -1505,6 +1554,8 @@ export type getApiV1EmpregabilidadeCurriculoExperienciasIdResponseSuccess =
   }
 export type getApiV1EmpregabilidadeCurriculoExperienciasIdResponseError = (
   | getApiV1EmpregabilidadeCurriculoExperienciasIdResponse400
+  | getApiV1EmpregabilidadeCurriculoExperienciasIdResponse401
+  | getApiV1EmpregabilidadeCurriculoExperienciasIdResponse403
   | getApiV1EmpregabilidadeCurriculoExperienciasIdResponse404
   | getApiV1EmpregabilidadeCurriculoExperienciasIdResponse500
 ) & {
@@ -1740,6 +1791,16 @@ export type getApiV1EmpregabilidadeCurriculoFormacoesIdResponse400 = {
   status: 400
 }
 
+export type getApiV1EmpregabilidadeCurriculoFormacoesIdResponse401 = {
+  data: GetApiV1EmpregabilidadeCurriculoFormacoesId401
+  status: 401
+}
+
+export type getApiV1EmpregabilidadeCurriculoFormacoesIdResponse403 = {
+  data: GetApiV1EmpregabilidadeCurriculoFormacoesId403
+  status: 403
+}
+
 export type getApiV1EmpregabilidadeCurriculoFormacoesIdResponse404 = {
   data: GetApiV1EmpregabilidadeCurriculoFormacoesId404
   status: 404
@@ -1756,6 +1817,8 @@ export type getApiV1EmpregabilidadeCurriculoFormacoesIdResponseSuccess =
   }
 export type getApiV1EmpregabilidadeCurriculoFormacoesIdResponseError = (
   | getApiV1EmpregabilidadeCurriculoFormacoesIdResponse400
+  | getApiV1EmpregabilidadeCurriculoFormacoesIdResponse401
+  | getApiV1EmpregabilidadeCurriculoFormacoesIdResponse403
   | getApiV1EmpregabilidadeCurriculoFormacoesIdResponse404
   | getApiV1EmpregabilidadeCurriculoFormacoesIdResponse500
 ) & {
@@ -1853,6 +1916,133 @@ export const putApiV1EmpregabilidadeCurriculoFormacoesId = async (
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...options?.headers },
       body: JSON.stringify(empregabilidadeCurriculoFormacao),
+    }
+  )
+}
+
+export type getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse200 =
+  {
+    data: EmpregabilidadeHabilidadesCompetencias
+    status: 200
+  }
+
+export type getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse401 =
+  {
+    data: ResponseErrorResponse
+    status: 401
+  }
+
+export type getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse500 =
+  {
+    data: ResponseErrorResponse
+    status: 500
+  }
+
+export type getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponseSuccess =
+  getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse200 & {
+    headers: Headers
+  }
+export type getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponseError =
+  (
+    | getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse401
+    | getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse500
+  ) & {
+    headers: Headers
+  }
+
+export type getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse =
+  | getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponseSuccess
+  | getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponseError
+
+export const getGetApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasUrl =
+  () => {
+    return `/api/v1/empregabilidade/curriculo/habilidades-competencias`
+  }
+
+/**
+ * Retorna a área única, os conhecimentos dessa área e os comportamentos marcados. Listas vazias não são 404
+ * @summary Obter habilidades e competências do currículo
+ */
+export const getApiV1EmpregabilidadeCurriculoHabilidadesCompetencias = async (
+  options?: RequestInit
+): Promise<getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse> => {
+  return customFetchGoRio<getApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse>(
+    getGetApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasUrl(),
+    {
+      ...options,
+      method: 'GET',
+    }
+  )
+}
+
+export type putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse200 =
+  {
+    data: EmpregabilidadeHabilidadesCompetencias
+    status: 200
+  }
+
+export type putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse400 =
+  {
+    data: ResponseErrorResponse
+    status: 400
+  }
+
+export type putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse401 =
+  {
+    data: ResponseErrorResponse
+    status: 401
+  }
+
+export type putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse404 =
+  {
+    data: ResponseErrorResponse
+    status: 404
+  }
+
+export type putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse500 =
+  {
+    data: ResponseErrorResponse
+    status: 500
+  }
+
+export type putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponseSuccess =
+  putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse200 & {
+    headers: Headers
+  }
+export type putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponseError =
+  (
+    | putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse400
+    | putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse401
+    | putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse404
+    | putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse500
+  ) & {
+    headers: Headers
+  }
+
+export type putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse =
+  | putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponseSuccess
+  | putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponseError
+
+export const getPutApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasUrl =
+  () => {
+    return `/api/v1/empregabilidade/curriculo/habilidades-competencias`
+  }
+
+/**
+ * Substitui a área, os conhecimentos dessa área e os comportamentos. Tag fora da área responde 400 e não grava nada
+ * @summary Salvar habilidades e competências do currículo
+ */
+export const putApiV1EmpregabilidadeCurriculoHabilidadesCompetencias = async (
+  empregabilidadeHabilidadesCompetenciasSave: EmpregabilidadeHabilidadesCompetenciasSave,
+  options?: RequestInit
+): Promise<putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse> => {
+  return customFetchGoRio<putApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasResponse>(
+    getPutApiV1EmpregabilidadeCurriculoHabilidadesCompetenciasUrl(),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(empregabilidadeHabilidadesCompetenciasSave),
     }
   )
 }
@@ -1991,6 +2181,16 @@ export type getApiV1EmpregabilidadeCurriculoIdiomasIdResponse400 = {
   status: 400
 }
 
+export type getApiV1EmpregabilidadeCurriculoIdiomasIdResponse401 = {
+  data: GetApiV1EmpregabilidadeCurriculoIdiomasId401
+  status: 401
+}
+
+export type getApiV1EmpregabilidadeCurriculoIdiomasIdResponse403 = {
+  data: GetApiV1EmpregabilidadeCurriculoIdiomasId403
+  status: 403
+}
+
 export type getApiV1EmpregabilidadeCurriculoIdiomasIdResponse404 = {
   data: GetApiV1EmpregabilidadeCurriculoIdiomasId404
   status: 404
@@ -2007,6 +2207,8 @@ export type getApiV1EmpregabilidadeCurriculoIdiomasIdResponseSuccess =
   }
 export type getApiV1EmpregabilidadeCurriculoIdiomasIdResponseError = (
   | getApiV1EmpregabilidadeCurriculoIdiomasIdResponse400
+  | getApiV1EmpregabilidadeCurriculoIdiomasIdResponse401
+  | getApiV1EmpregabilidadeCurriculoIdiomasIdResponse403
   | getApiV1EmpregabilidadeCurriculoIdiomasIdResponse404
   | getApiV1EmpregabilidadeCurriculoIdiomasIdResponse500
 ) & {

@@ -15,6 +15,7 @@ import type {
   EmpregabilidadeUpdateEtapaRequest,
   EmpregabilidadeUpdateStatusRequest,
   GetApiV1EmpregabilidadeCandidaturas200,
+  GetApiV1EmpregabilidadeCandidaturas400,
   GetApiV1EmpregabilidadeCandidaturas403,
   GetApiV1EmpregabilidadeCandidaturas500,
   GetApiV1EmpregabilidadeCandidaturasId400,
@@ -58,6 +59,11 @@ export type getApiV1EmpregabilidadeCandidaturasResponse200 = {
   status: 200
 }
 
+export type getApiV1EmpregabilidadeCandidaturasResponse400 = {
+  data: GetApiV1EmpregabilidadeCandidaturas400
+  status: 400
+}
+
 export type getApiV1EmpregabilidadeCandidaturasResponse403 = {
   data: GetApiV1EmpregabilidadeCandidaturas403
   status: 403
@@ -73,6 +79,7 @@ export type getApiV1EmpregabilidadeCandidaturasResponseSuccess =
     headers: Headers
   }
 export type getApiV1EmpregabilidadeCandidaturasResponseError = (
+  | getApiV1EmpregabilidadeCandidaturasResponse400
   | getApiV1EmpregabilidadeCandidaturasResponse403
   | getApiV1EmpregabilidadeCandidaturasResponse500
 ) & {
@@ -89,6 +96,15 @@ export const getGetApiV1EmpregabilidadeCandidaturasUrl = (
   const normalizedParams = new URLSearchParams()
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['genero']
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach(v => {
+        normalizedParams.append(key, v === null ? 'null' : String(v))
+      })
+      return
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }

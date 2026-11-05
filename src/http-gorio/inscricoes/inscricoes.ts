@@ -408,7 +408,7 @@ export const getPutApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificateUrl = (
 }
 
 /**
- * Adiciona ou atualiza a URL do certificado de uma inscrição
+ * Adiciona ou atualiza a URL do certificado de uma inscrição (somente admin, casa civil e editor de cursos)
  * @summary Atualizar certificado de inscrição
  */
 export const putApiV1CoursesCourseIdEnrollmentsEnrollmentIdCertificate = async (
@@ -441,9 +441,19 @@ export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse400 = {
   status: 400
 }
 
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse404 = {
   data: ModelsErrorResponse
   status: 404
+}
+
+export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse409 = {
+  data: ModelsErrorResponse
+  status: 409
 }
 
 export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse500 = {
@@ -458,7 +468,9 @@ export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponseSuccess 
 export type putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponseError =
   (
     | putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse400
+    | putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse403
     | putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse404
+    | putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse409
     | putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusResponse500
   ) & {
     headers: Headers
@@ -476,7 +488,7 @@ export const getPutApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatusUrl = (
 }
 
 /**
- * Atualiza o status de uma inscrição específica
+ * Atualiza o status de uma inscrição específica. Admin, casa civil e editor de cursos alteram qualquer status e admin_notes; o cidadão dono da inscrição só pode cancelá-la (status cancelled), exceto quando ela já está concluded ou cancelled (409), e admin_notes enviado por ele é descartado.
  * @summary Atualizar status de inscrição individual
  */
 export const putApiV1CoursesCourseIdEnrollmentsEnrollmentIdStatus = async (

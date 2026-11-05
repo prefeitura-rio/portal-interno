@@ -12,6 +12,8 @@ import type {
   GetApiV1EmpregabilidadeCandidaturaBloqueios500,
   GetApiV1EmpregabilidadeCandidaturaBloqueiosParams,
   PostApiV1EmpregabilidadeCandidaturaBloqueios400,
+  PostApiV1EmpregabilidadeCandidaturaBloqueios401,
+  PostApiV1EmpregabilidadeCandidaturaBloqueios404,
   PostApiV1EmpregabilidadeCandidaturaBloqueios500,
 } from '../models'
 
@@ -92,6 +94,16 @@ export type postApiV1EmpregabilidadeCandidaturaBloqueiosResponse400 = {
   status: 400
 }
 
+export type postApiV1EmpregabilidadeCandidaturaBloqueiosResponse401 = {
+  data: PostApiV1EmpregabilidadeCandidaturaBloqueios401
+  status: 401
+}
+
+export type postApiV1EmpregabilidadeCandidaturaBloqueiosResponse404 = {
+  data: PostApiV1EmpregabilidadeCandidaturaBloqueios404
+  status: 404
+}
+
 export type postApiV1EmpregabilidadeCandidaturaBloqueiosResponse500 = {
   data: PostApiV1EmpregabilidadeCandidaturaBloqueios500
   status: 500
@@ -103,6 +115,8 @@ export type postApiV1EmpregabilidadeCandidaturaBloqueiosResponseSuccess =
   }
 export type postApiV1EmpregabilidadeCandidaturaBloqueiosResponseError = (
   | postApiV1EmpregabilidadeCandidaturaBloqueiosResponse400
+  | postApiV1EmpregabilidadeCandidaturaBloqueiosResponse401
+  | postApiV1EmpregabilidadeCandidaturaBloqueiosResponse404
   | postApiV1EmpregabilidadeCandidaturaBloqueiosResponse500
 ) & {
   headers: Headers
@@ -117,7 +131,8 @@ export const getPostApiV1EmpregabilidadeCandidaturaBloqueiosUrl = () => {
 }
 
 /**
- * Registra a tentativa de candidatura de um CPF a uma vaga que foi bloqueada por não atender critérios de elegibilidade
+ * Registra a tentativa de candidatura de um CPF a uma vaga que foi bloqueada por não atender critérios de elegibilidade.
+ * Para o cidadão, o CPF gravado é sempre o do token (o campo cpf do corpo é ignorado). Só ADMIN ou go:empregabilidade:admin registra em nome de outro CPF informado no corpo. A vaga precisa existir.
  * @summary Registrar bloqueio de candidatura
  */
 export const postApiV1EmpregabilidadeCandidaturaBloqueios = async (

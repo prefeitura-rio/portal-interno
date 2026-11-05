@@ -8,17 +8,23 @@
 import type {
   DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId200,
   DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId400,
+  DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId404,
   DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId500,
   EmpregabilidadeEtapa,
   GetApiV1EmpregabilidadeVagasIdEtapas200,
   GetApiV1EmpregabilidadeVagasIdEtapas400,
+  GetApiV1EmpregabilidadeVagasIdEtapas403,
+  GetApiV1EmpregabilidadeVagasIdEtapas404,
   GetApiV1EmpregabilidadeVagasIdEtapas500,
   GetApiV1EmpregabilidadeVagasIdEtapasEtapaId400,
+  GetApiV1EmpregabilidadeVagasIdEtapasEtapaId403,
   GetApiV1EmpregabilidadeVagasIdEtapasEtapaId404,
   GetApiV1EmpregabilidadeVagasIdEtapasEtapaId500,
   PostApiV1EmpregabilidadeVagasIdEtapas400,
+  PostApiV1EmpregabilidadeVagasIdEtapas409,
   PostApiV1EmpregabilidadeVagasIdEtapas500,
   PutApiV1EmpregabilidadeVagasIdEtapasEtapaId400,
+  PutApiV1EmpregabilidadeVagasIdEtapasEtapaId404,
   PutApiV1EmpregabilidadeVagasIdEtapasEtapaId500,
 } from '../models'
 
@@ -34,6 +40,16 @@ export type getApiV1EmpregabilidadeVagasIdEtapasResponse400 = {
   status: 400
 }
 
+export type getApiV1EmpregabilidadeVagasIdEtapasResponse403 = {
+  data: GetApiV1EmpregabilidadeVagasIdEtapas403
+  status: 403
+}
+
+export type getApiV1EmpregabilidadeVagasIdEtapasResponse404 = {
+  data: GetApiV1EmpregabilidadeVagasIdEtapas404
+  status: 404
+}
+
 export type getApiV1EmpregabilidadeVagasIdEtapasResponse500 = {
   data: GetApiV1EmpregabilidadeVagasIdEtapas500
   status: 500
@@ -45,6 +61,8 @@ export type getApiV1EmpregabilidadeVagasIdEtapasResponseSuccess =
   }
 export type getApiV1EmpregabilidadeVagasIdEtapasResponseError = (
   | getApiV1EmpregabilidadeVagasIdEtapasResponse400
+  | getApiV1EmpregabilidadeVagasIdEtapasResponse403
+  | getApiV1EmpregabilidadeVagasIdEtapasResponse404
   | getApiV1EmpregabilidadeVagasIdEtapasResponse500
 ) & {
   headers: Headers
@@ -85,6 +103,11 @@ export type postApiV1EmpregabilidadeVagasIdEtapasResponse400 = {
   status: 400
 }
 
+export type postApiV1EmpregabilidadeVagasIdEtapasResponse409 = {
+  data: PostApiV1EmpregabilidadeVagasIdEtapas409
+  status: 409
+}
+
 export type postApiV1EmpregabilidadeVagasIdEtapasResponse500 = {
   data: PostApiV1EmpregabilidadeVagasIdEtapas500
   status: 500
@@ -96,6 +119,7 @@ export type postApiV1EmpregabilidadeVagasIdEtapasResponseSuccess =
   }
 export type postApiV1EmpregabilidadeVagasIdEtapasResponseError = (
   | postApiV1EmpregabilidadeVagasIdEtapasResponse400
+  | postApiV1EmpregabilidadeVagasIdEtapasResponse409
   | postApiV1EmpregabilidadeVagasIdEtapasResponse500
 ) & {
   headers: Headers
@@ -139,6 +163,11 @@ export type deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400 = {
   status: 400
 }
 
+export type deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse404 = {
+  data: DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId404
+  status: 404
+}
+
 export type deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500 = {
   data: DeleteApiV1EmpregabilidadeVagasIdEtapasEtapaId500
   status: 500
@@ -150,6 +179,7 @@ export type deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseSuccess =
   }
 export type deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseError = (
   | deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400
+  | deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse404
   | deleteApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500
 ) & {
   headers: Headers
@@ -194,6 +224,11 @@ export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400 = {
   status: 400
 }
 
+export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse403 = {
+  data: GetApiV1EmpregabilidadeVagasIdEtapasEtapaId403
+  status: 403
+}
+
 export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse404 = {
   data: GetApiV1EmpregabilidadeVagasIdEtapasEtapaId404
   status: 404
@@ -210,6 +245,7 @@ export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseSuccess =
   }
 export type getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseError = (
   | getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400
+  | getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse403
   | getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse404
   | getApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500
 ) & {
@@ -255,6 +291,11 @@ export type putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400 = {
   status: 400
 }
 
+export type putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse404 = {
+  data: PutApiV1EmpregabilidadeVagasIdEtapasEtapaId404
+  status: 404
+}
+
 export type putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500 = {
   data: PutApiV1EmpregabilidadeVagasIdEtapasEtapaId500
   status: 500
@@ -266,6 +307,7 @@ export type putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseSuccess =
   }
 export type putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponseError = (
   | putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse400
+  | putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse404
   | putApiV1EmpregabilidadeVagasIdEtapasEtapaIdResponse500
 ) & {
   headers: Headers

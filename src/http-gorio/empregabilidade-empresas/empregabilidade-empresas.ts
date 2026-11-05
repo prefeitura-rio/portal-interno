@@ -19,6 +19,7 @@ import type {
   GetApiV1EmpregabilidadeEmpresasParams,
   ModelsLegalEntityConsultaResponse,
   PostApiV1EmpregabilidadeEmpresas400,
+  PostApiV1EmpregabilidadeEmpresas409,
   PostApiV1EmpregabilidadeEmpresas500,
   PutApiV1EmpregabilidadeEmpresasCnpj400,
   PutApiV1EmpregabilidadeEmpresasCnpj500,
@@ -94,6 +95,11 @@ export type postApiV1EmpregabilidadeEmpresasResponse400 = {
   status: 400
 }
 
+export type postApiV1EmpregabilidadeEmpresasResponse409 = {
+  data: PostApiV1EmpregabilidadeEmpresas409
+  status: 409
+}
+
 export type postApiV1EmpregabilidadeEmpresasResponse500 = {
   data: PostApiV1EmpregabilidadeEmpresas500
   status: 500
@@ -105,6 +111,7 @@ export type postApiV1EmpregabilidadeEmpresasResponseSuccess =
   }
 export type postApiV1EmpregabilidadeEmpresasResponseError = (
   | postApiV1EmpregabilidadeEmpresasResponse400
+  | postApiV1EmpregabilidadeEmpresasResponse409
   | postApiV1EmpregabilidadeEmpresasResponse500
 ) & {
   headers: Headers
@@ -119,7 +126,7 @@ export const getPostApiV1EmpregabilidadeEmpresasUrl = () => {
 }
 
 /**
- * Cria uma nova empresa
+ * Cria uma nova empresa. O CNPJ é obrigatório: numérico ou alfanumérico, com ou sem formatação, com dígitos verificadores válidos; é gravado e devolvido na forma canônica (14 caracteres, maiúsculas, sem pontuação).
  * @summary Criar empresa
  */
 export const postApiV1EmpregabilidadeEmpresas = async (
@@ -267,7 +274,7 @@ export const getPutApiV1EmpregabilidadeEmpresasCnpjUrl = (cnpj: string) => {
 }
 
 /**
- * Atualiza uma empresa existente
+ * Atualiza uma empresa existente. O CNPJ do path precisa ser válido (dígitos verificadores conferidos) e é usado na forma canônica.
  * @summary Atualizar empresa
  */
 export const putApiV1EmpregabilidadeEmpresasCnpj = async (
