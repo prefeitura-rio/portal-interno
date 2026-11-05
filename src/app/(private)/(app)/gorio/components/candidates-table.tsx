@@ -38,6 +38,7 @@ import * as React from 'react'
 
 import { CandidaturaActionsDropdown } from '@/app/(private)/(app)/gorio/components/candidatura-actions-dropdown'
 import { EtapaSelector } from '@/app/(private)/(app)/gorio/components/etapa-selector'
+import { HabilidadesCompetenciasItem } from '@/app/(private)/(app)/gorio/components/habilidades-competencias'
 import type { InformacaoComplementar } from '@/app/(private)/(app)/gorio/empregabilidade/components/informacoes-complementares-creator'
 import { NewCandidateDialog } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-candidate-dialog'
 import { ContactValue } from '@/components/contact-value'
@@ -1758,6 +1759,12 @@ export function CandidatesTable({
                           </AccordionContent>
                         </AccordionItem>
                       )}
+
+                    {/* Habilidades e competências (sempre o último item) */}
+                    <HabilidadesCompetenciasItem
+                      key={selectedCandidato.id}
+                      snapshot={selectedCandidato.curriculo_snapshot}
+                    />
                   </Accordion>
                 </div>
               </div>
