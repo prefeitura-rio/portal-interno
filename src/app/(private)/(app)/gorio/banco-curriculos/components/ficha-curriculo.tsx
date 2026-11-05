@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge } from '@/components/ui/badge'
 import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
 import type {
   EmpregabilidadeBancoCurriculoDetalhe,
@@ -10,6 +11,12 @@ import type {
   EmpregabilidadeCurriculoSituacaoInteresses,
 } from '@/http-gorio/models'
 import { formatCPF } from '@/lib/cpf-validator'
+import {
+  type HabilidadesDoCurriculo,
+  type ItemHabilidade,
+  habilidadesDoCurriculo,
+  temHabilidades,
+} from '@/lib/curriculo-habilidades'
 import { formatDateBR } from '@/lib/format'
 import { sanitizeRmiValue } from '@/lib/rmi-value'
 import type { ReactNode } from 'react'
@@ -70,6 +77,7 @@ export function FichaCurriculo({ curriculo }: FichaCurriculoProps) {
   const idiomas = completo?.idiomas ?? []
   const resumo = sanitizeRmiValue(completo?.resumo_profissional)
   const temNomeSocial = !!sanitizeRmiValue(curriculo.nome_social)
+  const habilidades = habilidadesDoCurriculo(completo)
 
   return (
     <div className="space-y-8">
@@ -141,6 +149,10 @@ export function FichaCurriculo({ curriculo }: FichaCurriculoProps) {
             ))}
           </div>
         )}
+      </Secao>
+
+      <Secao titulo="Habilidades e competências">
+        <HabilidadesCompetencias habilidades={habilidades} />
       </Secao>
 
       <Secao titulo="Conquistas e certificados">
@@ -249,6 +261,60 @@ function BlocoExperiencia({
         )}
       </div>
       {descricao && <p className="whitespace-pre-line text-sm">{descricao}</p>}
+    </div>
+  )
+}
+
+function HabilidadesCompetencias({
+  habilidades,
+}: {
+  habilidades: HabilidadesDoCurriculo
+}) {
+  if (!temHabilidades(habilidades)) return <NaoInformado />
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm">
+        <span className="text-muted-foreground">Área de atuação:</span>{' '}
+        <span className="font-medium">
+          {habilidades.areaAtuacao ?? NAO_INFORMADO}
+        </span>
+      </p>
+      {habilidades.conhecimentos.length > 0 && (
+        <GrupoDeChips
+          titulo="Conhecimentos"
+          itens={habilidades.conhecimentos}
+        />
+      )}
+      {habilidades.comportamentosAtitudes.length > 0 && (
+        <GrupoDeChips
+          titulo="Comportamentos e atitudes"
+          itens={habilidades.comportamentosAtitudes}
+        />
+      )}
+    </div>
+  )
+}
+
+function GrupoDeChips({
+  titulo,
+  itens,
+}: {
+  titulo: string
+  itens: ItemHabilidade[]
+}) {
+  return (
+    <div className="space-y-2">
+      <h4 className="text-sm text-muted-foreground">{titulo}</h4>
+      <ul className="flex flex-wrap gap-2">
+        {itens.map((item, index) => (
+          <li key={item.id ?? `${titulo}-${index}`} className="max-w-full">
+            <Badge variant="secondary" className="whitespace-normal">
+              {item.nome}
+            </Badge>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
