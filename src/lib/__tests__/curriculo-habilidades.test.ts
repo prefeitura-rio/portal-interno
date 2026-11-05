@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
+import type { EmpregabilidadeCurriculoCompleto } from '@/http-gorio/models'
 
 // DEV-346: a gaveta "Detalhes da Candidatura" mostra a seção "Habilidades e
 // competências" do curriculo_snapshot (área de atuação, conhecimentos e
@@ -153,5 +154,54 @@ describe('getVisibleChips', () => {
     assert.equal(visible.length, 12)
     assert.equal(hiddenCount, 3)
     assert.equal(getToggleChipsLabel(hiddenCount, true), 'Ver menos')
+  })
+})
+
+// DEV-347: a ficha do Banco de Currículos lê os mesmos campos de `curriculo`
+// (dados atuais do cidadão, sem snapshot) e mostra todos os chips, sem limite.
+describe('ficha do Banco de Currículos', () => {
+  test('currículo completo: todos os itens, na ordem da API, sem limite', () => {
+    const conhecimentos = catalogo('Conhecimento', 40)
+    const resultado = extractHabilidadesCompetencias({
+      area_atuacao: { id: 3, nome: 'Tecnologia da Informação' },
+      conhecimentos,
+      comportamentos_atitudes: [
+        { id: 5, nome: 'Comunicação' },
+        { id: 2, nome: 'Trabalho em equipe' },
+      ],
+    })
+    assert.ok(resultado)
+    assert.equal(resultado.areaAtuacao, 'Tecnologia da Informação')
+    assert.deepEqual(
+      resultado.conhecimentos.map(c => c.nome),
+      conhecimentos.map(c => c.nome)
+    )
+    assert.deepEqual(
+      resultado.comportamentos.map(c => c.nome),
+      ['Comunicação', 'Trabalho em equipe']
+    )
+  })
+
+  test('só comportamentos: área nula e nenhum conhecimento', () => {
+    const resultado = extractHabilidadesCompetencias({
+      area_atuacao: null,
+      conhecimentos: [],
+      comportamentos_atitudes: [{ id: 4, nome: 'Proatividade' }],
+    })
+    assert.ok(resultado)
+    assert.equal(resultado.areaAtuacao, null)
+    assert.equal(resultado.conhecimentos.length, 0)
+    assert.deepEqual(
+      resultado.comportamentos.map(c => c.nome),
+      ['Proatividade']
+    )
+  })
+
+  test('currículo antigo, só com as seções anteriores, é "sem dados"', () => {
+    const antigo: EmpregabilidadeCurriculoCompleto = {
+      resumo_profissional: 'Resumo sintético',
+      experiencias: [],
+    }
+    assert.equal(extractHabilidadesCompetencias(antigo), null)
   })
 })

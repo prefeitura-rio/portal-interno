@@ -17,6 +17,7 @@ import type {
   GetApiV1EmpregabilidadeVagas400,
   GetApiV1EmpregabilidadeVagas500,
   GetApiV1EmpregabilidadeVagasId400,
+  GetApiV1EmpregabilidadeVagasId403,
   GetApiV1EmpregabilidadeVagasId404,
   GetApiV1EmpregabilidadeVagasId500,
   GetApiV1EmpregabilidadeVagasParams,
@@ -25,6 +26,7 @@ import type {
   PostApiV1EmpregabilidadeVagasDraft400,
   PostApiV1EmpregabilidadeVagasDraft500,
   PutApiV1EmpregabilidadeVagasId400,
+  PutApiV1EmpregabilidadeVagasId403,
   PutApiV1EmpregabilidadeVagasId500,
   PutApiV1EmpregabilidadeVagasIdDiscontinue200,
   PutApiV1EmpregabilidadeVagasIdDiscontinue400,
@@ -253,6 +255,11 @@ export type getApiV1EmpregabilidadeVagasIdResponse400 = {
   status: 400
 }
 
+export type getApiV1EmpregabilidadeVagasIdResponse403 = {
+  data: GetApiV1EmpregabilidadeVagasId403
+  status: 403
+}
+
 export type getApiV1EmpregabilidadeVagasIdResponse404 = {
   data: GetApiV1EmpregabilidadeVagasId404
   status: 404
@@ -269,6 +276,7 @@ export type getApiV1EmpregabilidadeVagasIdResponseSuccess =
   }
 export type getApiV1EmpregabilidadeVagasIdResponseError = (
   | getApiV1EmpregabilidadeVagasIdResponse400
+  | getApiV1EmpregabilidadeVagasIdResponse403
   | getApiV1EmpregabilidadeVagasIdResponse404
   | getApiV1EmpregabilidadeVagasIdResponse500
 ) & {
@@ -310,6 +318,11 @@ export type putApiV1EmpregabilidadeVagasIdResponse400 = {
   status: 400
 }
 
+export type putApiV1EmpregabilidadeVagasIdResponse403 = {
+  data: PutApiV1EmpregabilidadeVagasId403
+  status: 403
+}
+
 export type putApiV1EmpregabilidadeVagasIdResponse500 = {
   data: PutApiV1EmpregabilidadeVagasId500
   status: 500
@@ -321,6 +334,7 @@ export type putApiV1EmpregabilidadeVagasIdResponseSuccess =
   }
 export type putApiV1EmpregabilidadeVagasIdResponseError = (
   | putApiV1EmpregabilidadeVagasIdResponse400
+  | putApiV1EmpregabilidadeVagasIdResponse403
   | putApiV1EmpregabilidadeVagasIdResponse500
 ) & {
   headers: Headers

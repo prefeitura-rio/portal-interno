@@ -9,6 +9,7 @@ import type { ModelsCitizenEndereco } from './modelsCitizenEndereco'
 
 export interface ModelsCitizenPersonalInfo {
   celular?: string
+  data_hash?: string
   data_nascimento?: string
   deficiencia?: string
   email?: string

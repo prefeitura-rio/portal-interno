@@ -66,7 +66,7 @@ export const getGetApiPublicCoursesUrl = (
 }
 
 /**
- * Retorna lista paginada de cursos. Sem status: exclui rascunhos. Com status: filtra pelos status informados (CSV). Derived statuses (scheduled, accepting_enrollments, in_progress, finished) são mapeados para published.
+ * Retorna lista paginada de cursos públicos. Exclui rascunhos e cursos marcados como não visíveis publicamente (is_visible=false); estes continuam acessíveis por link direto via GET /api/public/courses/{id}. Com status: filtra pelos status informados (CSV). Derived statuses (scheduled, accepting_enrollments, in_progress, finished) são mapeados para published.
  * @summary Listar cursos criados
  */
 export const getApiPublicCourses = async (
@@ -371,6 +371,11 @@ export type putApiV1CoursesCourseIdResponse404 = {
   status: 404
 }
 
+export type putApiV1CoursesCourseIdResponse409 = {
+  data: ModelsErrorResponse
+  status: 409
+}
+
 export type putApiV1CoursesCourseIdResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -383,6 +388,7 @@ export type putApiV1CoursesCourseIdResponseSuccess =
 export type putApiV1CoursesCourseIdResponseError = (
   | putApiV1CoursesCourseIdResponse400
   | putApiV1CoursesCourseIdResponse404
+  | putApiV1CoursesCourseIdResponse409
   | putApiV1CoursesCourseIdResponse500
 ) & {
   headers: Headers
@@ -397,7 +403,7 @@ export const getPutApiV1CoursesCourseIdUrl = (courseId: number) => {
 }
 
 /**
- * Atualiza um curso existente. Também usado para publicar rascunhos mudando status de "draft" para "opened"
+ * Atualiza um curso existente. Também usado para publicar rascunhos mudando status de "draft" para "opened". Turmas, locais e turma remota que não vierem no payload (ou vierem sem o id) são removidos; se alguma turma removida tiver inscrições, o PUT é recusado com 409 e nada é alterado. Envie o id de cada turma e local que deve ser mantido.
  * @summary Editar curso
  */
 export const putApiV1CoursesCourseId = async (

@@ -17,6 +17,7 @@ import type {
   GetApiV1EmpregabilidadeRegimesContratacaoId500,
   GetApiV1EmpregabilidadeRegimesContratacaoParams,
   PostApiV1EmpregabilidadeRegimesContratacao400,
+  PostApiV1EmpregabilidadeRegimesContratacao409,
   PostApiV1EmpregabilidadeRegimesContratacao500,
   PutApiV1EmpregabilidadeRegimesContratacaoId400,
   PutApiV1EmpregabilidadeRegimesContratacaoId404,
@@ -93,6 +94,11 @@ export type postApiV1EmpregabilidadeRegimesContratacaoResponse400 = {
   status: 400
 }
 
+export type postApiV1EmpregabilidadeRegimesContratacaoResponse409 = {
+  data: PostApiV1EmpregabilidadeRegimesContratacao409
+  status: 409
+}
+
 export type postApiV1EmpregabilidadeRegimesContratacaoResponse500 = {
   data: PostApiV1EmpregabilidadeRegimesContratacao500
   status: 500
@@ -104,6 +110,7 @@ export type postApiV1EmpregabilidadeRegimesContratacaoResponseSuccess =
   }
 export type postApiV1EmpregabilidadeRegimesContratacaoResponseError = (
   | postApiV1EmpregabilidadeRegimesContratacaoResponse400
+  | postApiV1EmpregabilidadeRegimesContratacaoResponse409
   | postApiV1EmpregabilidadeRegimesContratacaoResponse500
 ) & {
   headers: Headers

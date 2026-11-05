@@ -6,6 +6,8 @@
  * OpenAPI spec version: 1.0
  */
 import type {
+  ModelsCursoSearchParameters,
+  ModelsEmpregoSearchParameters,
   ModelsErrorResponse,
   ModelsMultiCollectionSearchParameters,
   ModelsMultiCollectionSearchResponse,
@@ -27,6 +29,12 @@ export type postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse400 =
     status: 400
   }
 
+export type postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse404 =
+  {
+    data: ModelsErrorResponse
+    status: 404
+  }
+
 export type postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse500 =
   {
     data: ModelsErrorResponse
@@ -40,6 +48,7 @@ export type postApiV1TypesenseCollectionsCollectionDocumentsSearchResponseSucces
 export type postApiV1TypesenseCollectionsCollectionDocumentsSearchResponseError =
   (
     | postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse400
+    | postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse404
     | postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse500
   ) & {
     headers: Headers
@@ -50,17 +59,17 @@ export type postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse =
   | postApiV1TypesenseCollectionsCollectionDocumentsSearchResponseError
 
 export const getPostApiV1TypesenseCollectionsCollectionDocumentsSearchUrl = (
-  collection: string
+  collection: 'cursos' | 'empregos'
 ) => {
   return `/api/v1/typesense/collections/${collection}/documents/search`
 }
 
 /**
- * Busca documentos em uma coleção
+ * Busca documentos em uma coleção pública. Só as coleções cursos e empregos são aceitas; qualquer outro nome responde 404.
  * @summary Buscar documentos em uma coleção
  */
 export const postApiV1TypesenseCollectionsCollectionDocumentsSearch = async (
-  collection: string,
+  collection: 'cursos' | 'empregos',
   modelsSearchParameters: ModelsSearchParameters,
   options?: RequestInit
 ): Promise<postApiV1TypesenseCollectionsCollectionDocumentsSearchResponse> => {
@@ -71,6 +80,112 @@ export const postApiV1TypesenseCollectionsCollectionDocumentsSearch = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...options?.headers },
       body: JSON.stringify(modelsSearchParameters),
+    }
+  )
+}
+
+export type postApiV1TypesenseCursosSearchResponse200 = {
+  data: ModelsSearchDocumentsResponse
+  status: 200
+}
+
+export type postApiV1TypesenseCursosSearchResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+
+export type postApiV1TypesenseCursosSearchResponse500 = {
+  data: ModelsErrorResponse
+  status: 500
+}
+
+export type postApiV1TypesenseCursosSearchResponseSuccess =
+  postApiV1TypesenseCursosSearchResponse200 & {
+    headers: Headers
+  }
+export type postApiV1TypesenseCursosSearchResponseError = (
+  | postApiV1TypesenseCursosSearchResponse400
+  | postApiV1TypesenseCursosSearchResponse500
+) & {
+  headers: Headers
+}
+
+export type postApiV1TypesenseCursosSearchResponse =
+  | postApiV1TypesenseCursosSearchResponseSuccess
+  | postApiV1TypesenseCursosSearchResponseError
+
+export const getPostApiV1TypesenseCursosSearchUrl = () => {
+  return `/api/v1/typesense/cursos/search`
+}
+
+/**
+ * Busca cursos na coleção cursos do Typesense. O termo q é obrigatório; os demais campos filtram por órgão, instituição, status, modalidade, turno e formato de aula. Sem sort_by, ordena pelos mais recentes.
+ * @summary Buscar cursos
+ */
+export const postApiV1TypesenseCursosSearch = async (
+  modelsCursoSearchParameters: ModelsCursoSearchParameters,
+  options?: RequestInit
+): Promise<postApiV1TypesenseCursosSearchResponse> => {
+  return customFetchGoRio<postApiV1TypesenseCursosSearchResponse>(
+    getPostApiV1TypesenseCursosSearchUrl(),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsCursoSearchParameters),
+    }
+  )
+}
+
+export type postApiV1TypesenseEmpregosSearchResponse200 = {
+  data: ModelsSearchDocumentsResponse
+  status: 200
+}
+
+export type postApiV1TypesenseEmpregosSearchResponse400 = {
+  data: ModelsErrorResponse
+  status: 400
+}
+
+export type postApiV1TypesenseEmpregosSearchResponse500 = {
+  data: ModelsErrorResponse
+  status: 500
+}
+
+export type postApiV1TypesenseEmpregosSearchResponseSuccess =
+  postApiV1TypesenseEmpregosSearchResponse200 & {
+    headers: Headers
+  }
+export type postApiV1TypesenseEmpregosSearchResponseError = (
+  | postApiV1TypesenseEmpregosSearchResponse400
+  | postApiV1TypesenseEmpregosSearchResponse500
+) & {
+  headers: Headers
+}
+
+export type postApiV1TypesenseEmpregosSearchResponse =
+  | postApiV1TypesenseEmpregosSearchResponseSuccess
+  | postApiV1TypesenseEmpregosSearchResponseError
+
+export const getPostApiV1TypesenseEmpregosSearchUrl = () => {
+  return `/api/v1/typesense/empregos/search`
+}
+
+/**
+ * Busca empregos na coleção empregos do Typesense. O termo q é obrigatório; os demais campos filtram por órgão, empresa, escolaridade, status, tipo de contratação, jornada, turno e faixa salarial. Sem sort_by, ordena pelos mais recentes.
+ * @summary Buscar empregos
+ */
+export const postApiV1TypesenseEmpregosSearch = async (
+  modelsEmpregoSearchParameters: ModelsEmpregoSearchParameters,
+  options?: RequestInit
+): Promise<postApiV1TypesenseEmpregosSearchResponse> => {
+  return customFetchGoRio<postApiV1TypesenseEmpregosSearchResponse>(
+    getPostApiV1TypesenseEmpregosSearchUrl(),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(modelsEmpregoSearchParameters),
     }
   )
 }

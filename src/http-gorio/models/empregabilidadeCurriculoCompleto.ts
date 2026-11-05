@@ -5,6 +5,7 @@
  * API de serviços para aplicativos da Prefeitura do Rio
  * OpenAPI spec version: 1.0
  */
+import type { EmpregabilidadeCatalogoItem } from './empregabilidadeCatalogoItem'
 import type { EmpregabilidadeCurriculoConquista } from './empregabilidadeCurriculoConquista'
 import type { EmpregabilidadeCurriculoCursoComplementar } from './empregabilidadeCurriculoCursoComplementar'
 import type { EmpregabilidadeCurriculoExperiencia } from './empregabilidadeCurriculoExperiencia'
@@ -13,6 +14,9 @@ import type { EmpregabilidadeCurriculoIdioma } from './empregabilidadeCurriculoI
 import type { EmpregabilidadeCurriculoSituacaoInteresses } from './empregabilidadeCurriculoSituacaoInteresses'
 
 export interface EmpregabilidadeCurriculoCompleto {
+  area_atuacao?: EmpregabilidadeCatalogoItem
+  comportamentos_atitudes?: EmpregabilidadeCatalogoItem[]
+  conhecimentos?: EmpregabilidadeCatalogoItem[]
   conquistas?: EmpregabilidadeCurriculoConquista[]
   cursos_complementares?: EmpregabilidadeCurriculoCursoComplementar[]
   experiencias?: EmpregabilidadeCurriculoExperiencia[]
