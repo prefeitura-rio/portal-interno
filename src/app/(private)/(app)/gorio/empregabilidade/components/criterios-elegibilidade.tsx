@@ -13,8 +13,13 @@ import { Switch } from '@/components/ui/switch'
 import type { EmpregabilidadeEscolaridade } from '@/http-gorio/models/empregabilidadeEscolaridade'
 import type { EmpregabilidadeIdioma } from '@/http-gorio/models/empregabilidadeIdioma'
 import type { EmpregabilidadeNivelIdioma } from '@/http-gorio/models/empregabilidadeNivelIdioma'
+import {
+  type CriterioAceitacaoId,
+  ordenarCriteriosAceitacao,
+} from '@/lib/criterios-aceitacao'
 import { Check } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { BloqueioTag } from './bloqueio-tag'
 
 export interface IdiomaRequisito {
   id_idioma: string
@@ -89,7 +94,6 @@ export function CriteriosElegibilidade({
   }, [idiomasRequisito.length, idiomasToggle])
 
   const escolaridadeAtiva = !!idEscolaridadeMinima
-  const idiomasAtivos = idiomasRequisito.length > 0
 
   const handleMasterToggle = (checked: boolean) => {
     setMasterEnabled(checked)
@@ -131,6 +135,183 @@ export function CriteriosElegibilidade({
     )
   }
 
+  // Critérios na ordem canônica do bloco (DEV-394): PcD, Idade, Experiência
+  // em carteira, Escolaridade mínima, Idioma. PcD e Experiência ainda não
+  // existem no formulário e entram na posição reservada quando forem criados.
+  const criterios: { id: CriterioAceitacaoId; content: ReactNode }[] = [
+    {
+      id: 'idade',
+      content: (
+        <div className="flex items-center justify-between">
+          <Label
+            className="flex items-center gap-1.5 text-sm font-normal"
+            htmlFor="criterio-idade-minima"
+          >
+            Ter idade mínima (18 anos)
+            {idadeMinima && (
+              <Check className="size-3.5 text-green-500 shrink-0" />
+            )}
+          </Label>
+          <Switch
+            id="criterio-idade-minima"
+            checked={idadeMinima}
+            onCheckedChange={onIdadeMinimaChange}
+            disabled={disabled}
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'escolaridade',
+      content: (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label
+              className="flex items-center gap-1.5 text-sm font-normal"
+              htmlFor="criterio-escolaridade"
+            >
+              Possuir escolaridade mínima
+              <BloqueioTag ativo={escolaridadeAtiva} />
+            </Label>
+            <Switch
+              id="criterio-escolaridade"
+              checked={escolaridadeAtiva}
+              onCheckedChange={checked => {
+                if (!checked) {
+                  onEscolaridadeChange(undefined)
+                } else if (escolaridades[0]?.id) {
+                  onEscolaridadeChange(escolaridades[0].id)
+                }
+              }}
+              disabled={disabled}
+            />
+          </div>
+
+          {escolaridadeAtiva && (
+            <Select
+              value={idEscolaridadeMinima}
+              onValueChange={onEscolaridadeChange}
+              disabled={loadingEscolaridades || disabled}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={
+                    loadingEscolaridades
+                      ? 'Carregando...'
+                      : 'Selecionar escolaridade mínima'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {escolaridades.map(e => (
+                  <SelectItem key={e.id} value={e.id!}>
+                    {e.descricao}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'idioma',
+      content: (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label
+              className="flex items-center gap-1.5 text-sm font-normal"
+              htmlFor="criterio-idioma"
+            >
+              Dominar idioma estrangeiro
+              <BloqueioTag ativo={idiomasToggle} />
+            </Label>
+            <Switch
+              id="criterio-idioma"
+              checked={idiomasToggle}
+              onCheckedChange={checked => {
+                setIdiomasToggle(checked)
+                if (!checked) onIdiomasChange([])
+              }}
+              disabled={disabled}
+            />
+          </div>
+
+          {/* Lista de idiomas: aparece apenas quando toggle de idiomas está ON */}
+          {idiomasToggle && (
+            <div className="rounded-md border p-3 space-y-3">
+              {loadingIdiomas ? (
+                <p className="text-xs text-muted-foreground">
+                  Carregando idiomas...
+                </p>
+              ) : (
+                idiomas.map(idioma => {
+                  const requisito = idiomasRequisito.find(
+                    r => r.id_idioma === idioma.id
+                  )
+                  const isChecked = !!requisito
+                  return (
+                    <div key={idioma.id} className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`idioma-${idioma.id}`}
+                          checked={isChecked}
+                          onCheckedChange={() => toggleIdioma(idioma)}
+                          disabled={disabled}
+                        />
+                        <Label
+                          htmlFor={`idioma-${idioma.id}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {idioma.descricao}
+                        </Label>
+                      </div>
+
+                      {isChecked && (
+                        <div className="ml-6">
+                          <Select
+                            value={requisito.id_nivel_minimo}
+                            onValueChange={val =>
+                              updateNivelIdioma(idioma.id!, val)
+                            }
+                            disabled={loadingNiveis || disabled}
+                          >
+                            <SelectTrigger className="h-8 text-xs w-48">
+                              <SelectValue
+                                placeholder={
+                                  loadingNiveis
+                                    ? 'Carregando...'
+                                    : 'Nível mínimo'
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {niveisIdioma.map(nivel => (
+                                <SelectItem key={nivel.id} value={nivel.id!}>
+                                  {nivel.descricao}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          )}
+
+          {!idiomasToggle && !disabled && (
+            <p className="text-xs text-muted-foreground ml-1">
+              Ative o toggle acima para selecionar idiomas requeridos.
+            </p>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="rounded-lg border p-4 space-y-4">
       {/* Toggle master */}
@@ -151,171 +332,11 @@ export function CriteriosElegibilidade({
 
       {masterEnabled && (
         <div className="space-y-4">
-          {/* Idade mínima */}
-          <div className="flex items-center justify-between">
-            <Label
-              className="flex items-center gap-1.5 text-sm font-normal"
-              htmlFor="criterio-idade-minima"
-            >
-              Ter idade mínima (18 anos)
-              {idadeMinima && (
-                <Check className="size-3.5 text-green-500 shrink-0" />
-              )}
-            </Label>
-            <Switch
-              id="criterio-idade-minima"
-              checked={idadeMinima}
-              onCheckedChange={onIdadeMinimaChange}
-              disabled={disabled}
-            />
-          </div>
-
-          {/* Escolaridade mínima */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label
-                className="flex items-center gap-1.5 text-sm font-normal"
-                htmlFor="criterio-escolaridade"
-              >
-                Possuir escolaridade mínima
-                {escolaridadeAtiva && (
-                  <Check className="size-3.5 text-green-500 shrink-0" />
-                )}
-              </Label>
-              <Switch
-                id="criterio-escolaridade"
-                checked={escolaridadeAtiva}
-                onCheckedChange={checked => {
-                  if (!checked) {
-                    onEscolaridadeChange(undefined)
-                  } else if (escolaridades[0]?.id) {
-                    onEscolaridadeChange(escolaridades[0].id)
-                  }
-                }}
-                disabled={disabled}
-              />
+          {ordenarCriteriosAceitacao(criterios).map(criterio => (
+            <div key={criterio.id} data-criterio={criterio.id}>
+              {criterio.content}
             </div>
-
-            {escolaridadeAtiva && (
-              <Select
-                value={idEscolaridadeMinima}
-                onValueChange={onEscolaridadeChange}
-                disabled={loadingEscolaridades || disabled}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    placeholder={
-                      loadingEscolaridades
-                        ? 'Carregando...'
-                        : 'Selecionar escolaridade mínima'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {escolaridades.map(e => (
-                    <SelectItem key={e.id} value={e.id!}>
-                      {e.descricao}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          {/* Idiomas */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label
-                className="flex items-center gap-1.5 text-sm font-normal"
-                htmlFor="criterio-idioma"
-              >
-                Dominar idioma estrangeiro
-                {idiomasAtivos && (
-                  <Check className="size-3.5 text-green-500 shrink-0" />
-                )}
-              </Label>
-              <Switch
-                id="criterio-idioma"
-                checked={idiomasToggle}
-                onCheckedChange={checked => {
-                  setIdiomasToggle(checked)
-                  if (!checked) onIdiomasChange([])
-                }}
-                disabled={disabled}
-              />
-            </div>
-
-            {/* Lista de idiomas: aparece apenas quando toggle de idiomas está ON */}
-            {idiomasToggle && (
-              <div className="rounded-md border p-3 space-y-3">
-                {loadingIdiomas ? (
-                  <p className="text-xs text-muted-foreground">
-                    Carregando idiomas...
-                  </p>
-                ) : (
-                  idiomas.map(idioma => {
-                    const requisito = idiomasRequisito.find(
-                      r => r.id_idioma === idioma.id
-                    )
-                    const isChecked = !!requisito
-                    return (
-                      <div key={idioma.id} className="space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id={`idioma-${idioma.id}`}
-                            checked={isChecked}
-                            onCheckedChange={() => toggleIdioma(idioma)}
-                            disabled={disabled}
-                          />
-                          <Label
-                            htmlFor={`idioma-${idioma.id}`}
-                            className="text-sm font-normal cursor-pointer"
-                          >
-                            {idioma.descricao}
-                          </Label>
-                        </div>
-
-                        {isChecked && (
-                          <div className="ml-6">
-                            <Select
-                              value={requisito.id_nivel_minimo}
-                              onValueChange={val =>
-                                updateNivelIdioma(idioma.id!, val)
-                              }
-                              disabled={loadingNiveis || disabled}
-                            >
-                              <SelectTrigger className="h-8 text-xs w-48">
-                                <SelectValue
-                                  placeholder={
-                                    loadingNiveis
-                                      ? 'Carregando...'
-                                      : 'Nível mínimo'
-                                  }
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {niveisIdioma.map(nivel => (
-                                  <SelectItem key={nivel.id} value={nivel.id!}>
-                                    {nivel.descricao}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            )}
-
-            {!idiomasToggle && !disabled && (
-              <p className="text-xs text-muted-foreground ml-1">
-                Ative o toggle acima para selecionar idiomas requeridos.
-              </p>
-            )}
-          </div>
+          ))}
         </div>
       )}
     </div>
