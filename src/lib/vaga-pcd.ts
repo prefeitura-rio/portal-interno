@@ -6,6 +6,9 @@
  * (DEV-407), com os tipos de deficiência aceitos em `tipos_pcd` e o bloqueio
  * de candidatura na chave `pcd` de `criterios_bloqueio`. O bloqueio só vale
  * para a vaga exclusiva; vaga exclusiva sem nenhum tipo é recusada pela API.
+ *
+ * DEV-422 (ajustes da homologação do PREF-632/640): marcar a exclusiva já liga
+ * o bloqueio, sem o alerta e o botão "Ativar bloqueio" da DEV-408.
  */
 
 export const OPCOES_PCD = ['aberta', 'preferencial', 'exclusiva'] as const
@@ -20,18 +23,41 @@ export const OPCAO_PCD_LABEL: Record<OpcaoPcd, string> = {
   exclusiva: 'Exclusiva para PcD',
 }
 
-export const PCD_PERGUNTA_LABEL =
-  'A vaga é destinada a pessoas com deficiência (PcD)?'
+/** Linha de descrição de cada opção (DEV-422). */
+export const OPCAO_PCD_DESCRICAO: Record<OpcaoPcd, string> = {
+  aberta: 'Sem destaque nem restrição para PcD.',
+  preferencial: 'Destaca a vaga para PcD. Qualquer pessoa pode se candidatar.',
+  exclusiva: 'Só se candidata quem declarou ser PcD no cadastro.',
+}
+
+export const PCD_TITULO = 'Pessoas com deficiência'
+
+export const PCD_PERGUNTA_LABEL = 'Esta vaga é para pessoas com deficiência?'
+
+/** Aviso curto abaixo da opção exclusiva (DEV-422). */
+export const PCD_EXCLUSIVA_AVISO =
+  'Quem não declarou deficiência no cadastro não consegue se candidatar.'
+
+/** Rótulo do campo de tipos, por opção que aceita tipos (DEV-422). */
+export const TIPOS_PCD_LABEL: Record<'preferencial' | 'exclusiva', string> = {
+  preferencial: 'Tipos de deficiência',
+  exclusiva: 'Tipos de deficiência aceitos',
+}
+
+/** Texto de apoio abaixo do campo de tipos, por opção (DEV-422). */
+export const TIPOS_PCD_APOIO: Record<'preferencial' | 'exclusiva', string> = {
+  preferencial: 'Os tipos aparecem como destaque na vaga.',
+  exclusiva:
+    'Marque "Todos os tipos" para aceitar qualquer pessoa que declarou deficiência.',
+}
+
+export const TIPOS_PCD_PLACEHOLDER = 'Selecione os tipos'
 
 export const TODOS_OS_TIPOS_PCD_LABEL = 'Todos os tipos'
 
 /** Mesma mensagem que o app-go-api devolve no 400 (DEV-407). */
 export const TIPO_PCD_OBRIGATORIO_MENSAGEM =
   'Selecione ao menos um tipo de deficiência.'
-
-export const BLOQUEIO_PCD_AVISO_TITULO = 'Bloqueio ainda não ativado'
-
-export const ATIVAR_BLOQUEIO_PCD_LABEL = 'Ativar bloqueio'
 
 /** Chave do critério PcD em `criterios_bloqueio`. */
 export const CRITERIO_BLOQUEIO_PCD = 'pcd'
@@ -62,16 +88,6 @@ export function getOpcaoPcdDaVaga(vaga: {
   return acessibilidade === 'exclusivo_pcd' ? 'exclusiva' : 'preferencial'
 }
 
-/**
- * Estado gravado do bloqueio PcD: a chave `pcd` em `criterios_bloqueio` da
- * vaga (campo que o cliente Orval ainda não descreve).
- */
-export function getBloqueioPcdDaVaga(vaga: object): boolean {
-  const criterios =
-    'criterios_bloqueio' in vaga ? vaga.criterios_bloqueio : undefined
-  return Array.isArray(criterios) && criterios.includes(CRITERIO_BLOQUEIO_PCD)
-}
-
 /** A lista de tipos de deficiência aparece na vaga preferencial e na exclusiva. */
 export function aceitaTiposPcd(opcao: OpcaoPcd | undefined): boolean {
   return opcao === 'preferencial' || opcao === 'exclusiva'
@@ -85,20 +101,13 @@ export function faltaTipoPcd(
   return opcao === 'exclusiva' && (tiposSelecionados?.length ?? 0) === 0
 }
 
-/** Bloqueio PcD que vai à API: só a vaga exclusiva bloqueia. */
-export function isBloqueioPcdAtivo(
-  opcao: OpcaoPcd | undefined,
-  bloqueio: boolean | undefined
-): boolean {
-  return opcao === 'exclusiva' && bloqueio === true
-}
-
-/** Alerta "Bloqueio ainda não ativado": vaga exclusiva com o bloqueio desligado. */
-export function mostraAvisoBloqueioPcd(
-  opcao: OpcaoPcd | undefined,
-  bloqueio: boolean | undefined
-): boolean {
-  return opcao === 'exclusiva' && bloqueio !== true
+/**
+ * Bloqueio PcD (tag e corpo da API): a vaga exclusiva bloqueia sempre e as
+ * outras nunca (DEV-422). Vaga exclusiva gravada sem o bloqueio (criada antes
+ * da DEV-422) passa a tê-lo ao ser salva ou duplicada.
+ */
+export function isBloqueioPcdAtivo(opcao: OpcaoPcd | undefined): boolean {
+  return opcao === 'exclusiva'
 }
 
 /**
@@ -113,6 +122,23 @@ export function getTiposPcdParaApi(
   if (!aceitaTiposPcd(opcao)) return []
   const ids = (tiposSelecionados ?? []).filter(id => id.trim() !== '')
   return Array.from(new Set(ids)).map(id => ({ id }))
+}
+
+/**
+ * Chips do campo de tipos: "Todos os tipos" quando todos os disponíveis estão
+ * marcados; senão o rótulo de cada tipo marcado, na ordem dos disponíveis.
+ */
+export function getChipsTiposPcd(
+  tiposSelecionados: readonly string[],
+  tiposDisponiveis: readonly { id: string; label: string }[]
+): string[] {
+  const ids = tiposDisponiveis.map(tipo => tipo.id)
+  if (isTodosTiposPcdSelecionados(tiposSelecionados, ids)) {
+    return [TODOS_OS_TIPOS_PCD_LABEL]
+  }
+  return tiposDisponiveis
+    .filter(tipo => tiposSelecionados.includes(tipo.id))
+    .map(tipo => tipo.label)
 }
 
 /** "Todos os tipos" fica marcado quando todos os tipos disponíveis estão. */

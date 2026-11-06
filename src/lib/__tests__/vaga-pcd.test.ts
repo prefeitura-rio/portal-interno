@@ -5,27 +5,34 @@ import { describe, test } from 'node:test'
 // Deficiência (PcD)" viram a pergunta de 3 opções (opcao_pcd da DEV-407), com
 // a lista de tipos e "Todos os tipos", o erro da exclusiva sem tipo e o
 // bloqueio PcD ("pcd" em criterios_bloqueio), que só vale na exclusiva.
+// DEV-422: textos da homologação do PREF-632/640, chips do campo de tipos e
+// bloqueio ligado pela própria exclusiva (sem alerta nem "Ativar bloqueio").
 
+const vagaPcd = await import('../vaga-pcd.ts')
 const {
-  ATIVAR_BLOQUEIO_PCD_LABEL,
-  BLOQUEIO_PCD_AVISO_TITULO,
+  OPCAO_PCD_DESCRICAO,
   OPCAO_PCD_LABEL,
   OPCAO_PCD_PADRAO,
   OPCOES_PCD,
+  PCD_EXCLUSIVA_AVISO,
+  PCD_PERGUNTA_LABEL,
+  PCD_TITULO,
+  TIPOS_PCD_APOIO,
+  TIPOS_PCD_LABEL,
+  TIPOS_PCD_PLACEHOLDER,
   TIPO_PCD_OBRIGATORIO_MENSAGEM,
   TODOS_OS_TIPOS_PCD_LABEL,
   aceitaTiposPcd,
   alternarTipoPcd,
   alternarTodosTiposPcd,
   faltaTipoPcd,
-  getBloqueioPcdDaVaga,
+  getChipsTiposPcd,
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
   isBloqueioPcdAtivo,
   isOpcaoPcd,
   isTodosTiposPcdSelecionados,
-  mostraAvisoBloqueioPcd,
-} = await import('../vaga-pcd.ts')
+} = vagaPcd
 
 describe('pergunta PcD de 3 opções', () => {
   test('três opções, na ordem, com os textos da história', () => {
@@ -53,8 +60,40 @@ describe('pergunta PcD de 3 opções', () => {
       TIPO_PCD_OBRIGATORIO_MENSAGEM,
       'Selecione ao menos um tipo de deficiência.'
     )
-    assert.equal(BLOQUEIO_PCD_AVISO_TITULO, 'Bloqueio ainda não ativado')
-    assert.equal(ATIVAR_BLOQUEIO_PCD_LABEL, 'Ativar bloqueio')
+  })
+
+  test('textos da homologação (DEV-422)', () => {
+    assert.equal(PCD_TITULO, 'Pessoas com deficiência')
+    assert.equal(
+      PCD_PERGUNTA_LABEL,
+      'Esta vaga é para pessoas com deficiência?'
+    )
+    assert.deepEqual(
+      OPCOES_PCD.map(opcao => OPCAO_PCD_DESCRICAO[opcao]),
+      [
+        'Sem destaque nem restrição para PcD.',
+        'Destaca a vaga para PcD. Qualquer pessoa pode se candidatar.',
+        'Só se candidata quem declarou ser PcD no cadastro.',
+      ]
+    )
+    assert.equal(
+      PCD_EXCLUSIVA_AVISO,
+      'Quem não declarou deficiência no cadastro não consegue se candidatar.'
+    )
+    assert.equal(TIPOS_PCD_LABEL.preferencial, 'Tipos de deficiência')
+    assert.equal(TIPOS_PCD_LABEL.exclusiva, 'Tipos de deficiência aceitos')
+    assert.equal(
+      TIPOS_PCD_APOIO.preferencial,
+      'Os tipos aparecem como destaque na vaga.'
+    )
+    assert.match(TIPOS_PCD_APOIO.exclusiva, /"Todos os tipos"/)
+    assert.equal(TIPOS_PCD_PLACEHOLDER, 'Selecione os tipos')
+  })
+
+  test('sem o alerta e o botão "Ativar bloqueio" da DEV-408', () => {
+    assert.ok(!('BLOQUEIO_PCD_AVISO_TITULO' in vagaPcd))
+    assert.ok(!('ATIVAR_BLOQUEIO_PCD_LABEL' in vagaPcd))
+    assert.ok(!('mostraAvisoBloqueioPcd' in vagaPcd))
   })
 })
 
@@ -96,19 +135,6 @@ describe('opção PcD lida da vaga', () => {
       'exclusiva'
     )
   })
-
-  test('bloqueio PcD gravado é a chave "pcd" de criterios_bloqueio', () => {
-    const vaga = (criterios_bloqueio?: unknown) => ({
-      titulo: 'Vaga sintética',
-      criterios_bloqueio,
-    })
-    assert.equal(getBloqueioPcdDaVaga(vaga(['escolaridade', 'pcd'])), true)
-    assert.equal(getBloqueioPcdDaVaga(vaga(['escolaridade', 'idioma'])), false)
-    assert.equal(getBloqueioPcdDaVaga(vaga([])), false)
-    assert.equal(getBloqueioPcdDaVaga(vaga()), false)
-    assert.equal(getBloqueioPcdDaVaga(vaga('pcd')), false)
-    assert.equal(getBloqueioPcdDaVaga({ titulo: 'Sem o campo' }), false)
-  })
 })
 
 describe('tipos de deficiência', () => {
@@ -136,6 +162,24 @@ describe('tipos de deficiência', () => {
     )
     assert.equal(isTodosTiposPcdSelecionados([], disponiveis), false)
     assert.equal(isTodosTiposPcdSelecionados([], []), false)
+  })
+
+  test('chips: "Todos os tipos" com todos marcados, senão cada tipo', () => {
+    const tipos = [
+      { id: 'auditiva', label: 'Auditiva' },
+      { id: 'fisica', label: 'Física' },
+      { id: 'visual', label: 'Visual' },
+    ]
+    assert.deepEqual(getChipsTiposPcd([], tipos), [])
+    assert.deepEqual(getChipsTiposPcd(['visual', 'auditiva'], tipos), [
+      'Auditiva',
+      'Visual',
+    ])
+    assert.deepEqual(
+      getChipsTiposPcd(['visual', 'fisica', 'auditiva'], tipos),
+      ['Todos os tipos']
+    )
+    assert.deepEqual(getChipsTiposPcd(['inexistente'], tipos), [])
   })
 
   test('marcar "Todos os tipos" seleciona todos; desmarcar limpa', () => {
@@ -181,18 +225,10 @@ describe('tipos de deficiência', () => {
 })
 
 describe('bloqueio PcD', () => {
-  test('só a exclusiva com o bloqueio ligado bloqueia', () => {
-    assert.equal(isBloqueioPcdAtivo('exclusiva', true), true)
-    assert.equal(isBloqueioPcdAtivo('exclusiva', false), false)
-    assert.equal(isBloqueioPcdAtivo('preferencial', true), false)
-    assert.equal(isBloqueioPcdAtivo('aberta', true), false)
-  })
-
-  test('alerta "Bloqueio ainda não ativado" na exclusiva desligada', () => {
-    assert.equal(mostraAvisoBloqueioPcd('exclusiva', false), true)
-    assert.equal(mostraAvisoBloqueioPcd('exclusiva', undefined), true)
-    assert.equal(mostraAvisoBloqueioPcd('exclusiva', true), false)
-    assert.equal(mostraAvisoBloqueioPcd('preferencial', false), false)
-    assert.equal(mostraAvisoBloqueioPcd('aberta', false), false)
+  test('a exclusiva já bloqueia; preferencial e aberta não (DEV-422)', () => {
+    assert.equal(isBloqueioPcdAtivo('exclusiva'), true)
+    assert.equal(isBloqueioPcdAtivo('preferencial'), false)
+    assert.equal(isBloqueioPcdAtivo('aberta'), false)
+    assert.equal(isBloqueioPcdAtivo(undefined), false)
   })
 })

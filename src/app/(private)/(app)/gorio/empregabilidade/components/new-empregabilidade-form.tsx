@@ -123,10 +123,10 @@ const formSchema = z.object({
   contratante: z.string().optional(),
   regime_contratacao: z.string().optional(),
   modelo_trabalho: z.string().optional(),
-  // DEV-408: critério PcD (opcao_pcd, tipos e bloqueio "pcd" da API)
+  // DEV-408: critério PcD (opcao_pcd e tipos; o bloqueio "pcd" da API vem da
+  // opção, DEV-422)
   opcao_pcd: z.enum(OPCOES_PCD).optional(),
   tipo_pcd: z.array(z.string()).optional(),
-  bloqueio_pcd: z.boolean().optional(),
   valor_vaga: z.number().nullish(),
   quantidade_estimada_contratacoes: z.number().int().positive().nullish(),
   bairro: z.string().optional(),
@@ -437,7 +437,6 @@ export const NewEmpregabilidadeForm = forwardRef<
           ),
           opcaoPcd: initialData.opcao_pcd ?? OPCAO_PCD_PADRAO,
           tiposPcd: initialData.tipo_pcd ?? [],
-          bloqueioPcd: initialData.bloqueio_pcd === true,
         }
       : undefined
 
@@ -468,7 +467,6 @@ export const NewEmpregabilidadeForm = forwardRef<
             modelo_trabalho: '',
             opcao_pcd: OPCAO_PCD_PADRAO,
             tipo_pcd: [],
-            bloqueio_pcd: false,
             valor_vaga: undefined,
             quantidade_estimada_contratacoes: undefined,
             bairro: '',
@@ -993,10 +991,7 @@ export const NewEmpregabilidadeForm = forwardRef<
                   form.setValue('tipo_pcd', v, { shouldDirty: true })
                   form.clearErrors('tipo_pcd')
                 }}
-                bloqueioPcd={form.watch('bloqueio_pcd') === true}
-                onBloqueioPcdChange={v =>
-                  form.setValue('bloqueio_pcd', v, { shouldDirty: true })
-                }
+                erroTiposPcd={form.formState.errors.tipo_pcd?.message}
                 tiposPcd={tiposPcd}
                 loadingTiposPcd={loadingTiposPcd}
                 disabled={isReadOnly}

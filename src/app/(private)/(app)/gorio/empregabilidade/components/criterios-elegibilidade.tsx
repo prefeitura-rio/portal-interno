@@ -1,6 +1,5 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -22,27 +21,24 @@ import {
 } from '@/lib/criterios-aceitacao'
 import { cn } from '@/lib/utils'
 import {
-  ATIVAR_BLOQUEIO_PCD_LABEL,
-  BLOQUEIO_PCD_AVISO_TITULO,
+  OPCAO_PCD_DESCRICAO,
   OPCAO_PCD_LABEL,
   OPCAO_PCD_PADRAO,
   OPCOES_PCD,
   type OpcaoPcd,
+  PCD_EXCLUSIVA_AVISO,
   PCD_PERGUNTA_LABEL,
-  TIPO_PCD_OBRIGATORIO_MENSAGEM,
-  TODOS_OS_TIPOS_PCD_LABEL,
+  PCD_TITULO,
+  TIPOS_PCD_APOIO,
+  TIPOS_PCD_LABEL,
   aceitaTiposPcd,
-  alternarTipoPcd,
-  alternarTodosTiposPcd,
-  faltaTipoPcd,
   isBloqueioPcdAtivo,
   isOpcaoPcd,
-  isTodosTiposPcdSelecionados,
-  mostraAvisoBloqueioPcd,
 } from '@/lib/vaga-pcd'
-import { Check, TriangleAlert } from 'lucide-react'
+import { Accessibility, Check, TriangleAlert } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { BloqueioTag } from './bloqueio-tag'
+import { TiposPcdSelect } from './tipos-pcd-select'
 
 export interface IdiomaRequisito {
   id_idioma: string
@@ -62,13 +58,16 @@ interface CriteriosElegibilidadeProps {
   loadingEscolaridades: boolean
   loadingIdiomas: boolean
   loadingNiveis: boolean
-  /** DEV-408: critério PcD (opção, tipos de deficiência e bloqueio). */
+  /**
+   * DEV-408: critério PcD (opção e tipos de deficiência). O bloqueio vem da
+   * opção (DEV-422).
+   */
   opcaoPcd: OpcaoPcd
   onOpcaoPcdChange: (opcao: OpcaoPcd) => void
   tiposPcdSelecionados: string[]
   onTiposPcdChange: (ids: string[]) => void
-  bloqueioPcd: boolean
-  onBloqueioPcdChange: (ativo: boolean) => void
+  /** Erro de validação dos tipos (exclusiva sem tipo ao salvar). */
+  erroTiposPcd?: string
   tiposPcd: EmpregabilidadeTipoPCD[]
   loadingTiposPcd: boolean
   disabled?: boolean
@@ -82,7 +81,6 @@ interface CriteriosElegibilidadeProps {
     idiomasRequisito: IdiomaRequisito[]
     opcaoPcd: OpcaoPcd
     tiposPcd: string[]
-    bloqueioPcd: boolean
   }
 }
 
@@ -103,8 +101,7 @@ export function CriteriosElegibilidade({
   onOpcaoPcdChange,
   tiposPcdSelecionados,
   onTiposPcdChange,
-  bloqueioPcd,
-  onBloqueioPcdChange,
+  erroTiposPcd,
   tiposPcd,
   loadingTiposPcd,
   disabled = false,
@@ -151,7 +148,6 @@ export function CriteriosElegibilidade({
       setIdiomasToggle(false)
       onOpcaoPcdChange(OPCAO_PCD_PADRAO)
       onTiposPcdChange([])
-      onBloqueioPcdChange(false)
     } else if (savedValues) {
       // Religar em modo edição: restaura valores do backend
       onIdadeMinimaChange(savedValues.idadeMinima)
@@ -160,7 +156,6 @@ export function CriteriosElegibilidade({
       setIdiomasToggle(savedValues.idiomasRequisito.length > 0)
       onOpcaoPcdChange(savedValues.opcaoPcd)
       onTiposPcdChange(savedValues.tiposPcd)
-      onBloqueioPcdChange(savedValues.bloqueioPcd)
     }
     // Em criação nova (sem savedValues): religar apenas abre os toggles filhos, sem restaurar nada
   }
@@ -187,22 +182,14 @@ export function CriteriosElegibilidade({
     )
   }
 
-  // DEV-408: o bloqueio PcD só vale na vaga exclusiva. Sair da exclusiva
-  // desliga o bloqueio; aberta não tem tipos de deficiência.
+  // DEV-408: aberta não tem tipos de deficiência. DEV-422: o bloqueio PcD vem
+  // da opção (a exclusiva bloqueia), sem botão para ligá-lo.
   const handleOpcaoPcdChange = (opcao: OpcaoPcd) => {
     onOpcaoPcdChange(opcao)
-    if (opcao !== 'exclusiva') onBloqueioPcdChange(false)
     if (!aceitaTiposPcd(opcao)) onTiposPcdChange([])
   }
 
-  const idsTiposPcd = tiposPcd
-    .map(tipo => tipo.id)
-    .filter((id): id is string => typeof id === 'string' && id !== '')
-  const todosTiposPcd = isTodosTiposPcdSelecionados(
-    tiposPcdSelecionados,
-    idsTiposPcd
-  )
-  const tipoPcdObrigatorio = faltaTipoPcd(opcaoPcd, tiposPcdSelecionados)
+  const bloqueioPcdAtivo = isBloqueioPcdAtivo(opcaoPcd)
 
   // Critérios na ordem canônica do bloco (DEV-394): PcD, Idade, Experiência
   // em carteira, Escolaridade mínima, Idioma. Experiência ainda não existe no
@@ -211,14 +198,26 @@ export function CriteriosElegibilidade({
     {
       id: 'pcd',
       content: (
-        <div className="space-y-3">
-          <Label
-            id="criterio-pcd-label"
-            className="flex flex-wrap items-center gap-1.5 text-sm font-normal"
-          >
+        <div className="space-y-3 rounded-md border p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              aria-hidden="true"
+              className={cn(
+                'flex size-7 shrink-0 items-center justify-center rounded-md',
+                bloqueioPcdAtivo
+                  ? 'bg-primary/10 text-primary'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              <Accessibility className="size-4" />
+            </span>
+            <p className="text-sm font-medium">{PCD_TITULO}</p>
+            <BloqueioTag ativo={bloqueioPcdAtivo} />
+          </div>
+
+          <p id="criterio-pcd-label" className="text-sm">
             {PCD_PERGUNTA_LABEL}
-            <BloqueioTag ativo={isBloqueioPcdAtivo(opcaoPcd, bloqueioPcd)} />
-          </Label>
+          </p>
 
           <RadioGroup
             value={opcaoPcd}
@@ -227,120 +226,62 @@ export function CriteriosElegibilidade({
             }}
             disabled={disabled}
             aria-labelledby="criterio-pcd-label"
-            className="gap-2"
+            className="gap-3"
           >
             {OPCOES_PCD.map(opcao => (
-              <div key={opcao} className="flex items-center gap-2">
-                <RadioGroupItem value={opcao} id={`opcao-pcd-${opcao}`} />
-                <Label
-                  htmlFor={`opcao-pcd-${opcao}`}
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  {OPCAO_PCD_LABEL[opcao]}
-                </Label>
+              <div key={opcao} data-opcao-pcd={opcao} className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <RadioGroupItem
+                    value={opcao}
+                    id={`opcao-pcd-${opcao}`}
+                    aria-describedby={`opcao-pcd-${opcao}-descricao`}
+                    className="mt-0.5"
+                  />
+                  <div className="space-y-0.5">
+                    <Label
+                      htmlFor={`opcao-pcd-${opcao}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {OPCAO_PCD_LABEL[opcao]}
+                    </Label>
+                    <p
+                      id={`opcao-pcd-${opcao}-descricao`}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {OPCAO_PCD_DESCRICAO[opcao]}
+                    </p>
+                  </div>
+                </div>
+
+                {opcao === opcaoPcd &&
+                  (opcao === 'preferencial' || opcao === 'exclusiva') && (
+                    <div data-tipos-pcd={opcao} className="ml-6 space-y-2">
+                      {opcao === 'exclusiva' && (
+                        <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+                          <TriangleAlert className="mt-px size-3.5 shrink-0" />
+                          {PCD_EXCLUSIVA_AVISO}
+                        </p>
+                      )}
+                      <p id="tipos-pcd-label" className="text-sm font-medium">
+                        {TIPOS_PCD_LABEL[opcao]}
+                      </p>
+                      <TiposPcdSelect
+                        labelId="tipos-pcd-label"
+                        tiposPcd={tiposPcd}
+                        tiposSelecionados={tiposPcdSelecionados}
+                        onTiposChange={onTiposPcdChange}
+                        loading={loadingTiposPcd}
+                        disabled={disabled}
+                        erro={erroTiposPcd}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {TIPOS_PCD_APOIO[opcao]}
+                      </p>
+                    </div>
+                  )}
               </div>
             ))}
           </RadioGroup>
-
-          {aceitaTiposPcd(opcaoPcd) && (
-            <div className="space-y-1.5">
-              <p className="text-sm">Tipos de deficiência</p>
-              <div
-                className={cn(
-                  'rounded-md border p-3 space-y-2',
-                  tipoPcdObrigatorio && 'border-destructive'
-                )}
-              >
-                {loadingTiposPcd ? (
-                  <p className="text-xs text-muted-foreground">
-                    Carregando tipos de deficiência...
-                  </p>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="tipo-pcd-todos"
-                        checked={todosTiposPcd}
-                        onCheckedChange={checked =>
-                          onTiposPcdChange(
-                            alternarTodosTiposPcd(checked === true, idsTiposPcd)
-                          )
-                        }
-                        disabled={disabled || idsTiposPcd.length === 0}
-                      />
-                      <Label
-                        htmlFor="tipo-pcd-todos"
-                        className="text-sm font-medium cursor-pointer"
-                      >
-                        {TODOS_OS_TIPOS_PCD_LABEL}
-                      </Label>
-                    </div>
-                    {idsTiposPcd.map(id => {
-                      const tipo = tiposPcd.find(t => t.id === id)
-                      return (
-                        <div key={id} className="flex items-center gap-2 ml-6">
-                          <Checkbox
-                            id={`tipo-pcd-${id}`}
-                            checked={tiposPcdSelecionados.includes(id)}
-                            onCheckedChange={checked =>
-                              onTiposPcdChange(
-                                alternarTipoPcd(
-                                  tiposPcdSelecionados,
-                                  id,
-                                  checked === true
-                                )
-                              )
-                            }
-                            disabled={disabled}
-                          />
-                          <Label
-                            htmlFor={`tipo-pcd-${id}`}
-                            className="text-sm font-normal cursor-pointer"
-                          >
-                            {tipo?.descricao ?? id}
-                          </Label>
-                        </div>
-                      )
-                    })}
-                  </>
-                )}
-              </div>
-              {tipoPcdObrigatorio && (
-                <p role="alert" className="text-sm text-destructive">
-                  {TIPO_PCD_OBRIGATORIO_MENSAGEM}
-                </p>
-              )}
-            </div>
-          )}
-
-          {mostraAvisoBloqueioPcd(opcaoPcd, bloqueioPcd) && (
-            <div
-              role="status"
-              className="flex flex-col gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800 sm:flex-row sm:items-center sm:justify-between dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200"
-            >
-              <div className="flex items-start gap-2">
-                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium">
-                    {BLOQUEIO_PCD_AVISO_TITULO}
-                  </p>
-                  <p className="text-xs">
-                    Enquanto o bloqueio estiver desligado, a candidatura não
-                    fica restrita às pessoas com deficiência.
-                  </p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => onBloqueioPcdChange(true)}
-                disabled={disabled}
-              >
-                {ATIVAR_BLOQUEIO_PCD_LABEL}
-              </Button>
-            </div>
-          )}
         </div>
       ),
     },

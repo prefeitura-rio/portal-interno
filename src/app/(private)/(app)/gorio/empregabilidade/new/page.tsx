@@ -35,7 +35,6 @@ function mapCriteriosToApiData(data: any) {
     modelo_trabalho,
     tipo_pcd,
     opcao_pcd,
-    bloqueio_pcd,
     idade_minima_ativa,
     id_escolaridade_minima,
     idiomas_requisito: _idiomas,
@@ -58,7 +57,7 @@ function mapCriteriosToApiData(data: any) {
       criterios_bloqueio: getCriteriosBloqueio({
         idEscolaridadeMinima: id_escolaridade_minima,
         idiomasRequisito: data.idiomas_requisito,
-        bloqueioPcd: isBloqueioPcdAtivo(opcaoPcd, bloqueio_pcd),
+        bloqueioPcd: isBloqueioPcdAtivo(opcaoPcd),
       }),
     },
     idiomasRequisito: (data.idiomas_requisito ?? []) as {
