@@ -10,6 +10,12 @@ import {
   isIdiomasRequisitoError,
   salvarIdiomasRequisito,
 } from '@/lib/idiomas-requisito'
+import {
+  getBloqueioPcdDaVaga,
+  getOpcaoPcdDaVaga,
+  getTiposPcdParaApi,
+  isBloqueioPcdAtivo,
+} from '@/lib/vaga-pcd'
 import { Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -70,8 +76,12 @@ export function DuplicateJobButton({
         diferenciais: vaga.diferenciais,
         responsabilidades: vaga.responsabilidades,
         beneficios: vaga.beneficios,
-        acessibilidade_pcd: vaga.acessibilidade_pcd,
-        tipos_pcd: vaga.tipos_pcd,
+        // DEV-408: copia a opção PcD, os tipos e o bloqueio "pcd"
+        opcao_pcd: getOpcaoPcdDaVaga(vaga),
+        tipos_pcd: getTiposPcdParaApi(
+          getOpcaoPcdDaVaga(vaga),
+          (vaga.tipos_pcd ?? []).map(tipo => tipo.id ?? '')
+        ),
         etapas: transformedEtapas,
         informacoes_complementares: transformedInformacoesComplementares,
         idade_minima: (vaga as any).idade_minima ?? null,
@@ -79,6 +89,10 @@ export function DuplicateJobButton({
         criterios_bloqueio: getCriteriosBloqueio({
           idEscolaridadeMinima: vaga.id_escolaridade_minima,
           idiomasRequisito: vaga.idiomas_requisito,
+          bloqueioPcd: isBloqueioPcdAtivo(
+            getOpcaoPcdDaVaga(vaga),
+            getBloqueioPcdDaVaga(vaga)
+          ),
         }),
         status: 'em_edicao',
       }

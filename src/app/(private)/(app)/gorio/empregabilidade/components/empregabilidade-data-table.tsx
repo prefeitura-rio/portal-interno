@@ -75,6 +75,12 @@ import {
   vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
 import {
+  getBloqueioPcdDaVaga,
+  getOpcaoPcdDaVaga,
+  getTiposPcdParaApi,
+  isBloqueioPcdAtivo,
+} from '@/lib/vaga-pcd'
+import {
   canDeleteVagaWithStatus,
   hasEditorComCuradoriaRestrictions,
 } from '@/types/heimdall-roles'
@@ -529,8 +535,14 @@ export function EmpregabilidadeDataTable() {
           diferenciais: fullVaga.diferenciais,
           responsabilidades: fullVaga.responsabilidades,
           beneficios: fullVaga.beneficios,
-          acessibilidade_pcd: fullVaga.acessibilidade_pcd,
-          tipos_pcd: fullVaga.tipos_pcd,
+          // DEV-408: copia a opção PcD, os tipos e o bloqueio "pcd"
+          opcao_pcd: getOpcaoPcdDaVaga(fullVaga),
+          tipos_pcd: getTiposPcdParaApi(
+            getOpcaoPcdDaVaga(fullVaga),
+            (fullVaga.tipos_pcd ?? []).map(
+              (tipo: { id?: string }) => tipo.id ?? ''
+            )
+          ),
           etapas: transformedEtapas,
           informacoes_complementares: transformedInformacoesComplementares,
           idade_minima: fullVaga.idade_minima ?? null,
@@ -538,6 +550,10 @@ export function EmpregabilidadeDataTable() {
           criterios_bloqueio: getCriteriosBloqueio({
             idEscolaridadeMinima: fullVaga.id_escolaridade_minima,
             idiomasRequisito: fullVaga.idiomas_requisito,
+            bloqueioPcd: isBloqueioPcdAtivo(
+              getOpcaoPcdDaVaga(fullVaga),
+              getBloqueioPcdDaVaga(fullVaga)
+            ),
           }),
           status: 'em_edicao',
         }

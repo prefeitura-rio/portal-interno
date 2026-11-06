@@ -85,7 +85,31 @@ describe('criterios_bloqueio enviado à API', () => {
   const idioma = { id_idioma: 'idioma-1', id_nivel_minimo: 'nivel-1' }
 
   test('só as chaves que o app-go-api aceita, na ordem dele', () => {
-    assert.deepEqual([...CRITERIOS_BLOQUEIO_API], ['escolaridade', 'idioma'])
+    // DEV-408: `pcd` é aceito desde a DEV-407 e vem depois de idioma
+    assert.deepEqual(
+      [...CRITERIOS_BLOQUEIO_API],
+      ['escolaridade', 'idioma', 'pcd']
+    )
+  })
+
+  test('bloqueio PcD ligado entra como "pcd", na ordem da API', () => {
+    assert.deepEqual(
+      getCriteriosBloqueio({
+        idEscolaridadeMinima: 'superior-completo',
+        idiomasRequisito: [idioma],
+        bloqueioPcd: true,
+      }),
+      ['escolaridade', 'idioma', 'pcd']
+    )
+    assert.deepEqual(getCriteriosBloqueio({ bloqueioPcd: true }), ['pcd'])
+  })
+
+  test('bloqueio PcD desligado ou ausente não envia "pcd"', () => {
+    assert.deepEqual(getCriteriosBloqueio({ bloqueioPcd: false }), [])
+    assert.deepEqual(
+      getCriteriosBloqueio({ idEscolaridadeMinima: 'medio-completo' }),
+      ['escolaridade']
+    )
   })
 
   test('escolaridade e idioma ligados', () => {
