@@ -61,6 +61,7 @@ import { useDebouncedCallback } from '@/hooks/use-debounced-callback'
 import { useEmpregabilidadeVagas } from '@/hooks/use-empregabilidade-vagas'
 import { useEmpregabilidadeVagasCounts } from '@/hooks/use-empregabilidade-vagas-counts'
 import type { EmpregabilidadeVaga } from '@/http-gorio/models'
+import { getCriteriosBloqueio } from '@/lib/criterios-aceitacao'
 import { formatTabLabelWithCount } from '@/lib/empregabilidade-vagas-counts'
 import { formatDateBR } from '@/lib/format'
 import {
@@ -528,6 +529,10 @@ export function EmpregabilidadeDataTable() {
           informacoes_complementares: transformedInformacoesComplementares,
           idade_minima: fullVaga.idade_minima ?? null,
           id_escolaridade_minima: fullVaga.id_escolaridade_minima ?? null,
+          criterios_bloqueio: getCriteriosBloqueio({
+            idEscolaridadeMinima: fullVaga.id_escolaridade_minima,
+            idiomasRequisito: fullVaga.idiomas_requisito,
+          }),
           status: 'em_edicao',
         }
 
