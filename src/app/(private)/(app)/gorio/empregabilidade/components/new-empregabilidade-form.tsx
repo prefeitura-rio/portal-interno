@@ -983,9 +983,10 @@ export const NewEmpregabilidadeForm = forwardRef<
                 loadingIdiomas={loadingIdiomas}
                 loadingNiveis={loadingNiveis}
                 opcaoPcd={form.watch('opcao_pcd') ?? OPCAO_PCD_PADRAO}
-                onOpcaoPcdChange={v =>
+                onOpcaoPcdChange={v => {
                   form.setValue('opcao_pcd', v, { shouldDirty: true })
-                }
+                  form.clearErrors('tipo_pcd')
+                }}
                 tiposPcdSelecionados={form.watch('tipo_pcd') ?? []}
                 onTiposPcdChange={v => {
                   form.setValue('tipo_pcd', v, { shouldDirty: true })
