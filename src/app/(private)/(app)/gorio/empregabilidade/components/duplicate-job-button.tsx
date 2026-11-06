@@ -71,8 +71,8 @@ export function DuplicateJobButton({
         idade_minima: (vaga as any).idade_minima ?? null,
         id_escolaridade_minima: (vaga as any).id_escolaridade_minima ?? null,
         criterios_bloqueio: getCriteriosBloqueio({
-          idEscolaridadeMinima: (vaga as any).id_escolaridade_minima,
-          idiomasRequisito: (vaga as any).idiomas_requisito,
+          idEscolaridadeMinima: vaga.id_escolaridade_minima,
+          idiomasRequisito: vaga.idiomas_requisito,
         }),
         status: 'em_edicao',
       }
