@@ -77,6 +77,8 @@ function render({
       erroTiposPcd,
       tiposPcd: TIPOS,
       loadingTiposPcd,
+      experienciaCarteira: null,
+      onExperienciaCarteiraChange: noop,
       disabled,
     })
   )

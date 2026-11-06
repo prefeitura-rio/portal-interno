@@ -39,6 +39,7 @@ import {
 } from '@/lib/date-validation'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { cn } from '@/lib/utils'
+import { OPCOES_EXPERIENCIA_CARTEIRA } from '@/lib/vaga-experiencia-carteira'
 import {
   OPCAO_PCD_PADRAO,
   OPCOES_PCD,
@@ -148,6 +149,8 @@ const formSchema = z.object({
       })
     )
     .optional(),
+  // DEV-425: Experiência em carteira; null = critério desligado
+  experiencia_carteira: z.enum(OPCOES_EXPERIENCIA_CARTEIRA).nullish(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -437,6 +440,7 @@ export const NewEmpregabilidadeForm = forwardRef<
           ),
           opcaoPcd: initialData.opcao_pcd ?? OPCAO_PCD_PADRAO,
           tiposPcd: initialData.tipo_pcd ?? [],
+          experienciaCarteira: initialData.experiencia_carteira ?? null,
         }
       : undefined
 
@@ -458,6 +462,7 @@ export const NewEmpregabilidadeForm = forwardRef<
               id_idioma: i.id_idioma,
               id_nivel_minimo: i.id_nivel_minimo,
             })),
+            experiencia_carteira: initialData.experiencia_carteira ?? null,
           }
         : {
             titulo: '',
@@ -481,6 +486,7 @@ export const NewEmpregabilidadeForm = forwardRef<
             idade_minima_ativa: false,
             id_escolaridade_minima: undefined,
             idiomas_requisito: [],
+            experiencia_carteira: null,
           },
       mode: 'onChange',
     })
@@ -995,6 +1001,12 @@ export const NewEmpregabilidadeForm = forwardRef<
                 erroTiposPcd={form.formState.errors.tipo_pcd?.message}
                 tiposPcd={tiposPcd}
                 loadingTiposPcd={loadingTiposPcd}
+                experienciaCarteira={form.watch('experiencia_carteira') ?? null}
+                onExperienciaCarteiraChange={v =>
+                  form.setValue('experiencia_carteira', v, {
+                    shouldDirty: true,
+                  })
+                }
                 disabled={isReadOnly}
                 savedValues={savedCriteriosValues}
               />

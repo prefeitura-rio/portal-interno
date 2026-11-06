@@ -18,6 +18,7 @@ import {
   isIdiomasRequisitoError,
   salvarIdiomasRequisito,
 } from '@/lib/idiomas-requisito'
+import { getExperienciaCarteiraParaApi } from '@/lib/vaga-experiencia-carteira'
 import {
   OPCAO_PCD_PADRAO,
   getTiposPcdParaApi,
@@ -38,6 +39,7 @@ function mapCriteriosToApiData(data: any) {
     idade_minima_ativa,
     id_escolaridade_minima,
     idiomas_requisito: _idiomas,
+    experiencia_carteira,
     ...rest
   } = data
 
@@ -54,10 +56,13 @@ function mapCriteriosToApiData(data: any) {
       tipos_pcd: getTiposPcdParaApi(opcaoPcd, tipo_pcd),
       idade_minima: idade_minima_ativa ? 18 : null,
       id_escolaridade_minima: id_escolaridade_minima ?? null,
+      // DEV-425: tempo exigido; "" sem o critério
+      experiencia_carteira: getExperienciaCarteiraParaApi(experiencia_carteira),
       criterios_bloqueio: getCriteriosBloqueio({
         idEscolaridadeMinima: id_escolaridade_minima,
         idiomasRequisito: data.idiomas_requisito,
         bloqueioPcd: isBloqueioPcdAtivo(opcaoPcd),
+        experienciaCarteira: experiencia_carteira ?? null,
       }),
     },
     idiomasRequisito: (data.idiomas_requisito ?? []) as {

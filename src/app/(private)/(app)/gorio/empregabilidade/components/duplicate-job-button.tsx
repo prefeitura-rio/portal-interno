@@ -11,6 +11,10 @@ import {
   salvarIdiomasRequisito,
 } from '@/lib/idiomas-requisito'
 import {
+  getExperienciaCarteiraDaVaga,
+  getExperienciaCarteiraParaApi,
+} from '@/lib/vaga-experiencia-carteira'
+import {
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
   isBloqueioPcdAtivo,
@@ -85,10 +89,15 @@ export function DuplicateJobButton({
         informacoes_complementares: transformedInformacoesComplementares,
         idade_minima: (vaga as any).idade_minima ?? null,
         id_escolaridade_minima: (vaga as any).id_escolaridade_minima ?? null,
+        // DEV-425: copia a Experiência em carteira e o bloqueio dela
+        experiencia_carteira: getExperienciaCarteiraParaApi(
+          getExperienciaCarteiraDaVaga(vaga)
+        ),
         criterios_bloqueio: getCriteriosBloqueio({
           idEscolaridadeMinima: vaga.id_escolaridade_minima,
           idiomasRequisito: vaga.idiomas_requisito,
           bloqueioPcd: isBloqueioPcdAtivo(getOpcaoPcdDaVaga(vaga)),
+          experienciaCarteira: getExperienciaCarteiraDaVaga(vaga),
         }),
         status: 'em_edicao',
       }

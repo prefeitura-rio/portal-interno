@@ -44,6 +44,10 @@ import {
   vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
 import {
+  getExperienciaCarteiraDaVaga,
+  getExperienciaCarteiraParaApi,
+} from '@/lib/vaga-experiencia-carteira'
+import {
   OPCAO_PCD_PADRAO,
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
@@ -484,6 +488,7 @@ export default function EmpregabilidadeDetailPage({
         idade_minima_ativa,
         id_escolaridade_minima,
         idiomas_requisito,
+        experiencia_carteira,
         ...rest
       } = data
 
@@ -501,11 +506,15 @@ export default function EmpregabilidadeDetailPage({
         tipos_pcd: getTiposPcdParaApi(opcaoPcd, tipo_pcd),
         idade_minima: idade_minima_ativa ? 18 : null,
         id_escolaridade_minima: id_escolaridade_minima ?? null,
+        // DEV-425: sempre enviado; no PUT ausente mantém o gravado e "" remove
+        experiencia_carteira:
+          getExperienciaCarteiraParaApi(experiencia_carteira),
         // DEV-400: sem o campo o PUT mantém o bloqueio gravado
         criterios_bloqueio: getCriteriosBloqueio({
           idEscolaridadeMinima: id_escolaridade_minima,
           idiomasRequisito: idiomas_requisito,
           bloqueioPcd: isBloqueioPcdAtivo(opcaoPcd),
+          experienciaCarteira: experiencia_carteira ?? null,
         }),
       }
     },
@@ -810,6 +819,8 @@ export default function EmpregabilidadeDetailPage({
     idade_minima: (vaga as any).idade_minima,
     id_escolaridade_minima: (vaga as any).id_escolaridade_minima,
     idiomas_requisito: (vaga as any).idiomas_requisito,
+    // DEV-425: vaga sem o bloqueio (todas as anteriores) fica desligada
+    experiencia_carteira: getExperienciaCarteiraDaVaga(vaga),
   }
 
   return (
