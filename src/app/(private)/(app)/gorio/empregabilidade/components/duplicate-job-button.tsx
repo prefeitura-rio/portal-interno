@@ -11,7 +11,6 @@ import {
   salvarIdiomasRequisito,
 } from '@/lib/idiomas-requisito'
 import {
-  getBloqueioPcdDaVaga,
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
   isBloqueioPcdAtivo,
@@ -89,10 +88,7 @@ export function DuplicateJobButton({
         criterios_bloqueio: getCriteriosBloqueio({
           idEscolaridadeMinima: vaga.id_escolaridade_minima,
           idiomasRequisito: vaga.idiomas_requisito,
-          bloqueioPcd: isBloqueioPcdAtivo(
-            getOpcaoPcdDaVaga(vaga),
-            getBloqueioPcdDaVaga(vaga)
-          ),
+          bloqueioPcd: isBloqueioPcdAtivo(getOpcaoPcdDaVaga(vaga)),
         }),
         status: 'em_edicao',
       }

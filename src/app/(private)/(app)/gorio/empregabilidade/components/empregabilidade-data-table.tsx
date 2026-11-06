@@ -75,7 +75,6 @@ import {
   vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
 import {
-  getBloqueioPcdDaVaga,
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
   isBloqueioPcdAtivo,
@@ -550,10 +549,7 @@ export function EmpregabilidadeDataTable() {
           criterios_bloqueio: getCriteriosBloqueio({
             idEscolaridadeMinima: fullVaga.id_escolaridade_minima,
             idiomasRequisito: fullVaga.idiomas_requisito,
-            bloqueioPcd: isBloqueioPcdAtivo(
-              getOpcaoPcdDaVaga(fullVaga),
-              getBloqueioPcdDaVaga(fullVaga)
-            ),
+            bloqueioPcd: isBloqueioPcdAtivo(getOpcaoPcdDaVaga(fullVaga)),
           }),
           status: 'em_edicao',
         }

@@ -45,7 +45,6 @@ import {
 } from '@/lib/status-config/empregabilidade'
 import {
   OPCAO_PCD_PADRAO,
-  getBloqueioPcdDaVaga,
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
   isBloqueioPcdAtivo,
@@ -482,7 +481,6 @@ export default function EmpregabilidadeDetailPage({
         modelo_trabalho,
         tipo_pcd,
         opcao_pcd,
-        bloqueio_pcd,
         idade_minima_ativa,
         id_escolaridade_minima,
         idiomas_requisito,
@@ -507,7 +505,7 @@ export default function EmpregabilidadeDetailPage({
         criterios_bloqueio: getCriteriosBloqueio({
           idEscolaridadeMinima: id_escolaridade_minima,
           idiomasRequisito: idiomas_requisito,
-          bloqueioPcd: isBloqueioPcdAtivo(opcaoPcd, bloqueio_pcd),
+          bloqueioPcd: isBloqueioPcdAtivo(opcaoPcd),
         }),
       }
     },
@@ -796,7 +794,6 @@ export default function EmpregabilidadeDetailPage({
     modelo_trabalho: vaga.id_modelo_trabalho,
     opcao_pcd: getOpcaoPcdDaVaga(vaga),
     tipo_pcd: vaga.tipos_pcd?.map(t => t.id || '') || [],
-    bloqueio_pcd: getBloqueioPcdDaVaga(vaga),
     valor_vaga: vaga.valor_vaga,
     quantidade_estimada_contratacoes: vaga.quantidade_estimada_contratacoes,
     bairro: vaga.bairro,
