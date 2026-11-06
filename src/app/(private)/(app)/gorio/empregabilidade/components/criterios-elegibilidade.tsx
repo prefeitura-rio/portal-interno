@@ -21,6 +21,15 @@ import {
 } from '@/lib/criterios-aceitacao'
 import { cn } from '@/lib/utils'
 import {
+  EXPERIENCIA_CARTEIRA_DESCRICAO,
+  EXPERIENCIA_CARTEIRA_LABEL,
+  EXPERIENCIA_CARTEIRA_PADRAO,
+  EXPERIENCIA_CARTEIRA_TITULO,
+  type ExperienciaCarteira,
+  OPCOES_EXPERIENCIA_CARTEIRA,
+  isExperienciaCarteira,
+} from '@/lib/vaga-experiencia-carteira'
+import {
   OPCAO_PCD_DESCRICAO,
   OPCAO_PCD_LABEL,
   OPCAO_PCD_PADRAO,
@@ -35,7 +44,12 @@ import {
   isBloqueioPcdAtivo,
   isOpcaoPcd,
 } from '@/lib/vaga-pcd'
-import { Accessibility, Check, TriangleAlert } from 'lucide-react'
+import {
+  Accessibility,
+  BriefcaseBusiness,
+  Check,
+  TriangleAlert,
+} from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { BloqueioTag } from './bloqueio-tag'
 import { TiposPcdSelect } from './tipos-pcd-select'
@@ -70,6 +84,12 @@ interface CriteriosElegibilidadeProps {
   erroTiposPcd?: string
   tiposPcd: EmpregabilidadeTipoPCD[]
   loadingTiposPcd: boolean
+  /**
+   * DEV-425: critério Experiência em carteira. `null` = desligado; ligado com
+   * o tempo exigido (o bloqueio da API vem daí).
+   */
+  experienciaCarteira: ExperienciaCarteira | null
+  onExperienciaCarteiraChange: (opcao: ExperienciaCarteira | null) => void
   disabled?: boolean
   /**
    * Valores originais salvos no backend (usado para restaurar ao religar o master).
@@ -81,6 +101,7 @@ interface CriteriosElegibilidadeProps {
     idiomasRequisito: IdiomaRequisito[]
     opcaoPcd: OpcaoPcd
     tiposPcd: string[]
+    experienciaCarteira: ExperienciaCarteira | null
   }
 }
 
@@ -104,6 +125,8 @@ export function CriteriosElegibilidade({
   erroTiposPcd,
   tiposPcd,
   loadingTiposPcd,
+  experienciaCarteira,
+  onExperienciaCarteiraChange,
   disabled = false,
   savedValues,
 }: CriteriosElegibilidadeProps) {
@@ -111,7 +134,8 @@ export function CriteriosElegibilidade({
     idadeMinima ||
     !!idEscolaridadeMinima ||
     idiomasRequisito.length > 0 ||
-    opcaoPcd !== OPCAO_PCD_PADRAO
+    opcaoPcd !== OPCAO_PCD_PADRAO ||
+    experienciaCarteira != null
 
   // masterEnabled: controlado localmente; sincroniza com estado externo
   const [masterEnabled, setMasterEnabled] = useState(algumCriterioAtivo)
@@ -148,6 +172,7 @@ export function CriteriosElegibilidade({
       setIdiomasToggle(false)
       onOpcaoPcdChange(OPCAO_PCD_PADRAO)
       onTiposPcdChange([])
+      onExperienciaCarteiraChange(null)
     } else if (savedValues) {
       // Religar em modo edição: restaura valores do backend
       onIdadeMinimaChange(savedValues.idadeMinima)
@@ -156,6 +181,7 @@ export function CriteriosElegibilidade({
       setIdiomasToggle(savedValues.idiomasRequisito.length > 0)
       onOpcaoPcdChange(savedValues.opcaoPcd)
       onTiposPcdChange(savedValues.tiposPcd)
+      onExperienciaCarteiraChange(savedValues.experienciaCarteira)
     }
     // Em criação nova (sem savedValues): religar apenas abre os toggles filhos, sem restaurar nada
   }
@@ -191,9 +217,12 @@ export function CriteriosElegibilidade({
 
   const bloqueioPcdAtivo = isBloqueioPcdAtivo(opcaoPcd)
 
+  // DEV-425: o switch da Experiência em carteira é o bloqueio; ligar marca
+  // "Qualquer tempo" e desligar limpa a opção.
+  const experienciaCarteiraAtiva = experienciaCarteira != null
+
   // Critérios na ordem canônica do bloco (DEV-394): PcD, Idade, Experiência
-  // em carteira, Escolaridade mínima, Idioma. Experiência ainda não existe no
-  // formulário e entra na posição reservada quando for criada.
+  // em carteira (DEV-425), Escolaridade mínima, Idioma.
   const criterios: { id: CriterioAceitacaoId; content: ReactNode }[] = [
     {
       id: 'pcd',
@@ -304,6 +333,88 @@ export function CriteriosElegibilidade({
             onCheckedChange={onIdadeMinimaChange}
             disabled={disabled}
           />
+        </div>
+      ),
+    },
+    {
+      id: 'experiencia',
+      content: (
+        <div className="space-y-3 rounded-md border p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'flex size-7 shrink-0 items-center justify-center rounded-md',
+                  experienciaCarteiraAtiva
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                <BriefcaseBusiness className="size-4" />
+              </span>
+              <Label
+                htmlFor="criterio-experiencia-carteira"
+                className="text-sm font-medium"
+              >
+                {EXPERIENCIA_CARTEIRA_TITULO}
+              </Label>
+              <BloqueioTag ativo={experienciaCarteiraAtiva} />
+            </div>
+            <Switch
+              id="criterio-experiencia-carteira"
+              checked={experienciaCarteiraAtiva}
+              onCheckedChange={checked =>
+                onExperienciaCarteiraChange(
+                  checked ? EXPERIENCIA_CARTEIRA_PADRAO : null
+                )
+              }
+              disabled={disabled}
+            />
+          </div>
+
+          {experienciaCarteira != null && (
+            <RadioGroup
+              value={experienciaCarteira}
+              onValueChange={value => {
+                if (isExperienciaCarteira(value)) {
+                  onExperienciaCarteiraChange(value)
+                }
+              }}
+              disabled={disabled}
+              aria-label={EXPERIENCIA_CARTEIRA_TITULO}
+              className="gap-3"
+            >
+              {OPCOES_EXPERIENCIA_CARTEIRA.map(opcao => (
+                <div
+                  key={opcao}
+                  data-opcao-experiencia-carteira={opcao}
+                  className="flex items-start gap-2"
+                >
+                  <RadioGroupItem
+                    value={opcao}
+                    id={`experiencia-carteira-${opcao}`}
+                    aria-describedby={`experiencia-carteira-${opcao}-descricao`}
+                    className="mt-0.5"
+                  />
+                  <div className="space-y-0.5">
+                    <Label
+                      htmlFor={`experiencia-carteira-${opcao}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {EXPERIENCIA_CARTEIRA_LABEL[opcao]}
+                    </Label>
+                    <p
+                      id={`experiencia-carteira-${opcao}-descricao`}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {EXPERIENCIA_CARTEIRA_DESCRICAO[opcao]}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </RadioGroup>
+          )}
         </div>
       ),
     },

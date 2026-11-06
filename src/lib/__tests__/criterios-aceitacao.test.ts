@@ -85,11 +85,34 @@ describe('criterios_bloqueio enviado à API', () => {
   const idioma = { id_idioma: 'idioma-1', id_nivel_minimo: 'nivel-1' }
 
   test('só as chaves que o app-go-api aceita, na ordem dele', () => {
-    // DEV-408: `pcd` é aceito desde a DEV-407 e vem depois de idioma
+    // DEV-408: `pcd` é aceito desde a DEV-407 e vem depois de idioma.
+    // DEV-425: `experiencia_carteira` é aceito desde a DEV-424, no fim.
     assert.deepEqual(
       [...CRITERIOS_BLOQUEIO_API],
-      ['escolaridade', 'idioma', 'pcd']
+      ['escolaridade', 'idioma', 'pcd', 'experiencia_carteira']
     )
+  })
+
+  test('Experiência em carteira ligada entra como "experiencia_carteira"', () => {
+    for (const opcao of ['qualquer_tempo', 'minimo_6_meses'] as const) {
+      assert.deepEqual(getCriteriosBloqueio({ experienciaCarteira: opcao }), [
+        'experiencia_carteira',
+      ])
+    }
+    assert.deepEqual(
+      getCriteriosBloqueio({
+        idEscolaridadeMinima: 'superior-completo',
+        idiomasRequisito: [idioma],
+        bloqueioPcd: true,
+        experienciaCarteira: 'minimo_6_meses',
+      }),
+      ['escolaridade', 'idioma', 'pcd', 'experiencia_carteira']
+    )
+  })
+
+  test('Experiência em carteira desligada ou ausente não envia a chave', () => {
+    assert.deepEqual(getCriteriosBloqueio({ experienciaCarteira: null }), [])
+    assert.deepEqual(getCriteriosBloqueio({ bloqueioPcd: true }), ['pcd'])
   })
 
   test('bloqueio PcD ligado entra como "pcd", na ordem da API', () => {

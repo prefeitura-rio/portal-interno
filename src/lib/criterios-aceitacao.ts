@@ -2,11 +2,11 @@
  * Critérios de aceitação (bloqueio de candidatura) da vaga de empregabilidade.
  *
  * DEV-394: cada critério mostra a tag "Bloqueio ativo" / "Bloqueio desligado"
- * conforme o switch dele, e o bloco segue uma ordem fixa. O critério que
- * ainda não existe no formulário (Experiência em carteira) já tem a posição
- * reservada aqui e entra no lugar certo quando for criado. O PcD ocupa a
- * posição dele desde a DEV-408.
+ * conforme o switch dele, e o bloco segue uma ordem fixa. O PcD ocupa a
+ * posição dele desde a DEV-408 e a Experiência em carteira desde a DEV-425.
  */
+
+import type { ExperienciaCarteira } from './vaga-experiencia-carteira'
 
 export const CRITERIOS_ACEITACAO_ORDEM = [
   'pcd',
@@ -35,10 +35,16 @@ export function getBloqueioTagLabel(ativo: boolean): string {
 
 /**
  * Chaves dos critérios com bloqueio de candidatura que o app-go-api aceita em
- * `criterios_bloqueio` (DEV-392; `pcd` desde a DEV-407), na ordem em que ele
- * as grava e devolve. Chave fora desta lista é recusada pela API com 400.
+ * `criterios_bloqueio` (DEV-392; `pcd` desde a DEV-407 e
+ * `experiencia_carteira` desde a DEV-424), na ordem em que ele as grava e
+ * devolve. Chave fora desta lista é recusada pela API com 400.
  */
-export const CRITERIOS_BLOQUEIO_API = ['escolaridade', 'idioma', 'pcd'] as const
+export const CRITERIOS_BLOQUEIO_API = [
+  'escolaridade',
+  'idioma',
+  'pcd',
+  'experiencia_carteira',
+] as const
 
 export type CriterioBloqueio = (typeof CRITERIOS_BLOQUEIO_API)[number]
 
@@ -49,17 +55,21 @@ export type CriterioBloqueio = (typeof CRITERIOS_BLOQUEIO_API)[number]
  * quando há escolaridade mínima escolhida, idioma ligado quando há ao menos
  * um idioma exigido. O PcD (DEV-408) tem o bloqueio próprio, ligado pelo
  * botão "Ativar bloqueio" e só válido na vaga exclusiva: quem chama passa o
- * estado já resolvido em `bloqueioPcd`. Devolve sempre um array, porque no PUT
- * o campo ausente mantém o estado gravado e só `[]` desliga todos.
+ * estado já resolvido em `bloqueioPcd`. A Experiência em carteira (DEV-425)
+ * fica ligada quando há um tempo escolhido em `experienciaCarteira` (a API
+ * recusa o bloqueio sem o tempo). Devolve sempre um array, porque no PUT o
+ * campo ausente mantém o estado gravado e só `[]` desliga todos.
  */
 export function getCriteriosBloqueio({
   idEscolaridadeMinima,
   idiomasRequisito,
   bloqueioPcd,
+  experienciaCarteira,
 }: {
   idEscolaridadeMinima?: string | null
   idiomasRequisito?: readonly unknown[] | null
   bloqueioPcd?: boolean
+  experienciaCarteira?: ExperienciaCarteira | null
 }): CriterioBloqueio[] {
   const ligados: Record<CriterioBloqueio, boolean> = {
     escolaridade:
@@ -67,6 +77,7 @@ export function getCriteriosBloqueio({
       idEscolaridadeMinima.trim() !== '',
     idioma: (idiomasRequisito?.length ?? 0) > 0,
     pcd: bloqueioPcd === true,
+    experiencia_carteira: experienciaCarteira != null,
   }
   return CRITERIOS_BLOQUEIO_API.filter(criterio => ligados[criterio])
 }

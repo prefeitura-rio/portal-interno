@@ -75,6 +75,10 @@ import {
   vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
 import {
+  getExperienciaCarteiraDaVaga,
+  getExperienciaCarteiraParaApi,
+} from '@/lib/vaga-experiencia-carteira'
+import {
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
   isBloqueioPcdAtivo,
@@ -546,10 +550,15 @@ export function EmpregabilidadeDataTable() {
           informacoes_complementares: transformedInformacoesComplementares,
           idade_minima: fullVaga.idade_minima ?? null,
           id_escolaridade_minima: fullVaga.id_escolaridade_minima ?? null,
+          // DEV-425: copia a Experiência em carteira e o bloqueio dela
+          experiencia_carteira: getExperienciaCarteiraParaApi(
+            getExperienciaCarteiraDaVaga(fullVaga)
+          ),
           criterios_bloqueio: getCriteriosBloqueio({
             idEscolaridadeMinima: fullVaga.id_escolaridade_minima,
             idiomasRequisito: fullVaga.idiomas_requisito,
             bloqueioPcd: isBloqueioPcdAtivo(getOpcaoPcdDaVaga(fullVaga)),
+            experienciaCarteira: getExperienciaCarteiraDaVaga(fullVaga),
           }),
           status: 'em_edicao',
         }
