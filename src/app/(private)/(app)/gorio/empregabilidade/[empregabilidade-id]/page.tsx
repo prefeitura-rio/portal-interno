@@ -37,6 +37,7 @@ import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { useHeimdallUserContext } from '@/contexts/heimdall-user-context'
 import { useVaga } from '@/hooks/use-vaga'
 import { fromApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
+import { getCriteriosBloqueio } from '@/lib/criterios-aceitacao'
 import { formatDateBR } from '@/lib/format'
 import { GORIO_MODULE_LABEL } from '@/lib/module-labels'
 import {
@@ -498,6 +499,11 @@ export default function EmpregabilidadeDetailPage({
         tipos_pcd: tiposPcdForApi,
         idade_minima: idade_minima_ativa ? 18 : null,
         id_escolaridade_minima: id_escolaridade_minima ?? null,
+        // DEV-400: sem o campo o PUT mantém o bloqueio gravado
+        criterios_bloqueio: getCriteriosBloqueio({
+          idEscolaridadeMinima: id_escolaridade_minima,
+          idiomasRequisito: idiomas_requisito,
+        }),
       }
     },
     [vaga]

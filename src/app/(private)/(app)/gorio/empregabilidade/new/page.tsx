@@ -11,6 +11,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
+import { getCriteriosBloqueio } from '@/lib/criterios-aceitacao'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
@@ -45,6 +46,10 @@ function mapCriteriosToApiData(data: any) {
       tipos_pcd: tiposPcdForApi,
       idade_minima: idade_minima_ativa ? 18 : null,
       id_escolaridade_minima: id_escolaridade_minima ?? null,
+      criterios_bloqueio: getCriteriosBloqueio({
+        idEscolaridadeMinima: id_escolaridade_minima,
+        idiomasRequisito: data.idiomas_requisito,
+      }),
     },
     idiomasRequisito: (data.idiomas_requisito ?? []) as {
       id_idioma: string

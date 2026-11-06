@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import type { EmpregabilidadeVaga } from '@/http-gorio/models/empregabilidadeVaga'
+import { getCriteriosBloqueio } from '@/lib/criterios-aceitacao'
 import { Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -69,6 +70,10 @@ export function DuplicateJobButton({
         informacoes_complementares: transformedInformacoesComplementares,
         idade_minima: (vaga as any).idade_minima ?? null,
         id_escolaridade_minima: (vaga as any).id_escolaridade_minima ?? null,
+        criterios_bloqueio: getCriteriosBloqueio({
+          idEscolaridadeMinima: vaga.id_escolaridade_minima,
+          idiomasRequisito: vaga.idiomas_requisito,
+        }),
         status: 'em_edicao',
       }
 
