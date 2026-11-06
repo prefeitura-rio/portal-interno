@@ -18,6 +18,11 @@ import {
   isIdiomasRequisitoError,
   salvarIdiomasRequisito,
 } from '@/lib/idiomas-requisito'
+import {
+  OPCAO_PCD_PADRAO,
+  getTiposPcdParaApi,
+  isBloqueioPcdAtivo,
+} from '@/lib/vaga-pcd'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
@@ -29,18 +34,16 @@ function mapCriteriosToApiData(data: any) {
     regime_contratacao,
     modelo_trabalho,
     tipo_pcd,
-    vaga_pcd,
-    acessibilidade_pcd,
+    opcao_pcd,
+    bloqueio_pcd,
     idade_minima_ativa,
     id_escolaridade_minima,
     idiomas_requisito: _idiomas,
     ...rest
   } = data
 
-  const tiposPcdForApi =
-    (tipo_pcd?.length ?? 0) > 0
-      ? (tipo_pcd ?? []).map((id: string) => ({ id }))
-      : undefined
+  // DEV-408: opcao_pcd substitui acessibilidade_pcd (descontinuado na API)
+  const opcaoPcd = opcao_pcd ?? OPCAO_PCD_PADRAO
 
   return {
     apiData: {
@@ -48,13 +51,14 @@ function mapCriteriosToApiData(data: any) {
       id_contratante: contratante,
       id_regime_contratacao: regime_contratacao,
       id_modelo_trabalho: modelo_trabalho,
-      acessibilidade_pcd: vaga_pcd ? acessibilidade_pcd : undefined,
-      tipos_pcd: tiposPcdForApi,
+      opcao_pcd: opcaoPcd,
+      tipos_pcd: getTiposPcdParaApi(opcaoPcd, tipo_pcd),
       idade_minima: idade_minima_ativa ? 18 : null,
       id_escolaridade_minima: id_escolaridade_minima ?? null,
       criterios_bloqueio: getCriteriosBloqueio({
         idEscolaridadeMinima: id_escolaridade_minima,
         idiomasRequisito: data.idiomas_requisito,
+        bloqueioPcd: isBloqueioPcdAtivo(opcaoPcd, bloqueio_pcd),
       }),
     },
     idiomasRequisito: (data.idiomas_requisito ?? []) as {

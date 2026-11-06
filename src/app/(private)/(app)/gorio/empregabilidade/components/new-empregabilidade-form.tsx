@@ -2,7 +2,6 @@
 
 import { MarkdownEditor } from '@/components/blocks/editor-md'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Combobox } from '@/components/ui/combobox'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { DateTimePicker } from '@/components/ui/datetime-picker'
@@ -17,7 +16,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { MultiSelect } from '@/components/ui/multi-select'
 import {
   Select,
   SelectContent,
@@ -35,13 +33,18 @@ import { useNiveisIdioma } from '@/hooks/use-niveis-idioma'
 import { useRegimesContratacao } from '@/hooks/use-regimes-contratacao'
 import { useRestrictedDepartmentIds } from '@/hooks/use-restricted-department-ids'
 import { useTiposPcd } from '@/hooks/use-tipos-pcd'
-import { EmpregabilidadeAcessibilidadePCD } from '@/http-gorio/models/empregabilidadeAcessibilidadePCD'
 import {
   FUTURE_DATE_ERROR_MESSAGE,
   isDateInFuture,
 } from '@/lib/date-validation'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { cn } from '@/lib/utils'
+import {
+  OPCAO_PCD_PADRAO,
+  OPCOES_PCD,
+  TIPO_PCD_OBRIGATORIO_MENSAGEM,
+  faltaTipoPcd,
+} from '@/lib/vaga-pcd'
 import { requiredError } from '@/lib/zod-errors'
 import { hasEditorComCuradoriaRestrictions } from '@/types/heimdall-roles'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -120,14 +123,10 @@ const formSchema = z.object({
   contratante: z.string().optional(),
   regime_contratacao: z.string().optional(),
   modelo_trabalho: z.string().optional(),
-  vaga_pcd: z.boolean().optional(),
-  acessibilidade_pcd: z
-    .enum([
-      EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD,
-      EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD,
-    ])
-    .optional(),
+  // DEV-408: critério PcD (opcao_pcd, tipos e bloqueio "pcd" da API)
+  opcao_pcd: z.enum(OPCOES_PCD).optional(),
   tipo_pcd: z.array(z.string()).optional(),
+  bloqueio_pcd: z.boolean().optional(),
   valor_vaga: z.number().nullish(),
   quantidade_estimada_contratacoes: z.number().int().positive().nullish(),
   bairro: z.string().optional(),
@@ -153,65 +152,79 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>
 
-/** Maps API values to form-supported options; legacy `para_pcd` is excluded from the portal UI. */
-export function toFormAcessibilidadePcd(
-  value: EmpregabilidadeAcessibilidadePCD | undefined
-): FormData['acessibilidade_pcd'] {
-  if (
-    value === EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD ||
-    value === EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD
-  ) {
-    return value
-  }
-  return undefined
-}
-
 // ============================================
 // SCHEMAS DE VALIDAÇÃO
 // ============================================
 
+// DEV-408: vaga exclusiva para PcD exige ao menos um tipo de deficiência (a
+// API recusa com 400), no rascunho e na publicação.
+const pcdValidationFields = {
+  opcao_pcd: z.enum(OPCOES_PCD).optional(),
+  tipo_pcd: z.array(z.string()).optional(),
+}
+
+function temTipoPcdSeExclusiva(data: {
+  opcao_pcd?: (typeof OPCOES_PCD)[number]
+  tipo_pcd?: string[]
+}): boolean {
+  return !faltaTipoPcd(data.opcao_pcd, data.tipo_pcd)
+}
+
+const tipoPcdObrigatorioParams = {
+  message: TIPO_PCD_OBRIGATORIO_MENSAGEM,
+  path: ['tipo_pcd'],
+  // roda junto com os outros campos obrigatórios, para o toast listar todos
+  when: () => true,
+}
+
 // Schema para validação de rascunho (5 campos obrigatórios)
-export const draftValidationSchema = z.object({
-  titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
-  descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
-  contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
-  regime_contratacao: z
-    .string()
-    .min(1, { message: 'Regime de contratação é obrigatório.' }),
-  modelo_trabalho: z
-    .string()
-    .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
-  etapas: etapasValidationSchema,
-})
+export const draftValidationSchema = z
+  .object({
+    titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
+    descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
+    contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
+    regime_contratacao: z
+      .string()
+      .min(1, { message: 'Regime de contratação é obrigatório.' }),
+    modelo_trabalho: z
+      .string()
+      .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+    etapas: etapasValidationSchema,
+    ...pcdValidationFields,
+  })
+  .refine(temTipoPcdSeExclusiva, tipoPcdObrigatorioParams)
 
 // Schema para validação de publicação (10 campos obrigatórios; valor_vaga opcional)
-export const publishValidationSchema = z.object({
-  titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
-  descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
-  contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
-  regime_contratacao: z
-    .string()
-    .min(1, { message: 'Regime de contratação é obrigatório.' }),
-  modelo_trabalho: z
-    .string()
-    .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
-  valor_vaga: z
-    .number()
-    .min(0, { message: 'Valor da vaga deve ser maior ou igual a zero.' })
-    .nullish(),
-  bairro: z.string().min(1, { message: 'Bairro é obrigatório.' }),
-  data_limite: z
-    .date({ error: requiredError('Data limite é obrigatória.') })
-    .refine(isDateInFuture, { message: FUTURE_DATE_ERROR_MESSAGE }),
-  id_orgao_parceiro: z
-    .string()
-    .min(1, { message: 'Órgão parceiro é obrigatório.' }),
-  requisitos: z.string().min(1, { message: 'Requisitos são obrigatórios.' }),
-  responsabilidades: z
-    .string()
-    .min(1, { message: 'Responsabilidades são obrigatórias.' }),
-  etapas: etapasValidationSchema,
-})
+export const publishValidationSchema = z
+  .object({
+    titulo: z.string().min(1, { message: 'Título é obrigatório.' }),
+    descricao: z.string().min(1, { message: 'Descrição é obrigatória.' }),
+    contratante: z.string().min(1, { message: 'Empresa é obrigatória.' }),
+    regime_contratacao: z
+      .string()
+      .min(1, { message: 'Regime de contratação é obrigatório.' }),
+    modelo_trabalho: z
+      .string()
+      .min(1, { message: 'Modelo de trabalho é obrigatório.' }),
+    valor_vaga: z
+      .number()
+      .min(0, { message: 'Valor da vaga deve ser maior ou igual a zero.' })
+      .nullish(),
+    bairro: z.string().min(1, { message: 'Bairro é obrigatório.' }),
+    data_limite: z
+      .date({ error: requiredError('Data limite é obrigatória.') })
+      .refine(isDateInFuture, { message: FUTURE_DATE_ERROR_MESSAGE }),
+    id_orgao_parceiro: z
+      .string()
+      .min(1, { message: 'Órgão parceiro é obrigatório.' }),
+    requisitos: z.string().min(1, { message: 'Requisitos são obrigatórios.' }),
+    responsabilidades: z
+      .string()
+      .min(1, { message: 'Responsabilidades são obrigatórias.' }),
+    etapas: etapasValidationSchema,
+    ...pcdValidationFields,
+  })
+  .refine(temTipoPcdSeExclusiva, tipoPcdObrigatorioParams)
 
 // ============================================
 // FUNÇÕES DE VALIDAÇÃO MANUAL
@@ -377,29 +390,10 @@ export const NewEmpregabilidadeForm = forwardRef<
       }))
     }, [modelos])
 
-    const { tiposPcd } = useTiposPcd()
+    const { tiposPcd, loading: loadingTiposPcd } = useTiposPcd()
     const { escolaridades, loading: loadingEscolaridades } = useEscolaridades()
     const { idiomas, loading: loadingIdiomas } = useIdiomas()
     const { niveisIdioma, loading: loadingNiveis } = useNiveisIdioma()
-    const tipoPcdOptions = useMemo(
-      () =>
-        tiposPcd.map(t => ({
-          value: t.id ?? '',
-          label: t.descricao ?? '',
-        })),
-      [tiposPcd]
-    )
-
-    const acessibilidadePcdOptions = [
-      {
-        value: EmpregabilidadeAcessibilidadePCD.AcessibilidadePreferencialPCD,
-        label: 'Preferencial PcD',
-      },
-      {
-        value: EmpregabilidadeAcessibilidadePCD.AcessibilidadeExclusivoPCD,
-        label: 'Exclusivo PcD',
-      },
-    ]
 
     // Helper para converter etapas de string (legado) para array
     const parseEtapas = (
@@ -441,6 +435,9 @@ export const NewEmpregabilidadeForm = forwardRef<
               id_nivel_minimo: i.id_nivel_minimo,
             })
           ),
+          opcaoPcd: initialData.opcao_pcd ?? OPCAO_PCD_PADRAO,
+          tiposPcd: initialData.tipo_pcd ?? [],
+          bloqueioPcd: initialData.bloqueio_pcd === true,
         }
       : undefined
 
@@ -469,9 +466,9 @@ export const NewEmpregabilidadeForm = forwardRef<
             contratante: '',
             regime_contratacao: '',
             modelo_trabalho: '',
-            vaga_pcd: false,
-            acessibilidade_pcd: undefined,
+            opcao_pcd: OPCAO_PCD_PADRAO,
             tipo_pcd: [],
+            bloqueio_pcd: false,
             valor_vaga: undefined,
             quantidade_estimada_contratacoes: undefined,
             bairro: '',
@@ -847,87 +844,6 @@ export const NewEmpregabilidadeForm = forwardRef<
 
               <FormField
                 control={form.control}
-                name="vaga_pcd"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={checked => {
-                          field.onChange(checked)
-                          if (!checked) {
-                            form.setValue('acessibilidade_pcd', undefined)
-                            form.setValue('tipo_pcd', [])
-                          }
-                        }}
-                        disabled={isReadOnly}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Vaga PcD</FormLabel>
-                      <p className="text-sm text-muted-foreground">
-                        Marque se esta vaga é para pessoas com deficiência
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              {form.watch('vaga_pcd') && (
-                <FormField
-                  control={form.control}
-                  name="acessibilidade_pcd"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Acessibilidade PcD</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || undefined}
-                        disabled={isReadOnly}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o tipo de acessibilidade" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {acessibilidadePcdOptions.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <FormField
-                control={form.control}
-                name="tipo_pcd"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Deficiência (PcD)</FormLabel>
-                    <FormControl>
-                      <MultiSelect
-                        options={tipoPcdOptions}
-                        value={field.value || []}
-                        onValueChange={field.onChange}
-                        placeholder="Selecione os tipos de deficiência"
-                        searchPlaceholder="Buscar tipo de deficiência..."
-                        emptyMessage="Nenhum tipo encontrado."
-                        disabled={isReadOnly || !form.watch('vaga_pcd')}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="valor_vaga"
                 render={({ field }) => (
                   <FormItem>
@@ -1068,6 +984,21 @@ export const NewEmpregabilidadeForm = forwardRef<
                 loadingEscolaridades={loadingEscolaridades}
                 loadingIdiomas={loadingIdiomas}
                 loadingNiveis={loadingNiveis}
+                opcaoPcd={form.watch('opcao_pcd') ?? OPCAO_PCD_PADRAO}
+                onOpcaoPcdChange={v =>
+                  form.setValue('opcao_pcd', v, { shouldDirty: true })
+                }
+                tiposPcdSelecionados={form.watch('tipo_pcd') ?? []}
+                onTiposPcdChange={v => {
+                  form.setValue('tipo_pcd', v, { shouldDirty: true })
+                  form.clearErrors('tipo_pcd')
+                }}
+                bloqueioPcd={form.watch('bloqueio_pcd') === true}
+                onBloqueioPcdChange={v =>
+                  form.setValue('bloqueio_pcd', v, { shouldDirty: true })
+                }
+                tiposPcd={tiposPcd}
+                loadingTiposPcd={loadingTiposPcd}
                 disabled={isReadOnly}
                 savedValues={savedCriteriosValues}
               />

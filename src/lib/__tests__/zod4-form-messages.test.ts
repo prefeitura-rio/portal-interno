@@ -315,6 +315,94 @@ describe('formulário de vaga de empregabilidade', () => {
       ['Título é obrigatório.', 'Modelo de trabalho é obrigatório.']
     )
   })
+
+  // DEV-408: vaga exclusiva para PcD sem nenhum tipo de deficiência
+  describe('PcD exclusiva exige ao menos um tipo', () => {
+    const rascunho = {
+      titulo: 'Vaga de teste',
+      descricao: 'Descrição sintética',
+      contratante: 'empresa-teste',
+      regime_contratacao: 'clt',
+      modelo_trabalho: 'presencial',
+    }
+    const publicacao = {
+      ...rascunho,
+      bairro: 'Centro',
+      data_limite: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      id_orgao_parceiro: 'orgao-teste',
+      requisitos: 'Requisitos sintéticos',
+      responsabilidades: 'Responsabilidades sintéticas',
+    }
+    const erroTipo = [
+      ['tipo_pcd'],
+      'Selecione ao menos um tipo de deficiência.',
+    ]
+
+    test('rascunho e publicação recusam a exclusiva sem tipo', () => {
+      for (const [schema, dados] of [
+        [vagaForm.draftValidationSchema, rascunho],
+        [vagaForm.publishValidationSchema, publicacao],
+      ] as const) {
+        const issues = issuesOf(schema, {
+          ...dados,
+          opcao_pcd: 'exclusiva',
+          tipo_pcd: [],
+        })
+        assert.deepEqual(
+          issues.map(issue => [issue.path, issue.message]),
+          [erroTipo]
+        )
+        assert.deepEqual(
+          issuesOf(schema, { ...dados, opcao_pcd: 'exclusiva' }).map(
+            issue => issue.message
+          ),
+          ['Selecione ao menos um tipo de deficiência.']
+        )
+      }
+    })
+
+    test('o erro aparece junto com os outros campos obrigatórios', () => {
+      const issues = issuesOf(vagaForm.draftValidationSchema, {
+        ...rascunho,
+        titulo: '',
+        opcao_pcd: 'exclusiva',
+        tipo_pcd: [],
+      })
+      assert.deepEqual(
+        issues.map(issue => issue.message),
+        ['Título é obrigatório.', 'Selecione ao menos um tipo de deficiência.']
+      )
+    })
+
+    test('exclusiva com tipo, preferencial e aberta sem tipo passam', () => {
+      for (const [schema, dados] of [
+        [vagaForm.draftValidationSchema, rascunho],
+        [vagaForm.publishValidationSchema, publicacao],
+      ] as const) {
+        assert.deepEqual(
+          issuesOf(schema, {
+            ...dados,
+            opcao_pcd: 'exclusiva',
+            tipo_pcd: ['tipo-1'],
+          }),
+          []
+        )
+        assert.deepEqual(
+          issuesOf(schema, {
+            ...dados,
+            opcao_pcd: 'preferencial',
+            tipo_pcd: [],
+          }),
+          []
+        )
+        assert.deepEqual(
+          issuesOf(schema, { ...dados, opcao_pcd: 'aberta', tipo_pcd: [] }),
+          []
+        )
+        assert.deepEqual(issuesOf(schema, dados), [])
+      }
+    })
+  })
 })
 
 describe('formulário de candidato (informação complementar numérica)', () => {
