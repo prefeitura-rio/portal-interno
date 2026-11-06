@@ -10,14 +10,9 @@ import {
   candidaturaStatusConfig,
   vagaStatusConfig,
 } from '@/lib/status-config/empregabilidade'
+import { OPCAO_PCD_LABEL, getOpcaoPcdDaVaga } from '@/lib/vaga-pcd'
 import type { ReactNode } from 'react'
 import { NAO_INFORMADO, valorOuNaoInformado } from '../lib/format'
-
-const ACESSIBILIDADE_PCD: Record<string, string> = {
-  para_pcd: 'Para PcD',
-  preferencial_pcd: 'Preferencial PcD',
-  exclusivo_pcd: 'Exclusivo PcD',
-}
 
 /**
  * Dados da vaga mostrados ao operador do banco de currículos: no histórico de
@@ -53,10 +48,7 @@ export function DetalhesVaga({ vaga }: { vaga: EmpregabilidadeVaga }) {
           {valorOuNaoInformado(vaga.modelo_trabalho?.descricao)}
         </Campo>
         <Campo rotulo="Vaga PcD">
-          {vaga.acessibilidade_pcd
-            ? (ACESSIBILIDADE_PCD[vaga.acessibilidade_pcd] ??
-              vaga.acessibilidade_pcd)
-            : 'Não'}
+          {OPCAO_PCD_LABEL[getOpcaoPcdDaVaga(vaga)]}
         </Campo>
         <Campo rotulo="Tipo de deficiência">{tiposPcd || NAO_INFORMADO}</Campo>
         <Campo rotulo="Valor da vaga">{formatarValor(vaga.valor_vaga)}</Campo>
