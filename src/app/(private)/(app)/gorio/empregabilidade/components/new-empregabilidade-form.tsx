@@ -1048,6 +1048,29 @@ export const NewEmpregabilidadeForm = forwardRef<
                   </FormItem>
                 )}
               />
+
+              <CriteriosElegibilidade
+                idadeMinima={form.watch('idade_minima_ativa') ?? false}
+                onIdadeMinimaChange={v =>
+                  form.setValue('idade_minima_ativa', v)
+                }
+                idEscolaridadeMinima={form.watch('id_escolaridade_minima')}
+                onEscolaridadeChange={v =>
+                  form.setValue('id_escolaridade_minima', v)
+                }
+                idiomasRequisito={
+                  (form.watch('idiomas_requisito') ?? []) as IdiomaRequisito[]
+                }
+                onIdiomasChange={v => form.setValue('idiomas_requisito', v)}
+                escolaridades={escolaridades}
+                idiomas={idiomas}
+                niveisIdioma={niveisIdioma}
+                loadingEscolaridades={loadingEscolaridades}
+                loadingIdiomas={loadingIdiomas}
+                loadingNiveis={loadingNiveis}
+                disabled={isReadOnly}
+                savedValues={savedCriteriosValues}
+              />
             </div>
 
             {/* Coluna Direita */}
@@ -1214,29 +1237,6 @@ export const NewEmpregabilidadeForm = forwardRef<
                     <FormMessage />
                   </FormItem>
                 )}
-              />
-
-              <CriteriosElegibilidade
-                idadeMinima={form.watch('idade_minima_ativa') ?? false}
-                onIdadeMinimaChange={v =>
-                  form.setValue('idade_minima_ativa', v)
-                }
-                idEscolaridadeMinima={form.watch('id_escolaridade_minima')}
-                onEscolaridadeChange={v =>
-                  form.setValue('id_escolaridade_minima', v)
-                }
-                idiomasRequisito={
-                  (form.watch('idiomas_requisito') ?? []) as IdiomaRequisito[]
-                }
-                onIdiomasChange={v => form.setValue('idiomas_requisito', v)}
-                escolaridades={escolaridades}
-                idiomas={idiomas}
-                niveisIdioma={niveisIdioma}
-                loadingEscolaridades={loadingEscolaridades}
-                loadingIdiomas={loadingIdiomas}
-                loadingNiveis={loadingNiveis}
-                disabled={isReadOnly}
-                savedValues={savedCriteriosValues}
               />
             </div>
           </div>
