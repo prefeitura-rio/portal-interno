@@ -4,6 +4,12 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import type { EmpregabilidadeVaga } from '@/http-gorio/models/empregabilidadeVaga'
 import { getCriteriosBloqueio } from '@/lib/criterios-aceitacao'
+import {
+  getIdiomasRequisitoFalhaAviso,
+  getVagaEdicaoHref,
+  isIdiomasRequisitoError,
+  salvarIdiomasRequisito,
+} from '@/lib/idiomas-requisito'
 import { Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -99,20 +105,22 @@ export function DuplicateJobButton({
         | undefined
 
       if (novaVagaId && idiomasRequisito && idiomasRequisito.length > 0) {
-        await fetch(
-          `/api/empregabilidade/vagas/${novaVagaId}/idiomas-requisito`,
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              requisitos: idiomasRequisito.map(item => ({
-                id_vaga: novaVagaId,
-                id_idioma: item.id_idioma,
-                id_nivel_minimo: item.id_nivel_minimo,
-              })),
-            }),
-          }
-        )
+        try {
+          await salvarIdiomasRequisito(novaVagaId, idiomasRequisito)
+        } catch (error) {
+          if (!isIdiomasRequisitoError(error)) throw error
+          // DEV-405: a cópia já existe com o bloqueio de idioma ativo; avisa
+          // e leva à edição dela em vez de mostrar sucesso.
+          console.error('Error saving idiomas_requisito:', error)
+          const { title, description } = getIdiomasRequisitoFalhaAviso(
+            'duplicada',
+            error
+          )
+          toast.error(title, { description, duration: 15000 })
+          router.push(getVagaEdicaoHref(novaVagaId))
+          router.refresh()
+          return
+        }
       }
 
       toast.success('Vaga duplicada com sucesso!')

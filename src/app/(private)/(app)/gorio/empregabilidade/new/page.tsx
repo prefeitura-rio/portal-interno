@@ -12,6 +12,12 @@ import {
 } from '@/components/ui/breadcrumb'
 import { UnsavedChangesGuard } from '@/components/unsaved-changes-guard'
 import { getCriteriosBloqueio } from '@/lib/criterios-aceitacao'
+import {
+  getIdiomasRequisitoFalhaAviso,
+  getVagaEdicaoHref,
+  isIdiomasRequisitoError,
+  salvarIdiomasRequisito,
+} from '@/lib/idiomas-requisito'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
@@ -58,28 +64,36 @@ function mapCriteriosToApiData(data: any) {
   }
 }
 
-async function saveIdiomasRequisito(
-  vagaId: string,
-  idiomas: { id_idioma: string; id_nivel_minimo: string }[]
-) {
-  await fetch(`/api/empregabilidade/vagas/${vagaId}/idiomas-requisito`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      requisitos: idiomas.map(item => ({
-        id_vaga: vagaId,
-        id_idioma: item.id_idioma,
-        id_nivel_minimo: item.id_nivel_minimo,
-      })),
-    }),
-  })
-}
-
 export default function NewEmpregabilidadePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSubmittingRef = useRef(false)
   const router = useRouter()
+
+  // DEV-405: a vaga já existe e foi gravada com o bloqueio de idioma ativo;
+  // se os idiomas não forem salvos, avisa e leva à edição da vaga criada, sem
+  // mensagem de sucesso e sem deixar reenviar o formulário (vaga duplicada).
+  const saveIdiomasDaVagaCriada = async (
+    vagaId: string,
+    idiomasRequisito: { id_idioma: string; id_nivel_minimo: string }[]
+  ): Promise<boolean> => {
+    if (idiomasRequisito.length === 0) return true
+    try {
+      await salvarIdiomasRequisito(vagaId, idiomasRequisito)
+      return true
+    } catch (error) {
+      if (!isIdiomasRequisitoError(error)) throw error
+      console.error('Error saving idiomas_requisito:', error)
+      const { title, description } = getIdiomasRequisitoFalhaAviso(
+        'criada',
+        error
+      )
+      toast.error(title, { description, duration: 15000 })
+      router.push(getVagaEdicaoHref(vagaId))
+      router.refresh()
+      return false
+    }
+  }
 
   const handleCreateVaga = async (data: any) => {
     if (isSubmittingRef.current) return
@@ -114,8 +128,11 @@ export default function NewEmpregabilidadePage() {
 
       const result = await response.json()
       const vagaId = result.vaga?.id
-      if (vagaId && idiomasRequisito.length > 0) {
-        await saveIdiomasRequisito(vagaId, idiomasRequisito)
+      if (
+        vagaId &&
+        !(await saveIdiomasDaVagaCriada(vagaId, idiomasRequisito))
+      ) {
+        return
       }
 
       toast.success('Vaga publicada com sucesso!')
@@ -158,8 +175,11 @@ export default function NewEmpregabilidadePage() {
 
       const result = await response.json()
       const vagaId = result.vaga?.id
-      if (vagaId && idiomasRequisito.length > 0) {
-        await saveIdiomasRequisito(vagaId, idiomasRequisito)
+      if (
+        vagaId &&
+        !(await saveIdiomasDaVagaCriada(vagaId, idiomasRequisito))
+      ) {
+        return
       }
 
       toast.success('Vaga enviada para aprovação com sucesso!')
@@ -215,8 +235,11 @@ export default function NewEmpregabilidadePage() {
 
       const result = await response.json()
       const vagaId = result.vaga?.id
-      if (vagaId && idiomasRequisito.length > 0) {
-        await saveIdiomasRequisito(vagaId, idiomasRequisito)
+      if (
+        vagaId &&
+        !(await saveIdiomasDaVagaCriada(vagaId, idiomasRequisito))
+      ) {
+        return
       }
 
       toast.success('Rascunho salvo com sucesso!')
