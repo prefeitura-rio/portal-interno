@@ -86,10 +86,47 @@ describe('criterios_bloqueio enviado à API', () => {
 
   test('só as chaves que o app-go-api aceita, na ordem dele', () => {
     // DEV-408: `pcd` é aceito desde a DEV-407 e vem depois de idioma.
-    // DEV-425: `experiencia_carteira` é aceito desde a DEV-424, no fim.
+    // DEV-425: `experiencia_carteira` é aceito desde a DEV-424.
+    // DEV-429: `jovem_aprendiz` é aceito desde a DEV-428, no fim.
     assert.deepEqual(
       [...CRITERIOS_BLOQUEIO_API],
-      ['escolaridade', 'idioma', 'pcd', 'experiencia_carteira']
+      [
+        'escolaridade',
+        'idioma',
+        'pcd',
+        'experiencia_carteira',
+        'jovem_aprendiz',
+      ]
+    )
+  })
+
+  test('Jovem Aprendiz ligado entra como "jovem_aprendiz", no fim', () => {
+    assert.deepEqual(getCriteriosBloqueio({ jovemAprendiz: true }), [
+      'jovem_aprendiz',
+    ])
+    assert.deepEqual(
+      getCriteriosBloqueio({
+        idEscolaridadeMinima: 'superior-completo',
+        idiomasRequisito: [idioma],
+        bloqueioPcd: true,
+        experienciaCarteira: 'qualquer_tempo',
+        jovemAprendiz: true,
+      }),
+      [
+        'escolaridade',
+        'idioma',
+        'pcd',
+        'experiencia_carteira',
+        'jovem_aprendiz',
+      ]
+    )
+  })
+
+  test('Jovem Aprendiz desligado ou ausente não envia a chave; Maiores de 18 não tem chave', () => {
+    assert.deepEqual(getCriteriosBloqueio({ jovemAprendiz: false }), [])
+    assert.deepEqual(getCriteriosBloqueio({}), [])
+    assert.ok(
+      !(CRITERIOS_BLOQUEIO_API as readonly string[]).includes('idade_minima')
     )
   })
 

@@ -79,6 +79,10 @@ import {
   getExperienciaCarteiraParaApi,
 } from '@/lib/vaga-experiencia-carteira'
 import {
+  getJovemAprendizDaVaga,
+  getJovemAprendizParaApi,
+} from '@/lib/vaga-jovem-aprendiz'
+import {
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
   isBloqueioPcdAtivo,
@@ -554,11 +558,16 @@ export function EmpregabilidadeDataTable() {
           experiencia_carteira: getExperienciaCarteiraParaApi(
             getExperienciaCarteiraDaVaga(fullVaga)
           ),
+          // DEV-429: copia a opção Jovem Aprendiz e o bloqueio dela
+          jovem_aprendiz: getJovemAprendizParaApi(
+            getJovemAprendizDaVaga(fullVaga)
+          ),
           criterios_bloqueio: getCriteriosBloqueio({
             idEscolaridadeMinima: fullVaga.id_escolaridade_minima,
             idiomasRequisito: fullVaga.idiomas_requisito,
             bloqueioPcd: isBloqueioPcdAtivo(getOpcaoPcdDaVaga(fullVaga)),
             experienciaCarteira: getExperienciaCarteiraDaVaga(fullVaga),
+            jovemAprendiz: getJovemAprendizDaVaga(fullVaga),
           }),
           status: 'em_edicao',
         }

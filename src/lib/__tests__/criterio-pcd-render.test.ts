@@ -79,6 +79,8 @@ function render({
       loadingTiposPcd,
       experienciaCarteira: null,
       onExperienciaCarteiraChange: noop,
+      jovemAprendiz: false,
+      onJovemAprendizChange: noop,
       disabled,
     })
   )
