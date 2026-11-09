@@ -19,6 +19,7 @@ import {
   salvarIdiomasRequisito,
 } from '@/lib/idiomas-requisito'
 import { getExperienciaCarteiraParaApi } from '@/lib/vaga-experiencia-carteira'
+import { getJovemAprendizParaApi } from '@/lib/vaga-jovem-aprendiz'
 import {
   OPCAO_PCD_PADRAO,
   getTiposPcdParaApi,
@@ -40,6 +41,7 @@ function mapCriteriosToApiData(data: any) {
     id_escolaridade_minima,
     idiomas_requisito: _idiomas,
     experiencia_carteira,
+    jovem_aprendiz,
     ...rest
   } = data
 
@@ -58,11 +60,14 @@ function mapCriteriosToApiData(data: any) {
       id_escolaridade_minima: id_escolaridade_minima ?? null,
       // DEV-425: tempo exigido; "" sem o critério
       experiencia_carteira: getExperienciaCarteiraParaApi(experiencia_carteira),
+      // DEV-429: opção Jovem Aprendiz; false sem a opção
+      jovem_aprendiz: getJovemAprendizParaApi(jovem_aprendiz),
       criterios_bloqueio: getCriteriosBloqueio({
         idEscolaridadeMinima: id_escolaridade_minima,
         idiomasRequisito: data.idiomas_requisito,
         bloqueioPcd: isBloqueioPcdAtivo(opcaoPcd),
         experienciaCarteira: experiencia_carteira ?? null,
+        jovemAprendiz: getJovemAprendizParaApi(jovem_aprendiz),
       }),
     },
     idiomasRequisito: (data.idiomas_requisito ?? []) as {

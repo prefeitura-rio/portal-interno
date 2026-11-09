@@ -15,6 +15,10 @@ import {
   getExperienciaCarteiraParaApi,
 } from '@/lib/vaga-experiencia-carteira'
 import {
+  getJovemAprendizDaVaga,
+  getJovemAprendizParaApi,
+} from '@/lib/vaga-jovem-aprendiz'
+import {
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
   isBloqueioPcdAtivo,
@@ -93,11 +97,14 @@ export function DuplicateJobButton({
         experiencia_carteira: getExperienciaCarteiraParaApi(
           getExperienciaCarteiraDaVaga(vaga)
         ),
+        // DEV-429: copia a opção Jovem Aprendiz e o bloqueio dela
+        jovem_aprendiz: getJovemAprendizParaApi(getJovemAprendizDaVaga(vaga)),
         criterios_bloqueio: getCriteriosBloqueio({
           idEscolaridadeMinima: vaga.id_escolaridade_minima,
           idiomasRequisito: vaga.idiomas_requisito,
           bloqueioPcd: isBloqueioPcdAtivo(getOpcaoPcdDaVaga(vaga)),
           experienciaCarteira: getExperienciaCarteiraDaVaga(vaga),
+          jovemAprendiz: getJovemAprendizDaVaga(vaga),
         }),
         status: 'em_edicao',
       }

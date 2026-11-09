@@ -30,6 +30,13 @@ import {
   isExperienciaCarteira,
 } from '@/lib/vaga-experiencia-carteira'
 import {
+  IDADE_TITULO,
+  JOVEM_APRENDIZ_DESCRICAO,
+  JOVEM_APRENDIZ_LABEL,
+  MAIORES_DE_18_DESCRICAO,
+  MAIORES_DE_18_LABEL,
+} from '@/lib/vaga-jovem-aprendiz'
+import {
   OPCAO_PCD_DESCRICAO,
   OPCAO_PCD_LABEL,
   OPCAO_PCD_PADRAO,
@@ -47,7 +54,7 @@ import {
 import {
   Accessibility,
   BriefcaseBusiness,
-  Check,
+  Cake,
   TriangleAlert,
 } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
@@ -90,6 +97,12 @@ interface CriteriosElegibilidadeProps {
    */
   experienciaCarteira: ExperienciaCarteira | null
   onExperienciaCarteiraChange: (opcao: ExperienciaCarteira | null) => void
+  /**
+   * DEV-429: opção Jovem Aprendiz da seção Idade (faixa fixa de 14 a 24 anos).
+   * O switch é o bloqueio da API (`jovem_aprendiz`).
+   */
+  jovemAprendiz: boolean
+  onJovemAprendizChange: (v: boolean) => void
   disabled?: boolean
   /**
    * Valores originais salvos no backend (usado para restaurar ao religar o master).
@@ -102,6 +115,7 @@ interface CriteriosElegibilidadeProps {
     opcaoPcd: OpcaoPcd
     tiposPcd: string[]
     experienciaCarteira: ExperienciaCarteira | null
+    jovemAprendiz: boolean
   }
 }
 
@@ -127,6 +141,8 @@ export function CriteriosElegibilidade({
   loadingTiposPcd,
   experienciaCarteira,
   onExperienciaCarteiraChange,
+  jovemAprendiz,
+  onJovemAprendizChange,
   disabled = false,
   savedValues,
 }: CriteriosElegibilidadeProps) {
@@ -135,7 +151,8 @@ export function CriteriosElegibilidade({
     !!idEscolaridadeMinima ||
     idiomasRequisito.length > 0 ||
     opcaoPcd !== OPCAO_PCD_PADRAO ||
-    experienciaCarteira != null
+    experienciaCarteira != null ||
+    jovemAprendiz
 
   // masterEnabled: controlado localmente; sincroniza com estado externo
   const [masterEnabled, setMasterEnabled] = useState(algumCriterioAtivo)
@@ -173,6 +190,7 @@ export function CriteriosElegibilidade({
       onOpcaoPcdChange(OPCAO_PCD_PADRAO)
       onTiposPcdChange([])
       onExperienciaCarteiraChange(null)
+      onJovemAprendizChange(false)
     } else if (savedValues) {
       // Religar em modo edição: restaura valores do backend
       onIdadeMinimaChange(savedValues.idadeMinima)
@@ -182,6 +200,7 @@ export function CriteriosElegibilidade({
       onOpcaoPcdChange(savedValues.opcaoPcd)
       onTiposPcdChange(savedValues.tiposPcd)
       onExperienciaCarteiraChange(savedValues.experienciaCarteira)
+      onJovemAprendizChange(savedValues.jovemAprendiz)
     }
     // Em criação nova (sem savedValues): religar apenas abre os toggles filhos, sem restaurar nada
   }
@@ -220,6 +239,33 @@ export function CriteriosElegibilidade({
   // DEV-425: o switch da Experiência em carteira é o bloqueio; ligar marca
   // "Qualquer tempo" e desligar limpa a opção.
   const experienciaCarteiraAtiva = experienciaCarteira != null
+
+  // DEV-429: a Idade tem duas opções, cada uma com o switch e a tag do seu
+  // bloqueio: Maiores de 18 (`idade_minima` = 18) e Jovem Aprendiz (faixa fixa
+  // de 14 a 24 anos), sem campo livre de número.
+  const opcoesIdade: {
+    id: string
+    label: string
+    descricao: string
+    ativo: boolean
+    onChange: (v: boolean) => void
+  }[] = [
+    {
+      id: 'criterio-idade-minima',
+      label: MAIORES_DE_18_LABEL,
+      descricao: MAIORES_DE_18_DESCRICAO,
+      ativo: idadeMinima,
+      onChange: onIdadeMinimaChange,
+    },
+    {
+      id: 'criterio-jovem-aprendiz',
+      label: JOVEM_APRENDIZ_LABEL,
+      descricao: JOVEM_APRENDIZ_DESCRICAO,
+      ativo: jovemAprendiz === true,
+      onChange: onJovemAprendizChange,
+    },
+  ]
+  const idadeAtiva = opcoesIdade.some(opcao => opcao.ativo)
 
   // Critérios na ordem canônica do bloco (DEV-394): PcD, Idade, Experiência
   // em carteira (DEV-425), Escolaridade mínima, Idioma.
@@ -317,22 +363,62 @@ export function CriteriosElegibilidade({
     {
       id: 'idade',
       content: (
-        <div className="flex items-center justify-between">
-          <Label
-            className="flex items-center gap-1.5 text-sm font-normal"
-            htmlFor="criterio-idade-minima"
+        <div className="space-y-3 rounded-md border p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              aria-hidden="true"
+              className={cn(
+                'flex size-7 shrink-0 items-center justify-center rounded-md',
+                idadeAtiva
+                  ? 'bg-primary/10 text-primary'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              <Cake className="size-4" />
+            </span>
+            <p id="criterio-idade-titulo" className="text-sm font-medium">
+              {IDADE_TITULO}
+            </p>
+          </div>
+
+          <div
+            role="group"
+            aria-labelledby="criterio-idade-titulo"
+            className="space-y-3"
           >
-            Ter idade mínima (18 anos)
-            {idadeMinima && (
-              <Check className="size-3.5 text-green-500 shrink-0" />
-            )}
-          </Label>
-          <Switch
-            id="criterio-idade-minima"
-            checked={idadeMinima}
-            onCheckedChange={onIdadeMinimaChange}
-            disabled={disabled}
-          />
+            {opcoesIdade.map(opcao => (
+              <div
+                key={opcao.id}
+                data-opcao-idade={opcao.id}
+                className="flex items-start justify-between gap-2"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Label
+                      htmlFor={opcao.id}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {opcao.label}
+                    </Label>
+                    <BloqueioTag ativo={opcao.ativo} />
+                  </div>
+                  <p
+                    id={`${opcao.id}-descricao`}
+                    className="text-xs text-muted-foreground"
+                  >
+                    {opcao.descricao}
+                  </p>
+                </div>
+                <Switch
+                  id={opcao.id}
+                  checked={opcao.ativo}
+                  onCheckedChange={opcao.onChange}
+                  aria-describedby={`${opcao.id}-descricao`}
+                  disabled={disabled}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       ),
     },

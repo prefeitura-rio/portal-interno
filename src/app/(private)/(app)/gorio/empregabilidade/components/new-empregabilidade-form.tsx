@@ -151,6 +151,8 @@ const formSchema = z.object({
     .optional(),
   // DEV-425: Experiência em carteira; null = critério desligado
   experiencia_carteira: z.enum(OPCOES_EXPERIENCIA_CARTEIRA).nullish(),
+  // DEV-429: opção Jovem Aprendiz da Idade; false = desligada
+  jovem_aprendiz: z.boolean().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -441,6 +443,7 @@ export const NewEmpregabilidadeForm = forwardRef<
           opcaoPcd: initialData.opcao_pcd ?? OPCAO_PCD_PADRAO,
           tiposPcd: initialData.tipo_pcd ?? [],
           experienciaCarteira: initialData.experiencia_carteira ?? null,
+          jovemAprendiz: initialData.jovem_aprendiz === true,
         }
       : undefined
 
@@ -463,6 +466,7 @@ export const NewEmpregabilidadeForm = forwardRef<
               id_nivel_minimo: i.id_nivel_minimo,
             })),
             experiencia_carteira: initialData.experiencia_carteira ?? null,
+            jovem_aprendiz: initialData.jovem_aprendiz === true,
           }
         : {
             titulo: '',
@@ -487,6 +491,7 @@ export const NewEmpregabilidadeForm = forwardRef<
             id_escolaridade_minima: undefined,
             idiomas_requisito: [],
             experiencia_carteira: null,
+            jovem_aprendiz: false,
           },
       mode: 'onChange',
     })
@@ -1006,6 +1011,10 @@ export const NewEmpregabilidadeForm = forwardRef<
                   form.setValue('experiencia_carteira', v, {
                     shouldDirty: true,
                   })
+                }
+                jovemAprendiz={form.watch('jovem_aprendiz') === true}
+                onJovemAprendizChange={v =>
+                  form.setValue('jovem_aprendiz', v, { shouldDirty: true })
                 }
                 disabled={isReadOnly}
                 savedValues={savedCriteriosValues}
