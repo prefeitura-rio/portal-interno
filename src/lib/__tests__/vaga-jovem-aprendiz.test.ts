@@ -18,8 +18,15 @@ const {
   MAIORES_DE_18_DESCRICAO,
   MAIORES_DE_18_IDADE_MINIMA,
   MAIORES_DE_18_LABEL,
+  OPCAO_IDADE_DESCRICAO,
+  OPCAO_IDADE_LABEL,
+  OPCAO_IDADE_PADRAO,
+  OPCOES_IDADE,
+  getIdadeDaOpcao,
   getJovemAprendizDaVaga,
   getJovemAprendizParaApi,
+  getOpcaoIdade,
+  isOpcaoIdade,
 } = await import('../vaga-jovem-aprendiz.ts')
 
 describe('opções da seção Idade', () => {
@@ -81,5 +88,65 @@ describe('jovem_aprendiz enviado à API', () => {
     assert.equal(getJovemAprendizParaApi(false), false)
     assert.equal(getJovemAprendizParaApi(null), false)
     assert.equal(getJovemAprendizParaApi(undefined), false)
+  })
+})
+
+// DEV-442: Idade como escolha única (uma opção por vez, nunca as duas).
+describe('escolha única da Idade', () => {
+  test('opções na ordem, Maiores de 18 marcada ao ligar', () => {
+    assert.deepEqual([...OPCOES_IDADE], ['maiores_de_18', 'jovem_aprendiz'])
+    assert.equal(OPCAO_IDADE_PADRAO, 'maiores_de_18')
+    assert.equal(OPCAO_IDADE_LABEL.maiores_de_18, 'Maiores de 18')
+    assert.equal(OPCAO_IDADE_LABEL.jovem_aprendiz, 'Jovem Aprendiz')
+    assert.equal(
+      OPCAO_IDADE_DESCRICAO.maiores_de_18,
+      'Candidatos com 18 anos ou mais.'
+    )
+    assert.equal(
+      OPCAO_IDADE_DESCRICAO.jovem_aprendiz,
+      'Candidatos de 14 a 24 anos.'
+    )
+  })
+
+  test('isOpcaoIdade só aceita as duas opções', () => {
+    assert.ok(isOpcaoIdade('maiores_de_18'))
+    assert.ok(isOpcaoIdade('jovem_aprendiz'))
+    for (const valor of ['', 'idade_minima', null, undefined, 18, {}]) {
+      assert.equal(isOpcaoIdade(valor), false)
+    }
+  })
+
+  test('opção marcada a partir dos campos do formulário', () => {
+    assert.equal(
+      getOpcaoIdade({ idadeMinima: true, jovemAprendiz: false }),
+      'maiores_de_18'
+    )
+    assert.equal(
+      getOpcaoIdade({ idadeMinima: false, jovemAprendiz: true }),
+      'jovem_aprendiz'
+    )
+    assert.equal(
+      getOpcaoIdade({ idadeMinima: false, jovemAprendiz: false }),
+      null
+    )
+    assert.equal(
+      getOpcaoIdade({ idadeMinima: true, jovemAprendiz: true }),
+      null
+    )
+  })
+
+  test('campos do formulário a partir da opção: nunca as duas ligadas', () => {
+    assert.deepEqual(getIdadeDaOpcao('maiores_de_18'), {
+      idadeMinima: true,
+      jovemAprendiz: false,
+    })
+    assert.deepEqual(getIdadeDaOpcao('jovem_aprendiz'), {
+      idadeMinima: false,
+      jovemAprendiz: true,
+    })
+    assert.deepEqual(getIdadeDaOpcao(null), {
+      idadeMinima: false,
+      jovemAprendiz: false,
+    })
   })
 })

@@ -52,3 +52,60 @@ export function getJovemAprendizDaVaga(vaga: object): boolean {
 export function getJovemAprendizParaApi(ativo: boolean | null | undefined) {
   return ativo === true
 }
+
+/**
+ * DEV-442 (handoff PREF-631/632/633): a Idade é um critério só, com um switch
+ * e uma escolha única entre as duas opções. O formulário guarda as duas como
+ * campos separados (`idade_minima` e `jovem_aprendiz`); estas funções fazem a
+ * ponte para que nunca fiquem as duas ligadas.
+ */
+export const OPCOES_IDADE = ['maiores_de_18', 'jovem_aprendiz'] as const
+
+export type OpcaoIdade = (typeof OPCOES_IDADE)[number]
+
+/** Opção marcada ao ligar o switch da Idade. */
+export const OPCAO_IDADE_PADRAO: OpcaoIdade = 'maiores_de_18'
+
+export const OPCAO_IDADE_LABEL: Record<OpcaoIdade, string> = {
+  maiores_de_18: MAIORES_DE_18_LABEL,
+  jovem_aprendiz: JOVEM_APRENDIZ_LABEL,
+}
+
+export const OPCAO_IDADE_DESCRICAO: Record<OpcaoIdade, string> = {
+  maiores_de_18: MAIORES_DE_18_DESCRICAO,
+  jovem_aprendiz: JOVEM_APRENDIZ_DESCRICAO,
+}
+
+export function isOpcaoIdade(value: unknown): value is OpcaoIdade {
+  return (
+    typeof value === 'string' &&
+    (OPCOES_IDADE as readonly string[]).includes(value)
+  )
+}
+
+/**
+ * Opção marcada na escolha única da Idade. `null` quando nenhuma está ligada
+ * e também quando as duas estão (vaga gravada antes da DEV-442): nesse caso
+ * nenhuma aparece marcada e quem edita escolhe uma.
+ */
+export function getOpcaoIdade({
+  idadeMinima,
+  jovemAprendiz,
+}: {
+  idadeMinima: boolean
+  jovemAprendiz: boolean
+}): OpcaoIdade | null {
+  if (idadeMinima === jovemAprendiz) return null
+  return idadeMinima ? 'maiores_de_18' : 'jovem_aprendiz'
+}
+
+/** Campos do formulário para uma opção da Idade (`null` = critério desligado). */
+export function getIdadeDaOpcao(opcao: OpcaoIdade | null): {
+  idadeMinima: boolean
+  jovemAprendiz: boolean
+} {
+  return {
+    idadeMinima: opcao === 'maiores_de_18',
+    jovemAprendiz: opcao === 'jovem_aprendiz',
+  }
+}
