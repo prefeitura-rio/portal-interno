@@ -17,6 +17,9 @@ import type { EmpregabilidadeNivelIdioma } from '@/http-gorio/models/empregabili
 import type { EmpregabilidadeTipoPCD } from '@/http-gorio/models/empregabilidadeTipoPCD'
 import {
   type CriterioAceitacaoId,
+  ESCOLARIDADE_PLACEHOLDER,
+  ESCOLARIDADE_TITULO,
+  IDIOMA_TITULO,
   ordenarCriteriosAceitacao,
 } from '@/lib/criterios-aceitacao'
 import { cn } from '@/lib/utils'
@@ -31,10 +34,14 @@ import {
 } from '@/lib/vaga-experiencia-carteira'
 import {
   IDADE_TITULO,
-  JOVEM_APRENDIZ_DESCRICAO,
-  JOVEM_APRENDIZ_LABEL,
-  MAIORES_DE_18_DESCRICAO,
-  MAIORES_DE_18_LABEL,
+  OPCAO_IDADE_DESCRICAO,
+  OPCAO_IDADE_LABEL,
+  OPCAO_IDADE_PADRAO,
+  OPCOES_IDADE,
+  type OpcaoIdade,
+  getIdadeDaOpcao,
+  getOpcaoIdade,
+  isOpcaoIdade,
 } from '@/lib/vaga-jovem-aprendiz'
 import {
   OPCAO_PCD_DESCRICAO,
@@ -55,6 +62,9 @@ import {
   Accessibility,
   BriefcaseBusiness,
   Cake,
+  GraduationCap,
+  Languages,
+  type LucideIcon,
   TriangleAlert,
 } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
@@ -98,8 +108,8 @@ interface CriteriosElegibilidadeProps {
   experienciaCarteira: ExperienciaCarteira | null
   onExperienciaCarteiraChange: (opcao: ExperienciaCarteira | null) => void
   /**
-   * DEV-429: opção Jovem Aprendiz da seção Idade (faixa fixa de 14 a 24 anos).
-   * O switch é o bloqueio da API (`jovem_aprendiz`).
+   * DEV-429: opção Jovem Aprendiz da seção Idade (faixa fixa de 14 a 24 anos),
+   * bloqueio da API `jovem_aprendiz`. DEV-442: escolha única com Maiores de 18.
    */
   jovemAprendiz: boolean
   onJovemAprendizChange: (v: boolean) => void
@@ -117,6 +127,86 @@ interface CriteriosElegibilidadeProps {
     experienciaCarteira: ExperienciaCarteira | null
     jovemAprendiz: boolean
   }
+}
+
+function CriterioIcone({
+  icone: Icone,
+  ativo,
+}: {
+  icone: LucideIcon
+  ativo: boolean
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'flex size-7 shrink-0 items-center justify-center rounded-md',
+        ativo ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+      )}
+    >
+      <Icone className="size-4" />
+    </span>
+  )
+}
+
+function CriterioCabecalho({
+  icone,
+  titulo,
+  switchId,
+  ativo,
+  onAtivoChange,
+  disabled,
+}: {
+  icone: LucideIcon
+  titulo: string
+  switchId: string
+  ativo: boolean
+  onAtivoChange: (checked: boolean) => void
+  disabled: boolean
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <CriterioIcone icone={icone} ativo={ativo} />
+        <Label htmlFor={switchId} className="text-sm font-medium">
+          {titulo}
+        </Label>
+        <BloqueioTag ativo={ativo} />
+      </div>
+      <Switch
+        id={switchId}
+        checked={ativo}
+        onCheckedChange={onAtivoChange}
+        disabled={disabled}
+      />
+    </div>
+  )
+}
+
+/**
+ * DEV-442: as opções do critério ficam sempre à mostra; com o critério
+ * desligado, esmaecidas e sem ação (os controles chegam desabilitados).
+ * Com o master desligado o bloco inteiro já vem esmaecido, então aqui não
+ * esmaece de novo.
+ */
+function CriterioOpcoes({
+  criterio,
+  esmaecidas,
+  children,
+}: {
+  criterio: string
+  esmaecidas: boolean
+  children: ReactNode
+}) {
+  return (
+    <div
+      data-opcoes-criterio={criterio}
+      data-esmaecidas={esmaecidas ? 'true' : 'false'}
+      className={cn('space-y-3', esmaecidas && 'opacity-50')}
+    >
+      {children}
+    </div>
+  )
 }
 
 export function CriteriosElegibilidade({
@@ -240,32 +330,22 @@ export function CriteriosElegibilidade({
   // "Qualquer tempo" e desligar limpa a opção.
   const experienciaCarteiraAtiva = experienciaCarteira != null
 
-  // DEV-429: a Idade tem duas opções, cada uma com o switch e a tag do seu
-  // bloqueio: Maiores de 18 (`idade_minima` = 18) e Jovem Aprendiz (faixa fixa
-  // de 14 a 24 anos), sem campo livre de número.
-  const opcoesIdade: {
-    id: string
-    label: string
-    descricao: string
-    ativo: boolean
-    onChange: (v: boolean) => void
-  }[] = [
-    {
-      id: 'criterio-idade-minima',
-      label: MAIORES_DE_18_LABEL,
-      descricao: MAIORES_DE_18_DESCRICAO,
-      ativo: idadeMinima,
-      onChange: onIdadeMinimaChange,
-    },
-    {
-      id: 'criterio-jovem-aprendiz',
-      label: JOVEM_APRENDIZ_LABEL,
-      descricao: JOVEM_APRENDIZ_DESCRICAO,
-      ativo: jovemAprendiz === true,
-      onChange: onJovemAprendizChange,
-    },
-  ]
-  const idadeAtiva = opcoesIdade.some(opcao => opcao.ativo)
+  // DEV-442: a Idade é um critério só, com switch próprio e escolha única
+  // entre Maiores de 18 (`idade_minima` = 18) e Jovem Aprendiz (14 a 24
+  // anos): nunca as duas ligadas.
+  const idadeAtiva = idadeMinima || jovemAprendiz
+  const opcaoIdade = getOpcaoIdade({ idadeMinima, jovemAprendiz })
+
+  const handleOpcaoIdadeChange = (opcao: OpcaoIdade | null) => {
+    const campos = getIdadeDaOpcao(opcao)
+    onIdadeMinimaChange(campos.idadeMinima)
+    onJovemAprendizChange(campos.jovemAprendiz)
+  }
+
+  // DEV-442: com o master desligado, os critérios aparecem esmaecidos e sem
+  // ação; com um critério desligado, as opções dele também.
+  const bloqueado = disabled || !masterEnabled
+  const esmaecer = (criterioAtivo: boolean) => masterEnabled && !criterioAtivo
 
   // Critérios na ordem canônica do bloco (DEV-394): PcD, Idade, Experiência
   // em carteira (DEV-425), Escolaridade mínima, Idioma.
@@ -275,17 +355,7 @@ export function CriteriosElegibilidade({
       content: (
         <div className="space-y-3 rounded-md border p-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span
-              aria-hidden="true"
-              className={cn(
-                'flex size-7 shrink-0 items-center justify-center rounded-md',
-                bloqueioPcdAtivo
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              <Accessibility className="size-4" />
-            </span>
+            <CriterioIcone icone={Accessibility} ativo={bloqueioPcdAtivo} />
             <p className="text-sm font-medium">{PCD_TITULO}</p>
             <BloqueioTag ativo={bloqueioPcdAtivo} />
           </div>
@@ -299,7 +369,7 @@ export function CriteriosElegibilidade({
             onValueChange={value => {
               if (isOpcaoPcd(value)) handleOpcaoPcdChange(value)
             }}
-            disabled={disabled}
+            disabled={bloqueado}
             aria-labelledby="criterio-pcd-label"
             className="gap-3"
           >
@@ -346,7 +416,7 @@ export function CriteriosElegibilidade({
                         tiposSelecionados={tiposPcdSelecionados}
                         onTiposChange={onTiposPcdChange}
                         loading={loadingTiposPcd}
-                        disabled={disabled}
+                        disabled={bloqueado}
                         erro={erroTiposPcd}
                       />
                       <p className="text-xs text-muted-foreground">
@@ -364,61 +434,57 @@ export function CriteriosElegibilidade({
       id: 'idade',
       content: (
         <div className="space-y-3 rounded-md border p-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              aria-hidden="true"
-              className={cn(
-                'flex size-7 shrink-0 items-center justify-center rounded-md',
-                idadeAtiva
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              <Cake className="size-4" />
-            </span>
-            <p id="criterio-idade-titulo" className="text-sm font-medium">
-              {IDADE_TITULO}
-            </p>
-          </div>
+          <CriterioCabecalho
+            icone={Cake}
+            titulo={IDADE_TITULO}
+            switchId="criterio-idade"
+            ativo={idadeAtiva}
+            onAtivoChange={checked =>
+              handleOpcaoIdadeChange(checked ? OPCAO_IDADE_PADRAO : null)
+            }
+            disabled={bloqueado}
+          />
 
-          <div
-            role="group"
-            aria-labelledby="criterio-idade-titulo"
-            className="space-y-3"
-          >
-            {opcoesIdade.map(opcao => (
-              <div
-                key={opcao.id}
-                data-opcao-idade={opcao.id}
-                className="flex items-start justify-between gap-2"
-              >
-                <div className="space-y-0.5">
-                  <div className="flex flex-wrap items-center gap-2">
+          <CriterioOpcoes criterio="idade" esmaecidas={esmaecer(idadeAtiva)}>
+            <RadioGroup
+              value={opcaoIdade ?? ''}
+              onValueChange={value => {
+                if (isOpcaoIdade(value)) handleOpcaoIdadeChange(value)
+              }}
+              disabled={bloqueado || !idadeAtiva}
+              aria-label={IDADE_TITULO}
+              className="gap-3"
+            >
+              {OPCOES_IDADE.map(opcao => (
+                <div
+                  key={opcao}
+                  data-opcao-idade={opcao}
+                  className="flex items-start gap-2"
+                >
+                  <RadioGroupItem
+                    value={opcao}
+                    id={`criterio-idade-${opcao}`}
+                    aria-describedby={`criterio-idade-${opcao}-descricao`}
+                    className="mt-0.5"
+                  />
+                  <div className="space-y-0.5">
                     <Label
-                      htmlFor={opcao.id}
+                      htmlFor={`criterio-idade-${opcao}`}
                       className="text-sm font-normal cursor-pointer"
                     >
-                      {opcao.label}
+                      {OPCAO_IDADE_LABEL[opcao]}
                     </Label>
-                    <BloqueioTag ativo={opcao.ativo} />
+                    <p
+                      id={`criterio-idade-${opcao}-descricao`}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {OPCAO_IDADE_DESCRICAO[opcao]}
+                    </p>
                   </div>
-                  <p
-                    id={`${opcao.id}-descricao`}
-                    className="text-xs text-muted-foreground"
-                  >
-                    {opcao.descricao}
-                  </p>
                 </div>
-                <Switch
-                  id={opcao.id}
-                  checked={opcao.ativo}
-                  onCheckedChange={opcao.onChange}
-                  aria-describedby={`${opcao.id}-descricao`}
-                  disabled={disabled}
-                />
-              </div>
-            ))}
-          </div>
+              ))}
+            </RadioGroup>
+          </CriterioOpcoes>
         </div>
       ),
     },
@@ -426,48 +492,31 @@ export function CriteriosElegibilidade({
       id: 'experiencia',
       content: (
         <div className="space-y-3 rounded-md border p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'flex size-7 shrink-0 items-center justify-center rounded-md',
-                  experienciaCarteiraAtiva
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-muted text-muted-foreground'
-                )}
-              >
-                <BriefcaseBusiness className="size-4" />
-              </span>
-              <Label
-                htmlFor="criterio-experiencia-carteira"
-                className="text-sm font-medium"
-              >
-                {EXPERIENCIA_CARTEIRA_TITULO}
-              </Label>
-              <BloqueioTag ativo={experienciaCarteiraAtiva} />
-            </div>
-            <Switch
-              id="criterio-experiencia-carteira"
-              checked={experienciaCarteiraAtiva}
-              onCheckedChange={checked =>
-                onExperienciaCarteiraChange(
-                  checked ? EXPERIENCIA_CARTEIRA_PADRAO : null
-                )
-              }
-              disabled={disabled}
-            />
-          </div>
+          <CriterioCabecalho
+            icone={BriefcaseBusiness}
+            titulo={EXPERIENCIA_CARTEIRA_TITULO}
+            switchId="criterio-experiencia-carteira"
+            ativo={experienciaCarteiraAtiva}
+            onAtivoChange={checked =>
+              onExperienciaCarteiraChange(
+                checked ? EXPERIENCIA_CARTEIRA_PADRAO : null
+              )
+            }
+            disabled={bloqueado}
+          />
 
-          {experienciaCarteira != null && (
+          <CriterioOpcoes
+            criterio="experiencia"
+            esmaecidas={esmaecer(experienciaCarteiraAtiva)}
+          >
             <RadioGroup
-              value={experienciaCarteira}
+              value={experienciaCarteira ?? ''}
               onValueChange={value => {
                 if (isExperienciaCarteira(value)) {
                   onExperienciaCarteiraChange(value)
                 }
               }}
-              disabled={disabled}
+              disabled={bloqueado || !experienciaCarteiraAtiva}
               aria-label={EXPERIENCIA_CARTEIRA_TITULO}
               className="gap-3"
             >
@@ -500,48 +549,50 @@ export function CriteriosElegibilidade({
                 </div>
               ))}
             </RadioGroup>
-          )}
+          </CriterioOpcoes>
         </div>
       ),
     },
     {
       id: 'escolaridade',
       content: (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label
-              className="flex items-center gap-1.5 text-sm font-normal"
-              htmlFor="criterio-escolaridade"
-            >
-              Possuir escolaridade mínima
-              <BloqueioTag ativo={escolaridadeAtiva} />
-            </Label>
-            <Switch
-              id="criterio-escolaridade"
-              checked={escolaridadeAtiva}
-              onCheckedChange={checked => {
-                if (!checked) {
-                  onEscolaridadeChange(undefined)
-                } else if (escolaridades[0]?.id) {
-                  onEscolaridadeChange(escolaridades[0].id)
-                }
-              }}
-              disabled={disabled}
-            />
-          </div>
+        <div className="space-y-3 rounded-md border p-3">
+          <CriterioCabecalho
+            icone={GraduationCap}
+            titulo={ESCOLARIDADE_TITULO}
+            switchId="criterio-escolaridade"
+            ativo={escolaridadeAtiva}
+            onAtivoChange={checked => {
+              if (!checked) {
+                onEscolaridadeChange(undefined)
+              } else if (escolaridades[0]?.id) {
+                onEscolaridadeChange(escolaridades[0].id)
+              }
+            }}
+            disabled={bloqueado}
+          />
 
-          {escolaridadeAtiva && (
+          <CriterioOpcoes
+            criterio="escolaridade"
+            esmaecidas={esmaecer(escolaridadeAtiva)}
+          >
             <Select
-              value={idEscolaridadeMinima}
-              onValueChange={onEscolaridadeChange}
-              disabled={loadingEscolaridades || disabled}
+              value={idEscolaridadeMinima ?? ''}
+              onValueChange={value => {
+                if (value) onEscolaridadeChange(value)
+              }}
+              disabled={loadingEscolaridades || bloqueado || !escolaridadeAtiva}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                id="criterio-escolaridade-opcao"
+                aria-label={ESCOLARIDADE_TITULO}
+                className="w-full"
+              >
                 <SelectValue
                   placeholder={
                     loadingEscolaridades
                       ? 'Carregando...'
-                      : 'Selecionar escolaridade mínima'
+                      : ESCOLARIDADE_PLACEHOLDER
                   }
                 />
               </SelectTrigger>
@@ -553,35 +604,30 @@ export function CriteriosElegibilidade({
                 ))}
               </SelectContent>
             </Select>
-          )}
+          </CriterioOpcoes>
         </div>
       ),
     },
     {
       id: 'idioma',
       content: (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label
-              className="flex items-center gap-1.5 text-sm font-normal"
-              htmlFor="criterio-idioma"
-            >
-              Dominar idioma estrangeiro
-              <BloqueioTag ativo={idiomasToggle} />
-            </Label>
-            <Switch
-              id="criterio-idioma"
-              checked={idiomasToggle}
-              onCheckedChange={checked => {
-                setIdiomasToggle(checked)
-                if (!checked) onIdiomasChange([])
-              }}
-              disabled={disabled}
-            />
-          </div>
+        <div className="space-y-3 rounded-md border p-3">
+          <CriterioCabecalho
+            icone={Languages}
+            titulo={IDIOMA_TITULO}
+            switchId="criterio-idioma"
+            ativo={idiomasToggle}
+            onAtivoChange={checked => {
+              setIdiomasToggle(checked)
+              if (!checked) onIdiomasChange([])
+            }}
+            disabled={bloqueado}
+          />
 
-          {/* Lista de idiomas: aparece apenas quando toggle de idiomas está ON */}
-          {idiomasToggle && (
+          <CriterioOpcoes
+            criterio="idioma"
+            esmaecidas={esmaecer(idiomasToggle)}
+          >
             <div className="rounded-md border p-3 space-y-3">
               {loadingIdiomas ? (
                 <p className="text-xs text-muted-foreground">
@@ -600,7 +646,7 @@ export function CriteriosElegibilidade({
                           id={`idioma-${idioma.id}`}
                           checked={isChecked}
                           onCheckedChange={() => toggleIdioma(idioma)}
-                          disabled={disabled}
+                          disabled={bloqueado || !idiomasToggle}
                         />
                         <Label
                           htmlFor={`idioma-${idioma.id}`}
@@ -617,7 +663,9 @@ export function CriteriosElegibilidade({
                             onValueChange={val =>
                               updateNivelIdioma(idioma.id!, val)
                             }
-                            disabled={loadingNiveis || disabled}
+                            disabled={
+                              loadingNiveis || bloqueado || !idiomasToggle
+                            }
                           >
                             <SelectTrigger className="h-8 text-xs w-48">
                               <SelectValue
@@ -643,13 +691,7 @@ export function CriteriosElegibilidade({
                 })
               )}
             </div>
-          )}
-
-          {!idiomasToggle && !disabled && (
-            <p className="text-xs text-muted-foreground ml-1">
-              Ative o toggle acima para selecionar idiomas requeridos.
-            </p>
-          )}
+          </CriterioOpcoes>
         </div>
       ),
     },
@@ -673,15 +715,17 @@ export function CriteriosElegibilidade({
         Critérios que um candidato deve atender para enviar uma candidatura
       </p>
 
-      {masterEnabled && (
-        <div className="space-y-4">
-          {ordenarCriteriosAceitacao(criterios).map(criterio => (
-            <div key={criterio.id} data-criterio={criterio.id}>
-              {criterio.content}
-            </div>
-          ))}
-        </div>
-      )}
+      <div
+        data-criterios-master={masterEnabled ? 'ligado' : 'desligado'}
+        aria-disabled={!masterEnabled || undefined}
+        className={cn('space-y-4', !masterEnabled && 'opacity-50')}
+      >
+        {ordenarCriteriosAceitacao(criterios).map(criterio => (
+          <div key={criterio.id} data-criterio={criterio.id}>
+            {criterio.content}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

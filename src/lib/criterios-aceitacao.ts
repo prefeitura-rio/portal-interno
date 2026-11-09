@@ -105,3 +105,11 @@ export function ordenarCriteriosAceitacao<
       CRITERIOS_ACEITACAO_ORDEM.indexOf(b.id)
   )
 }
+
+/**
+ * DEV-442: Escolaridade mínima e Idioma estrangeiro são critérios completos
+ * (ícone, título, tag e switch), como Idade e Experiência em carteira.
+ */
+export const ESCOLARIDADE_TITULO = 'Escolaridade mínima'
+export const ESCOLARIDADE_PLACEHOLDER = 'Selecione a escolaridade mínima'
+export const IDIOMA_TITULO = 'Idioma estrangeiro'

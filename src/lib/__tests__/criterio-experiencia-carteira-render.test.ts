@@ -116,14 +116,23 @@ describe('critério Experiência em carteira no bloco de critérios', () => {
     assert.ok(tag > titulo, 'tag depois do título')
   })
 
-  test('desligado: switch desmarcado, tag desligada, sem as opções', () => {
+  test('desligado: tag desligada e opções à mostra, esmaecidas, sem ação e sem marca', () => {
     const html = criterioExperiencia(render({ experienciaCarteira: null }))
     assert.match(switchCriterio(html), /aria-checked="false"/)
     assert.ok(html.includes('Bloqueio desligado'))
     assert.ok(!html.includes('Bloqueio ativo'))
-    assert.ok(!html.includes('role="radiogroup"'))
-    assert.ok(!html.includes('Qualquer tempo'))
-    assert.ok(!html.includes('Mínimo de 6 meses'))
+    assert.ok(html.includes('role="radiogroup"'))
+    assert.ok(html.includes('>Qualquer tempo<'))
+    assert.ok(html.includes('>Mínimo de 6 meses<'))
+    assert.match(
+      html,
+      /data-opcoes-criterio="experiencia" data-esmaecidas="true" class="[^"]*opacity-50/
+    )
+    for (const opcao of ['qualquer_tempo', 'minimo_6_meses']) {
+      const radio = botao(html, `experiencia-carteira-${opcao}`)
+      assert.match(radio, /aria-checked="false"/)
+      assert.match(radio, /disabled=""/)
+    }
   })
 
   for (const [opcao, marcada, outra] of [
@@ -136,6 +145,11 @@ describe('critério Experiência em carteira no bloco de critérios', () => {
       assert.ok(html.includes('Bloqueio ativo'))
       assert.ok(!html.includes('Bloqueio desligado'))
       assert.ok(html.includes('role="radiogroup"'))
+      assert.match(html, /data-esmaecidas="false"/)
+      assert.doesNotMatch(
+        botao(html, `experiencia-carteira-${opcao}`),
+        /disabled=""/
+      )
       const qualquer = html.indexOf('>Qualquer tempo<')
       const minimo = html.indexOf('>Mínimo de 6 meses<')
       assert.ok(qualquer >= 0 && minimo > qualquer, 'as duas opções, na ordem')
