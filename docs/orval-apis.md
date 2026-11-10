@@ -119,3 +119,30 @@
     },
   },
 ```
+
+> ## API REDIRECIONAMENTOS (app-legacy-portals-redirect)
+
+- https://raw.githubusercontent.com/prefeitura-rio/app-legacy-portals-redirect/refs/heads/main/docs/openapi-v3.json
+
+```
+  api: {
+    input:
+      'https://raw.githubusercontent.com/prefeitura-rio/app-legacy-portals-redirect/refs/heads/main/docs/openapi-v3.json',
+    output: {
+      target: './src/http-redirecionamentos/api.ts',
+      schemas: './src/http-redirecionamentos/models',
+      mode: 'tags-split',
+      client: 'fetch',
+      formatter: 'biome',
+      httpClient: 'fetch',
+      clean: true,
+      baseUrl: process.env.REDIRECIONAMENTOS_BASE_API_URL,
+      override: {
+        mutator: {
+          path: './custom-fetch-redirecionamentos.ts',
+          name: 'customFetchRedirecionamentos',
+        },
+      },
+    },
+  },
+```
