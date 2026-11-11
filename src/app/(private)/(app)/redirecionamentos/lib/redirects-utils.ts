@@ -11,19 +11,7 @@ export function generateCsvTemplate(): string {
   return `${CSV_TEMPLATE_HEADER}\n${CSV_TEMPLATE_EXAMPLE_ROW}\n`
 }
 
-export function maskCpf(value: string | null | undefined): string {
-  if (!value) return '—'
-  const trimmed = value.trim()
-  if (!trimmed) return '—'
-  if (/^\*{3}\.\d{3}\.\d{3}-\*{2}$/.test(trimmed)) {
-    return trimmed
-  }
-  const digits = trimmed.replace(/\D/g, '')
-  if (digits.length === 11) {
-    return `***.${digits.slice(3, 6)}.${digits.slice(6, 9)}-**`
-  }
-  return trimmed
-}
+export { maskCpf } from '@/lib/redirects-mask'
 
 export function isValidPrefRioDestination(value: string): boolean {
   const trimmed = value.trim()

@@ -2,6 +2,7 @@ import {
   getApiV1Rules,
   postApiV1Rules,
 } from '@/http-redirecionamentos/regras/regras'
+import { maskRedirectsPayload } from '@/lib/redirects-mask'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
     })
 
     if (response.status === 200) {
-      return NextResponse.json(response.data)
+      return NextResponse.json(maskRedirectsPayload(response.data))
     }
 
     return NextResponse.json(
@@ -55,7 +56,9 @@ export async function POST(request: Request) {
     const response = await postApiV1Rules(body)
 
     if (response.status === 201) {
-      return NextResponse.json(response.data, { status: 201 })
+      return NextResponse.json(maskRedirectsPayload(response.data), {
+        status: 201,
+      })
     }
 
     return NextResponse.json(

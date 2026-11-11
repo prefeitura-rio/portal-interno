@@ -1,4 +1,5 @@
 import { patchApiV1RulesStatus } from '@/http-redirecionamentos/regras/regras'
+import { maskRedirectsPayload } from '@/lib/redirects-mask'
 import { NextResponse } from 'next/server'
 
 export async function PATCH(request: Request) {
@@ -8,7 +9,7 @@ export async function PATCH(request: Request) {
     const response = await patchApiV1RulesStatus(body)
 
     if (response.status === 200) {
-      return NextResponse.json(response.data)
+      return NextResponse.json(maskRedirectsPayload(response.data))
     }
 
     return NextResponse.json(

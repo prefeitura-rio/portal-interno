@@ -3,6 +3,7 @@ import {
   getApiV1RulesId,
   putApiV1RulesId,
 } from '@/http-redirecionamentos/regras/regras'
+import { maskRedirectsPayload } from '@/lib/redirects-mask'
 import { NextResponse } from 'next/server'
 
 export async function GET(
@@ -15,7 +16,7 @@ export async function GET(
     const response = await getApiV1RulesId(Number(id))
 
     if (response.status === 200) {
-      return NextResponse.json(response.data)
+      return NextResponse.json(maskRedirectsPayload(response.data))
     }
 
     return NextResponse.json(
@@ -42,7 +43,7 @@ export async function PUT(
     const response = await putApiV1RulesId(Number(id), body)
 
     if (response.status === 200) {
-      return NextResponse.json(response.data)
+      return NextResponse.json(maskRedirectsPayload(response.data))
     }
 
     return NextResponse.json(
