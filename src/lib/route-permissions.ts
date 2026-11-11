@@ -124,6 +124,9 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
   // Heimdall admin - gestão de usuários, grupos, papéis, ações e mapeamentos
   '/heimdall': ['admin', 'superadmin'],
   '/heimdall/*': ['admin', 'superadmin'],
+
+  '/redirecionamentos': ['admin', 'superadmin'],
+  '/redirecionamentos/*': ['admin', 'superadmin'],
 } as const
 
 /**
@@ -429,6 +432,15 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   '/api/heimdall/readyz': ADMIN_API,
   '/api/heimdall/usuarios': ADMIN_API,
   '/api/heimdall/usuarios/[cpf]': ADMIN_API,
+
+  '/api/redirecionamentos': ADMIN_API,
+  '/api/redirecionamentos/[id]': ADMIN_API,
+  '/api/redirecionamentos/[id]/eventos': ADMIN_API,
+  '/api/redirecionamentos/status': ADMIN_API,
+  '/api/redirecionamentos/importar': ADMIN_API,
+  '/api/redirecionamentos/exportar': ADMIN_API,
+  '/api/redirecionamentos/hosts': ADMIN_API,
+  '/api/redirecionamentos/testar': ADMIN_API,
 }
 
 /**

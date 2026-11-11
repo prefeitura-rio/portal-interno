@@ -119,3 +119,30 @@
     },
   },
 ```
+
+> ## API REDIRECIONAMENTOS (app-legacy-portals-redirect)
+
+- `./app-legacy-portals-redirect.json` (arquivo local — repo privado, sem acesso raw público)
+
+```
+  api: {
+    input:
+      './app-legacy-portals-redirect.json',
+    output: {
+      target: './src/http-redirecionamentos/api.ts',
+      schemas: './src/http-redirecionamentos/models',
+      mode: 'tags-split',
+      client: 'fetch',
+      formatter: 'biome',
+      httpClient: 'fetch',
+      clean: true,
+      baseUrl: process.env.REDIRECIONAMENTOS_BASE_API_URL,
+      override: {
+        mutator: {
+          path: './custom-fetch-redirecionamentos.ts',
+          name: 'customFetchRedirecionamentos',
+        },
+      },
+    },
+  },
+```

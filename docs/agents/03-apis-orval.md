@@ -8,6 +8,7 @@
 | `src/http-busca-search/` | [app-busca-search](https://github.com/prefeitura-rio/app-busca-search) | `custom-fetch-busca-search.ts` → `customFetchBuscaSearch` | `BUSCA_SEARCH_API_URL` |
 | `src/http-heimdall/` | [heimdall-frontend](https://github.com/prefeitura-rio/heimdall-frontend) / Heimdall API | `custom-fetch-heimdall.ts` → `customFetchHeimdall` | `HEIMDALL_BASE_API_URL` |
 | `src/http-rmi/` | [app-rmi](https://github.com/prefeitura-rio/app-rmi) | `custom-fetch-rmi.ts` → `customFetchRmi` | `RMI_BASE_API_URL` |
+| `src/http-redirecionamentos/` | [app-legacy-portals-redirect](https://github.com/prefeitura-rio/app-legacy-portals-redirect) | `custom-fetch-redirecionamentos.ts` → `customFetchRedirecionamentos` | `REDIRECIONAMENTOS_BASE_API_URL` |
 
 Os mutators injetam `Authorization: Bearer` a partir dos cookies de sessão.
 

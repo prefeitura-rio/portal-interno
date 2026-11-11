@@ -1,0 +1,1260 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "Regras de redirecionamento dos portais legados 1746.rio e carioca.rio para o pref.rio. As rotas /api/v1 exigem o JWT do Keycloak (validado pelo Istio) e papel admin ou superadmin no Heimdall.",
+    "title": "Legacy Portals Redirect — API de administração",
+    "contact": {
+      "name": "IPLANRIO",
+      "url": "https://iplan.rio"
+    },
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/v1/hosts": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Hosts canônicos e aliases de hosts.yaml. Regras só podem ser cadastradas num canônico.",
+        "tags": ["Hosts"],
+        "summary": "Lista os hosts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v1.HostsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resolve": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Diz o que a porta pública faria com a URL numa navegação de navegador (GET com Accept text/html), com as regras ativas: outcome rule, interstitial (página de aviso, 200), fallback ou unknown_host.",
+        "tags": ["Regras"],
+        "summary": "Simula a porta pública",
+        "parameters": [
+          {
+            "description": "URL completa, ex.: https://www.1746.rio/hc/pt-br/p/ouvidoria",
+            "name": "url",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/models.ResolveResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rules": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Lista paginada, das alteradas mais recentemente. q busca no caminho, no destino e nas notas.",
+        "tags": ["Regras"],
+        "summary": "Lista regras",
+        "parameters": [
+          {
+            "description": "Página (padrão 1)",
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Itens por página (padrão 20, máx. 200)",
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Host canônico",
+            "name": "host",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Texto no caminho, no destino ou nas notas",
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Só ativas (true) ou só desativadas (false)",
+            "name": "enabled",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "301 ou 302",
+            "name": "status_code",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v1.RulesPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Normaliza host e caminho antes de validar. Padrões: match_type exact, status_code 302, enabled true. Regra duplicada (mesmo host, caminho e tipo) responde 409 com field path.",
+        "tags": ["Regras"],
+        "summary": "Cria uma regra",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/models.RuleInput"
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/models.RedirectRule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rules/export": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Mesmo formato da importação, por host e caminho: exportar e reimportar não muda nada.",
+        "tags": ["Regras"],
+        "summary": "Exporta as regras em CSV",
+        "responses": {
+          "200": {
+            "description": "CSV (anexo redirecionamentos-AAAA-MM-DD.csv)",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rules/import": {
+      "post": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "CSV UTF-8 (BOM aceito) no campo file, até 5 MB e 20.000 linhas. Cabeçalho obrigatório com as colunas host,path,match_type,destination,status_code,enabled,notes em qualquer ordem; vazios viram exact, 302 e true. Atualiza pelo trio host + caminho + tipo. Com dry_run=true só valida (200). Sem dry_run, grava tudo numa transação se não houver erro; com erro, nada é gravado e a resposta é 422 com o relatório. A linha 1 é o cabeçalho.",
+        "tags": ["Regras"],
+        "summary": "Importa regras de um CSV",
+        "parameters": [
+          {
+            "description": "Só valida, sem gravar",
+            "name": "dry_run",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "Arquivo CSV",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/models.ImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/models.ImportResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rules/status": {
+      "patch": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Tudo ou nada: se algum id não existe, responde 404 com field ids e nada muda.",
+        "tags": ["Regras"],
+        "summary": "Troca o status de várias regras",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/models.StatusUpdateInput"
+              }
+            }
+          },
+          "description": "IDs e status",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/models.StatusUpdateResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rules/{id}": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["Regras"],
+        "summary": "Busca uma regra",
+        "parameters": [
+          {
+            "description": "ID da regra",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/models.RedirectRule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Troca todos os campos editáveis (mesmo corpo do POST, com os mesmos padrões).",
+        "tags": ["Regras"],
+        "summary": "Atualiza uma regra",
+        "parameters": [
+          {
+            "description": "ID da regra",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/models.RuleInput"
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/models.RedirectRule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Exclusão definitiva; o evento delete fica no histórico.",
+        "tags": ["Regras"],
+        "summary": "Apaga uma regra",
+        "parameters": [
+          {
+            "description": "ID da regra",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Sem conteúdo"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rules/{id}/events": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Eventos (create, update, delete, import, status_change), do mais recente ao mais antigo. Continua disponível depois que a regra é apagada.",
+        "tags": ["Regras"],
+        "summary": "Histórico de uma regra",
+        "parameters": [
+          {
+            "description": "ID da regra",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Página (padrão 1)",
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Itens por página (padrão 20, máx. 200)",
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v1.EventsPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "tags": ["Saúde"],
+        "summary": "Liveness",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v1.HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "description": "Pronto quando hosts.yaml e a primeira carga das regras em memória estão feitos. Com o banco fora depois disso, continua pronto (status degraded): a porta pública segue com a última cópia das regras.",
+        "tags": ["Saúde"],
+        "summary": "Readiness",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v1.HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v1.HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://services.pref.rio/legacy-portals-redirect",
+      "description": "Production"
+    },
+    {
+      "url": "https://services.staging.app.dados.rio/legacy-portals-redirect",
+      "description": "Staging"
+    }
+  ],
+  "components": {
+    "requestBodies": {
+      "models.RuleInput": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/models.RuleInput"
+            }
+          }
+        },
+        "description": "Regra",
+        "required": true
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "hosts.Entry": {
+        "type": "object",
+        "properties": {
+          "alias_of": {
+            "type": "string",
+            "example": "www.1746.rio"
+          },
+          "hostname": {
+            "type": "string",
+            "example": "1746.rio"
+          },
+          "kind": {
+            "enum": ["canonical", "alias"],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/rules.HostKind"
+              }
+            ],
+            "example": "alias"
+          },
+          "portal": {
+            "type": "string",
+            "example": "1746"
+          }
+        }
+      },
+      "models.ImportError": {
+        "type": "object",
+        "properties": {
+          "column": {
+            "type": "string",
+            "example": "destination"
+          },
+          "line": {
+            "type": "integer",
+            "example": 3
+          },
+          "message": {
+            "type": "string",
+            "example": "o destino deve usar https"
+          }
+        }
+      },
+      "models.ImportResult": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "integer",
+            "example": 4
+          },
+          "dry_run": {
+            "type": "boolean",
+            "example": true
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/models.ImportError"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "example": 6
+          },
+          "unchanged": {
+            "type": "integer",
+            "example": 1
+          },
+          "updated": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "models.RedirectRule": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string",
+            "example": "00000000000"
+          },
+          "destination": {
+            "type": "string",
+            "example": "https://pref.rio/ouvidoria"
+          },
+          "enabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "host": {
+            "type": "string",
+            "example": "www.1746.rio"
+          },
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "match_type": {
+            "type": "string",
+            "enum": ["exact", "prefix"],
+            "example": "exact"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Ouvidoria"
+          },
+          "path": {
+            "type": "string",
+            "example": "/hc/pt-br/p/ouvidoria"
+          },
+          "status_code": {
+            "type": "integer",
+            "enum": [301, 302],
+            "example": 302
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "updated_by": {
+            "type": "string",
+            "example": "00000000000"
+          }
+        }
+      },
+      "models.RedirectRuleEvent": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["create", "update", "delete", "import", "status_change"],
+            "example": "update"
+          },
+          "actor": {
+            "type": "string",
+            "example": "00000000000"
+          },
+          "after": {
+            "type": "object"
+          },
+          "before": {
+            "type": "object"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer",
+            "example": 10
+          },
+          "rule_id": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "models.ResolveResult": {
+        "type": "object",
+        "properties": {
+          "canonical_host": {
+            "type": "string",
+            "example": "www.1746.rio"
+          },
+          "location": {
+            "type": "string",
+            "example": "https://pref.rio/ouvidoria?utm_source=1746&utm_medium=redirect-legado"
+          },
+          "normalized_path": {
+            "type": "string",
+            "example": "/hc/pt-br/p/ouvidoria"
+          },
+          "outcome": {
+            "enum": ["rule", "interstitial", "fallback", "unknown_host"],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/rules.Outcome"
+              }
+            ],
+            "example": "rule"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/models.RedirectRule"
+          },
+          "status": {
+            "type": "integer",
+            "example": 302
+          }
+        }
+      },
+      "models.RuleInput": {
+        "type": "object",
+        "properties": {
+          "destination": {
+            "type": "string",
+            "example": "https://pref.rio/ouvidoria"
+          },
+          "enabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "host": {
+            "type": "string",
+            "example": "www.1746.rio"
+          },
+          "match_type": {
+            "type": "string",
+            "enum": ["exact", "prefix"],
+            "example": "exact"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Ouvidoria"
+          },
+          "path": {
+            "type": "string",
+            "example": "/hc/pt-br/p/ouvidoria"
+          },
+          "status_code": {
+            "type": "integer",
+            "enum": [301, 302],
+            "example": 302
+          }
+        }
+      },
+      "models.StatusUpdateInput": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "example": [1, 2]
+          },
+          "status_code": {
+            "type": "integer",
+            "enum": [301, 302],
+            "example": 301
+          }
+        }
+      },
+      "models.StatusUpdateResult": {
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/models.RedirectRule"
+            }
+          },
+          "updated": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "response.ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Mensagem de erro aqui"
+          },
+          "field": {
+            "type": "string",
+            "example": "path"
+          }
+        }
+      },
+      "rules.HostKind": {
+        "type": "string",
+        "enum": ["canonical", "alias"],
+        "x-enum-varnames": ["HostCanonical", "HostAlias"]
+      },
+      "rules.Outcome": {
+        "type": "string",
+        "enum": ["rule", "interstitial", "fallback", "unknown_host"],
+        "x-enum-varnames": [
+          "OutcomeRule",
+          "OutcomeInterstitial",
+          "OutcomeFallback",
+          "OutcomeUnknownHost"
+        ]
+      },
+      "v1.EventsPage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/models.RedirectRuleEvent"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "example": 20
+          },
+          "total": {
+            "type": "integer",
+            "example": 42
+          }
+        }
+      },
+      "v1.HealthResponse": {
+        "type": "object",
+        "properties": {
+          "checks": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ok", "degraded", "unavailable"],
+            "example": "ok"
+          }
+        }
+      },
+      "v1.HostsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/hosts.Entry"
+            }
+          }
+        }
+      },
+      "v1.RulesPage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/models.RedirectRule"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "example": 20
+          },
+          "total": {
+            "type": "integer",
+            "example": 42
+          }
+        }
+      }
+    }
+  }
+}

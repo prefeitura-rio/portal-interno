@@ -19,6 +19,7 @@ const LUCIDE_STUB = `data:text/javascript,${encodeURIComponent(
     'LayoutGrid',
     'Settings',
     'Shield',
+    'Signpost',
   ]
     .map(name => `export const ${name} = () => null;`)
     .join('\n')

@@ -13,6 +13,7 @@ import {
   type LucideIcon,
   Settings,
   Shield,
+  Signpost,
 } from 'lucide-react'
 
 export type Submenu = {
@@ -325,6 +326,13 @@ export function getMenuList(pathname: string): Group[] {
         //   label: 'Users',
         //   icon: Users,
         // },
+        {
+          href: '/redirecionamentos',
+          label: 'Redirecionamentos',
+          icon: Signpost,
+          submenus: [],
+          allowedRoles: ['admin', 'superadmin'],
+        },
         {
           href: '/account',
           label: 'Minha conta',
