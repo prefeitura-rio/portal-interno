@@ -122,12 +122,12 @@
 
 > ## API REDIRECIONAMENTOS (app-legacy-portals-redirect)
 
-- https://raw.githubusercontent.com/prefeitura-rio/app-legacy-portals-redirect/refs/heads/main/docs/openapi-v3.json
+- `./app-legacy-portals-redirect.json` (arquivo local — repo privado, sem acesso raw público)
 
 ```
   api: {
     input:
-      'https://raw.githubusercontent.com/prefeitura-rio/app-legacy-portals-redirect/refs/heads/main/docs/openapi-v3.json',
+      './app-legacy-portals-redirect.json',
     output: {
       target: './src/http-redirecionamentos/api.ts',
       schemas: './src/http-redirecionamentos/models',
