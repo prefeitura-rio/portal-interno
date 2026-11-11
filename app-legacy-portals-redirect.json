@@ -18,9 +18,7 @@
           }
         ],
         "description": "Hosts canônicos e aliases de hosts.yaml. Regras só podem ser cadastradas num canônico.",
-        "tags": [
-          "Hosts"
-        ],
+        "tags": ["Hosts"],
         "summary": "Lista os hosts",
         "responses": {
           "200": {
@@ -64,9 +62,7 @@
           }
         ],
         "description": "Diz o que a porta pública faria com a URL numa navegação de navegador (GET com Accept text/html), com as regras ativas: outcome rule, interstitial (página de aviso, 200), fallback ou unknown_host.",
-        "tags": [
-          "Regras"
-        ],
+        "tags": ["Regras"],
         "summary": "Simula a porta pública",
         "parameters": [
           {
@@ -131,9 +127,7 @@
           }
         ],
         "description": "Lista paginada, das alteradas mais recentemente. q busca no caminho, no destino e nas notas.",
-        "tags": [
-          "Regras"
-        ],
+        "tags": ["Regras"],
         "summary": "Lista regras",
         "parameters": [
           {
@@ -235,9 +229,7 @@
           }
         ],
         "description": "Normaliza host e caminho antes de validar. Padrões: match_type exact, status_code 302, enabled true. Regra duplicada (mesmo host, caminho e tipo) responde 409 com field path.",
-        "tags": [
-          "Regras"
-        ],
+        "tags": ["Regras"],
         "summary": "Cria uma regra",
         "requestBody": {
           "$ref": "#/components/requestBodies/models.RuleInput"
@@ -304,9 +296,7 @@
           }
         ],
         "description": "Mesmo formato da importação, por host e caminho: exportar e reimportar não muda nada.",
-        "tags": [
-          "Regras"
-        ],
+        "tags": ["Regras"],
         "summary": "Exporta as regras em CSV",
         "responses": {
           "200": {
@@ -350,9 +340,7 @@
           }
         ],
         "description": "CSV UTF-8 (BOM aceito) no campo file, até 5 MB e 20.000 linhas. Cabeçalho obrigatório com as colunas host,path,match_type,destination,status_code,enabled,notes em qualquer ordem; vazios viram exact, 302 e true. Atualiza pelo trio host + caminho + tipo. Com dry_run=true só valida (200). Sem dry_run, grava tudo numa transação se não houver erro; com erro, nada é gravado e a resposta é 422 com o relatório. A linha 1 é o cabeçalho.",
-        "tags": [
-          "Regras"
-        ],
+        "tags": ["Regras"],
         "summary": "Importa regras de um CSV",
         "parameters": [
           {
@@ -376,9 +364,7 @@
                     "format": "binary"
                   }
                 },
-                "required": [
-                  "file"
-                ]
+                "required": ["file"]
               }
             }
           },
@@ -456,9 +442,7 @@
           }
         ],
         "description": "Tudo ou nada: se algum id não existe, responde 404 com field ids e nada muda.",
-        "tags": [
-          "Regras"
-        ],
+        "tags": ["Regras"],
         "summary": "Troca o status de várias regras",
         "requestBody": {
           "content": {
@@ -532,9 +516,7 @@
             "bearerAuth": []
           }
         ],
-        "tags": [
-          "Regras"
-        ],
+        "tags": ["Regras"],
         "summary": "Busca uma regra",
         "parameters": [
           {
@@ -607,9 +589,7 @@
           }
         ],
         "description": "Troca todos os campos editáveis (mesmo corpo do POST, com os mesmos padrões).",
-        "tags": [
-          "Regras"
-        ],
+        "tags": ["Regras"],
         "summary": "Atualiza uma regra",
         "parameters": [
           {
@@ -695,9 +675,7 @@
           }
         ],
         "description": "Exclusão definitiva; o evento delete fica no histórico.",
-        "tags": [
-          "Regras"
-        ],
+        "tags": ["Regras"],
         "summary": "Apaga uma regra",
         "parameters": [
           {
@@ -765,9 +743,7 @@
           }
         ],
         "description": "Eventos (create, update, delete, import, status_change), do mais recente ao mais antigo. Continua disponível depois que a regra é apagada.",
-        "tags": [
-          "Regras"
-        ],
+        "tags": ["Regras"],
         "summary": "Histórico de uma regra",
         "parameters": [
           {
@@ -842,9 +818,7 @@
     },
     "/healthz": {
       "get": {
-        "tags": [
-          "Saúde"
-        ],
+        "tags": ["Saúde"],
         "summary": "Liveness",
         "responses": {
           "200": {
@@ -863,9 +837,7 @@
     "/readyz": {
       "get": {
         "description": "Pronto quando hosts.yaml e a primeira carga das regras em memória estão feitos. Com o banco fora depois disso, continua pronto (status degraded): a porta pública segue com a última cópia das regras.",
-        "tags": [
-          "Saúde"
-        ],
+        "tags": ["Saúde"],
         "summary": "Readiness",
         "responses": {
           "200": {
@@ -936,10 +908,7 @@
             "example": "1746.rio"
           },
           "kind": {
-            "enum": [
-              "canonical",
-              "alias"
-            ],
+            "enum": ["canonical", "alias"],
             "allOf": [
               {
                 "$ref": "#/components/schemas/rules.HostKind"
@@ -1029,10 +998,7 @@
           },
           "match_type": {
             "type": "string",
-            "enum": [
-              "exact",
-              "prefix"
-            ],
+            "enum": ["exact", "prefix"],
             "example": "exact"
           },
           "notes": {
@@ -1045,10 +1011,7 @@
           },
           "status_code": {
             "type": "integer",
-            "enum": [
-              301,
-              302
-            ],
+            "enum": [301, 302],
             "example": 302
           },
           "updated_at": {
@@ -1065,13 +1028,7 @@
         "properties": {
           "action": {
             "type": "string",
-            "enum": [
-              "create",
-              "update",
-              "delete",
-              "import",
-              "status_change"
-            ],
+            "enum": ["create", "update", "delete", "import", "status_change"],
             "example": "update"
           },
           "actor": {
@@ -1113,12 +1070,7 @@
             "example": "/hc/pt-br/p/ouvidoria"
           },
           "outcome": {
-            "enum": [
-              "rule",
-              "interstitial",
-              "fallback",
-              "unknown_host"
-            ],
+            "enum": ["rule", "interstitial", "fallback", "unknown_host"],
             "allOf": [
               {
                 "$ref": "#/components/schemas/rules.Outcome"
@@ -1152,10 +1104,7 @@
           },
           "match_type": {
             "type": "string",
-            "enum": [
-              "exact",
-              "prefix"
-            ],
+            "enum": ["exact", "prefix"],
             "example": "exact"
           },
           "notes": {
@@ -1168,10 +1117,7 @@
           },
           "status_code": {
             "type": "integer",
-            "enum": [
-              301,
-              302
-            ],
+            "enum": [301, 302],
             "example": 302
           }
         }
@@ -1184,17 +1130,11 @@
             "items": {
               "type": "integer"
             },
-            "example": [
-              1,
-              2
-            ]
+            "example": [1, 2]
           },
           "status_code": {
             "type": "integer",
-            "enum": [
-              301,
-              302
-            ],
+            "enum": [301, 302],
             "example": 301
           }
         }
@@ -1229,23 +1169,12 @@
       },
       "rules.HostKind": {
         "type": "string",
-        "enum": [
-          "canonical",
-          "alias"
-        ],
-        "x-enum-varnames": [
-          "HostCanonical",
-          "HostAlias"
-        ]
+        "enum": ["canonical", "alias"],
+        "x-enum-varnames": ["HostCanonical", "HostAlias"]
       },
       "rules.Outcome": {
         "type": "string",
-        "enum": [
-          "rule",
-          "interstitial",
-          "fallback",
-          "unknown_host"
-        ],
+        "enum": ["rule", "interstitial", "fallback", "unknown_host"],
         "x-enum-varnames": [
           "OutcomeRule",
           "OutcomeInterstitial",
@@ -1287,11 +1216,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "ok",
-              "degraded",
-              "unavailable"
-            ],
+            "enum": ["ok", "degraded", "unavailable"],
             "example": "ok"
           }
         }
