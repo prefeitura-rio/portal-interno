@@ -20,6 +20,16 @@ export const vagaHabilidadesKeys = {
   ) => [...vagaHabilidadesKeys.all, 'conhecimentos', areaId, filtros] as const,
   comportamentosAtitudes: (filtros: CatalogoHabilidadesFiltros) =>
     [...vagaHabilidadesKeys.all, 'comportamentos-atitudes', filtros] as const,
+  areasAtuacaoCompleto: () =>
+    [...vagaHabilidadesKeys.all, 'areas-atuacao', 'completo'] as const,
+  conhecimentosCompleto: (areaId: number | null | undefined) =>
+    [...vagaHabilidadesKeys.all, 'conhecimentos', areaId, 'completo'] as const,
+  comportamentosAtitudesCompleto: () =>
+    [
+      ...vagaHabilidadesKeys.all,
+      'comportamentos-atitudes',
+      'completo',
+    ] as const,
 }
 
 /** Catálogos mudam pouco: evita refazer a busca a cada foco ou montagem. */
@@ -107,7 +117,7 @@ export const CATALOGO_COMPLETO_PAGE_SIZE = 100
 /** Trava contra laço: 20 páginas de 100 cobrem qualquer catálogo real. */
 const CATALOGO_COMPLETO_MAX_PAGINAS = 20
 
-async function fetchCatalogoCompleto(
+export async function fetchCatalogoCompleto(
   path: string,
   signal: AbortSignal
 ): Promise<CatalogoHabilidadesPage> {
@@ -144,7 +154,7 @@ async function fetchCatalogoCompleto(
 /** Todas as áreas de atuação, em uma lista só. */
 export function useAreasAtuacaoCompleto() {
   return useQuery({
-    queryKey: [...vagaHabilidadesKeys.all, 'areas-atuacao', 'completo'],
+    queryKey: vagaHabilidadesKeys.areasAtuacaoCompleto(),
     queryFn: ({ signal }) =>
       fetchCatalogoCompleto('/api/empregabilidade/areas-atuacao', signal),
     staleTime: CATALOGO_STALE_TIME_MS,
@@ -158,7 +168,7 @@ export function useConhecimentosDaAreaCompleto(
   const enabled =
     typeof areaId === 'number' && Number.isSafeInteger(areaId) && areaId > 0
   return useQuery({
-    queryKey: [...vagaHabilidadesKeys.all, 'conhecimentos', areaId, 'completo'],
+    queryKey: vagaHabilidadesKeys.conhecimentosCompleto(areaId),
     queryFn: ({ signal }) =>
       fetchCatalogoCompleto(
         `/api/empregabilidade/areas-atuacao/${areaId}/conhecimentos`,
@@ -172,11 +182,7 @@ export function useConhecimentosDaAreaCompleto(
 /** Todos os comportamentos e atitudes, em uma lista só. */
 export function useComportamentosAtitudesCompleto() {
   return useQuery({
-    queryKey: [
-      ...vagaHabilidadesKeys.all,
-      'comportamentos-atitudes',
-      'completo',
-    ],
+    queryKey: vagaHabilidadesKeys.comportamentosAtitudesCompleto(),
     queryFn: ({ signal }) =>
       fetchCatalogoCompleto(
         '/api/empregabilidade/comportamentos-atitudes',

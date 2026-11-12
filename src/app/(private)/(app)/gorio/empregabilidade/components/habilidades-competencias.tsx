@@ -354,6 +354,7 @@ function GrupoArea({
           <SelectTrigger
             ref={triggerRef}
             aria-labelledby={areaLabelId}
+            aria-busy={areasCarregando || undefined}
             aria-invalid={mensagemErroArea ? true : undefined}
             aria-describedby={mensagemErroArea ? erroAreaId : undefined}
             className="w-full"
