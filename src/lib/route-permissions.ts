@@ -353,6 +353,10 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   '/api/empregabilidade/candidaturas/[id]/status': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/candidaturas/bulk-etapa': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/candidaturas/bulk-status': EMPREGO_TRABALHO_API,
+  // Catálogos das habilidades da vaga (DEV-525): mesmos papéis das rotas de vaga
+  '/api/empregabilidade/areas-atuacao': EMPREGO_TRABALHO_API,
+  '/api/empregabilidade/areas-atuacao/[id]/conhecimentos': EMPREGO_TRABALHO_API,
+  '/api/empregabilidade/comportamentos-atitudes': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/empresas': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/empresas/[cnpj]': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/empresas/consulta-cnpj/[cnpj]': EMPREGO_TRABALHO_API,

@@ -79,6 +79,10 @@ import {
   getExperienciaCarteiraParaApi,
 } from '@/lib/vaga-experiencia-carteira'
 import {
+  getVagaHabilidadesDaVaga,
+  getVagaHabilidadesParaApi,
+} from '@/lib/vaga-habilidades'
+import {
   getJovemAprendizDaVaga,
   getJovemAprendizParaApi,
 } from '@/lib/vaga-jovem-aprendiz'
@@ -562,6 +566,8 @@ export function EmpregabilidadeDataTable() {
           jovem_aprendiz: getJovemAprendizParaApi(
             getJovemAprendizDaVaga(fullVaga)
           ),
+          // DEV-525: copia as áreas (com conhecimentos) e os comportamentos
+          ...getVagaHabilidadesParaApi(getVagaHabilidadesDaVaga(fullVaga)),
           criterios_bloqueio: getCriteriosBloqueio({
             idEscolaridadeMinima: fullVaga.id_escolaridade_minima,
             idiomasRequisito: fullVaga.idiomas_requisito,

@@ -48,6 +48,10 @@ import {
   getExperienciaCarteiraParaApi,
 } from '@/lib/vaga-experiencia-carteira'
 import {
+  getVagaHabilidadesDaVaga,
+  getVagaHabilidadesParaApi,
+} from '@/lib/vaga-habilidades'
+import {
   getJovemAprendizDaVaga,
   getJovemAprendizParaApi,
 } from '@/lib/vaga-jovem-aprendiz'
@@ -494,6 +498,9 @@ export default function EmpregabilidadeDetailPage({
         idiomas_requisito,
         experiencia_carteira,
         jovem_aprendiz,
+        areas_atuacao,
+        comportamento_atitudes_ids,
+        comportamentos_atitudes: _comportamentos,
         ...rest
       } = data
 
@@ -516,6 +523,11 @@ export default function EmpregabilidadeDetailPage({
           getExperienciaCarteiraParaApi(experiencia_carteira),
         // DEV-429: sempre enviado; no PUT ausente mantém o gravado
         jovem_aprendiz: getJovemAprendizParaApi(jovem_aprendiz),
+        // DEV-525: só as listas lidas da vaga; ausentes, o PUT mantém o gravado
+        ...getVagaHabilidadesParaApi({
+          areas_atuacao,
+          comportamento_atitudes_ids,
+        }),
         // DEV-400: sem o campo o PUT mantém o bloqueio gravado
         criterios_bloqueio: getCriteriosBloqueio({
           idEscolaridadeMinima: id_escolaridade_minima,
@@ -831,6 +843,8 @@ export default function EmpregabilidadeDetailPage({
     experiencia_carteira: getExperienciaCarteiraDaVaga(vaga),
     // DEV-429: vaga sem o bloqueio Jovem Aprendiz (todas as anteriores) fica desligada
     jovem_aprendiz: getJovemAprendizDaVaga(vaga),
+    // DEV-525: áreas com conhecimentos e comportamentos (vaga sem registro: [])
+    ...getVagaHabilidadesDaVaga(vaga),
   }
 
   return (

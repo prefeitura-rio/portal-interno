@@ -117,6 +117,18 @@ const informacaoComplementarSchema = z.object({
   valor_max: z.number().optional(),
 })
 
+const catalogoHabilidadeItemSchema = z.object({
+  id: z.number().int().positive(),
+  nome: z.string(),
+})
+
+const vagaAreaAtuacaoSchema = z.object({
+  id_area_atuacao: z.number().int().positive(),
+  conhecimento_ids: z.array(z.number().int().positive()),
+  nome: z.string().optional(),
+  conhecimentos: z.array(catalogoHabilidadeItemSchema).optional(),
+})
+
 // Form schema - minimal validation for now (only UI)
 const formSchema = z.object({
   titulo: z.string().optional(),
@@ -153,6 +165,11 @@ const formSchema = z.object({
   experiencia_carteira: z.enum(OPCOES_EXPERIENCIA_CARTEIRA).nullish(),
   // DEV-429: opção Jovem Aprendiz da Idade; false = desligada
   jovem_aprendiz: z.boolean().optional(),
+  // DEV-525: habilidades e competências; lista ausente não é enviada e o PUT
+  // mantém o que está gravado
+  areas_atuacao: z.array(vagaAreaAtuacaoSchema).optional(),
+  comportamento_atitudes_ids: z.array(z.number().int().positive()).optional(),
+  comportamentos_atitudes: z.array(catalogoHabilidadeItemSchema).optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
