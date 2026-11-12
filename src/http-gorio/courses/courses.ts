@@ -7,15 +7,15 @@
  */
 import type {
   DeleteApiV1CoursesCourseId200,
-  GetApiPublicCourses200,
   GetApiPublicCoursesParams,
-  GetApiV1Courses200,
   GetApiV1CoursesDrafts200,
   GetApiV1CoursesDraftsParams,
   GetApiV1CoursesParams,
   GetApiV1UsersUserIdCourses200,
   GetApiV1UsersUserIdCoursesParams,
   ModelsCurso,
+  ModelsCursoDetailResponse,
+  ModelsCursoListResponse,
   ModelsErrorResponse,
   PostApiV1Courses201,
   PostApiV1CoursesDraft201,
@@ -25,7 +25,7 @@ import type {
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 export type getApiPublicCoursesResponse200 = {
-  data: GetApiPublicCourses200
+  data: ModelsCursoListResponse
   status: 200
 }
 
@@ -66,7 +66,7 @@ export const getGetApiPublicCoursesUrl = (
 }
 
 /**
- * Retorna lista paginada de cursos públicos. Exclui rascunhos e cursos marcados como não visíveis publicamente (is_visible=false); estes continuam acessíveis por link direto via GET /api/public/courses/{id}. Com status: filtra pelos status informados (CSV). Derived statuses (scheduled, accepting_enrollments, in_progress, finished) são mapeados para published.
+ * Retorna lista paginada de cursos públicos. Nunca inclui cursos em curadoria (draft, in_review, needs_changes, approved, pending_deletion), os mesmos que GET /api/public/courses/{id} responde com 404; pedir esses status em status é ignorado. Exclui também os cursos marcados como não visíveis publicamente (is_visible=false); estes continuam acessíveis por link direto via GET /api/public/courses/{id}. Com status: filtra pelos status públicos informados (CSV). Derived statuses (scheduled, accepting_enrollments, in_progress, finished) são mapeados para published.
  * @summary Listar cursos criados
  */
 export const getApiPublicCourses = async (
@@ -83,7 +83,7 @@ export const getApiPublicCourses = async (
 }
 
 export type getApiPublicCoursesCourseIdResponse200 = {
-  data: ModelsCurso
+  data: ModelsCursoDetailResponse
   status: 200
 }
 
@@ -140,7 +140,7 @@ export const getApiPublicCoursesCourseId = async (
 }
 
 export type getApiV1CoursesResponse200 = {
-  data: GetApiV1Courses200
+  data: ModelsCursoListResponse
   status: 200
 }
 
@@ -300,7 +300,7 @@ export const deleteApiV1CoursesCourseId = async (
 }
 
 export type getApiV1CoursesCourseIdResponse200 = {
-  data: ModelsCurso
+  data: ModelsCursoDetailResponse
   status: 200
 }
 
@@ -543,6 +543,11 @@ export type getApiV1UsersUserIdCoursesResponse400 = {
   status: 400
 }
 
+export type getApiV1UsersUserIdCoursesResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type getApiV1UsersUserIdCoursesResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -554,6 +559,7 @@ export type getApiV1UsersUserIdCoursesResponseSuccess =
   }
 export type getApiV1UsersUserIdCoursesResponseError = (
   | getApiV1UsersUserIdCoursesResponse400
+  | getApiV1UsersUserIdCoursesResponse403
   | getApiV1UsersUserIdCoursesResponse500
 ) & {
   headers: Headers

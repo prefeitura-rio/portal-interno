@@ -6,4 +6,6 @@
  * OpenAPI spec version: 1.0
  */
 
-export type PutApiV1EmpregabilidadeVagasId400 = { [key: string]: string }
+export type PutApiV1EmpregabilidadeCandidaturasIdEtapa403 = {
+  [key: string]: string
+}

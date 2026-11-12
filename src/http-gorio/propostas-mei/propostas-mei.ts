@@ -26,6 +26,11 @@ export type getApiV1OportunidadesMeiIdPropostasResponse200 = {
   status: 200
 }
 
+export type getApiV1OportunidadesMeiIdPropostasResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type getApiV1OportunidadesMeiIdPropostasResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -35,10 +40,12 @@ export type getApiV1OportunidadesMeiIdPropostasResponseSuccess =
   getApiV1OportunidadesMeiIdPropostasResponse200 & {
     headers: Headers
   }
-export type getApiV1OportunidadesMeiIdPropostasResponseError =
-  getApiV1OportunidadesMeiIdPropostasResponse500 & {
-    headers: Headers
-  }
+export type getApiV1OportunidadesMeiIdPropostasResponseError = (
+  | getApiV1OportunidadesMeiIdPropostasResponse403
+  | getApiV1OportunidadesMeiIdPropostasResponse500
+) & {
+  headers: Headers
+}
 
 export type getApiV1OportunidadesMeiIdPropostasResponse =
   | getApiV1OportunidadesMeiIdPropostasResponseSuccess
@@ -367,6 +374,11 @@ export type putApiV1OportunidadesMeiIdPropostasPropostaIdStatusResponse400 = {
   status: 400
 }
 
+export type putApiV1OportunidadesMeiIdPropostasPropostaIdStatusResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type putApiV1OportunidadesMeiIdPropostasPropostaIdStatusResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -378,6 +390,7 @@ export type putApiV1OportunidadesMeiIdPropostasPropostaIdStatusResponseSuccess =
   }
 export type putApiV1OportunidadesMeiIdPropostasPropostaIdStatusResponseError = (
   | putApiV1OportunidadesMeiIdPropostasPropostaIdStatusResponse400
+  | putApiV1OportunidadesMeiIdPropostasPropostaIdStatusResponse403
   | putApiV1OportunidadesMeiIdPropostasPropostaIdStatusResponse500
 ) & {
   headers: Headers
@@ -427,6 +440,11 @@ export type putApiV1OportunidadesMeiIdPropostasStatusResponse400 = {
   status: 400
 }
 
+export type putApiV1OportunidadesMeiIdPropostasStatusResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type putApiV1OportunidadesMeiIdPropostasStatusResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -438,6 +456,7 @@ export type putApiV1OportunidadesMeiIdPropostasStatusResponseSuccess =
   }
 export type putApiV1OportunidadesMeiIdPropostasStatusResponseError = (
   | putApiV1OportunidadesMeiIdPropostasStatusResponse400
+  | putApiV1OportunidadesMeiIdPropostasStatusResponse403
   | putApiV1OportunidadesMeiIdPropostasStatusResponse500
 ) & {
   headers: Headers
@@ -481,6 +500,11 @@ export type getApiV1PropostasMeiPorEmpresaResponse400 = {
   status: 400
 }
 
+export type getApiV1PropostasMeiPorEmpresaResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type getApiV1PropostasMeiPorEmpresaResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -492,6 +516,7 @@ export type getApiV1PropostasMeiPorEmpresaResponseSuccess =
   }
 export type getApiV1PropostasMeiPorEmpresaResponseError = (
   | getApiV1PropostasMeiPorEmpresaResponse400
+  | getApiV1PropostasMeiPorEmpresaResponse403
   | getApiV1PropostasMeiPorEmpresaResponse500
 ) & {
   headers: Headers

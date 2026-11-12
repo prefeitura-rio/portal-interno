@@ -7,21 +7,25 @@
  */
 import type {
   DeleteApiV1OportunidadesMeiId200,
-  GetApiPublicOportunidadesMei200,
   GetApiPublicOportunidadesMeiParams,
-  GetApiV1OportunidadesMei200,
   GetApiV1OportunidadesMeiDrafts200,
   GetApiV1OportunidadesMeiDraftsParams,
   GetApiV1OportunidadesMeiParams,
   ModelsErrorResponse,
   ModelsOportunidadeMEI,
+  ModelsOportunidadeMEIListResponse,
 } from '../models'
 
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
 
 export type getApiPublicOportunidadesMeiResponse200 = {
-  data: GetApiPublicOportunidadesMei200
+  data: ModelsOportunidadeMEIListResponse
   status: 200
+}
+
+export type getApiPublicOportunidadesMeiResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
 }
 
 export type getApiPublicOportunidadesMeiResponse500 = {
@@ -33,10 +37,12 @@ export type getApiPublicOportunidadesMeiResponseSuccess =
   getApiPublicOportunidadesMeiResponse200 & {
     headers: Headers
   }
-export type getApiPublicOportunidadesMeiResponseError =
-  getApiPublicOportunidadesMeiResponse500 & {
-    headers: Headers
-  }
+export type getApiPublicOportunidadesMeiResponseError = (
+  | getApiPublicOportunidadesMeiResponse403
+  | getApiPublicOportunidadesMeiResponse500
+) & {
+  headers: Headers
+}
 
 export type getApiPublicOportunidadesMeiResponse =
   | getApiPublicOportunidadesMeiResponseSuccess
@@ -135,8 +141,13 @@ export const getApiPublicOportunidadesMeiId = async (
 }
 
 export type getApiV1OportunidadesMeiResponse200 = {
-  data: GetApiV1OportunidadesMei200
+  data: ModelsOportunidadeMEIListResponse
   status: 200
+}
+
+export type getApiV1OportunidadesMeiResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
 }
 
 export type getApiV1OportunidadesMeiResponse500 = {
@@ -148,10 +159,12 @@ export type getApiV1OportunidadesMeiResponseSuccess =
   getApiV1OportunidadesMeiResponse200 & {
     headers: Headers
   }
-export type getApiV1OportunidadesMeiResponseError =
-  getApiV1OportunidadesMeiResponse500 & {
-    headers: Headers
-  }
+export type getApiV1OportunidadesMeiResponseError = (
+  | getApiV1OportunidadesMeiResponse403
+  | getApiV1OportunidadesMeiResponse500
+) & {
+  headers: Headers
+}
 
 export type getApiV1OportunidadesMeiResponse =
   | getApiV1OportunidadesMeiResponseSuccess
@@ -202,6 +215,11 @@ export type postApiV1OportunidadesMeiResponse400 = {
   status: 400
 }
 
+export type postApiV1OportunidadesMeiResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type postApiV1OportunidadesMeiResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -213,6 +231,7 @@ export type postApiV1OportunidadesMeiResponseSuccess =
   }
 export type postApiV1OportunidadesMeiResponseError = (
   | postApiV1OportunidadesMeiResponse400
+  | postApiV1OportunidadesMeiResponse403
   | postApiV1OportunidadesMeiResponse500
 ) & {
   headers: Headers
@@ -255,6 +274,11 @@ export type deleteApiV1OportunidadesMeiIdResponse400 = {
   status: 400
 }
 
+export type deleteApiV1OportunidadesMeiIdResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type deleteApiV1OportunidadesMeiIdResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -266,6 +290,7 @@ export type deleteApiV1OportunidadesMeiIdResponseSuccess =
   }
 export type deleteApiV1OportunidadesMeiIdResponseError = (
   | deleteApiV1OportunidadesMeiIdResponse400
+  | deleteApiV1OportunidadesMeiIdResponse403
   | deleteApiV1OportunidadesMeiIdResponse500
 ) & {
   headers: Headers
@@ -363,6 +388,11 @@ export type putApiV1OportunidadesMeiIdResponse400 = {
   status: 400
 }
 
+export type putApiV1OportunidadesMeiIdResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type putApiV1OportunidadesMeiIdResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -374,6 +404,7 @@ export type putApiV1OportunidadesMeiIdResponseSuccess =
   }
 export type putApiV1OportunidadesMeiIdResponseError = (
   | putApiV1OportunidadesMeiIdResponse400
+  | putApiV1OportunidadesMeiIdResponse403
   | putApiV1OportunidadesMeiIdResponse500
 ) & {
   headers: Headers
@@ -417,6 +448,11 @@ export type putApiV1OportunidadesMeiIdPublishResponse400 = {
   status: 400
 }
 
+export type putApiV1OportunidadesMeiIdPublishResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type putApiV1OportunidadesMeiIdPublishResponse404 = {
   data: ModelsErrorResponse
   status: 404
@@ -433,6 +469,7 @@ export type putApiV1OportunidadesMeiIdPublishResponseSuccess =
   }
 export type putApiV1OportunidadesMeiIdPublishResponseError = (
   | putApiV1OportunidadesMeiIdPublishResponse400
+  | putApiV1OportunidadesMeiIdPublishResponse403
   | putApiV1OportunidadesMeiIdPublishResponse404
   | putApiV1OportunidadesMeiIdPublishResponse500
 ) & {
@@ -474,6 +511,11 @@ export type postApiV1OportunidadesMeiDraftResponse400 = {
   status: 400
 }
 
+export type postApiV1OportunidadesMeiDraftResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type postApiV1OportunidadesMeiDraftResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -485,6 +527,7 @@ export type postApiV1OportunidadesMeiDraftResponseSuccess =
   }
 export type postApiV1OportunidadesMeiDraftResponseError = (
   | postApiV1OportunidadesMeiDraftResponse400
+  | postApiV1OportunidadesMeiDraftResponse403
   | postApiV1OportunidadesMeiDraftResponse500
 ) & {
   headers: Headers
@@ -522,6 +565,11 @@ export type getApiV1OportunidadesMeiDraftsResponse200 = {
   status: 200
 }
 
+export type getApiV1OportunidadesMeiDraftsResponse403 = {
+  data: ModelsErrorResponse
+  status: 403
+}
+
 export type getApiV1OportunidadesMeiDraftsResponse500 = {
   data: ModelsErrorResponse
   status: 500
@@ -531,10 +579,12 @@ export type getApiV1OportunidadesMeiDraftsResponseSuccess =
   getApiV1OportunidadesMeiDraftsResponse200 & {
     headers: Headers
   }
-export type getApiV1OportunidadesMeiDraftsResponseError =
-  getApiV1OportunidadesMeiDraftsResponse500 & {
-    headers: Headers
-  }
+export type getApiV1OportunidadesMeiDraftsResponseError = (
+  | getApiV1OportunidadesMeiDraftsResponse403
+  | getApiV1OportunidadesMeiDraftsResponse500
+) & {
+  headers: Headers
+}
 
 export type getApiV1OportunidadesMeiDraftsResponse =
   | getApiV1OportunidadesMeiDraftsResponseSuccess

@@ -9,6 +9,7 @@ import type {
   EmpregabilidadeCandidaturaBloqueio,
   GetApiV1EmpregabilidadeCandidaturaBloqueios200,
   GetApiV1EmpregabilidadeCandidaturaBloqueios400,
+  GetApiV1EmpregabilidadeCandidaturaBloqueios403,
   GetApiV1EmpregabilidadeCandidaturaBloqueios500,
   GetApiV1EmpregabilidadeCandidaturaBloqueiosParams,
   PostApiV1EmpregabilidadeCandidaturaBloqueios400,
@@ -29,6 +30,11 @@ export type getApiV1EmpregabilidadeCandidaturaBloqueiosResponse400 = {
   status: 400
 }
 
+export type getApiV1EmpregabilidadeCandidaturaBloqueiosResponse403 = {
+  data: GetApiV1EmpregabilidadeCandidaturaBloqueios403
+  status: 403
+}
+
 export type getApiV1EmpregabilidadeCandidaturaBloqueiosResponse500 = {
   data: GetApiV1EmpregabilidadeCandidaturaBloqueios500
   status: 500
@@ -40,6 +46,7 @@ export type getApiV1EmpregabilidadeCandidaturaBloqueiosResponseSuccess =
   }
 export type getApiV1EmpregabilidadeCandidaturaBloqueiosResponseError = (
   | getApiV1EmpregabilidadeCandidaturaBloqueiosResponse400
+  | getApiV1EmpregabilidadeCandidaturaBloqueiosResponse403
   | getApiV1EmpregabilidadeCandidaturaBloqueiosResponse500
 ) & {
   headers: Headers
@@ -68,7 +75,7 @@ export const getGetApiV1EmpregabilidadeCandidaturaBloqueiosUrl = (
 }
 
 /**
- * Retorna lista paginada de bloqueios de candidatura, com filtros opcionais. Restrito a administradores.
+ * Retorna lista paginada de bloqueios de candidatura, com filtros opcionais. Restrito a ADMIN, go:empregabilidade:admin e editores de Empregabilidade (com o RBAC ligado, o editor precisa também de escopo de órgão/secretaria e só vê bloqueios de vagas dos órgãos desse escopo); os demais recebem 403.
  * @summary Listar bloqueios de candidatura (admin)
  */
 export const getApiV1EmpregabilidadeCandidaturaBloqueios = async (
@@ -132,6 +139,7 @@ export const getPostApiV1EmpregabilidadeCandidaturaBloqueiosUrl = () => {
 
 /**
  * Registra a tentativa de candidatura de um CPF a uma vaga que foi bloqueada por não atender critérios de elegibilidade.
+ * criterios_nao_atendidos leva os slugs dos critérios barrados: idade_minima (Maiores de 18 / idade mínima), escolaridade, idioma, pcd (vaga exclusiva para PcD), experiencia_carteira (experiência em carteira exigida pela vaga) e jovem_aprendiz (fora da faixa de 14 a 24 anos da vaga Jovem Aprendiz).
  * Para o cidadão, o CPF gravado é sempre o do token (o campo cpf do corpo é ignorado). Só ADMIN ou go:empregabilidade:admin registra em nome de outro CPF informado no corpo. A vaga precisa existir.
  * @summary Registrar bloqueio de candidatura
  */

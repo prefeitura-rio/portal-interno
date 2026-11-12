@@ -6,4 +6,4 @@
  * OpenAPI spec version: 1.0
  */
 
-export type GetApiV1OportunidadesMei200 = { [key: string]: unknown }
+export type ResponseErrorWithFieldsFields = { [key: string]: string }

@@ -6,6 +6,6 @@
  * OpenAPI spec version: 1.0
  */
 
-export type PutApiV1EmpregabilidadeVagasIdSendToApproval400 = {
+export type GetApiV1EmpregabilidadeCandidaturaBloqueios403 = {
   [key: string]: string
 }

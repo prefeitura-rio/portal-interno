@@ -21,11 +21,8 @@ import type {
   GetApiV1EmpregabilidadeVagasId404,
   GetApiV1EmpregabilidadeVagasId500,
   GetApiV1EmpregabilidadeVagasParams,
-  PostApiV1EmpregabilidadeVagas400,
   PostApiV1EmpregabilidadeVagas500,
-  PostApiV1EmpregabilidadeVagasDraft400,
   PostApiV1EmpregabilidadeVagasDraft500,
-  PutApiV1EmpregabilidadeVagasId400,
   PutApiV1EmpregabilidadeVagasId403,
   PutApiV1EmpregabilidadeVagasId500,
   PutApiV1EmpregabilidadeVagasIdDiscontinue200,
@@ -42,7 +39,6 @@ import type {
   PutApiV1EmpregabilidadeVagasIdIdiomasRequisito400,
   PutApiV1EmpregabilidadeVagasIdIdiomasRequisito500,
   PutApiV1EmpregabilidadeVagasIdPublish200,
-  PutApiV1EmpregabilidadeVagasIdPublish400,
   PutApiV1EmpregabilidadeVagasIdPublish404,
   PutApiV1EmpregabilidadeVagasIdPublish409,
   PutApiV1EmpregabilidadeVagasIdPublish500,
@@ -52,7 +48,6 @@ import type {
   PutApiV1EmpregabilidadeVagasIdReactivate409,
   PutApiV1EmpregabilidadeVagasIdReactivate500,
   PutApiV1EmpregabilidadeVagasIdSendToApproval200,
-  PutApiV1EmpregabilidadeVagasIdSendToApproval400,
   PutApiV1EmpregabilidadeVagasIdSendToApproval404,
   PutApiV1EmpregabilidadeVagasIdSendToApproval409,
   PutApiV1EmpregabilidadeVagasIdSendToApproval500,
@@ -72,6 +67,7 @@ import type {
   PutApiV1EmpregabilidadeVagasIdZonas200,
   PutApiV1EmpregabilidadeVagasIdZonas400,
   PutApiV1EmpregabilidadeVagasIdZonas500,
+  ResponseErrorWithFields,
 } from '../models'
 
 import { customFetchGoRio } from '../../../custom-fetch-gorio'
@@ -147,7 +143,7 @@ export type postApiV1EmpregabilidadeVagasResponse201 = {
 }
 
 export type postApiV1EmpregabilidadeVagasResponse400 = {
-  data: PostApiV1EmpregabilidadeVagas400
+  data: ResponseErrorWithFields
   status: 400
 }
 
@@ -177,6 +173,10 @@ export const getPostApiV1EmpregabilidadeVagasUrl = () => {
 
 /**
  * Cria uma nova vaga
+ * PcD: opcao_pcd (aberta, preferencial ou exclusiva; ausente = aberta) com os tipos em tipos_pcd; exclusiva sem nenhum tipo retorna 400 "Selecione ao menos um tipo de deficiência.". O bloqueio de candidatura PcD é a chave "pcd" de criterios_bloqueio. acessibilidade_pcd está descontinuado: é preenchido a partir de opcao_pcd e só vale como entrada quando opcao_pcd não é enviada.
+ * Experiência em carteira: experiencia_carteira (qualquer_tempo ou minimo_6_meses; ausente, null ou "" = sem exigência). O bloqueio de candidatura é a chave "experiencia_carteira" de criterios_bloqueio; ligado sem experiencia_carteira retorna 400.
+ * Idade: Maiores de 18 é idade_minima (como hoje); Jovem Aprendiz é jovem_aprendiz (booleano, faixa fixa de 14 a 24 anos, sem número livre; ausente = false). O bloqueio de candidatura é a chave "jovem_aprendiz" de criterios_bloqueio; ligado sem jovem_aprendiz true retorna 400. Um critério de idade por vez: idade_minima junto de jovem_aprendiz true com a chave "jovem_aprendiz" ligada retorna 400.
+ * Habilidades e competências: areas_atuacao (lista de {id_area_atuacao, conhecimento_ids}, cada área uma vez, cada conhecimento da área em que foi marcado) e comportamento_atitudes_ids. Opcionais no rascunho. Área repetida, área, conhecimento ou comportamento fora do catálogo, conhecimento de outra área e lista acima do limite (50 áreas, 300 conhecimentos por área, 100 comportamentos) retornam 400 com o erro do campo em "fields" (areas_atuacao, areas_atuacao.conhecimento_ids, comportamento_atitudes_ids). A resposta traz as listas com os nomes (nome, conhecimentos, comportamentos_atitudes), que são ignorados na entrada: para duplicar uma vaga, areas_atuacao e comportamento_atitudes_ids devolvidos pelo GET podem ser enviados como estão no POST do rascunho (sem o id da vaga).
  * @summary Criar vaga
  */
 export const postApiV1EmpregabilidadeVagas = async (
@@ -292,7 +292,7 @@ export const getGetApiV1EmpregabilidadeVagasIdUrl = (id: string) => {
 }
 
 /**
- * Retorna uma vaga pelo ID
+ * Retorna uma vaga pelo ID, com as habilidades e competências cadastradas: areas_atuacao (cada área com id_area_atuacao, nome, conhecimento_ids e conhecimentos), comportamento_atitudes_ids e comportamentos_atitudes. Vaga sem registro devolve listas vazias. As rotas públicas não trazem esses campos.
  * @summary Buscar vaga
  */
 export const getApiV1EmpregabilidadeVagasId = async (
@@ -314,7 +314,7 @@ export type putApiV1EmpregabilidadeVagasIdResponse200 = {
 }
 
 export type putApiV1EmpregabilidadeVagasIdResponse400 = {
-  data: PutApiV1EmpregabilidadeVagasId400
+  data: ResponseErrorWithFields
   status: 400
 }
 
@@ -350,6 +350,10 @@ export const getPutApiV1EmpregabilidadeVagasIdUrl = (id: string) => {
 
 /**
  * Atualiza uma vaga existente
+ * PcD: opcao_pcd (aberta, preferencial ou exclusiva) vale sobre acessibilidade_pcd (descontinuado); sem nenhum dos dois a vaga fica aberta. tipos_pcd ausente mantém os tipos gravados e [] remove todos; exclusiva sem nenhum tipo retorna 400 "Selecione ao menos um tipo de deficiência.".
+ * Experiência em carteira: experiencia_carteira (qualquer_tempo ou minimo_6_meses) ausente ou null mantém o valor gravado e "" remove a exigência; com a chave "experiencia_carteira" ligada em criterios_bloqueio (enviada ou mantida), a vaga sem experiencia_carteira retorna 400.
+ * Idade: jovem_aprendiz (Jovem Aprendiz, faixa fixa de 14 a 24 anos) ausente ou null mantém o valor gravado; com a chave "jovem_aprendiz" ligada em criterios_bloqueio (enviada ou mantida), a vaga sem jovem_aprendiz true retorna 400. Maiores de 18 segue em idade_minima; um critério de idade por vez: idade_minima junto de jovem_aprendiz true com a chave "jovem_aprendiz" ligada (enviados ou mantidos) retorna 400.
+ * Habilidades e competências: areas_atuacao e comportamento_atitudes_ids ausentes ou null mantêm o gravado; a lista enviada substitui o conjunto inteiro (apaga o que saiu, insere o que entrou; [] apaga tudo). Mesmas regras e erros por campo do POST. A resposta é a vaga relida, com as listas e os nomes.
  * @summary Atualizar vaga
  */
 export const putApiV1EmpregabilidadeVagasId = async (
@@ -556,7 +560,7 @@ export type putApiV1EmpregabilidadeVagasIdPublishResponse200 = {
 }
 
 export type putApiV1EmpregabilidadeVagasIdPublishResponse400 = {
-  data: PutApiV1EmpregabilidadeVagasIdPublish400
+  data: ResponseErrorWithFields
   status: 400
 }
 
@@ -597,7 +601,7 @@ export const getPutApiV1EmpregabilidadeVagasIdPublishUrl = (id: string) => {
 }
 
 /**
- * Publica uma vaga em edição
+ * Publica uma vaga em edição ou em aprovação. Exige ao menos uma área de atuação, ao menos um conhecimento em cada área e ao menos um comportamento ou atitude: sem eles retorna 400 com o erro de cada campo em "fields" (areas_atuacao, areas_atuacao.conhecimento_ids, comportamento_atitudes_ids).
  * @summary Publicar vaga
  */
 export const putApiV1EmpregabilidadeVagasIdPublish = async (
@@ -682,7 +686,7 @@ export type putApiV1EmpregabilidadeVagasIdSendToApprovalResponse200 = {
 }
 
 export type putApiV1EmpregabilidadeVagasIdSendToApprovalResponse400 = {
-  data: PutApiV1EmpregabilidadeVagasIdSendToApproval400
+  data: ResponseErrorWithFields
   status: 400
 }
 
@@ -725,7 +729,7 @@ export const getPutApiV1EmpregabilidadeVagasIdSendToApprovalUrl = (
 }
 
 /**
- * Envia uma vaga em edição para o fluxo de aprovação
+ * Envia uma vaga em edição para o fluxo de aprovação. Exige ao menos uma área de atuação, ao menos um conhecimento em cada área e ao menos um comportamento ou atitude: sem eles retorna 400 com o erro de cada campo em "fields" (areas_atuacao, areas_atuacao.conhecimento_ids, comportamento_atitudes_ids).
  * @summary Enviar vaga para aprovação
  */
 export const putApiV1EmpregabilidadeVagasIdSendToApproval = async (
@@ -839,7 +843,7 @@ export const getPutApiV1EmpregabilidadeVagasIdTiposPcdUrl = (id: string) => {
 }
 
 /**
- * Atualiza os tipos de PCD aceitos na vaga
+ * Atualiza os tipos de PCD aceitos na vaga. Vaga exclusiva (opcao_pcd = exclusiva) não pode ficar sem tipo: lista vazia retorna 400 "Selecione ao menos um tipo de deficiência.".
  * @summary Atualizar tipos PCD da vaga
  */
 export const putApiV1EmpregabilidadeVagasIdTiposPcd = async (
@@ -981,7 +985,7 @@ export type postApiV1EmpregabilidadeVagasDraftResponse201 = {
 }
 
 export type postApiV1EmpregabilidadeVagasDraftResponse400 = {
-  data: PostApiV1EmpregabilidadeVagasDraft400
+  data: ResponseErrorWithFields
   status: 400
 }
 
@@ -1011,6 +1015,10 @@ export const getPostApiV1EmpregabilidadeVagasDraftUrl = () => {
 
 /**
  * Cria uma nova vaga
+ * PcD: opcao_pcd (aberta, preferencial ou exclusiva; ausente = aberta) com os tipos em tipos_pcd; exclusiva sem nenhum tipo retorna 400 "Selecione ao menos um tipo de deficiência.". O bloqueio de candidatura PcD é a chave "pcd" de criterios_bloqueio. acessibilidade_pcd está descontinuado: é preenchido a partir de opcao_pcd e só vale como entrada quando opcao_pcd não é enviada.
+ * Experiência em carteira: experiencia_carteira (qualquer_tempo ou minimo_6_meses; ausente, null ou "" = sem exigência). O bloqueio de candidatura é a chave "experiencia_carteira" de criterios_bloqueio; ligado sem experiencia_carteira retorna 400.
+ * Idade: Maiores de 18 é idade_minima (como hoje); Jovem Aprendiz é jovem_aprendiz (booleano, faixa fixa de 14 a 24 anos, sem número livre; ausente = false). O bloqueio de candidatura é a chave "jovem_aprendiz" de criterios_bloqueio; ligado sem jovem_aprendiz true retorna 400. Um critério de idade por vez: idade_minima junto de jovem_aprendiz true com a chave "jovem_aprendiz" ligada retorna 400.
+ * Habilidades e competências: areas_atuacao (lista de {id_area_atuacao, conhecimento_ids}, cada área uma vez, cada conhecimento da área em que foi marcado) e comportamento_atitudes_ids. Opcionais no rascunho. Área repetida, área, conhecimento ou comportamento fora do catálogo, conhecimento de outra área e lista acima do limite (50 áreas, 300 conhecimentos por área, 100 comportamentos) retornam 400 com o erro do campo em "fields" (areas_atuacao, areas_atuacao.conhecimento_ids, comportamento_atitudes_ids). A resposta traz as listas com os nomes (nome, conhecimentos, comportamentos_atitudes), que são ignorados na entrada: para duplicar uma vaga, areas_atuacao e comportamento_atitudes_ids devolvidos pelo GET podem ser enviados como estão no POST do rascunho (sem o id da vaga).
  * @summary Criar vaga
  */
 export const postApiV1EmpregabilidadeVagasDraft = async (

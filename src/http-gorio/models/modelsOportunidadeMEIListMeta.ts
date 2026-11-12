@@ -6,4 +6,8 @@
  * OpenAPI spec version: 1.0
  */
 
-export type PutApiV1EmpregabilidadeVagasIdPublish400 = { [key: string]: string }
+export interface ModelsOportunidadeMEIListMeta {
+  page?: number
+  page_size?: number
+  total?: number
+}

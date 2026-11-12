@@ -31,24 +31,30 @@ import type {
   PostApiV1EmpregabilidadeCandidaturas500,
   PutApiV1EmpregabilidadeCandidaturasBulkEtapa200,
   PutApiV1EmpregabilidadeCandidaturasBulkEtapa400,
+  PutApiV1EmpregabilidadeCandidaturasBulkEtapa403,
   PutApiV1EmpregabilidadeCandidaturasBulkEtapa409,
   PutApiV1EmpregabilidadeCandidaturasBulkEtapa500,
   PutApiV1EmpregabilidadeCandidaturasBulkStatus200,
   PutApiV1EmpregabilidadeCandidaturasBulkStatus400,
+  PutApiV1EmpregabilidadeCandidaturasBulkStatus403,
   PutApiV1EmpregabilidadeCandidaturasBulkStatus500,
   PutApiV1EmpregabilidadeCandidaturasId400,
   PutApiV1EmpregabilidadeCandidaturasId500,
   PutApiV1EmpregabilidadeCandidaturasIdApprove200,
   PutApiV1EmpregabilidadeCandidaturasIdApprove400,
+  PutApiV1EmpregabilidadeCandidaturasIdApprove403,
   PutApiV1EmpregabilidadeCandidaturasIdApprove500,
   PutApiV1EmpregabilidadeCandidaturasIdEtapa200,
   PutApiV1EmpregabilidadeCandidaturasIdEtapa400,
+  PutApiV1EmpregabilidadeCandidaturasIdEtapa403,
   PutApiV1EmpregabilidadeCandidaturasIdEtapa500,
   PutApiV1EmpregabilidadeCandidaturasIdReject200,
   PutApiV1EmpregabilidadeCandidaturasIdReject400,
+  PutApiV1EmpregabilidadeCandidaturasIdReject403,
   PutApiV1EmpregabilidadeCandidaturasIdReject500,
   PutApiV1EmpregabilidadeCandidaturasIdStatus200,
   PutApiV1EmpregabilidadeCandidaturasIdStatus400,
+  PutApiV1EmpregabilidadeCandidaturasIdStatus403,
   PutApiV1EmpregabilidadeCandidaturasIdStatus500,
 } from '../models'
 
@@ -118,7 +124,7 @@ export const getGetApiV1EmpregabilidadeCandidaturasUrl = (
 }
 
 /**
- * Retorna lista paginada de candidaturas com filtros e busca universal. Restrito a administradores.
+ * Retorna lista paginada de candidaturas com filtros e busca universal. Restrito a administradores e editores de empregabilidade; com o RBAC ligado, o editor só vê candidaturas de vagas dos órgãos do seu escopo.
  * @summary Listar candidaturas (admin)
  */
 export const getApiV1EmpregabilidadeCandidaturas = async (
@@ -359,6 +365,11 @@ export type putApiV1EmpregabilidadeCandidaturasIdApproveResponse400 = {
   status: 400
 }
 
+export type putApiV1EmpregabilidadeCandidaturasIdApproveResponse403 = {
+  data: PutApiV1EmpregabilidadeCandidaturasIdApprove403
+  status: 403
+}
+
 export type putApiV1EmpregabilidadeCandidaturasIdApproveResponse500 = {
   data: PutApiV1EmpregabilidadeCandidaturasIdApprove500
   status: 500
@@ -370,6 +381,7 @@ export type putApiV1EmpregabilidadeCandidaturasIdApproveResponseSuccess =
   }
 export type putApiV1EmpregabilidadeCandidaturasIdApproveResponseError = (
   | putApiV1EmpregabilidadeCandidaturasIdApproveResponse400
+  | putApiV1EmpregabilidadeCandidaturasIdApproveResponse403
   | putApiV1EmpregabilidadeCandidaturasIdApproveResponse500
 ) & {
   headers: Headers
@@ -412,6 +424,11 @@ export type putApiV1EmpregabilidadeCandidaturasIdEtapaResponse400 = {
   status: 400
 }
 
+export type putApiV1EmpregabilidadeCandidaturasIdEtapaResponse403 = {
+  data: PutApiV1EmpregabilidadeCandidaturasIdEtapa403
+  status: 403
+}
+
 export type putApiV1EmpregabilidadeCandidaturasIdEtapaResponse500 = {
   data: PutApiV1EmpregabilidadeCandidaturasIdEtapa500
   status: 500
@@ -423,6 +440,7 @@ export type putApiV1EmpregabilidadeCandidaturasIdEtapaResponseSuccess =
   }
 export type putApiV1EmpregabilidadeCandidaturasIdEtapaResponseError = (
   | putApiV1EmpregabilidadeCandidaturasIdEtapaResponse400
+  | putApiV1EmpregabilidadeCandidaturasIdEtapaResponse403
   | putApiV1EmpregabilidadeCandidaturasIdEtapaResponse500
 ) & {
   headers: Headers
@@ -468,6 +486,11 @@ export type putApiV1EmpregabilidadeCandidaturasIdRejectResponse400 = {
   status: 400
 }
 
+export type putApiV1EmpregabilidadeCandidaturasIdRejectResponse403 = {
+  data: PutApiV1EmpregabilidadeCandidaturasIdReject403
+  status: 403
+}
+
 export type putApiV1EmpregabilidadeCandidaturasIdRejectResponse500 = {
   data: PutApiV1EmpregabilidadeCandidaturasIdReject500
   status: 500
@@ -479,6 +502,7 @@ export type putApiV1EmpregabilidadeCandidaturasIdRejectResponseSuccess =
   }
 export type putApiV1EmpregabilidadeCandidaturasIdRejectResponseError = (
   | putApiV1EmpregabilidadeCandidaturasIdRejectResponse400
+  | putApiV1EmpregabilidadeCandidaturasIdRejectResponse403
   | putApiV1EmpregabilidadeCandidaturasIdRejectResponse500
 ) & {
   headers: Headers
@@ -521,6 +545,11 @@ export type putApiV1EmpregabilidadeCandidaturasIdStatusResponse400 = {
   status: 400
 }
 
+export type putApiV1EmpregabilidadeCandidaturasIdStatusResponse403 = {
+  data: PutApiV1EmpregabilidadeCandidaturasIdStatus403
+  status: 403
+}
+
 export type putApiV1EmpregabilidadeCandidaturasIdStatusResponse500 = {
   data: PutApiV1EmpregabilidadeCandidaturasIdStatus500
   status: 500
@@ -532,6 +561,7 @@ export type putApiV1EmpregabilidadeCandidaturasIdStatusResponseSuccess =
   }
 export type putApiV1EmpregabilidadeCandidaturasIdStatusResponseError = (
   | putApiV1EmpregabilidadeCandidaturasIdStatusResponse400
+  | putApiV1EmpregabilidadeCandidaturasIdStatusResponse403
   | putApiV1EmpregabilidadeCandidaturasIdStatusResponse500
 ) & {
   headers: Headers
@@ -577,6 +607,11 @@ export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse400 = {
   status: 400
 }
 
+export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse403 = {
+  data: PutApiV1EmpregabilidadeCandidaturasBulkEtapa403
+  status: 403
+}
+
 export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse409 = {
   data: PutApiV1EmpregabilidadeCandidaturasBulkEtapa409
   status: 409
@@ -593,6 +628,7 @@ export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponseSuccess =
   }
 export type putApiV1EmpregabilidadeCandidaturasBulkEtapaResponseError = (
   | putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse400
+  | putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse403
   | putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse409
   | putApiV1EmpregabilidadeCandidaturasBulkEtapaResponse500
 ) & {
@@ -636,6 +672,11 @@ export type putApiV1EmpregabilidadeCandidaturasBulkStatusResponse400 = {
   status: 400
 }
 
+export type putApiV1EmpregabilidadeCandidaturasBulkStatusResponse403 = {
+  data: PutApiV1EmpregabilidadeCandidaturasBulkStatus403
+  status: 403
+}
+
 export type putApiV1EmpregabilidadeCandidaturasBulkStatusResponse500 = {
   data: PutApiV1EmpregabilidadeCandidaturasBulkStatus500
   status: 500
@@ -647,6 +688,7 @@ export type putApiV1EmpregabilidadeCandidaturasBulkStatusResponseSuccess =
   }
 export type putApiV1EmpregabilidadeCandidaturasBulkStatusResponseError = (
   | putApiV1EmpregabilidadeCandidaturasBulkStatusResponse400
+  | putApiV1EmpregabilidadeCandidaturasBulkStatusResponse403
   | putApiV1EmpregabilidadeCandidaturasBulkStatusResponse500
 ) & {
   headers: Headers
@@ -735,7 +777,7 @@ export const getGetApiV1EmpregabilidadeCandidaturasUsuarioCpfUrl = (
 }
 
 /**
- * Retorna lista paginada de candidaturas de um usuário pelo CPF. Usuários só podem acessar o próprio CPF; admins podem acessar qualquer CPF.
+ * Retorna lista paginada de candidaturas de um usuário pelo CPF. Usuários só podem acessar o próprio CPF; admins podem acessar qualquer CPF; com o RBAC ligado, o editor de empregabilidade que consulta outro CPF só vê candidaturas de vagas dos órgãos do seu escopo.
  * @summary Listar candidaturas por CPF
  */
 export const getApiV1EmpregabilidadeCandidaturasUsuarioCpf = async (
