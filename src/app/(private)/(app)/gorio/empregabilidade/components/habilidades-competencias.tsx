@@ -35,6 +35,7 @@ import type {
 } from '@/lib/vaga-habilidades'
 import {
   ADICIONAR_AREA_LABEL,
+  AREAS_SECAO_TITULO,
   AREA_LABEL,
   AREA_PLACEHOLDER,
   AREA_SEM_CONHECIMENTOS,
@@ -122,18 +123,13 @@ export function HabilidadesCompetencias({
   const totalGrupos = areas.length + (temGrupoVazio ? 1 : 0)
 
   const triggersArea = useRef<(HTMLButtonElement | null)[]>([])
-  const botaoAdicionar = useRef<HTMLButtonElement | null>(null)
-  const [focoPendente, setFocoPendente] = useState<number | 'adicionar' | null>(
-    null
-  )
+  // Teclado: ao abrir ou remover um grupo, o foco vai para o Select de área
+  // do grupo novo ou do grupo anterior, em vez de se perder na página.
+  const [focoPendente, setFocoPendente] = useState<number | null>(null)
 
   useEffect(() => {
     if (focoPendente === null) return
-    const alvo =
-      focoPendente === 'adicionar'
-        ? botaoAdicionar.current
-        : triggersArea.current[focoPendente]
-    alvo?.focus()
+    triggersArea.current[focoPendente]?.focus()
     setFocoPendente(null)
   }, [focoPendente])
 
@@ -182,7 +178,7 @@ export function HabilidadesCompetencias({
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <SecaoIcone icone={BriefcaseBusiness} />
-          <p className="text-sm font-medium">{AREA_LABEL}</p>
+          <p className="text-sm font-medium">{AREAS_SECAO_TITULO}</p>
         </div>
 
         {Array.from({ length: totalGrupos }, (_, indice) => (
@@ -217,7 +213,6 @@ export function HabilidadesCompetencias({
 
         {!isReadOnly && (
           <Button
-            ref={botaoAdicionar}
             type="button"
             variant="outline"
             size="sm"

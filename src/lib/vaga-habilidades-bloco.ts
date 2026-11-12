@@ -22,6 +22,7 @@ export const HABILIDADES_TITULO = 'Habilidades e competências'
 export const HABILIDADES_DESCRICAO =
   'Áreas, conhecimentos e comportamentos esperados do candidato. Não aparecem para o cidadão.'
 
+export const AREAS_SECAO_TITULO = 'Áreas de atuação e conhecimentos'
 export const AREA_LABEL = 'Área de atuação'
 export const AREA_PLACEHOLDER = 'Selecione a área'
 export const CONHECIMENTOS_LABEL = 'Conhecimentos'
