@@ -20,6 +20,16 @@ export const vagaHabilidadesKeys = {
   ) => [...vagaHabilidadesKeys.all, 'conhecimentos', areaId, filtros] as const,
   comportamentosAtitudes: (filtros: CatalogoHabilidadesFiltros) =>
     [...vagaHabilidadesKeys.all, 'comportamentos-atitudes', filtros] as const,
+  areasAtuacaoCompleto: () =>
+    [...vagaHabilidadesKeys.all, 'areas-atuacao', 'completo'] as const,
+  conhecimentosCompleto: (areaId: number | null | undefined) =>
+    [...vagaHabilidadesKeys.all, 'conhecimentos', areaId, 'completo'] as const,
+  comportamentosAtitudesCompleto: () =>
+    [
+      ...vagaHabilidadesKeys.all,
+      'comportamentos-atitudes',
+      'completo',
+    ] as const,
 }
 
 /** Catálogos mudam pouco: evita refazer a busca a cada foco ou montagem. */
@@ -94,6 +104,91 @@ export function useConhecimentosDaArea(
     // trocar de área, não mostra os conhecimentos da outra.
     placeholderData: (anterior, consultaAnterior) =>
       consultaAnterior?.queryKey[3] === areaId ? anterior : undefined,
+  })
+}
+
+// ============================================
+// Catálogo inteiro (DEV-526): o bloco "Habilidades e competências" mostra
+// todas as opções no multi-select, então lê todas as páginas da lista.
+// ============================================
+
+/** Maior página que a rota aceita: menos idas ao BFF para o catálogo todo. */
+export const CATALOGO_COMPLETO_PAGE_SIZE = 100
+/** Trava contra laço: 20 páginas de 100 cobrem qualquer catálogo real. */
+const CATALOGO_COMPLETO_MAX_PAGINAS = 20
+
+export async function fetchCatalogoCompleto(
+  path: string,
+  signal: AbortSignal
+): Promise<CatalogoHabilidadesPage> {
+  const data: CatalogoHabilidadesPage['data'] = []
+  const vistos = new Set<number>()
+  let total = 0
+  for (let page = 1; page <= CATALOGO_COMPLETO_MAX_PAGINAS; page++) {
+    const pagina = await fetchCatalogo(
+      catalogoUrl(path, { page, pageSize: CATALOGO_COMPLETO_PAGE_SIZE }),
+      signal
+    )
+    total = pagina.meta.total
+    for (const item of pagina.data) {
+      if (vistos.has(item.id)) continue
+      vistos.add(item.id)
+      data.push(item)
+    }
+    if (
+      pagina.data.length < CATALOGO_COMPLETO_PAGE_SIZE ||
+      data.length >= total
+    )
+      break
+  }
+  return {
+    data,
+    meta: {
+      page: 1,
+      page_size: data.length,
+      total: Math.max(total, data.length),
+    },
+  }
+}
+
+/** Todas as áreas de atuação, em uma lista só. */
+export function useAreasAtuacaoCompleto() {
+  return useQuery({
+    queryKey: vagaHabilidadesKeys.areasAtuacaoCompleto(),
+    queryFn: ({ signal }) =>
+      fetchCatalogoCompleto('/api/empregabilidade/areas-atuacao', signal),
+    staleTime: CATALOGO_STALE_TIME_MS,
+  })
+}
+
+/** Todos os conhecimentos de uma área; desligado enquanto não há área. */
+export function useConhecimentosDaAreaCompleto(
+  areaId: number | null | undefined
+) {
+  const enabled =
+    typeof areaId === 'number' && Number.isSafeInteger(areaId) && areaId > 0
+  return useQuery({
+    queryKey: vagaHabilidadesKeys.conhecimentosCompleto(areaId),
+    queryFn: ({ signal }) =>
+      fetchCatalogoCompleto(
+        `/api/empregabilidade/areas-atuacao/${areaId}/conhecimentos`,
+        signal
+      ),
+    enabled,
+    staleTime: CATALOGO_STALE_TIME_MS,
+  })
+}
+
+/** Todos os comportamentos e atitudes, em uma lista só. */
+export function useComportamentosAtitudesCompleto() {
+  return useQuery({
+    queryKey: vagaHabilidadesKeys.comportamentosAtitudesCompleto(),
+    queryFn: ({ signal }) =>
+      fetchCatalogoCompleto(
+        '/api/empregabilidade/comportamentos-atitudes',
+        signal
+      ),
+    staleTime: CATALOGO_STALE_TIME_MS,
   })
 }
 
