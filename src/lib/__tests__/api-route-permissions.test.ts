@@ -262,6 +262,50 @@ describe('middleware: RBAC das rotas de API (DEV-43)', () => {
     }
   })
 
+  test('catálogos de habilidades da vaga: mesmos papéis das rotas de vaga (DEV-525)', async () => {
+    const paths = [
+      '/api/empregabilidade/areas-atuacao?q=tec&page=1&pageSize=20',
+      '/api/empregabilidade/areas-atuacao/3/conhecimentos?q=java',
+      '/api/empregabilidade/comportamentos-atitudes?page=2',
+    ]
+    for (const path of paths) {
+      const pathname = path.split('?')[0]
+      const rule = findApiRoutePermission(pathname)
+      assert.equal(rule?.pattern, pathname.replace(/\/3\//, '/[id]/'))
+      assert.deepEqual(
+        rule?.permission,
+        findApiRoutePermission('/api/empregabilidade/vagas/42')?.permission,
+        pathname
+      )
+      for (const roles of [
+        ['go:empregabilidade:editor_sem_curadoria'],
+        ['go:empregabilidade:editor_com_curadoria'],
+        ['go:empregabilidade:admin'],
+        ['go:admin'],
+        ['admin'],
+        ['superadmin'],
+      ]) {
+        assert.equal(
+          passedThrough(await callApi(path, userWith(roles))),
+          true,
+          `${path} com ${roles.join(',')}`
+        )
+      }
+      for (const roles of [
+        ['go:curriculos:admin'],
+        ['go:cursos:editor'],
+        ['busca:services:admin'],
+      ]) {
+        await assertDenied(await callApi(path, userWith(roles)), 403)
+      }
+      await assertDenied(await callApi(path), 401)
+      await assertDenied(
+        await callApi(path, userWith('erro', `hab-${pathname}`)),
+        403
+      )
+    }
+  })
+
   test('sem sessão: 401 em JSON, sem redirecionar nem chamar o Heimdall', async () => {
     await assertDenied(await callApi('/api/heimdall/grupos'), 401)
     await assertDenied(

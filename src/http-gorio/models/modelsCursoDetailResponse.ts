@@ -5,5 +5,9 @@
  * API de serviços para aplicativos da Prefeitura do Rio
  * OpenAPI spec version: 1.0
  */
+import type { ModelsCursoResponse } from './modelsCursoResponse'
 
-export type GetApiV1Courses200 = { [key: string]: unknown }
+export interface ModelsCursoDetailResponse {
+  data?: ModelsCursoResponse
+  success?: boolean
+}

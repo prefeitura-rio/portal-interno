@@ -6,33 +6,73 @@
  * OpenAPI spec version: 1.0
  */
 import type { EmpregabilidadeAcessibilidadePCD } from './empregabilidadeAcessibilidadePCD'
+import type { EmpregabilidadeCatalogoItem } from './empregabilidadeCatalogoItem'
+import type { EmpregabilidadeCriterioBloqueio } from './empregabilidadeCriterioBloqueio'
 import type { EmpregabilidadeEmpresa } from './empregabilidadeEmpresa'
 import type { EmpregabilidadeEscolaridade } from './empregabilidadeEscolaridade'
 import type { EmpregabilidadeEtapa } from './empregabilidadeEtapa'
 import type { EmpregabilidadeInformacaoComplementar } from './empregabilidadeInformacaoComplementar'
 import type { EmpregabilidadeModeloTrabalho } from './empregabilidadeModeloTrabalho'
+import type { EmpregabilidadeOpcaoPCD } from './empregabilidadeOpcaoPCD'
 import type { EmpregabilidadeRegimeContratacao } from './empregabilidadeRegimeContratacao'
 import type { EmpregabilidadeStatusVaga } from './empregabilidadeStatusVaga'
 import type { EmpregabilidadeTipoPCD } from './empregabilidadeTipoPCD'
+import type { EmpregabilidadeVagaAreaAtuacao } from './empregabilidadeVagaAreaAtuacao'
+import type { EmpregabilidadeVagaExperienciaCarteira } from './empregabilidadeVagaExperienciaCarteira'
 import type { EmpregabilidadeVagaIdiomaRequisito } from './empregabilidadeVagaIdiomaRequisito'
 import type { EmpregabilidadeZona } from './empregabilidadeZona'
 import type { ModelsOrgaoSnapshot } from './modelsOrgaoSnapshot'
 
 export interface EmpregabilidadeVaga {
   acessibilidade_pcd?: EmpregabilidadeAcessibilidadePCD
+  /**
+   * Habilidades e competências da vaga (DEV-524), fora da tabela emp_vagas.
+   * Só a gestão (POST, PUT e GET /api/v1/empregabilidade/vagas/{id}) os
+   * devolve, sempre como lista ([] na vaga sem registro); rotas públicas,
+   * listagens e candidaturas não os trazem. No PUT, o campo ausente (ou null)
+   * mantém o gravado e a lista enviada substitui o conjunto inteiro ([] apaga
+   * tudo). Publicar ou enviar para aprovação exige ao menos uma área, ao
+   * menos um conhecimento em cada área e ao menos um comportamento; o
+   * rascunho não exige nada.
+   */
+  areas_atuacao?: EmpregabilidadeVagaAreaAtuacao[]
   areas_formacao_elegibilidade?: string[]
   bairro?: string
   bairros_elegibilidade?: string[]
   beneficios?: string
+  /**
+   * ComportamentoAtitudesIDs são os ids dos comportamentos/atitudes da vaga
+   * (catálogo GET /api/v1/empregabilidade/comportamentos-atitudes).
+   */
+  comportamento_atitudes_ids?: number[]
+  /**
+   * ComportamentosAtitudes são os mesmos comportamentos com o nome; só na
+   * resposta, ignorado na entrada.
+   */
+  comportamentos_atitudes?: EmpregabilidadeCatalogoItem[]
   /** Relationships */
   contratante?: EmpregabilidadeEmpresa
   created_at?: string
+  /**
+   * CriteriosBloqueio lista os critérios com bloqueio de candidatura ligado;
+   * os ausentes estão desligados. Sempre devolvido ([] quando nenhum). No
+   * PUT, o campo ausente mantém o estado gravado e [] desliga todos.
+   */
+  criterios_bloqueio?: EmpregabilidadeCriterioBloqueio[]
   data_limite?: string
   deleted_at?: string
   descricao?: string
   diferenciais?: string
   escolaridade_minima?: EmpregabilidadeEscolaridade
   etapas?: EmpregabilidadeEtapa[]
+  /**
+   * ExperienciaCarteira é o tempo de experiência em carteira exigido
+   * (qualquer_tempo ou minimo_6_meses); null = sem exigência. Sempre
+   * devolvido. Com a chave experiencia_carteira em criterios_bloqueio é
+   * obrigatório. No PUT, o campo ausente (ou null) mantém o valor gravado e
+   * "" remove a exigência.
+   */
+  experiencia_carteira?: EmpregabilidadeVagaExperienciaCarteira
   id?: string
   id_contratante?: string
   id_escolaridade_minima?: string
@@ -44,7 +84,16 @@ export interface EmpregabilidadeVaga {
   idade_minima?: number
   idiomas_requisito?: EmpregabilidadeVagaIdiomaRequisito[]
   informacoes_complementares?: EmpregabilidadeInformacaoComplementar[]
+  /**
+   * JovemAprendiz é a opção Jovem Aprendiz da seção Idade: faixa fixa de 14
+   * a 24 anos, sem número livre (a opção Maiores de 18 é IdadeMinima).
+   * Sempre devolvido; vaga nova sem o campo, e toda vaga anterior a ele,
+   * fica desligada. Com a chave jovem_aprendiz em criterios_bloqueio precisa
+   * ser true. No PUT, o campo ausente (ou null) mantém o valor gravado.
+   */
+  jovem_aprendiz?: boolean
   modelo_trabalho?: EmpregabilidadeModeloTrabalho
+  opcao_pcd?: EmpregabilidadeOpcaoPCD
   orgao_parceiro?: ModelsOrgaoSnapshot
   quantidade_estimada_contratacoes?: number
   regime_contratacao?: EmpregabilidadeRegimeContratacao

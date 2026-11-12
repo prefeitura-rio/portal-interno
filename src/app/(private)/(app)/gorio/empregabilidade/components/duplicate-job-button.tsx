@@ -15,6 +15,10 @@ import {
   getExperienciaCarteiraParaApi,
 } from '@/lib/vaga-experiencia-carteira'
 import {
+  getVagaHabilidadesDaVaga,
+  getVagaHabilidadesParaApi,
+} from '@/lib/vaga-habilidades'
+import {
   getJovemAprendizDaVaga,
   getJovemAprendizParaApi,
 } from '@/lib/vaga-jovem-aprendiz'
@@ -99,6 +103,8 @@ export function DuplicateJobButton({
         ),
         // DEV-429: copia a opção Jovem Aprendiz e o bloqueio dela
         jovem_aprendiz: getJovemAprendizParaApi(getJovemAprendizDaVaga(vaga)),
+        // DEV-525: copia as áreas (com conhecimentos) e os comportamentos
+        ...getVagaHabilidadesParaApi(getVagaHabilidadesDaVaga(vaga)),
         criterios_bloqueio: getCriteriosBloqueio({
           idEscolaridadeMinima: vaga.id_escolaridade_minima,
           idiomasRequisito: vaga.idiomas_requisito,

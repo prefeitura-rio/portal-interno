@@ -6,4 +6,6 @@
  * OpenAPI spec version: 1.0
  */
 
-export type GetApiPublicEmpregabilidadeVagas200 = { [key: string]: unknown }
+export type PutApiV1EmpregabilidadeCandidaturasIdApprove403 = {
+  [key: string]: string
+}

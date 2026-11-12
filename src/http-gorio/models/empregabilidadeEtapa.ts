@@ -13,6 +13,12 @@ export interface EmpregabilidadeEtapa {
   id?: string
   id_vaga?: string
   ordem?: number
+  /**
+   * TipoEtapa classifica a etapa (código livre definido pela gestão) para
+   * comparar o funil do histórico de candidaturas entre vagas. Opcional:
+   * ausente (ou vazio) numa atualização mantém o valor gravado.
+   */
+  tipo_etapa?: string
   titulo?: string
   updated_at?: string
   /** Relationships */

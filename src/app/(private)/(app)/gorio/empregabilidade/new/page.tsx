@@ -19,6 +19,7 @@ import {
   salvarIdiomasRequisito,
 } from '@/lib/idiomas-requisito'
 import { getExperienciaCarteiraParaApi } from '@/lib/vaga-experiencia-carteira'
+import { getVagaHabilidadesParaApi } from '@/lib/vaga-habilidades'
 import { getJovemAprendizParaApi } from '@/lib/vaga-jovem-aprendiz'
 import {
   OPCAO_PCD_PADRAO,
@@ -42,6 +43,9 @@ function mapCriteriosToApiData(data: any) {
     idiomas_requisito: _idiomas,
     experiencia_carteira,
     jovem_aprendiz,
+    areas_atuacao,
+    comportamento_atitudes_ids,
+    comportamentos_atitudes: _comportamentos,
     ...rest
   } = data
 
@@ -62,6 +66,11 @@ function mapCriteriosToApiData(data: any) {
       experiencia_carteira: getExperienciaCarteiraParaApi(experiencia_carteira),
       // DEV-429: opção Jovem Aprendiz; false sem a opção
       jovem_aprendiz: getJovemAprendizParaApi(jovem_aprendiz),
+      // DEV-525: áreas (com conhecimentos) e comportamentos, só os ids
+      ...getVagaHabilidadesParaApi({
+        areas_atuacao,
+        comportamento_atitudes_ids,
+      }),
       criterios_bloqueio: getCriteriosBloqueio({
         idEscolaridadeMinima: id_escolaridade_minima,
         idiomasRequisito: data.idiomas_requisito,
