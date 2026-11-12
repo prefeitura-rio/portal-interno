@@ -29,9 +29,11 @@ import {
   useConhecimentosDaAreaCompleto,
 } from '@/hooks/use-vaga-habilidades-catalogos'
 import { cn } from '@/lib/utils'
-import type {
-  CatalogoHabilidadeItem,
-  VagaAreaAtuacaoSelecionada,
+import {
+  type CatalogoHabilidadeItem,
+  MAX_COMPORTAMENTOS,
+  MAX_CONHECIMENTOS_POR_AREA,
+  type VagaAreaAtuacaoSelecionada,
 } from '@/lib/vaga-habilidades'
 import {
   ADICIONAR_AREA_LABEL,
@@ -60,11 +62,12 @@ import {
   REMOVER_AREA_LABEL,
   TENTAR_NOVAMENTE_LABEL,
   alternarId,
-  getAreasUsadasEmOutrosGrupos,
   getBadgesVisiveis,
   getItensSelecionados,
   getMaisItensLabel,
+  getOpcoesAreaDoGrupo,
   getRemoverItemLabel,
+  isOpcaoNoLimite,
   ordenarPorNome,
   podeAdicionarArea,
   removerGrupo,
@@ -246,6 +249,7 @@ export function HabilidadesCompetencias({
           onTentarNovamente={() => comportamentosQuery.refetch()}
           erro={erros?.comportamentos}
           isReadOnly={isReadOnly}
+          maximo={MAX_COMPORTAMENTOS}
         />
       </div>
     </div>
@@ -292,12 +296,7 @@ function GrupoArea({
   const conhecimentosQuery = useConhecimentosDaAreaCompleto(idArea)
   const catalogoConhecimentos = conhecimentosQuery.data?.data ?? []
 
-  const usadas = getAreasUsadasEmOutrosGrupos(areas, indice)
-  const opcoesArea = ordenarPorNome(
-    idArea !== undefined && !catalogoAreas.some(item => item.id === idArea)
-      ? [...catalogoAreas, { id: idArea, nome: area?.nome || `#${idArea}` }]
-      : catalogoAreas
-  )
+  const opcoesArea = getOpcoesAreaDoGrupo(catalogoAreas, areas, indice)
 
   const conhecimentosSelecionados = getItensSelecionados(
     area?.conhecimento_ids ?? [],
@@ -365,7 +364,7 @@ function GrupoArea({
               <SelectItem
                 key={opcao.id}
                 value={String(opcao.id)}
-                disabled={usadas.has(opcao.id)}
+                disabled={opcao.desabilitada}
               >
                 {opcao.nome}
               </SelectItem>
@@ -406,6 +405,7 @@ function GrupoArea({
         }
         onTentarNovamente={() => conhecimentosQuery.refetch()}
         aviso={areaSemConhecimentos ? AREA_SEM_CONHECIMENTOS : undefined}
+        maximo={MAX_CONHECIMENTOS_POR_AREA}
         erro={erro?.conhecimentos}
         isReadOnly={isReadOnly}
         desabilitado={idArea === undefined || areaSemConhecimentos}
@@ -431,6 +431,8 @@ interface CampoMultiSelectProps {
   erro?: string
   isReadOnly: boolean
   desabilitado?: boolean
+  /** Limite da API para o campo; acima dele, as outras opções desabilitam. */
+  maximo?: number
 }
 
 /**
@@ -454,6 +456,7 @@ function CampoMultiSelect({
   erro,
   isReadOnly,
   desabilitado = false,
+  maximo,
 }: CampoMultiSelectProps) {
   const [aberto, setAberto] = useState(false)
   const labelId = useId()
@@ -523,6 +526,11 @@ function CampoMultiSelect({
                       value={String(opcao.id)}
                       keywords={[opcao.nome]}
                       onSelect={() => onAlternar(opcao.id)}
+                      disabled={isOpcaoNoLimite(
+                        marcado,
+                        selecionados.length,
+                        maximo
+                      )}
                       data-marcado={marcado ? 'true' : 'false'}
                     >
                       <span

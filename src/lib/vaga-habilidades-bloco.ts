@@ -144,6 +144,51 @@ export function getAreasUsadasEmOutrosGrupos(
   return usadas
 }
 
+export interface OpcaoArea extends CatalogoHabilidadeItem {
+  /** Já escolhida em outro grupo. */
+  desabilitada: boolean
+}
+
+/**
+ * Opções do Select de área de um grupo, em ordem A–Z: as do catálogo, com as
+ * dos outros grupos desabilitadas, e a área do próprio grupo mesmo que o
+ * catálogo não a traga (nome gravado na vaga ou o id).
+ */
+export function getOpcoesAreaDoGrupo(
+  catalogo: CatalogoHabilidadeItem[],
+  areas: VagaAreaAtuacaoSelecionada[],
+  indiceGrupo: number
+): OpcaoArea[] {
+  const usadas = getAreasUsadasEmOutrosGrupos(areas, indiceGrupo)
+  const propria = areas[indiceGrupo]
+  const itens =
+    propria && !catalogo.some(item => item.id === propria.id_area_atuacao)
+      ? [
+          ...catalogo,
+          {
+            id: propria.id_area_atuacao,
+            nome: propria.nome || `#${propria.id_area_atuacao}`,
+          },
+        ]
+      : catalogo
+  return ordenarPorNome(itens).map(item => ({
+    ...item,
+    desabilitada: usadas.has(item.id),
+  }))
+}
+
+/**
+ * Opção que não pode mais ser marcada porque o campo chegou ao limite da API
+ * (as já marcadas continuam desmarcáveis).
+ */
+export function isOpcaoNoLimite(
+  marcada: boolean,
+  totalMarcadas: number,
+  maximo: number | undefined
+): boolean {
+  return !marcada && maximo !== undefined && totalMarcadas >= maximo
+}
+
 /** Grupo completo: tem área e ao menos um conhecimento. */
 export function isGrupoCompleto(
   area: VagaAreaAtuacaoSelecionada | undefined

@@ -28,6 +28,40 @@ describe('grupos de área', () => {
     assert.deepEqual([...usadasNoNovo].sort(), [TI, ADM].sort())
   })
 
+  test('Select de área: A–Z, área de outro grupo desabilitada', () => {
+    const catalogo = [
+      { id: TI, nome: 'Tecnologia da Informação' },
+      { id: ADM, nome: 'Administração' },
+      { id: SAUDE, nome: 'Saúde' },
+    ]
+    assert.deepEqual(bloco.getOpcoesAreaDoGrupo(catalogo, areas, 0), [
+      { id: ADM, nome: 'Administração', desabilitada: true },
+      { id: SAUDE, nome: 'Saúde', desabilitada: false },
+      { id: TI, nome: 'Tecnologia da Informação', desabilitada: false },
+    ])
+    assert.deepEqual(
+      bloco
+        .getOpcoesAreaDoGrupo(catalogo, areas, 2)
+        .filter(opcao => opcao.desabilitada)
+        .map(opcao => opcao.id)
+        .sort(),
+      [TI, ADM].sort(),
+      'grupo novo: as duas áreas já usadas desabilitadas'
+    )
+  })
+
+  test('Select de área mostra a área gravada que o catálogo não traz', () => {
+    const opcoes = bloco.getOpcoesAreaDoGrupo(
+      [{ id: ADM, nome: 'Administração' }],
+      [{ id_area_atuacao: 99, nome: 'Área antiga', conhecimento_ids: [1] }],
+      0
+    )
+    assert.deepEqual(opcoes, [
+      { id: ADM, nome: 'Administração', desabilitada: false },
+      { id: 99, nome: 'Área antiga', desabilitada: false },
+    ])
+  })
+
   test('trocar a área limpa só os conhecimentos daquele grupo', () => {
     const trocadas = bloco.trocarAreaDoGrupo(areas, 0, SAUDE)
     assert.deepEqual(trocadas, [
@@ -142,6 +176,13 @@ describe('badges', () => {
   test('rótulos acessíveis', () => {
     assert.equal(bloco.getRemoverItemLabel('Java'), 'Remover Java')
     assert.equal(bloco.REMOVER_AREA_LABEL, 'Remover área')
+  })
+
+  test('no limite da API, só as marcadas continuam clicáveis', () => {
+    assert.equal(bloco.isOpcaoNoLimite(false, 100, 100), true)
+    assert.equal(bloco.isOpcaoNoLimite(true, 100, 100), false)
+    assert.equal(bloco.isOpcaoNoLimite(false, 99, 100), false)
+    assert.equal(bloco.isOpcaoNoLimite(false, 500, undefined), false)
   })
 
   test('alternar e remover id', () => {

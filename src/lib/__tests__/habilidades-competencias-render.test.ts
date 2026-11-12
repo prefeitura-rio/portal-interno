@@ -357,6 +357,16 @@ describe('bloco Habilidades e competências', () => {
 describe('código do componente', () => {
   const fonte = readFileSync(COMPONENTE_URL, 'utf8')
 
+  test('Select de área usa as opções do grupo, com a desabilitada', () => {
+    assert.match(fonte, /getOpcoesAreaDoGrupo\(catalogoAreas, areas, indice\)/)
+    assert.match(fonte, /disabled=\{opcao\.desabilitada\}/)
+  })
+
+  test('multi-selects respeitam o limite da API', () => {
+    assert.match(fonte, /maximo=\{MAX_CONHECIMENTOS_POR_AREA\}/)
+    assert.match(fonte, /maximo=\{MAX_COMPORTAMENTOS\}/)
+  })
+
   test('só componentes de src/components/ui e tokens do tema', () => {
     const imports = [...fonte.matchAll(/from '(@\/components\/[^']+)'/g)].map(
       m => m[1]
