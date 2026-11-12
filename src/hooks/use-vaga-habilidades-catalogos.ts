@@ -97,6 +97,95 @@ export function useConhecimentosDaArea(
   })
 }
 
+// ============================================
+// Catálogo inteiro (DEV-526): o bloco "Habilidades e competências" mostra
+// todas as opções no multi-select, então lê todas as páginas da lista.
+// ============================================
+
+/** Maior página que a rota aceita: menos idas ao BFF para o catálogo todo. */
+export const CATALOGO_COMPLETO_PAGE_SIZE = 100
+/** Trava contra laço: 20 páginas de 100 cobrem qualquer catálogo real. */
+const CATALOGO_COMPLETO_MAX_PAGINAS = 20
+
+async function fetchCatalogoCompleto(
+  path: string,
+  signal: AbortSignal
+): Promise<CatalogoHabilidadesPage> {
+  const data: CatalogoHabilidadesPage['data'] = []
+  const vistos = new Set<number>()
+  let total = 0
+  for (let page = 1; page <= CATALOGO_COMPLETO_MAX_PAGINAS; page++) {
+    const pagina = await fetchCatalogo(
+      catalogoUrl(path, { page, pageSize: CATALOGO_COMPLETO_PAGE_SIZE }),
+      signal
+    )
+    total = pagina.meta.total
+    for (const item of pagina.data) {
+      if (vistos.has(item.id)) continue
+      vistos.add(item.id)
+      data.push(item)
+    }
+    if (
+      pagina.data.length < CATALOGO_COMPLETO_PAGE_SIZE ||
+      data.length >= total
+    )
+      break
+  }
+  return {
+    data,
+    meta: {
+      page: 1,
+      page_size: data.length,
+      total: Math.max(total, data.length),
+    },
+  }
+}
+
+/** Todas as áreas de atuação, em uma lista só. */
+export function useAreasAtuacaoCompleto() {
+  return useQuery({
+    queryKey: [...vagaHabilidadesKeys.all, 'areas-atuacao', 'completo'],
+    queryFn: ({ signal }) =>
+      fetchCatalogoCompleto('/api/empregabilidade/areas-atuacao', signal),
+    staleTime: CATALOGO_STALE_TIME_MS,
+  })
+}
+
+/** Todos os conhecimentos de uma área; desligado enquanto não há área. */
+export function useConhecimentosDaAreaCompleto(
+  areaId: number | null | undefined
+) {
+  const enabled =
+    typeof areaId === 'number' && Number.isSafeInteger(areaId) && areaId > 0
+  return useQuery({
+    queryKey: [...vagaHabilidadesKeys.all, 'conhecimentos', areaId, 'completo'],
+    queryFn: ({ signal }) =>
+      fetchCatalogoCompleto(
+        `/api/empregabilidade/areas-atuacao/${areaId}/conhecimentos`,
+        signal
+      ),
+    enabled,
+    staleTime: CATALOGO_STALE_TIME_MS,
+  })
+}
+
+/** Todos os comportamentos e atitudes, em uma lista só. */
+export function useComportamentosAtitudesCompleto() {
+  return useQuery({
+    queryKey: [
+      ...vagaHabilidadesKeys.all,
+      'comportamentos-atitudes',
+      'completo',
+    ],
+    queryFn: ({ signal }) =>
+      fetchCatalogoCompleto(
+        '/api/empregabilidade/comportamentos-atitudes',
+        signal
+      ),
+    staleTime: CATALOGO_STALE_TIME_MS,
+  })
+}
+
 /** Comportamentos e atitudes (GET /api/empregabilidade/comportamentos-atitudes). */
 export function useComportamentosAtitudes(
   filtros: CatalogoHabilidadesFiltros = {}
