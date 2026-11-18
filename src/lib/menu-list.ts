@@ -1,3 +1,4 @@
+import type { RuntimeFeatureFlags } from '@/lib/feature-flags'
 import {
   COURSES_DASHBOARD_ROLES,
   COURSES_ROLES,
@@ -49,7 +50,17 @@ type Group = {
   menus: Menu[]
 }
 
-export function getMenuList(pathname: string): Group[] {
+const COURSES_DASHBOARD_HREF = '/gorio/courses/dashboard'
+
+/**
+ * Menu completo. `featureFlags` vem do servidor (`getRuntimeFeatureFlags()`,
+ * via `FeatureFlagsProvider`): com a Dashboard de Capacitações desligada
+ * (DEV-644), o item some do submenu de Capacitação para todos os papéis.
+ */
+export function getMenuList(
+  pathname: string,
+  featureFlags: RuntimeFeatureFlags
+): Group[] {
   return [
     {
       groupLabel: '',
@@ -86,7 +97,7 @@ export function getMenuList(pathname: string): Group[] {
           allowedRoles: [...COURSES_ROLES],
           submenus: [
             {
-              href: '/gorio/courses/dashboard',
+              href: COURSES_DASHBOARD_HREF,
               label: 'Dashboard',
               allowedRoles: [...COURSES_DASHBOARD_ROLES],
             },
@@ -100,7 +111,11 @@ export function getMenuList(pathname: string): Group[] {
               label: 'Novo Curso',
               allowedRoles: [...COURSES_ROLES],
             },
-          ],
+          ].filter(
+            item =>
+              featureFlags.coursesDashboard ||
+              item.href !== COURSES_DASHBOARD_HREF
+          ),
         },
         {
           href: '',
@@ -359,15 +374,17 @@ export function getMenuList(pathname: string): Group[] {
  * Filters menu items based on user roles from Heimdall
  * @param pathname - Current pathname
  * @param userRoles - Array of user's roles from Heimdall API
+ * @param featureFlags - Runtime feature flags from the server (DEV-644)
  * @returns Filtered menu list based on user permissions
  */
 export function getFilteredMenuList(
   pathname: string,
-  userRoles: string[] | null | undefined
+  userRoles: string[] | null | undefined,
+  featureFlags: RuntimeFeatureFlags
 ): Group[] {
   if (!userRoles || userRoles.length === 0) return []
 
-  const fullMenuList = getMenuList(pathname)
+  const fullMenuList = getMenuList(pathname, featureFlags)
 
   return fullMenuList
     .map(group => ({

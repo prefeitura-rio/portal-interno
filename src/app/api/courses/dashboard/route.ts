@@ -6,7 +6,12 @@ import {
   buildCoursesDashboard,
 } from '@/lib/courses-dashboard'
 import { resolveDepartmentNames } from '@/lib/department-names'
+import { isCoursesDashboardEnabled } from '@/lib/feature-flags'
 import { NextResponse } from 'next/server'
+
+// A flag é lida a cada requisição, nunca no build: a troca no Infisical vale no
+// reinício dos pods, sem novo build
+export const dynamic = 'force-dynamic'
 
 /**
  * Consolidado do Dashboard de Capacitações (DEV-100): cursos publicados e
@@ -15,8 +20,19 @@ import { NextResponse } from 'next/server'
  * cursos de todas as secretarias. Os nomes das secretarias vêm da RMI, em lote
  * controlado e com cache no servidor (`resolveDepartmentNames`); as contagens
  * de inscrições também têm cache e novas tentativas (`countEnrollmentsByCourse`).
+ *
+ * Atrás da flag de runtime `FEATURE_COURSES_DASHBOARD` (DEV-644): desligada, a
+ * rota responde 404 sem chamar nenhuma API, para qualquer papel. A flag soma-se
+ * ao RBAC do middleware, que roda antes.
  */
 export async function GET() {
+  if (!isCoursesDashboardEnabled()) {
+    return NextResponse.json(
+      { error: 'Not found', success: false },
+      { status: 404 }
+    )
+  }
+
   try {
     const result = await buildCoursesDashboard({
       listPublishedCoursesPage: (page, limit) =>

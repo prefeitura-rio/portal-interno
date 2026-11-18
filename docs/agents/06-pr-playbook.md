@@ -31,6 +31,7 @@ Checklist para transformar um pedido de alto nível (ex.: Jira) em um PR seguro 
 - [ ] UI: shadcn; só Tailwind em `className`; escala (`p-3`) > `p-[12px]`; cores via tokens de `globals.css`.
 - [ ] Ícones: Lucide; customs em `src/components/icons/` se existirem.
 - [ ] Flag MEI: lembrar que `NEXT_PUBLIC_FEATURE_FLAG === 'true'` **bloqueia** `oportunidades-mei`.
+- [ ] Tela que precisa ir a produção desligada: flag de runtime em `src/lib/feature-flags.ts` (`process.env.FEATURE_* === 'true'`, só no servidor, segura por padrão), somada ao RBAC — ver [04-domains.md](04-domains.md#feature-flags-de-runtime-server-side). Hoje: `FEATURE_COURSES_DASHBOARD` (Dashboard de Capacitações: menu, página e BFF).
 
 ## 5. O que NÃO incluir no PR
 
@@ -56,6 +57,7 @@ npm run typecheck
 | Pedido (exemplo) | Começar em |
 |------------------|------------|
 | CRUD / fluxo de curso | `/gorio/courses`, `http-gorio/`, BFF courses |
+| Dashboard de Capacitações | `/gorio/courses/dashboard`, BFF `api/courses/dashboard`, `COURSES_DASHBOARD_ROLES` + flag `FEATURE_COURSES_DASHBOARD` |
 | Vaga / empresa | `/gorio/empregabilidade`, papéis empregabilidade |
 | Oportunidade MEI | `/gorio/oportunidades-mei` + flag + papéis admin/go:admin |
 | Serviço municipal / aprovação | `/servicos-municipais/`, `http-busca-search/` |
