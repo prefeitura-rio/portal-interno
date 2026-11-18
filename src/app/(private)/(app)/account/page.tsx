@@ -12,91 +12,9 @@ import { Separator } from '@/components/ui/separator'
 import { getCurrentUserInfoApiV1UsersMeGet } from '@/http-heimdall/users/users'
 import { getAdminCpfSecretariaCpf } from '@/http-rmi/admin/admin'
 import type { ModelsCPFSecretariaResponse } from '@/http-rmi/models/modelsCPFSecretariaResponse'
+import { getRoleInfo } from '@/lib/account-role-info'
 import { getUserInfoFromToken } from '@/lib/user-info'
 import { Shield, ShieldCheck, Users } from 'lucide-react'
-
-// Helper function to get role display information
-function getRoleInfo(role: string) {
-  const roleMap: Record<
-    string,
-    {
-      label: string
-      description: string
-      variant: 'default' | 'secondary' | 'outline' | 'destructive'
-      className: string
-    }
-  > = {
-    admin: {
-      label: 'Administrador',
-      description: 'Acesso total a todos os módulos e configurações',
-      variant: 'default',
-      className: 'bg-purple-100 text-purple-800 border-purple-300',
-    },
-    superadmin: {
-      label: 'Super Administrador',
-      description: 'Acesso irrestrito a toda a plataforma',
-      variant: 'default',
-      className: 'bg-red-100 text-red-800 border-red-300',
-    },
-    'go:admin': {
-      label: 'Administrador GO Rio',
-      description: 'Gerencia cursos, vagas e capacitações do GO Rio',
-      variant: 'secondary',
-      className: 'bg-blue-100 text-blue-800 border-blue-300',
-    },
-    'busca:services:admin': {
-      label: 'Administrador de Serviços',
-      description: 'Gerencia e aprova serviços municipais',
-      variant: 'secondary',
-      className: 'bg-green-100 text-green-800 border-green-300',
-    },
-    'busca:services:editor': {
-      label: 'Editor de Serviços',
-      description: 'Cria e edita serviços municipais',
-      variant: 'outline',
-      className: 'bg-amber-100 text-amber-800 border-amber-300',
-    },
-    'go:empregabilidade:admin': {
-      label: 'Administrador Emprego e Trabalho',
-      description: 'Acesso ao módulo Emprego e trabalho',
-      variant: 'secondary',
-      className: 'bg-blue-100 text-blue-800 border-blue-300',
-    },
-    'go:empregabilidade:editor_sem_curadoria': {
-      label: 'Editor Emprego e Trabalho (sem curadoria)',
-      description: 'Edição no módulo Emprego e trabalho',
-      variant: 'outline',
-      className: 'bg-slate-100 text-slate-800 border-slate-300',
-    },
-    'go:empregabilidade:editor_com_curadoria': {
-      label: 'Editor Emprego e Trabalho (com curadoria)',
-      description: 'Edição com curadoria no módulo Emprego e trabalho',
-      variant: 'outline',
-      className: 'bg-slate-100 text-slate-800 border-slate-300',
-    },
-    'go:curriculos:admin': {
-      label: 'Admin Banco de Currículos',
-      description: 'Consulta ao banco de currículos',
-      variant: 'outline',
-      className: 'bg-slate-100 text-slate-800 border-slate-300',
-    },
-    'go:curriculos:editor': {
-      label: 'Editor Banco de Currículos',
-      description: 'Consulta ao banco de currículos',
-      variant: 'outline',
-      className: 'bg-slate-100 text-slate-800 border-slate-300',
-    },
-  }
-
-  return (
-    roleMap[role] || {
-      label: role,
-      description: 'Função personalizada',
-      variant: 'outline' as const,
-      className: 'bg-gray-100 text-gray-800 border-gray-300',
-    }
-  )
-}
 
 // Helper function to determine module access
 function getModuleAccess(roles: string[] | undefined) {
