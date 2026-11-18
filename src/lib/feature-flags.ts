@@ -27,6 +27,20 @@ export function isCoursesDashboardEnabled(): boolean {
   return process.env.FEATURE_COURSES_DASHBOARD === 'true'
 }
 
+const COURSES_DASHBOARD_PATH = '/gorio/courses/dashboard'
+
+/**
+ * Página que a flag de runtime desliga agora: o middleware responde 404 a ela
+ * (depois do RBAC), antes de qualquer renderização, para o status ser 404 de
+ * fato. Hoje só a Dashboard de Capacitações e as subrotas dela.
+ */
+export function isPageDisabledByFeatureFlag(pathname: string): boolean {
+  const isCoursesDashboard =
+    pathname === COURSES_DASHBOARD_PATH ||
+    pathname.startsWith(`${COURSES_DASHBOARD_PATH}/`)
+  return isCoursesDashboard && !isCoursesDashboardEnabled()
+}
+
 /** Flags que o servidor repassa à UI (menu lateral). */
 export interface RuntimeFeatureFlags {
   coursesDashboard: boolean

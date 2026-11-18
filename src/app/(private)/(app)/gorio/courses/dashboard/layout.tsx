@@ -7,8 +7,10 @@ export const dynamic = 'force-dynamic'
 
 /**
  * Dashboard de Capacitações atrás da flag de runtime `FEATURE_COURSES_DASHBOARD`
- * (DEV-644): desligada, a página responde 404 para todos, inclusive admins. O
- * RBAC (`COURSES_DASHBOARD_ROLES`) continua no middleware, antes desta checagem.
+ * (DEV-644): desligada, a página não renderiza para ninguém, inclusive admins.
+ * O middleware já responde 404 depois do RBAC (`COURSES_DASHBOARD_ROLES`); este
+ * `notFound()` é a segunda barreira, para as requisições que o middleware não
+ * casa (prefetch do roteador).
  */
 export default function CoursesDashboardLayout({
   children,

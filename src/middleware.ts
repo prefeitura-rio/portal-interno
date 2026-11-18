@@ -5,6 +5,7 @@ import {
 } from 'next/server'
 import { isJwtExpired } from './lib'
 import { checkCsrfOrigin } from './lib/csrf-origin'
+import { isPageDisabledByFeatureFlag } from './lib/feature-flags'
 import { getLogUserRef, redactCpfForLog } from './lib/log-user-ref'
 import {
   getUserFromHeimdallWithCache,
@@ -111,6 +112,25 @@ async function handleApiRequest(request: NextRequest): Promise<NextResponse> {
   return response
 }
 
+/**
+ * 404 de página respondido pelo próprio middleware. Não dá para reescrever para
+ * `/_not-found`: o middleware roda de novo no caminho reescrito e o RBAC nega
+ * rota sem regra. E o `notFound()` no layout já chega com o corpo em streaming
+ * (status 200), então o status 404 sai daqui.
+ */
+function pageNotFoundResponse(): NextResponse {
+  return new NextResponse(
+    '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Página não encontrada</title></head><body><h1>404</h1><p>Página não encontrada.</p><p><a href="/">Voltar ao início</a></p></body></html>',
+    {
+      status: 404,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+      },
+    }
+  )
+}
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
@@ -170,6 +190,12 @@ export async function middleware(request: NextRequest) {
         `[${userRef}] [MIDDLEWARE] Access denied for path: ${path} (see route-permissions.ts)`
       )
       return await handleUnauthorizedUser(request)
+    }
+
+    // Tela desligada por flag de runtime (DEV-644): 404 para todos os papéis,
+    // depois do RBAC acima (a flag soma-se a ele, não o substitui)
+    if (isPageDisabledByFeatureFlag(path)) {
+      return pageNotFoundResponse()
     }
 
     return response

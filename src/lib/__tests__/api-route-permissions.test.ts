@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { existsSync, readdirSync } from 'node:fs'
 import { registerHooks } from 'node:module'
-import { afterEach, beforeEach, describe, test } from 'node:test'
+import { after, afterEach, before, beforeEach, describe, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 // DEV-43: o middleware excluía /api do RBAC e nenhum handler conferia o papel,
@@ -417,6 +417,20 @@ describe('Dashboard de Capacitações: só Casa Civil e admins (DEV-100)', () =>
     ['go:empregabilidade:admin'],
     ['go:curriculos:admin'],
   ]
+
+  // DEV-644: a página fica atrás da flag de runtime; aqui ela está ligada (o
+  // RBAC com a flag desligada está em courses-dashboard-flag-middleware.test.ts)
+  const originalFlag = process.env.FEATURE_COURSES_DASHBOARD
+  before(() => {
+    process.env.FEATURE_COURSES_DASHBOARD = 'true'
+  })
+  after(() => {
+    if (originalFlag === undefined) {
+      Reflect.deleteProperty(process.env, 'FEATURE_COURSES_DASHBOARD')
+    } else {
+      process.env.FEATURE_COURSES_DASHBOARD = originalFlag
+    }
+  })
 
   async function callPage(token: string): Promise<Response> {
     const request = new NextRequest(`http://localhost${PAGE}`, {

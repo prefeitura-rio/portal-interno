@@ -29,12 +29,13 @@ Helpers em `src/lib/feature-flags.ts`, no padrão do superapp: `process.env.NOME
 
 | Variável | Helper | Efeito quando desligada | Valores |
 |----------|--------|-------------------------|---------|
-| `FEATURE_COURSES_DASHBOARD` | `isCoursesDashboardEnabled()` | Some o item "Dashboard" de Capacitação no menu; `/gorio/courses/dashboard` → 404 (`notFound()` no `layout.tsx` da rota); `GET /api/courses/dashboard` → 404, sem chamar a API. Vale para todos os papéis, inclusive admins | `true` em staging; `false` em produção até a homologação da Casa Civil |
+| `FEATURE_COURSES_DASHBOARD` | `isCoursesDashboardEnabled()` | Some o item "Dashboard" de Capacitação no menu; `/gorio/courses/dashboard` → 404 (no `src/middleware.ts`, depois do RBAC, via `isPageDisabledByFeatureFlag()`; o `notFound()` no `layout.tsx` da rota é a segunda barreira, para o prefetch que o middleware não casa); `GET /api/courses/dashboard` → 404, sem chamar a API. Vale para todos os papéis, inclusive admins | `true` em staging; `false` em produção até a homologação da Casa Civil |
 
 Regras para flag nova:
 
 - Leia só em código de servidor (Route Handler, Server Component, layout) e em renderização dinâmica (`export const dynamic = 'force-dynamic'` no segmento ou `await connection()`), senão o valor congela no build.
 - Nunca leia `process.env.FEATURE_*` nem importe `@/lib/feature-flags` (fora `import type`) em componente `'use client'`: o valor chega ao client pelo `FeatureFlagsProvider` (`src/contexts/feature-flags-context.tsx`), alimentado por `getRuntimeFeatureFlags()` no layout `(private)/(app)/layout.tsx`. Fora do provider, tudo fica desligado.
+- Página desligada: o 404 sai do middleware (`isPageDisabledByFeatureFlag()`), não do `notFound()` (que já chega em streaming, com status 200) nem de rewrite para `/_not-found` (o middleware roda de novo no caminho reescrito e o RBAC nega rota sem regra).
 - A flag **soma-se** ao RBAC (`ROUTE_PERMISSIONS` / `API_ROUTE_PERMISSIONS`), nunca o substitui: o middleware recusa quem não tem o papel antes da checagem da flag.
 - A variável é criada no Infisical (staging e produção) por quem administra os segredos; este repo não define o valor.
 
