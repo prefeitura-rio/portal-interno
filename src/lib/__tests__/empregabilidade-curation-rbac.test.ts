@@ -44,8 +44,20 @@ const STUBS: Record<string, string> = {
       if (status !== 200) return { status, data: { error: 'falha' } }
       return {
         status: 200,
-        data: { id, status: globalThis.__dev126VagaStatus },
+        data: {
+          id,
+          status: globalThis.__dev126VagaStatus,
+          data_limite: new Date(Date.now() + 86400000).toISOString(),
+        },
       }
+    }
+    export async function putApiV1EmpregabilidadeVagasIdSendToDraft(id) {
+      record({ fn: 'send-to-draft', id })
+      return { status: 200, data: { id, status: 'em_edicao' } }
+    }
+    export async function putApiV1EmpregabilidadeVagasIdSendToApproval(id) {
+      record({ fn: 'send-to-approval', id })
+      return { status: 200, data: { id, status: 'em_aprovacao' } }
     }
     export async function putApiV1EmpregabilidadeVagasId(id, body) {
       record({ fn: 'update', id, body })
@@ -69,11 +81,21 @@ const STUBS: Record<string, string> = {
   `),
 }
 
+const CUSTOM_FETCH_GORIO_STUB = moduleUrl(`
+  export async function customFetchGoRio(url, init) {
+    globalThis.__dev126Calls.push({ fn: 'idiomas', id: url, body: init?.body })
+    return { status: 200, data: [] }
+  }
+`)
+
 registerHooks({
   resolve(specifier, context, nextResolve) {
     const stub = STUBS[specifier]
     if (stub) {
       return { url: stub, shortCircuit: true }
+    }
+    if (specifier.endsWith('/custom-fetch-gorio')) {
+      return { url: CUSTOM_FETCH_GORIO_STUB, shortCircuit: true }
     }
     if (specifier === 'next/server') {
       return nextResolve('next/server.js', context)
@@ -101,6 +123,15 @@ registerHooks({
 const { NextRequest } = await import('next/server')
 const vagaRoute = await import(
   '../../app/api/empregabilidade/vagas/[id]/route.ts'
+)
+const idiomasRoute = await import(
+  '../../app/api/empregabilidade/vagas/[id]/idiomas-requisito/route.ts'
+)
+const sendToDraftRoute = await import(
+  '../../app/api/empregabilidade/vagas/[id]/send-to-draft/route.ts'
+)
+const sendToApprovalRoute = await import(
+  '../../app/api/empregabilidade/vagas/[id]/send-to-approval/route.ts'
 )
 const statusRoute = await import(
   '../../app/api/empregabilidade/candidaturas/[id]/status/route.ts'
@@ -199,6 +230,62 @@ async function updateVaga(
     }
   )
   return json(await vagaRoute.PUT(request, { params: params(VAGA_ID) }))
+}
+
+/** Ações que mudam a vaga sem passar pelo `PUT vagas/[id]`. */
+const VAGA_CHANGE_ACTIONS: [
+  string,
+  string,
+  (roles: string[] | undefined, status: string) => Promise<{ status: number }>,
+][] = [
+  [
+    'idiomas-requisito',
+    'idiomas',
+    (roles, status) =>
+      callVagaAction(idiomasRoute.PUT, 'idiomas-requisito', roles, status, {
+        requisitos: [],
+      }),
+  ],
+  [
+    'send-to-draft',
+    'send-to-draft',
+    (roles, status) =>
+      callVagaAction(sendToDraftRoute.PUT, 'send-to-draft', roles, status),
+  ],
+  [
+    'send-to-approval',
+    'send-to-approval',
+    (roles, status) =>
+      callVagaAction(
+        sendToApprovalRoute.PUT,
+        'send-to-approval',
+        roles,
+        status
+      ),
+  ],
+]
+
+async function callVagaAction(
+  handler: (
+    request: Request,
+    context: { params: Promise<{ id: string }> }
+  ) => Promise<Response>,
+  action: string,
+  roles: string[] | undefined,
+  status: string,
+  body?: unknown
+) {
+  testGlobals.__dev126Roles = roles
+  testGlobals.__dev126VagaStatus = status
+  const request = new NextRequest(
+    `https://admin.test/api/empregabilidade/vagas/${VAGA_ID}/${action}`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body ?? {}),
+    }
+  )
+  return json(await handler(request, { params: params(VAGA_ID) }))
 }
 
 async function setStatus(roles: string[] | undefined, status: string) {
@@ -339,6 +426,56 @@ describe('PUT /api/empregabilidade/vagas/[id] (DEV-126)', () => {
       const response = await updateVaga(roles, 'publicado_ativo', vagaBody())
       assert.equal(response.status, 403)
       assert.equal(calls('update').length, 0)
+    }
+  })
+})
+
+describe('idiomas, envio para rascunho e para aprovação de vaga (DEV-126)', () => {
+  test('editor com curadoria não muda vaga publicada, pausada ou encerrada (403, nada chega à API)', async () => {
+    for (const [name, fn, call] of VAGA_CHANGE_ACTIONS) {
+      for (const status of CLOSED_STATUSES) {
+        testGlobals.__dev126Calls = []
+        const response = await call(CURADORIA, status)
+        assert.equal(response.status, 403, `${name} ${status}`)
+        assert.equal(calls(fn).length, 0, `${name} ${status}`)
+      }
+    }
+  })
+
+  test('editor com curadoria segue com vaga em edição ou em aprovação', async () => {
+    for (const [name, fn, call] of VAGA_CHANGE_ACTIONS) {
+      for (const status of OPEN_STATUSES) {
+        testGlobals.__dev126Calls = []
+        const response = await call(CURADORIA, status)
+        assert.equal(response.status, 200, `${name} ${status}`)
+        assert.equal(calls(fn).length, 1, `${name} ${status}`)
+      }
+    }
+  })
+
+  test('quem publica vagas segue em qualquer status', async () => {
+    for (const roles of PUBLISHERS) {
+      for (const [name, fn, call] of VAGA_CHANGE_ACTIONS) {
+        testGlobals.__dev126Calls = []
+        const response = await call(roles, 'publicado_ativo')
+        assert.equal(response.status, 200, `${name} ${roles.join(',')}`)
+        assert.equal(calls(fn).length, 1, `${name} ${roles.join(',')}`)
+      }
+    }
+  })
+
+  test('sem papéis ou sem conseguir ler a vaga: falha fechada', async () => {
+    for (const [name, fn, call] of VAGA_CHANGE_ACTIONS) {
+      for (const roles of [undefined, []]) {
+        testGlobals.__dev126Calls = []
+        assert.equal((await call(roles, 'publicado_ativo')).status, 403, name)
+        assert.equal(calls(fn).length, 0, name)
+      }
+      testGlobals.__dev126Calls = []
+      testGlobals.__dev126GetStatus = 500
+      assert.equal((await call(CURADORIA, 'em_edicao')).status, 502, name)
+      assert.equal(calls(fn).length, 0, name)
+      testGlobals.__dev126GetStatus = undefined
     }
   })
 })

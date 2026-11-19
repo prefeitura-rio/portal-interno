@@ -1,3 +1,5 @@
+import { getApiV1EmpregabilidadeVagasId } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
+import { getCurrentUserRoles } from '@/lib/heimdall-user'
 import {
   VAGA_STATUSES_CLOSED_TO_EDITOR_COM_CURADORIA,
   canApproveCandidatura,
@@ -46,8 +48,12 @@ export function vagaStatusKeys(body: unknown): string[] {
   return Object.keys(body).filter(key => foldJsonKey(key) === 'STATUS')
 }
 
-/** `DELETE vagas/[id]`: o editor com curadoria só exclui em edição ou aprovação. */
-export function canDeleteVaga(
+/**
+ * Excluir a vaga, mudar seus requisitos de idioma ou levá-la a rascunho ou a
+ * aprovação: o editor com curadoria só o faz com a vaga em edição ou em
+ * aprovação.
+ */
+export function canChangeVaga(
   roles: string[] | undefined,
   currentStatus: unknown
 ): boolean {
@@ -100,4 +106,35 @@ export const CANDIDATURA_APPROVAL_FORBIDDEN_MESSAGE =
 
 export function forbidden(message: string): NextResponse {
   return NextResponse.json({ error: message, success: false }, { status: 403 })
+}
+
+/**
+ * Confere `canChangeVaga` contra o status atual da vaga e devolve a resposta
+ * de recusa, ou `null` para seguir. Quem publica vagas segue sem a leitura da
+ * vaga; sem conseguir ler o status, recusa (falha fechada).
+ */
+export async function denyVagaChangeForCuration(
+  vagaId: string,
+  action: string
+): Promise<NextResponse | null> {
+  const roles = await getCurrentUserRoles()
+  if (!isVagaCurationRestricted(roles)) return null
+
+  const response = await getApiV1EmpregabilidadeVagasId(vagaId)
+  if (response.status !== 200) {
+    return NextResponse.json(
+      { error: 'Não foi possível conferir o status da vaga', success: false },
+      { status: response.status >= 500 ? 502 : response.status }
+    )
+  }
+
+  const currentStatus = response.data.status
+  if (!canChangeVaga(roles, currentStatus)) {
+    console.warn(
+      `[EMPREGABILIDADE] ${action} denied for vaga ${vagaId} with status "${currentStatus}": requires a vaga publish role`
+    )
+    return forbidden(VAGA_CURATION_FORBIDDEN_MESSAGE)
+  }
+
+  return null
 }

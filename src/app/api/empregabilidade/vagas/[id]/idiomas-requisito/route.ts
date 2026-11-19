@@ -1,3 +1,4 @@
+import { denyVagaChangeForCuration } from '@/lib/empregabilidade-curation-guard'
 import { NextResponse } from 'next/server'
 import { customFetchGoRio } from '../../../../../../../custom-fetch-gorio'
 
@@ -18,6 +19,11 @@ export async function PUT(
   try {
     const { id } = await params
     const body: IdiomasRequisitoBody = await request.json()
+
+    // Vaga publicada, pausada ou encerrada é só leitura para o editor com
+    // curadoria, como na UI (DEV-126)
+    const denial = await denyVagaChangeForCuration(id, 'Idiomas update')
+    if (denial) return denial
 
     const response = await customFetchGoRio<{ status: number; data: unknown }>(
       `/api/v1/empregabilidade/vagas/${id}/idiomas-requisito`,
