@@ -8,7 +8,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { ensureAfter, isDayWithoutTimeAfter } from '@/lib/datetime-bounds'
+import {
+  ensureAfter,
+  isDayWithoutTimeAfter,
+  withTime,
+} from '@/lib/datetime-bounds'
 import { cn } from '@/lib/utils'
 import { format, set } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -90,26 +94,28 @@ export function DateTimePicker({
     setOpen(false)
   }
 
+  // A hora digitada é aplicada como está: o limite `after` só vale ao confirmar
+  // o campo (blur), senão a correção para "agora + 1s" interrompe a digitação
+  // de um horário de hoje (DEV-679).
   const handleTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = event.target.value
     setTimeValue(newTime)
 
     if (selectedDate) {
-      // Parse the new time and combine with existing date
-      const [hours, minutes, seconds] = newTime.split(':').map(Number)
-      const newDateTime = ensureAfter(
-        set(selectedDate, {
-          hours: hours || 0,
-          minutes: minutes || 0,
-          seconds: seconds || 0,
-          milliseconds: 0,
-        }),
-        after
-      )
-
+      const newDateTime = withTime(selectedDate, newTime)
       setSelectedDate(newDateTime)
-      setTimeValue(format(newDateTime, 'HH:mm:ss'))
       onChange?.(newDateTime)
+    }
+  }
+
+  const handleTimeBlur = () => {
+    if (!selectedDate) return
+
+    const committed = ensureAfter(selectedDate, after)
+    setTimeValue(format(committed, 'HH:mm:ss'))
+    if (committed.getTime() !== selectedDate.getTime()) {
+      setSelectedDate(committed)
+      onChange?.(committed)
     }
   }
 
@@ -178,6 +184,7 @@ export function DateTimePicker({
           step="1"
           value={timeValue}
           onChange={handleTimeChange}
+          onBlur={handleTimeBlur}
           disabled={disabled}
           className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
         />

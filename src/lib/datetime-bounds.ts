@@ -28,6 +28,16 @@ export function firstSecondAfter(after: Date): Date {
   )
 }
 
+// Combina o dia com a hora do campo de hora ("HH:mm" ou "HH:mm:ss"; partes
+// ausentes ou inválidas valem zero), sem aplicar limite: enquanto se digita, o
+// valor intermediário não é corrigido (DEV-679).
+export function withTime(day: Date, time: string): Date {
+  const [hours, minutes, seconds] = time.split(':').map(Number)
+  const combined = new Date(day)
+  combined.setHours(hours || 0, minutes || 0, seconds || 0, 0)
+  return combined
+}
+
 // Mantém o valor quando ele já é posterior ao limite; senão, devolve o primeiro
 // segundo válido, para que o seletor nunca entregue data e hora iguais ou
 // anteriores ao limite.
