@@ -195,8 +195,11 @@ export function isOnlyEmpregoTrabalhoUser(
   return hasEmpregabilidadeRole && !hasFullAccess
 }
 
-/** Statuses for which editor_com_curadoria cannot delete (only em_edicao and em_aprovacao can be deleted) */
-const VAGA_STATUSES_NO_DELETE_EDITOR_COM_CURADORIA = [
+/**
+ * Statuses of a vaga that editor_com_curadoria can neither delete nor edit
+ * (the UI shows it read-only): only em_edicao and em_aprovacao are open to it.
+ */
+export const VAGA_STATUSES_CLOSED_TO_EDITOR_COM_CURADORIA = [
   'publicado_ativo',
   'publicado_expirado',
   'vaga_congelada',
@@ -204,34 +207,65 @@ const VAGA_STATUSES_NO_DELETE_EDITOR_COM_CURADORIA = [
 ] as const
 
 /**
- * True when user has go:empregabilidade:editor_com_curadoria (restrictions apply).
- * admin, superadmin, go:admin, go:empregabilidade:admin, go:empregabilidade:editor_sem_curadoria have no restrictions.
+ * Roles that publish, pause (freeze), resume (unfreeze/reactivate) and close
+ * (discontinue) a vaga without curation (DEV-126). Roles add up: a user with
+ * go:empregabilidade:editor_com_curadoria and one of these has no curation
+ * restriction.
+ */
+export const EMPREGABILIDADE_VAGA_PUBLISH_ROLES = [
+  'admin',
+  'superadmin',
+  'go:admin',
+  'go:empregabilidade:admin',
+  'go:empregabilidade:editor_sem_curadoria',
+] as const
+
+/**
+ * Roles that approve a candidatura (final hiring decision, DEV-126): the
+ * module admins only, never the editors.
+ */
+export const EMPREGABILIDADE_APPROVE_CANDIDATURA_ROLES = [
+  'admin',
+  'superadmin',
+  'go:admin',
+  'go:empregabilidade:admin',
+] as const
+
+/**
+ * True when the curation restrictions of go:empregabilidade:editor_com_curadoria
+ * apply: the user has that role and none of `EMPREGABILIDADE_VAGA_PUBLISH_ROLES`
+ * (DEV-126: the role that grants more prevails).
  */
 export function hasEditorComCuradoriaRestrictions(
   roles: string[] | undefined
 ): boolean {
   if (!roles) return false
-  return roles.includes('go:empregabilidade:editor_com_curadoria')
+  return (
+    roles.includes('go:empregabilidade:editor_com_curadoria') &&
+    !EMPREGABILIDADE_VAGA_PUBLISH_ROLES.some(role => roles.includes(role))
+  )
 }
 
 /**
  * Can publish vaga as "publicado_ativo".
- * editor_com_curadoria cannot; can only create/edit draft and send to approval.
+ * editor_com_curadoria alone cannot; can only create/edit draft and send to
+ * approval. The same list as the API rule of `vagas/[id]/publish` (DEV-126).
  */
 export function canPublishVagaAsAtivo(roles: string[] | undefined): boolean {
   if (!roles) return false
-  return !hasEditorComCuradoriaRestrictions(roles)
+  return EMPREGABILIDADE_VAGA_PUBLISH_ROLES.some(role => roles.includes(role))
 }
 
 /**
- * Can freeze (pausar) or discontinue (encerrar) vaga.
- * editor_com_curadoria cannot.
+ * Can freeze (pausar), unfreeze/reactivate (retomar) or discontinue (encerrar)
+ * vaga. editor_com_curadoria alone cannot. The same list as the API rule of
+ * those routes (DEV-126).
  */
 export function canFreezeOrDiscontinueVaga(
   roles: string[] | undefined
 ): boolean {
   if (!roles) return false
-  return !hasEditorComCuradoriaRestrictions(roles)
+  return EMPREGABILIDADE_VAGA_PUBLISH_ROLES.some(role => roles.includes(role))
 }
 
 /**
@@ -263,7 +297,7 @@ export function canDeleteVagaWithStatus(
   if (!roles) return false
   if (!hasEditorComCuradoriaRestrictions(roles)) return true
   return !(
-    VAGA_STATUSES_NO_DELETE_EDITOR_COM_CURADORIA as readonly string[]
+    VAGA_STATUSES_CLOSED_TO_EDITOR_COM_CURADORIA as readonly string[]
   ).includes(status)
 }
 
@@ -375,10 +409,8 @@ export function canManageEnrollments(roles: string[] | undefined): boolean {
  */
 export function canApproveCandidatura(roles: string[] | undefined): boolean {
   if (!roles) return false
-  return (
-    hasAdminPrivileges(roles) ||
-    roles.includes('go:admin') ||
-    roles.includes('go:empregabilidade:admin')
+  return EMPREGABILIDADE_APPROVE_CANDIDATURA_ROLES.some(role =>
+    roles.includes(role)
   )
 }
 

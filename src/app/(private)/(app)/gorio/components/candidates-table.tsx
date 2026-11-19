@@ -1897,13 +1897,15 @@ export function CandidatesTable({
 
         <DataTableActionBar table={table}>
           <DataTableActionBarSelection table={table} />
-          <DataTableActionBarAction
-            tooltip="Aprovar todos os candidatos selecionados"
-            onClick={handleBulkConfirmCandidatos}
-          >
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Aprovar candidatos
-          </DataTableActionBarAction>
+          {canApproveCandidatura && (
+            <DataTableActionBarAction
+              tooltip="Aprovar todos os candidatos selecionados"
+              onClick={handleBulkConfirmCandidatos}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Aprovar candidatos
+            </DataTableActionBarAction>
+          )}
           <DataTableActionBarAction
             tooltip="Reprovar todos os candidatos selecionados"
             onClick={handleBulkRejectCandidatos}

@@ -2,6 +2,12 @@ import type { CandidatoStatus } from '@/hooks/use-candidatos'
 import { putApiV1EmpregabilidadeCandidaturasBulkStatus } from '@/http-gorio/empregabilidade-candidaturas/empregabilidade-candidaturas'
 import type { EmpregabilidadeStatusCandidatura } from '@/http-gorio/models'
 import { cleanCPF } from '@/lib/cpf-validator'
+import {
+  CANDIDATURA_APPROVAL_FORBIDDEN_MESSAGE,
+  canSetCandidaturaStatus,
+  forbidden,
+} from '@/lib/empregabilidade-curation-guard'
+import { getCurrentUserRoles } from '@/lib/heimdall-user'
 import { mapFrontendStatusToBackend } from '@/lib/status-config/empregabilidade'
 import { NextResponse } from 'next/server'
 
@@ -39,6 +45,15 @@ export async function PUT(request: Request) {
     const backendStatus = mapFrontendStatusToBackend(
       frontendStatus as CandidatoStatus
     ) as EmpregabilidadeStatusCandidatura
+
+    // Aprovar em lote é a mesma ação de `approve` (DEV-126)
+    const roles = await getCurrentUserRoles()
+    if (!canSetCandidaturaStatus(roles, backendStatus)) {
+      console.warn(
+        `[EMPREGABILIDADE] Bulk approval denied for vaga ${vagaId}: requires a candidatura approval role`
+      )
+      return forbidden(CANDIDATURA_APPROVAL_FORBIDDEN_MESSAGE)
+    }
 
     const response = await putApiV1EmpregabilidadeCandidaturasBulkStatus({
       cpfs,
