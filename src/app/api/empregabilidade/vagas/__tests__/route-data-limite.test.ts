@@ -27,6 +27,13 @@ const STUBS: Record<string, string> = {
   'next/cache': moduleUrl(`
     export function revalidateTag() {}
   `),
+  // O PUT confere os papéis desde a DEV-126; aqui um admin do módulo, que
+  // edita vaga em qualquer status (a regra por papel tem teste próprio)
+  '@/lib/heimdall-user': moduleUrl(`
+    export async function getCurrentUserRoles() {
+      return ['go:empregabilidade:admin']
+    }
+  `),
   '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas': moduleUrl(`
     function record(call) {
       globalThis.__dev167Calls?.push(call)

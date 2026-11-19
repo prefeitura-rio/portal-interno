@@ -6,9 +6,16 @@ import {
 import type { EmpregabilidadeVaga } from '@/http-gorio/models/empregabilidadeVaga'
 import { toApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
 import {
+  VAGA_CURATION_FORBIDDEN_MESSAGE,
+  canUpdateVaga,
+  denyVagaChangeForCuration,
+  forbidden,
+} from '@/lib/empregabilidade-curation-guard'
+import {
   DATA_LIMITE_FIELD_LABEL,
   validateVagaDataLimite,
 } from '@/lib/empregabilidade-vaga-dates'
+import { getCurrentUserRoles } from '@/lib/heimdall-user'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -100,6 +107,17 @@ export async function PUT(
     }
 
     const currentVaga = currentVagaResponse.data
+
+    // O editor com curadoria não edita vaga publicada, pausada ou encerrada
+    // nem muda o status pelo corpo, como na UI (DEV-126)
+    const roles = await getCurrentUserRoles()
+    if (!canUpdateVaga(roles, currentVaga.status, bodyWithoutFlag)) {
+      console.warn(
+        `[EMPREGABILIDADE] Update denied for vaga ${id} with status "${currentVaga.status}": requires a vaga publish role`
+      )
+      return forbidden(VAGA_CURATION_FORBIDDEN_MESSAGE)
+    }
+
     const isDraft = currentVaga.status === 'em_edicao'
 
     // Validate based on status and save mode
@@ -195,6 +213,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
+
+    // O editor com curadoria só exclui vaga em edição ou em aprovação, como na
+    // UI (DEV-126)
+    const denial = await denyVagaChangeForCuration(id, 'Delete')
+    if (denial) return denial
 
     console.log('Deleting vaga:', id)
 

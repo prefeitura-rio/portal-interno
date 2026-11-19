@@ -6,6 +6,8 @@ import {
   COURSES_DASHBOARD_ROLES,
   COURSES_ROLES,
   CURRICULOS_ROLES,
+  EMPREGABILIDADE_APPROVE_CANDIDATURA_ROLES,
+  EMPREGABILIDADE_VAGA_PUBLISH_ROLES,
   EMPREGO_TRABALHO_ROLES,
 } from '@/types/heimdall-roles'
 
@@ -266,6 +268,15 @@ const COURSES_API = anyOf(COURSES_ROLES)
 const COURSES_CASA_CIVIL_API = anyOf(COURSES_CASA_CIVIL_ROLES)
 const COURSES_DASHBOARD_API = anyOf(COURSES_DASHBOARD_ROLES)
 const EMPREGO_TRABALHO_API = anyOf(EMPREGO_TRABALHO_ROLES)
+// Publicar, pausar, retomar e encerrar vaga: sem o editor com curadoria
+// sozinho, como na UI (DEV-126)
+const EMPREGABILIDADE_VAGA_PUBLISH_API = anyOf(
+  EMPREGABILIDADE_VAGA_PUBLISH_ROLES
+)
+// Aprovar candidatura: só os admins do módulo, como na UI (DEV-126)
+const EMPREGABILIDADE_APPROVE_CANDIDATURA_API = anyOf(
+  EMPREGABILIDADE_APPROVE_CANDIDATURA_ROLES
+)
 const CURRICULOS_API = anyOf(CURRICULOS_ROLES)
 const MEI_API = anyOf(MEI_ROLES)
 const BUSCA_SERVICES_API = anyOf(BUSCA_SERVICES_ROLES)
@@ -347,9 +358,12 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
 
   // GO Rio - Empregabilidade (página /gorio/empregabilidade)
   '/api/empregabilidade/candidaturas': EMPREGO_TRABALHO_API,
-  '/api/empregabilidade/candidaturas/[id]/approve': EMPREGO_TRABALHO_API,
+  '/api/empregabilidade/candidaturas/[id]/approve':
+    EMPREGABILIDADE_APPROVE_CANDIDATURA_API,
   '/api/empregabilidade/candidaturas/[id]/etapa': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/candidaturas/[id]/reject': EMPREGO_TRABALHO_API,
+  // `status` e `bulk-status` também aprovam (status `approved`): o handler
+  // nega esse status a quem não aprova candidatura (DEV-126)
   '/api/empregabilidade/candidaturas/[id]/status': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/candidaturas/bulk-etapa': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/candidaturas/bulk-status': EMPREGO_TRABALHO_API,
@@ -361,17 +375,22 @@ export const API_ROUTE_PERMISSIONS: Record<string, ApiRoutePermission> = {
   '/api/empregabilidade/empresas/[cnpj]': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/empresas/consulta-cnpj/[cnpj]': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/vagas': EMPREGO_TRABALHO_API,
+  // DELETE e PUT conferem o status atual da vaga para o editor com curadoria
+  // (empregabilidade-curation-guard, DEV-126)
   '/api/empregabilidade/vagas/[id]': EMPREGO_TRABALHO_API,
-  '/api/empregabilidade/vagas/[id]/discontinue': EMPREGO_TRABALHO_API,
-  '/api/empregabilidade/vagas/[id]/freeze': EMPREGO_TRABALHO_API,
+  '/api/empregabilidade/vagas/[id]/discontinue':
+    EMPREGABILIDADE_VAGA_PUBLISH_API,
+  '/api/empregabilidade/vagas/[id]/freeze': EMPREGABILIDADE_VAGA_PUBLISH_API,
   '/api/empregabilidade/vagas/[id]/idiomas-requisito': EMPREGO_TRABALHO_API,
-  '/api/empregabilidade/vagas/[id]/publish': EMPREGO_TRABALHO_API,
-  '/api/empregabilidade/vagas/[id]/reactivate': EMPREGO_TRABALHO_API,
+  '/api/empregabilidade/vagas/[id]/publish': EMPREGABILIDADE_VAGA_PUBLISH_API,
+  '/api/empregabilidade/vagas/[id]/reactivate':
+    EMPREGABILIDADE_VAGA_PUBLISH_API,
   '/api/empregabilidade/vagas/[id]/send-to-approval': EMPREGO_TRABALHO_API,
   '/api/empregabilidade/vagas/[id]/send-to-draft': EMPREGO_TRABALHO_API,
-  '/api/empregabilidade/vagas/[id]/unfreeze': EMPREGO_TRABALHO_API,
+  '/api/empregabilidade/vagas/[id]/unfreeze': EMPREGABILIDADE_VAGA_PUBLISH_API,
   '/api/empregabilidade/vagas/draft': EMPREGO_TRABALHO_API,
-  '/api/empregabilidade/vagas/new': EMPREGO_TRABALHO_API,
+  // Cria a vaga e já a publica
+  '/api/empregabilidade/vagas/new': EMPREGABILIDADE_VAGA_PUBLISH_API,
   '/api/empregabilidade/vagas/new/send-to-approval': EMPREGO_TRABALHO_API,
   '/api/empregos/[id]': EMPREGO_TRABALHO_API,
   '/api/empregos/[id]/candidatos': EMPREGO_TRABALHO_API,

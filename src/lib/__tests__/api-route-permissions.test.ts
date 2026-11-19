@@ -46,8 +46,14 @@ const { resetHeimdallUserServerCache } = await import(
 )
 const { API_ROUTE_PERMISSIONS, findApiRoutePermission, hasApiRouteAccess } =
   await import('../route-permissions.ts')
-const { canApproveCourses, canPublishCourses, isBuscaServicesAdmin } =
-  await import('../../types/heimdall-roles.ts')
+const {
+  canApproveCandidatura,
+  canApproveCourses,
+  canFreezeOrDiscontinueVaga,
+  canPublishCourses,
+  canPublishVagaAsAtivo,
+  isBuscaServicesAdmin,
+} = await import('../../types/heimdall-roles.ts')
 
 // CPF sintético (dígitos verificadores válidos, sem titular real)
 const CPF = '52998224725'
@@ -652,6 +658,162 @@ describe('aprovar e publicar exigem o papel que a UI exige (DEV-125)', () => {
           hasApiRouteAccess(rule.permission, [role]),
           isBuscaServicesAdmin([role]),
           `${path} com ${role}`
+        )
+      }
+    }
+  })
+})
+
+describe('Empregabilidade: publicar, pausar, retomar e encerrar vaga e aprovar candidatura exigem o papel que a UI exige (DEV-126)', () => {
+  const VAGA_PUBLISH_ROUTES: [string, string][] = [
+    ['/api/empregabilidade/vagas/42/publish', 'PUT'],
+    ['/api/empregabilidade/vagas/42/freeze', 'PUT'],
+    ['/api/empregabilidade/vagas/42/unfreeze', 'PUT'],
+    ['/api/empregabilidade/vagas/42/reactivate', 'PUT'],
+    ['/api/empregabilidade/vagas/42/discontinue', 'PUT'],
+    ['/api/empregabilidade/vagas/new', 'POST'],
+  ]
+  const APPROVE_ROUTES: [string, string][] = [
+    ['/api/empregabilidade/candidaturas/7/approve', 'PUT'],
+  ]
+  const CURADORIA = 'go:empregabilidade:editor_com_curadoria'
+  const SEM_CURADORIA = 'go:empregabilidade:editor_sem_curadoria'
+
+  test('editor com curadoria recebe 403 ao publicar, pausar, retomar, encerrar ou criar já publicada', async () => {
+    const editor = userWith([CURADORIA])
+    for (const [path, method] of VAGA_PUBLISH_ROUTES) {
+      await assertDenied(await callApi(path, editor, method), 403)
+    }
+  })
+
+  test('quem publica vagas segue para o handler, inclusive admin do módulo com curadoria', async () => {
+    for (const roles of [
+      ['go:empregabilidade:admin'],
+      [SEM_CURADORIA],
+      ['go:admin'],
+      ['admin'],
+      ['superadmin'],
+      [CURADORIA, 'go:empregabilidade:admin'],
+    ]) {
+      const token = userWith(roles)
+      for (const [path, method] of VAGA_PUBLISH_ROUTES) {
+        assert.equal(
+          passedThrough(await callApi(path, token, method)),
+          true,
+          `${method} ${path} com ${roles.join(',')}`
+        )
+      }
+    }
+  })
+
+  test('editores recebem 403 ao aprovar candidatura', async () => {
+    for (const roles of [
+      [CURADORIA],
+      [SEM_CURADORIA],
+      [CURADORIA, SEM_CURADORIA],
+    ]) {
+      const token = userWith(roles)
+      for (const [path, method] of APPROVE_ROUTES) {
+        await assertDenied(await callApi(path, token, method), 403)
+      }
+    }
+  })
+
+  test('admins do módulo aprovam candidatura, inclusive com papel de editor junto', async () => {
+    for (const roles of [
+      ['go:empregabilidade:admin'],
+      ['go:admin'],
+      ['admin'],
+      ['superadmin'],
+      [CURADORIA, 'go:empregabilidade:admin'],
+    ]) {
+      const token = userWith(roles)
+      for (const [path, method] of APPROVE_ROUTES) {
+        assert.equal(
+          passedThrough(await callApi(path, token, method)),
+          true,
+          `${method} ${path} com ${roles.join(',')}`
+        )
+      }
+    }
+  })
+
+  test('o editor com curadoria segue com rascunho, envio para aprovação, edição, exclusão e candidaturas', async () => {
+    const editor = userWith([CURADORIA])
+    for (const [path, method] of [
+      ['/api/empregabilidade/vagas', 'GET'],
+      ['/api/empregabilidade/vagas/draft', 'POST'],
+      ['/api/empregabilidade/vagas/new/send-to-approval', 'POST'],
+      ['/api/empregabilidade/vagas/42', 'GET'],
+      ['/api/empregabilidade/vagas/42', 'PUT'],
+      ['/api/empregabilidade/vagas/42', 'DELETE'],
+      ['/api/empregabilidade/vagas/42/send-to-approval', 'PUT'],
+      ['/api/empregabilidade/vagas/42/send-to-draft', 'PUT'],
+      ['/api/empregabilidade/vagas/42/idiomas-requisito', 'PUT'],
+      ['/api/empregabilidade/candidaturas', 'GET'],
+      ['/api/empregabilidade/candidaturas/7/reject', 'PUT'],
+      ['/api/empregabilidade/candidaturas/7/status', 'PUT'],
+      ['/api/empregabilidade/candidaturas/7/etapa', 'PUT'],
+      ['/api/empregabilidade/candidaturas/bulk-status', 'PUT'],
+      ['/api/empregabilidade/candidaturas/bulk-etapa', 'PUT'],
+    ]) {
+      assert.equal(
+        passedThrough(await callApi(path, editor, method)),
+        true,
+        `${method} ${path}`
+      )
+    }
+  })
+
+  test('papéis de outro módulo, sem sessão, sem papel ou Heimdall fora: negado', async () => {
+    for (const [path, method] of [...VAGA_PUBLISH_ROUTES, ...APPROVE_ROUTES]) {
+      await assertDenied(
+        await callApi(path, userWith(['go:cursos:casa_civil']), method),
+        403
+      )
+      await assertDenied(await callApi(path, undefined, method), 401)
+      await assertDenied(
+        await callApi(path, userWith([], 'sem-papel'), method),
+        403
+      )
+      await assertDenied(await callApi(path, userWith('erro'), method), 403)
+    }
+  })
+
+  test('a regra de cada rota é a mesma lista que mostra o botão na UI', () => {
+    const empregabilidadeRoles = [
+      'admin',
+      'superadmin',
+      'go:admin',
+      'go:empregabilidade:admin',
+      SEM_CURADORIA,
+      CURADORIA,
+      'go:cursos:editor',
+      'go:curriculos:admin',
+    ]
+    const combinations = [
+      ...empregabilidadeRoles.map(role => [role]),
+      ...empregabilidadeRoles.map(role => [CURADORIA, role]),
+    ]
+    for (const [path] of VAGA_PUBLISH_ROUTES) {
+      const rule = findApiRoutePermission(path)
+      assert.ok(rule, path)
+      for (const roles of combinations) {
+        assert.equal(
+          hasApiRouteAccess(rule.permission, roles),
+          canPublishVagaAsAtivo(roles) && canFreezeOrDiscontinueVaga(roles),
+          `${path} com ${roles.join(',')}`
+        )
+      }
+    }
+    for (const [path] of APPROVE_ROUTES) {
+      const rule = findApiRoutePermission(path)
+      assert.ok(rule, path)
+      for (const roles of combinations) {
+        assert.equal(
+          hasApiRouteAccess(rule.permission, roles),
+          canApproveCandidatura(roles),
+          `${path} com ${roles.join(',')}`
         )
       }
     }

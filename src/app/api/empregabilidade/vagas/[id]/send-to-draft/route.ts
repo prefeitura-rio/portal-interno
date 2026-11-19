@@ -2,6 +2,7 @@ import {
   getApiV1EmpregabilidadeVagasId,
   putApiV1EmpregabilidadeVagasIdSendToDraft,
 } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
+import { denyVagaChangeForCuration } from '@/lib/empregabilidade-curation-guard'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -14,6 +15,11 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
+
+    // Vaga publicada, pausada ou encerrada é só leitura para o editor com
+    // curadoria, como na UI (DEV-126)
+    const denial = await denyVagaChangeForCuration(id, 'Send to draft')
+    if (denial) return denial
 
     console.log('Sending vaga back to draft (edição):', id)
 
