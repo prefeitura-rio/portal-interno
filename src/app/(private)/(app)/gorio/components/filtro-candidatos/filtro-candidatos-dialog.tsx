@@ -19,7 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Popover,
@@ -38,6 +37,11 @@ import { useIdiomas } from '@/hooks/use-idiomas'
 import { useNiveisIdioma } from '@/hooks/use-niveis-idioma'
 import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { cn } from '@/lib/utils'
+import {
+  OPCAO_IDADE_DESCRICAO,
+  OPCAO_IDADE_LABEL,
+  OPCOES_IDADE,
+} from '@/lib/vaga-jovem-aprendiz'
 import { CheckIcon, ChevronsUpDownIcon, Filter, X } from 'lucide-react'
 import { type ReactNode, useMemo, useState } from 'react'
 import {
@@ -111,11 +115,6 @@ function FormularioFiltro({
     [niveisIdioma]
   )
 
-  const idadeInvalida =
-    rascunho.idadeMin != null &&
-    rascunho.idadeMax != null &&
-    rascunho.idadeMin > rascunho.idadeMax
-
   function alterar(parcial: Partial<FiltroCandidatos>) {
     setRascunho(atual => ({ ...atual, ...parcial }))
   }
@@ -157,34 +156,20 @@ function FormularioFiltro({
         </Grupo>
 
         <Grupo titulo="Idade">
-          <div className="flex flex-wrap items-center gap-3">
-            <Input
-              type="number"
-              min={0}
-              inputMode="numeric"
-              placeholder="Mínima"
-              aria-label="Idade mínima"
-              className="w-28"
-              value={rascunho.idadeMin ?? ''}
-              onChange={e => alterar({ idadeMin: lerIdade(e.target.value) })}
-            />
-            <span className="text-sm text-muted-foreground">até</span>
-            <Input
-              type="number"
-              min={0}
-              inputMode="numeric"
-              placeholder="Máxima"
-              aria-label="Idade máxima"
-              className="w-28"
-              value={rascunho.idadeMax ?? ''}
-              onChange={e => alterar({ idadeMax: lerIdade(e.target.value) })}
-            />
-          </div>
-          {idadeInvalida && (
-            <p className="text-sm text-destructive">
-              A idade mínima não pode ser maior que a máxima.
-            </p>
-          )}
+          <OpcoesRadio
+            valor={rascunho.faixaEtaria}
+            onChange={valor =>
+              alterar({ faixaEtaria: valor as FiltroCandidatos['faixaEtaria'] })
+            }
+            opcoes={[
+              { valor: QUALQUER, rotulo: 'Todos' },
+              ...OPCOES_IDADE.map(opcao => ({
+                valor: opcao,
+                rotulo: OPCAO_IDADE_LABEL[opcao],
+                descricao: OPCAO_IDADE_DESCRICAO[opcao],
+              })),
+            ]}
+          />
         </Grupo>
 
         <Grupo titulo="Tempo de experiência profissional">
@@ -282,9 +267,7 @@ function FormularioFiltro({
         <Button variant="outline" onClick={onCancelar}>
           Cancelar
         </Button>
-        <Button onClick={() => onAplicar(rascunho)} disabled={idadeInvalida}>
-          Aplicar filtro
-        </Button>
+        <Button onClick={() => onAplicar(rascunho)}>Aplicar filtro</Button>
       </DialogFooter>
     </>
   )
@@ -375,12 +358,6 @@ export function BotaoFiltro({
   )
 }
 
-function lerIdade(valor: string): number | undefined {
-  if (valor.trim() === '') return undefined
-  const n = Number(valor)
-  return Number.isInteger(n) && n >= 0 ? n : undefined
-}
-
 function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
     <fieldset className="space-y-2">
@@ -397,21 +374,38 @@ function OpcoesRadio({
 }: {
   valor: string | undefined
   onChange: (valor: string | undefined) => void
-  opcoes: { valor: string; rotulo: string }[]
+  opcoes: { valor: string; rotulo: string; descricao?: string }[]
 }) {
+  // Com descrição, as opções ficam uma por linha, como no critério da vaga.
+  const comDescricao = opcoes.some(opcao => opcao.descricao)
   return (
     <RadioGroup
       value={valor ?? QUALQUER}
       onValueChange={v => onChange(v === QUALQUER ? undefined : v)}
-      className="flex flex-wrap gap-x-5 gap-y-2"
+      className={comDescricao ? 'gap-3' : 'flex flex-wrap gap-x-5 gap-y-2'}
     >
       {opcoes.map(opcao => (
         <Label
           key={opcao.valor}
-          className="flex items-center gap-2 font-normal"
+          className={cn(
+            'flex gap-2 font-normal',
+            opcao.descricao ? 'items-start' : 'items-center'
+          )}
         >
-          <RadioGroupItem value={opcao.valor} />
-          {opcao.rotulo}
+          <RadioGroupItem
+            value={opcao.valor}
+            className={opcao.descricao ? 'mt-0.5' : undefined}
+          />
+          {opcao.descricao ? (
+            <span className="space-y-0.5">
+              <span className="block">{opcao.rotulo}</span>
+              <span className="block text-xs text-muted-foreground">
+                {opcao.descricao}
+              </span>
+            </span>
+          ) : (
+            opcao.rotulo
+          )}
         </Label>
       ))}
     </RadioGroup>
