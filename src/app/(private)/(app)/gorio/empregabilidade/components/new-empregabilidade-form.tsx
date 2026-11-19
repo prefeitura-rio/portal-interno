@@ -69,6 +69,7 @@ import {
   EtapasProcessoSeletivo,
 } from './etapas-processo-seletivo'
 import { FieldWarningIndicator } from './field-warning-indicator'
+import { HabilidadesCompetenciasForm } from './habilidades-competencias-form'
 import {
   type InformacaoComplementar,
   InformacoesComplementaresCreator,
@@ -216,6 +217,17 @@ export const draftValidationSchema = z
   })
   .refine(temTipoPcdSeExclusiva, tipoPcdObrigatorioParams)
 
+// Schema de área de atuação para validação de publicação/aprovação: exige ao
+// menos um conhecimento por área (igual à regra do app-go-api DEV-524).
+const vagaAreaAtuacaoPublishSchema = z.object({
+  id_area_atuacao: z.number().int().positive(),
+  conhecimento_ids: z.array(z.number().int().positive()).min(1, {
+    message: 'Selecione ao menos um conhecimento por área de atuação.',
+  }),
+  nome: z.string().optional(),
+  conhecimentos: z.array(catalogoHabilidadeItemSchema).optional(),
+})
+
 // Schema para validação de publicação (10 campos obrigatórios; valor_vaga opcional)
 export const publishValidationSchema = z
   .object({
@@ -244,6 +256,13 @@ export const publishValidationSchema = z
       .string()
       .min(1, { message: 'Responsabilidades são obrigatórias.' }),
     etapas: etapasValidationSchema,
+    // DEV-525: habilidades obrigatórias para publicação e aprovação
+    areas_atuacao: z
+      .array(vagaAreaAtuacaoPublishSchema)
+      .min(1, { message: 'Adicione ao menos uma área de atuação.' }),
+    comportamento_atitudes_ids: z
+      .array(z.number().int().positive())
+      .min(1, { message: 'Selecione ao menos um comportamento ou atitude.' }),
     ...pcdValidationFields,
   })
   .refine(temTipoPcdSeExclusiva, tipoPcdObrigatorioParams)
@@ -516,6 +535,8 @@ export const NewEmpregabilidadeForm = forwardRef<
             idiomas_requisito: [],
             experiencia_carteira: null,
             jovem_aprendiz: false,
+            areas_atuacao: [],
+            comportamento_atitudes_ids: [],
           },
       mode: 'onChange',
     })
@@ -700,9 +721,9 @@ export const NewEmpregabilidadeForm = forwardRef<
             <p className="text-sm text-muted-foreground">
               <strong>Nota:</strong> Campos marcados com{' '}
               <span className="text-destructive">*</span> são obrigatórios para
-              publicação da vaga. Para salvar como rascunho, apenas Título,
-              Descrição, Contratante, Regime de Contratação e Modelo de Trabalho
-              são obrigatórios.
+              publicação e envio para aprovação. Para salvar como rascunho,
+              apenas Título, Descrição, Contratante, Regime de Contratação e
+              Modelo de Trabalho são obrigatórios.
             </p>
           </div>
 
@@ -1210,6 +1231,43 @@ export const NewEmpregabilidadeForm = forwardRef<
                   </FormItem>
                 )}
               />
+
+              {/* Habilidades e Competências (DEV-525) */}
+              <div className="space-y-3 pt-2">
+                <div>
+                  <p className="text-sm font-medium">
+                    Habilidades e Competências
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Obrigatórios para enviar para aprovação ou publicar a vaga.
+                  </p>
+                </div>
+                <HabilidadesCompetenciasForm
+                  areasAtuacao={form.watch('areas_atuacao') ?? []}
+                  onAreasAtuacaoChange={value =>
+                    form.setValue('areas_atuacao', value, { shouldDirty: true })
+                  }
+                  comportamentoAtitudesIds={
+                    form.watch('comportamento_atitudes_ids') ?? []
+                  }
+                  onComportamentoAtitudesChange={value =>
+                    form.setValue('comportamento_atitudes_ids', value, {
+                      shouldDirty: true,
+                    })
+                  }
+                  isReadOnly={isReadOnly}
+                  erroAreasAtuacao={
+                    // RHF pode retornar FieldError ou array — lemos .message em
+                    // ambos os casos
+                    (form.formState.errors.areas_atuacao as any)?.message ??
+                    (form.formState.errors.areas_atuacao as any)?.root?.message
+                  }
+                  erroComportamentos={
+                    (form.formState.errors.comportamento_atitudes_ids as any)
+                      ?.message
+                  }
+                />
+              </div>
             </div>
           </div>
 

@@ -14,7 +14,7 @@ import {
   withTime,
 } from '@/lib/datetime-bounds'
 import { cn } from '@/lib/utils'
-import { format, set } from 'date-fns'
+import { format, isSameDay, set } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronDownIcon } from 'lucide-react'
 import * as React from 'react'
@@ -78,15 +78,22 @@ export function DateTimePicker({
 
     // Parse the time and combine with the selected date
     const [hours, minutes, seconds] = timeValue.split(':').map(Number)
-    const newDateTime = ensureAfter(
-      set(date, {
-        hours: hours || 0,
-        minutes: minutes || 0,
-        seconds: seconds || 0,
-        milliseconds: 0,
-      }),
-      after
-    )
+    const rawDateTime = set(date, {
+      hours: hours || 0,
+      minutes: minutes || 0,
+      seconds: seconds || 0,
+      milliseconds: 0,
+    })
+
+    // Ao selecionar hoje com horário no passado, snap para 23:59:00 em vez de
+    // "agora + 1s". O padrão do sistema é data_limite = fim do dia, e "agora + 1s"
+    // expira imediatamente se houver qualquer latência entre o clique e o envio.
+    // Para datas futuras, ensureAfter é no-op (valor sempre preservado).
+    const needsSnap = !!after && rawDateTime.getTime() <= after.getTime()
+    const newDateTime =
+      needsSnap && isSameDay(date, new Date())
+        ? set(date, { hours: 23, minutes: 59, seconds: 0, milliseconds: 0 })
+        : ensureAfter(rawDateTime, after)
 
     setSelectedDate(newDateTime)
     setTimeValue(format(newDateTime, 'HH:mm:ss'))

@@ -63,10 +63,18 @@ export async function PUT(
     }
 
     if (response.status === 400) {
+      // Repassa o corpo da Go API (que inclui "error" + "fields" com os campos
+      // faltantes) em vez de substituir por uma mensagem genérica.
+      const goError = response.data as {
+        error?: string
+        fields?: Record<string, string>
+      }
       return NextResponse.json(
         {
           error:
+            goError?.error ||
             'Vaga não pode ser enviada para aprovação. Verifique os dados obrigatórios.',
+          fields: goError?.fields,
         },
         { status: 400 }
       )

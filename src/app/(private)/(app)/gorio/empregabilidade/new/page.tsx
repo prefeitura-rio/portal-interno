@@ -191,7 +191,15 @@ export default function NewEmpregabilidadePage() {
         const errorData = await response.json().catch(() => null)
         const errorMessage =
           errorData?.error || 'Falha ao enviar vaga para aprovação'
-        toast.error(errorMessage)
+        // Repassa os erros por campo da Go API (habilidades faltantes, etc.)
+        const fields = errorData?.fields as Record<string, string> | undefined
+        if (fields && Object.keys(fields).length > 0) {
+          toast.error(errorMessage, {
+            description: Object.values(fields).join(' '),
+          })
+        } else {
+          toast.error(errorMessage)
+        }
         throw new Error(errorMessage)
       }
 

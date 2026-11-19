@@ -101,7 +101,26 @@ export async function POST(request: Request) {
       })
     }
 
-    // If publish failed, still return the created vaga (will be in draft state)
+    // A vaga foi criada mas a publicação falhou: inclui os erros por campo da
+    // Go API (ex.: habilidades faltantes) para que a UI possa mostrá-los.
+    if (publishResponse.status === 400) {
+      const goError = publishResponse.data as {
+        error?: string
+        fields?: Record<string, string>
+      }
+      return NextResponse.json(
+        {
+          vaga: createResponse.data,
+          success: false,
+          error:
+            goError?.error ||
+            'Vaga criada mas não foi possível publicar automaticamente',
+          fields: goError?.fields,
+        },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
       {
         vaga: createResponse.data,
