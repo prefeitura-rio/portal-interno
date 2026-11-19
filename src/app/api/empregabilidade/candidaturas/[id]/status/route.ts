@@ -1,5 +1,11 @@
 import { putApiV1EmpregabilidadeCandidaturasIdStatus } from '@/http-gorio/empregabilidade-candidaturas/empregabilidade-candidaturas'
 import type { EmpregabilidadeStatusCandidatura } from '@/http-gorio/models'
+import {
+  CANDIDATURA_APPROVAL_FORBIDDEN_MESSAGE,
+  canSetCandidaturaStatus,
+  forbidden,
+} from '@/lib/empregabilidade-curation-guard'
+import { getCurrentUserRoles } from '@/lib/heimdall-user'
 import { mapFrontendStatusToBackend } from '@/lib/status-config/empregabilidade'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
@@ -17,6 +23,15 @@ export async function PUT(
     }
 
     const backendStatus = mapFrontendStatusToBackend(body.status)
+
+    // Aprovar pelo status é a mesma ação de `approve` (DEV-126)
+    const roles = await getCurrentUserRoles()
+    if (!canSetCandidaturaStatus(roles, backendStatus)) {
+      console.warn(
+        `[EMPREGABILIDADE] Approval denied for candidatura ${id}: requires a candidatura approval role`
+      )
+      return forbidden(CANDIDATURA_APPROVAL_FORBIDDEN_MESSAGE)
+    }
 
     console.log('Updating candidatura status:', {
       id,
