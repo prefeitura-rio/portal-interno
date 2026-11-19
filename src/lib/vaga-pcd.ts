@@ -104,10 +104,50 @@ export function faltaTipoPcd(
 /**
  * Bloqueio PcD (tag e corpo da API): a vaga exclusiva bloqueia sempre e as
  * outras nunca (DEV-422). Vaga exclusiva gravada sem o bloqueio (criada antes
- * da DEV-422) passa a tê-lo ao ser salva ou duplicada.
+ * da DEV-422) passa a tê-lo ao ser salva ou duplicada; enquanto isso o
+ * formulário avisa (DEV-444, `isBloqueioPcdNaoGravado`).
  */
 export function isBloqueioPcdAtivo(opcao: OpcaoPcd | undefined): boolean {
   return opcao === 'exclusiva'
+}
+
+/** Tag do critério PcD quando o bloqueio da exclusiva não está gravado (DEV-444). */
+export const PCD_BLOQUEIO_NAO_GRAVADO_TAG = 'Bloqueio não gravado'
+
+/** Aviso no critério PcD quando o bloqueio da exclusiva não está gravado (DEV-444). */
+export const PCD_BLOQUEIO_NAO_GRAVADO_AVISO =
+  'Bloqueio não gravado: salve para ativar.'
+
+/**
+ * Bloqueio PcD gravado na vaga lida da API: a chave `pcd` em
+ * `criterios_bloqueio` (DEV-444). Sem a lista (nula ou de outro tipo), não
+ * está gravado.
+ */
+export function isBloqueioPcdGravado(vaga: object): boolean {
+  const { criterios_bloqueio: criterios }: { criterios_bloqueio?: unknown } =
+    vaga
+  return Array.isArray(criterios) && criterios.includes(CRITERIO_BLOQUEIO_PCD)
+}
+
+/**
+ * Divergência entre a tela e o banco (DEV-444): a vaga está gravada como
+ * exclusiva, sem o bloqueio PcD (vaga migrada antes da DEV-422), e a opção
+ * exclusiva continua marcada no formulário. Salvar grava o bloqueio. Vaga nova
+ * (sem estado gravado) e troca de opção ainda não salva não divergem.
+ */
+export function isBloqueioPcdNaoGravado({
+  opcao,
+  gravado,
+}: {
+  opcao: OpcaoPcd | undefined
+  gravado?: { opcaoPcd: OpcaoPcd; bloqueioPcd: boolean }
+}): boolean {
+  return (
+    gravado !== undefined &&
+    opcao === 'exclusiva' &&
+    gravado.opcaoPcd === 'exclusiva' &&
+    !gravado.bloqueioPcd
+  )
 }
 
 /**
