@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { GetApiV1EmpregabilidadeCandidaturasExperienciaCarteira } from './getApiV1EmpregabilidadeCandidaturasExperienciaCarteira'
+import type { GetApiV1EmpregabilidadeCandidaturasFaixaEtaria } from './getApiV1EmpregabilidadeCandidaturasFaixaEtaria'
 import type { GetApiV1EmpregabilidadeCandidaturasPcd } from './getApiV1EmpregabilidadeCandidaturasPcd'
 import type { GetApiV1EmpregabilidadeCandidaturasTempoExperiencia } from './getApiV1EmpregabilidadeCandidaturasTempoExperiencia'
 
@@ -43,13 +44,9 @@ export type GetApiV1EmpregabilidadeCandidaturasParams = {
    */
   genero?: string[]
   /**
-   * Idade mínima
+   * Faixa etária pela data de nascimento do cadastro: maiores_de_18 (18 anos ou mais) ou jovem_aprendiz (14 a 24 anos); sem data de nascimento fica de fora
    */
-  idade_min?: number
-  /**
-   * Idade máxima
-   */
-  idade_max?: number
+  faixa_etaria?: GetApiV1EmpregabilidadeCandidaturasFaixaEtaria
   /**
    * Soma das experiências
    */

@@ -1,11 +1,20 @@
+import {
+  OPCAO_IDADE_LABEL,
+  type OpcaoIdade,
+  isOpcaoIdade,
+} from '@/lib/vaga-jovem-aprendiz'
+
 /**
  * Filtros avançados de candidatos, os mesmos no banco de currículos e na lista
  * de candidatos de uma vaga. Os nomes dos parâmetros são os da API.
  */
 export interface FiltroCandidatos {
   generos: string[]
-  idadeMin?: number
-  idadeMax?: number
+  /**
+   * As mesmas opções do critério de idade da vaga (PREF-634), sem idade livre
+   * para não abrir espaço a etarismo. Sem a opção, não filtra por idade.
+   */
+  faixaEtaria?: OpcaoIdade
   tempoExperiencia?: string
   carteira?: string
   escolaridade?: string
@@ -62,8 +71,7 @@ export const EXIGENCIAS_CARTEIRA = [
 
 const PARAMETROS = [
   'genero',
-  'idade_min',
-  'idade_max',
+  'faixa_etaria',
   'tempo_experiencia',
   'experiencia_carteira',
   'escolaridade',
@@ -83,8 +91,7 @@ export function filtroParaParametros(
 ): Record<string, string> {
   const params: Record<string, string> = {}
   if (filtro.generos.length > 0) params.genero = filtro.generos.join(',')
-  if (filtro.idadeMin != null) params.idade_min = String(filtro.idadeMin)
-  if (filtro.idadeMax != null) params.idade_max = String(filtro.idadeMax)
+  if (filtro.faixaEtaria) params.faixa_etaria = filtro.faixaEtaria
   if (filtro.tempoExperiencia)
     params.tempo_experiencia = filtro.tempoExperiencia
   if (filtro.carteira) params.experiencia_carteira = filtro.carteira
@@ -100,19 +107,14 @@ export function filtroParaParametros(
 
 /** Lê o filtro de parâmetros de URL (os mesmos nomes da API). */
 export function filtroDeParametros(params: URLSearchParams): FiltroCandidatos {
-  const numero = (valor: string | null) => {
-    if (!valor) return undefined
-    const n = Number(valor)
-    return Number.isInteger(n) && n >= 0 ? n : undefined
-  }
+  const faixaEtaria = params.get('faixa_etaria')
   const pcd = params.get('pcd')
   return {
     generos: (params.get('genero') ?? '')
       .split(',')
       .map(g => g.trim())
       .filter(Boolean),
-    idadeMin: numero(params.get('idade_min')),
-    idadeMax: numero(params.get('idade_max')),
+    faixaEtaria: isOpcaoIdade(faixaEtaria) ? faixaEtaria : undefined,
     tempoExperiencia: params.get('tempo_experiencia') || undefined,
     carteira: params.get('experiencia_carteira') || undefined,
     escolaridade: params.get('escolaridade') || undefined,
@@ -156,17 +158,11 @@ export function etiquetasDoFiltro(
       remover: f => ({ ...f, generos: f.generos.filter(g => g !== genero) }),
     })
   }
-  if (filtro.idadeMin != null || filtro.idadeMax != null) {
-    const rotulo =
-      filtro.idadeMin != null && filtro.idadeMax != null
-        ? `Idade: ${filtro.idadeMin} a ${filtro.idadeMax}`
-        : filtro.idadeMin != null
-          ? `Idade: a partir de ${filtro.idadeMin}`
-          : `Idade: até ${filtro.idadeMax}`
+  if (filtro.faixaEtaria) {
     etiquetas.push({
       chave: 'idade',
-      rotulo,
-      remover: f => ({ ...f, idadeMin: undefined, idadeMax: undefined }),
+      rotulo: `Idade: ${OPCAO_IDADE_LABEL[filtro.faixaEtaria]}`,
+      remover: f => ({ ...f, faixaEtaria: undefined }),
     })
   }
   if (filtro.tempoExperiencia) {

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { GetApiV1EmpregabilidadeBancoCurriculosExperienciaCarteira } from './getApiV1EmpregabilidadeBancoCurriculosExperienciaCarteira'
+import type { GetApiV1EmpregabilidadeBancoCurriculosFaixaEtaria } from './getApiV1EmpregabilidadeBancoCurriculosFaixaEtaria'
 import type { GetApiV1EmpregabilidadeBancoCurriculosPcd } from './getApiV1EmpregabilidadeBancoCurriculosPcd'
 import type { GetApiV1EmpregabilidadeBancoCurriculosTempoExperiencia } from './getApiV1EmpregabilidadeBancoCurriculosTempoExperiencia'
 
@@ -27,13 +28,9 @@ export type GetApiV1EmpregabilidadeBancoCurriculosParams = {
    */
   genero?: string[]
   /**
-   * Idade mínima
+   * Faixa etária pela data de nascimento do cadastro: maiores_de_18 (18 anos ou mais) ou jovem_aprendiz (14 a 24 anos); sem data de nascimento fica de fora
    */
-  idade_min?: number
-  /**
-   * Idade máxima
-   */
-  idade_max?: number
+  faixa_etaria?: GetApiV1EmpregabilidadeBancoCurriculosFaixaEtaria
   /**
    * Soma das experiências
    */
