@@ -47,12 +47,14 @@ function render({
   disabled = false,
   erroTiposPcd,
   loadingTiposPcd = false,
+  savedValues,
 }: {
   opcaoPcd: OpcaoPcd
   tipos?: string[]
   disabled?: boolean
   erroTiposPcd?: string
   loadingTiposPcd?: boolean
+  savedValues?: { opcaoPcd: OpcaoPcd; bloqueioPcd?: boolean }
 }): string {
   const noop = () => {}
   return renderToStaticMarkup(
@@ -82,6 +84,15 @@ function render({
       jovemAprendiz: false,
       onJovemAprendizChange: noop,
       disabled,
+      savedValues: savedValues && {
+        idadeMinima: true,
+        idEscolaridadeMinima: undefined,
+        idiomasRequisito: [],
+        tiposPcd: tipos,
+        experienciaCarteira: null,
+        jovemAprendiz: false,
+        ...savedValues,
+      },
     })
   )
 }
@@ -274,6 +285,77 @@ describe('critério PcD no bloco de critérios', () => {
       render({ opcaoPcd: 'exclusiva', tipos: ['tipo-visual'], disabled: true })
     )
     assert.match(campoTipos(html), /disabled=""/)
+  })
+})
+
+// DEV-444: vaga exclusiva gravada sem "pcd" em criterios_bloqueio (migrada
+// antes da DEV-422) avisa que o bloqueio não está gravado até ser salva.
+const AVISO_NAO_GRAVADO = 'Bloqueio não gravado: salve para ativar.'
+
+describe('bloqueio PcD não gravado na vaga (DEV-444)', () => {
+  test('exclusiva gravada sem o bloqueio: tag âmbar e aviso para salvar', () => {
+    const html = criterioPcd(
+      render({
+        opcaoPcd: 'exclusiva',
+        tipos: ['tipo-visual'],
+        disabled: true,
+        savedValues: { opcaoPcd: 'exclusiva', bloqueioPcd: false },
+      })
+    )
+    assert.ok(html.includes('data-estado="nao-gravado"'))
+    assert.ok(html.includes('>Bloqueio não gravado<'))
+    assert.ok(!html.includes('Bloqueio ativo'))
+    assert.ok(html.includes(AVISO_NAO_GRAVADO))
+    assert.ok(html.includes('data-bloqueio-pcd="nao-gravado"'))
+    const aviso = html.indexOf(AVISO_NAO_GRAVADO)
+    const pergunta = html.indexOf('Esta vaga é para pessoas com deficiência?')
+    assert.ok(aviso >= 0 && aviso < pergunta, 'aviso antes da pergunta')
+  })
+
+  test('exclusiva com o bloqueio gravado: bloqueio ativo, sem aviso', () => {
+    const html = criterioPcd(
+      render({
+        opcaoPcd: 'exclusiva',
+        tipos: ['tipo-visual'],
+        savedValues: { opcaoPcd: 'exclusiva', bloqueioPcd: true },
+      })
+    )
+    assert.ok(html.includes('Bloqueio ativo'))
+    assert.ok(!html.includes('Bloqueio não gravado'))
+  })
+
+  test('vaga nova ou sem o estado gravado: sem aviso', () => {
+    for (const savedValues of [undefined, { opcaoPcd: 'exclusiva' as const }]) {
+      const html = criterioPcd(
+        render({ opcaoPcd: 'exclusiva', tipos: ['tipo-visual'], savedValues })
+      )
+      assert.ok(html.includes('Bloqueio ativo'))
+      assert.ok(!html.includes('Bloqueio não gravado'))
+    }
+  })
+
+  test('opção trocada para aberta: sem aviso, bloqueio desligado', () => {
+    const html = criterioPcd(
+      render({
+        opcaoPcd: 'aberta',
+        savedValues: { opcaoPcd: 'exclusiva', bloqueioPcd: false },
+      })
+    )
+    assert.ok(html.includes('Bloqueio desligado'))
+    assert.ok(!html.includes('Bloqueio não gravado'))
+  })
+
+  test('a página da vaga passa o bloqueio gravado ao formulário', () => {
+    const pagina = readFileSync(
+      new URL(
+        `${EMPREGABILIDADE}[empregabilidade-id]/page.tsx`,
+        import.meta.url
+      ),
+      'utf8'
+    )
+    assert.match(pagina, /bloqueioPcdGravado=\{isBloqueioPcdGravado\(vaga\)\}/)
+    const form = readFileSync(FORM_URL, 'utf8')
+    assert.match(form, /bloqueioPcd: bloqueioPcdGravado/)
   })
 })
 

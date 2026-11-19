@@ -60,6 +60,7 @@ import {
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
   isBloqueioPcdAtivo,
+  isBloqueioPcdGravado,
 } from '@/lib/vaga-pcd'
 import {
   canDeleteVagaWithStatus,
@@ -1286,6 +1287,7 @@ export default function EmpregabilidadeDetailPage({
               <NewEmpregabilidadeForm
                 ref={formRef}
                 initialData={formData}
+                bloqueioPcdGravado={isBloqueioPcdGravado(vaga)}
                 isReadOnly={!isEditing || isReadOnlyForEditor}
                 vagaStatus={
                   vaga.status as

@@ -49,6 +49,8 @@ import {
   OPCAO_PCD_PADRAO,
   OPCOES_PCD,
   type OpcaoPcd,
+  PCD_BLOQUEIO_NAO_GRAVADO_AVISO,
+  PCD_BLOQUEIO_NAO_GRAVADO_TAG,
   PCD_EXCLUSIVA_AVISO,
   PCD_PERGUNTA_LABEL,
   PCD_TITULO,
@@ -56,6 +58,7 @@ import {
   TIPOS_PCD_LABEL,
   aceitaTiposPcd,
   isBloqueioPcdAtivo,
+  isBloqueioPcdNaoGravado,
   isOpcaoPcd,
 } from '@/lib/vaga-pcd'
 import {
@@ -126,6 +129,11 @@ interface CriteriosElegibilidadeProps {
     tiposPcd: string[]
     experienciaCarteira: ExperienciaCarteira | null
     jovemAprendiz: boolean
+    /**
+     * DEV-444: "pcd" em `criterios_bloqueio` da vaga gravada. Ausente, o
+     * estado gravado do bloqueio é desconhecido e não há aviso.
+     */
+    bloqueioPcd?: boolean
   }
 }
 
@@ -325,6 +333,17 @@ export function CriteriosElegibilidade({
   }
 
   const bloqueioPcdAtivo = isBloqueioPcdAtivo(opcaoPcd)
+  // DEV-444: exclusiva gravada sem o bloqueio (migrada antes da DEV-422)
+  const bloqueioPcdNaoGravado = isBloqueioPcdNaoGravado({
+    opcao: opcaoPcd,
+    gravado:
+      savedValues?.bloqueioPcd === undefined
+        ? undefined
+        : {
+            opcaoPcd: savedValues.opcaoPcd,
+            bloqueioPcd: savedValues.bloqueioPcd,
+          },
+  })
 
   // DEV-425: o switch da Experiência em carteira é o bloqueio; ligar marca
   // "Qualquer tempo" e desligar limpa a opção.
@@ -357,8 +376,24 @@ export function CriteriosElegibilidade({
           <div className="flex flex-wrap items-center gap-2">
             <CriterioIcone icone={Accessibility} ativo={bloqueioPcdAtivo} />
             <p className="text-sm font-medium">{PCD_TITULO}</p>
-            <BloqueioTag ativo={bloqueioPcdAtivo} />
+            <BloqueioTag
+              ativo={bloqueioPcdAtivo}
+              naoGravado={
+                bloqueioPcdNaoGravado ? PCD_BLOQUEIO_NAO_GRAVADO_TAG : undefined
+              }
+            />
           </div>
+
+          {bloqueioPcdNaoGravado && (
+            <p
+              role="status"
+              data-bloqueio-pcd="nao-gravado"
+              className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300"
+            >
+              <TriangleAlert className="mt-px size-3.5 shrink-0" />
+              {PCD_BLOQUEIO_NAO_GRAVADO_AVISO}
+            </p>
+          )}
 
           <p id="criterio-pcd-label" className="text-sm">
             {PCD_PERGUNTA_LABEL}

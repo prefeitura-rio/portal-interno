@@ -29,7 +29,11 @@ const {
   getChipsTiposPcd,
   getOpcaoPcdDaVaga,
   getTiposPcdParaApi,
+  PCD_BLOQUEIO_NAO_GRAVADO_AVISO,
+  PCD_BLOQUEIO_NAO_GRAVADO_TAG,
   isBloqueioPcdAtivo,
+  isBloqueioPcdGravado,
+  isBloqueioPcdNaoGravado,
   isOpcaoPcd,
   isTodosTiposPcdSelecionados,
 } = vagaPcd
@@ -230,5 +234,75 @@ describe('bloqueio PcD', () => {
     assert.equal(isBloqueioPcdAtivo('preferencial'), false)
     assert.equal(isBloqueioPcdAtivo('aberta'), false)
     assert.equal(isBloqueioPcdAtivo(undefined), false)
+  })
+})
+
+// DEV-444: vaga exclusiva migrada antes da DEV-422 está gravada sem "pcd" em
+// criterios_bloqueio; o formulário avisa enquanto o banco diverge da tela.
+describe('bloqueio PcD gravado na vaga (DEV-444)', () => {
+  test('gravado só com a chave pcd na lista criterios_bloqueio', () => {
+    assert.equal(isBloqueioPcdGravado({ criterios_bloqueio: ['pcd'] }), true)
+    assert.equal(
+      isBloqueioPcdGravado({ criterios_bloqueio: ['escolaridade', 'pcd'] }),
+      true
+    )
+    assert.equal(
+      isBloqueioPcdGravado({ criterios_bloqueio: ['escolaridade'] }),
+      false
+    )
+    assert.equal(isBloqueioPcdGravado({ criterios_bloqueio: [] }), false)
+    assert.equal(isBloqueioPcdGravado({ criterios_bloqueio: null }), false)
+    assert.equal(isBloqueioPcdGravado({}), false)
+    assert.equal(isBloqueioPcdGravado({ criterios_bloqueio: 'pcd' }), false)
+  })
+
+  test('diverge: exclusiva gravada sem o bloqueio e ainda marcada', () => {
+    assert.equal(
+      isBloqueioPcdNaoGravado({
+        opcao: 'exclusiva',
+        gravado: { opcaoPcd: 'exclusiva', bloqueioPcd: false },
+      }),
+      true
+    )
+  })
+
+  test('não diverge: bloqueio gravado, vaga nova, opção trocada ou não exclusiva', () => {
+    assert.equal(
+      isBloqueioPcdNaoGravado({
+        opcao: 'exclusiva',
+        gravado: { opcaoPcd: 'exclusiva', bloqueioPcd: true },
+      }),
+      false
+    )
+    assert.equal(isBloqueioPcdNaoGravado({ opcao: 'exclusiva' }), false)
+    assert.equal(
+      isBloqueioPcdNaoGravado({
+        opcao: 'aberta',
+        gravado: { opcaoPcd: 'exclusiva', bloqueioPcd: false },
+      }),
+      false
+    )
+    assert.equal(
+      isBloqueioPcdNaoGravado({
+        opcao: 'exclusiva',
+        gravado: { opcaoPcd: 'preferencial', bloqueioPcd: false },
+      }),
+      false
+    )
+    assert.equal(
+      isBloqueioPcdNaoGravado({
+        opcao: 'preferencial',
+        gravado: { opcaoPcd: 'preferencial', bloqueioPcd: false },
+      }),
+      false
+    )
+  })
+
+  test('textos do aviso', () => {
+    assert.equal(PCD_BLOQUEIO_NAO_GRAVADO_TAG, 'Bloqueio não gravado')
+    assert.equal(
+      PCD_BLOQUEIO_NAO_GRAVADO_AVISO,
+      'Bloqueio não gravado: salve para ativar.'
+    )
   })
 })

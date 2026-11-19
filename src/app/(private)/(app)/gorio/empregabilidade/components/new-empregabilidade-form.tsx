@@ -316,6 +316,11 @@ const validateForDraft = (
 
 interface NewEmpregabilidadeFormProps {
   initialData?: Partial<FormData>
+  /**
+   * DEV-444: "pcd" em `criterios_bloqueio` da vaga gravada (edição). Com a
+   * exclusiva gravada sem ele, o critério PcD avisa que é preciso salvar.
+   */
+  bloqueioPcdGravado?: boolean
   isReadOnly?: boolean
   /** Show action buttons at the end of form (for /new page). Default: false */
   showActionButtons?: boolean
@@ -352,6 +357,7 @@ export const NewEmpregabilidadeForm = forwardRef<
   (
     {
       initialData,
+      bloqueioPcdGravado,
       isReadOnly = false,
       isSubmitting = false,
       showActionButtons = false,
@@ -461,6 +467,7 @@ export const NewEmpregabilidadeForm = forwardRef<
           tiposPcd: initialData.tipo_pcd ?? [],
           experienciaCarteira: initialData.experiencia_carteira ?? null,
           jovemAprendiz: initialData.jovem_aprendiz === true,
+          bloqueioPcd: bloqueioPcdGravado,
         }
       : undefined
 
