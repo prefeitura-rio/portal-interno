@@ -41,6 +41,7 @@ import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { cn } from '@/lib/utils'
 import { OPCOES_EXPERIENCIA_CARTEIRA } from '@/lib/vaga-experiencia-carteira'
 import {
+  ERRO_AREA_OBRIGATORIA,
   ERRO_COMPORTAMENTO_OBRIGATORIO,
   getMensagensErroAreas,
 } from '@/lib/vaga-habilidades-bloco'
@@ -254,15 +255,18 @@ export const publishValidationSchema = z
     // ao menos uma área, e cada grupo com área e ao menos um conhecimento
     // (igual à regra do app-go-api DEV-524).
     areas_atuacao: z
-      .array(vagaAreaAtuacaoSchema)
-      .optional()
+      .array(vagaAreaAtuacaoSchema, {
+        error: requiredError(ERRO_AREA_OBRIGATORIA),
+      })
       .superRefine((areas, ctx) => {
         for (const message of getMensagensErroAreas(areas)) {
           ctx.addIssue({ code: 'custom', message })
         }
       }),
     comportamento_atitudes_ids: z
-      .array(z.number().int().positive())
+      .array(z.number().int().positive(), {
+        error: requiredError(ERRO_COMPORTAMENTO_OBRIGATORIO),
+      })
       .min(1, { message: ERRO_COMPORTAMENTO_OBRIGATORIO }),
     ...pcdValidationFields,
   })
