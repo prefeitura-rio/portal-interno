@@ -114,6 +114,11 @@ interface Props {
   isReadOnly?: boolean
   erroAreasAtuacao?: string
   erroComportamentos?: string
+  errosApi?: {
+    areas?: string
+    grupos?: ({ area?: string; conhecimentos?: string } | undefined)[]
+    comportamentos?: string
+  }
 }
 
 function render(
@@ -133,6 +138,7 @@ function render(
         isReadOnly: props.isReadOnly,
         erroAreasAtuacao: props.erroAreasAtuacao,
         erroComportamentos: props.erroComportamentos,
+        errosApi: props.errosApi,
       })
     )
   )
@@ -346,6 +352,71 @@ describe('erros ao publicar (por área e por campo)', () => {
       erroComportamentos: 'Selecione ao menos um comportamento ou atitude',
     })
     assert.doesNotMatch(corrigido, /role="alert"/)
+  })
+})
+
+describe('erros da API (DEV-685)', () => {
+  const MSG_AREA = `Área de atuação não encontrada: ${ADM}.`
+  const MSG_CONHECIMENTO = `Cada conhecimento precisa ser da área em que foi marcado: conhecimento 900 não pertence à área de atuação ${TI}.`
+  const MSG_COMPORTAMENTO = 'Comportamento ou atitude não encontrado: 77.'
+  const MSG_BLOCO = 'Informe no máximo 50 áreas de atuação por vaga.'
+  const areas = [
+    { id_area_atuacao: TI, conhecimento_ids: [100] },
+    { id_area_atuacao: ADM, conhecimento_ids: [200] },
+  ]
+  const html = render({
+    areas,
+    comportamentoIds: [1],
+    errosApi: {
+      areas: MSG_BLOCO,
+      grupos: [{ conhecimentos: MSG_CONHECIMENTO }, { area: MSG_AREA }],
+      comportamentos: MSG_COMPORTAMENTO,
+    },
+  })
+
+  test('cada erro aparece no campo do grupo citado', () => {
+    const grupoTi = grupo(html, 0)
+    const grupoAdm = grupo(html, 1)
+    assert.ok(grupoTi.includes(MSG_CONHECIMENTO))
+    assert.ok(!grupoTi.includes(MSG_AREA))
+    assert.ok(grupoAdm.includes(MSG_AREA))
+    assert.ok(!grupoAdm.includes(MSG_CONHECIMENTO))
+    assert.match(grupoAdm, /aria-invalid="true"/)
+    // o erro de conhecimento fica abaixo do campo de conhecimentos, não da área
+    assert.ok(
+      grupoTi.indexOf(MSG_CONHECIMENTO) > grupoTi.indexOf('Conhecimentos')
+    )
+  })
+
+  test('comportamentos e o bloco das áreas mostram o seu erro', () => {
+    assert.ok(secaoComportamentos(html).includes(MSG_COMPORTAMENTO))
+    const secaoAreas = trecho(
+      html,
+      'data-secao-habilidades="areas"',
+      '</section>'
+    )
+    assert.ok(secaoAreas.includes(MSG_BLOCO))
+    assert.equal(contar(html, 'role="alert"'), 4)
+  })
+
+  test('o erro da publicação no mesmo campo vale antes do da API', () => {
+    const ambos = render({
+      areas: [{ id_area_atuacao: ADM, conhecimento_ids: [] }],
+      erroAreasAtuacao: 'Selecione ao menos um conhecimento desta área',
+      errosApi: { grupos: [{ conhecimentos: 'erro da API' }] },
+    })
+    assert.ok(!grupo(ambos, 0).includes('erro da API'))
+  })
+
+  test('sem erro da API nem da publicação, nenhum erro aparece', () => {
+    assert.doesNotMatch(
+      render({ areas, comportamentoIds: [1] }),
+      /role="alert"/
+    )
+    assert.doesNotMatch(
+      render({ areas, comportamentoIds: [1], errosApi: {} }),
+      /role="alert"/
+    )
   })
 })
 
