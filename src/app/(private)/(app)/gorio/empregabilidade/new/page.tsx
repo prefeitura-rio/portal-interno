@@ -20,6 +20,11 @@ import {
 } from '@/lib/idiomas-requisito'
 import { getExperienciaCarteiraParaApi } from '@/lib/vaga-experiencia-carteira'
 import { getVagaHabilidadesParaApi } from '@/lib/vaga-habilidades'
+import {
+  type CamposErroApi,
+  getCamposErroApi,
+  getDescricaoCamposErroApi,
+} from '@/lib/vaga-habilidades-erros-api'
 import { getJovemAprendizParaApi } from '@/lib/vaga-jovem-aprendiz'
 import {
   OPCAO_PCD_PADRAO,
@@ -90,6 +95,8 @@ export default function NewEmpregabilidadePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSubmittingRef = useRef(false)
+  // DEV-685: erros por campo do último 400 da API, mostrados no formulário
+  const [errosCamposApi, setErrosCamposApi] = useState<CamposErroApi>()
   const router = useRouter()
 
   // DEV-405: a vaga já existe e foi gravada com o bloqueio de idioma ativo;
@@ -123,6 +130,7 @@ export default function NewEmpregabilidadePage() {
       isSubmittingRef.current = true
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
+      setErrosCamposApi(undefined)
 
       const { apiData, idiomasRequisito } = mapCriteriosToApiData(data)
 
@@ -144,7 +152,12 @@ export default function NewEmpregabilidadePage() {
             errorMessage = errorData.error
           }
         }
-        toast.error(errorMessage, { description: errorDescription })
+        // DEV-685: erros por campo da Go API (habilidades) no formulário
+        const fields = getCamposErroApi(errorData)
+        setErrosCamposApi(fields)
+        toast.error(errorMessage, {
+          description: getDescricaoCamposErroApi(fields) ?? errorDescription,
+        })
         throw new Error(errorData.error || 'Failed to create vaga')
       }
 
@@ -175,6 +188,7 @@ export default function NewEmpregabilidadePage() {
     try {
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
+      setErrosCamposApi(undefined)
 
       const { apiData, idiomasRequisito } = mapCriteriosToApiData(data)
 
@@ -191,12 +205,13 @@ export default function NewEmpregabilidadePage() {
         const errorData = await response.json().catch(() => null)
         const errorMessage =
           errorData?.error || 'Falha ao enviar vaga para aprovação'
-        // Repassa os erros por campo da Go API (habilidades faltantes, etc.)
-        const fields = errorData?.fields as Record<string, string> | undefined
-        if (fields && Object.keys(fields).length > 0) {
-          toast.error(errorMessage, {
-            description: Object.values(fields).join(' '),
-          })
+        // Repassa os erros por campo da Go API (habilidades faltantes, etc.),
+        // no toast e no campo de cada um (DEV-685)
+        const fields = getCamposErroApi(errorData)
+        setErrosCamposApi(fields)
+        const description = getDescricaoCamposErroApi(fields)
+        if (description) {
+          toast.error(errorMessage, { description })
         } else {
           toast.error(errorMessage)
         }
@@ -229,6 +244,7 @@ export default function NewEmpregabilidadePage() {
     try {
       setIsSubmitting(true)
       setHasUnsavedChanges(false)
+      setErrosCamposApi(undefined)
 
       const { apiData, idiomasRequisito } = mapCriteriosToApiData(data)
 
@@ -259,7 +275,12 @@ export default function NewEmpregabilidadePage() {
           }
         }
 
-        toast.error(errorMessage, { description: errorDescription })
+        // DEV-685: erros por campo da Go API (habilidades) no formulário
+        const fields = getCamposErroApi(errorData)
+        setErrosCamposApi(fields)
+        toast.error(errorMessage, {
+          description: getDescricaoCamposErroApi(fields) ?? errorDescription,
+        })
         throw new Error(errorMessage)
       }
 
@@ -325,6 +346,7 @@ export default function NewEmpregabilidadePage() {
           onSaveDraft={handleCreateDraft}
           onSendForApproval={handleCreateAndSendToApproval}
           onFormChangesDetected={setHasUnsavedChanges}
+          errosCamposApi={errosCamposApi}
         />
       </div>
     </ContentLayout>

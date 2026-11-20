@@ -16,6 +16,7 @@ import {
   validateVagaDataLimite,
 } from '@/lib/empregabilidade-vaga-dates'
 import { getCurrentUserRoles } from '@/lib/heimdall-user'
+import { getErroValidacaoApi } from '@/lib/vaga-habilidades-erros-api'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -186,6 +187,16 @@ export async function PUT(
         vaga: response.data,
         success: true,
       })
+    }
+
+    // DEV-685: o 400 da Go API traz o erro de cada campo (habilidades: área
+    // repetida, conhecimento de outra área, lista vazia em vaga publicada...)
+    if (response.status === 400) {
+      const goError = getErroValidacaoApi(response.data)
+      return NextResponse.json(
+        { ...goError, error: goError.error || 'Erro ao atualizar vaga' },
+        { status: 400 }
+      )
     }
 
     return NextResponse.json(

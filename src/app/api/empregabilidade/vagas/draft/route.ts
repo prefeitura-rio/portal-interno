@@ -1,5 +1,6 @@
 import { postApiV1EmpregabilidadeVagas } from '@/http-gorio/empregabilidade-vagas/empregabilidade-vagas'
 import type { EmpregabilidadeVaga } from '@/http-gorio/models/empregabilidadeVaga'
+import { getErroValidacaoApi } from '@/lib/vaga-habilidades-erros-api'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -44,6 +45,20 @@ export async function POST(request: Request) {
         vaga: response.data,
         success: true,
       })
+    }
+
+    // DEV-685: o 400 da Go API traz o erro de cada campo (habilidades: área
+    // repetida, conhecimento de outra área...) para o formulário
+    if (response.status === 400) {
+      const goError = getErroValidacaoApi(response.data)
+      return NextResponse.json(
+        {
+          ...goError,
+          error: goError.error || 'Failed to create draft vaga',
+          message: response.data,
+        },
+        { status: 400 }
+      )
     }
 
     return NextResponse.json(
