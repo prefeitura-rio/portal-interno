@@ -41,6 +41,10 @@ import { neighborhoodZone } from '@/lib/neighborhood_zone'
 import { cn } from '@/lib/utils'
 import { OPCOES_EXPERIENCIA_CARTEIRA } from '@/lib/vaga-experiencia-carteira'
 import {
+  ERRO_COMPORTAMENTO_OBRIGATORIO,
+  getMensagensErroAreas,
+} from '@/lib/vaga-habilidades-bloco'
+import {
   OPCAO_PCD_PADRAO,
   OPCOES_PCD,
   TIPO_PCD_OBRIGATORIO_MENSAGEM,
@@ -123,8 +127,9 @@ const catalogoHabilidadeItemSchema = z.object({
   nome: z.string(),
 })
 
+// DEV-684: `null` é o grupo aberto na tela sem área escolhida; não é enviado.
 const vagaAreaAtuacaoSchema = z.object({
-  id_area_atuacao: z.number().int().positive(),
+  id_area_atuacao: z.number().int().positive().nullable(),
   conhecimento_ids: z.array(z.number().int().positive()),
   nome: z.string().optional(),
   conhecimentos: z.array(catalogoHabilidadeItemSchema).optional(),
@@ -217,17 +222,6 @@ export const draftValidationSchema = z
   })
   .refine(temTipoPcdSeExclusiva, tipoPcdObrigatorioParams)
 
-// Schema de área de atuação para validação de publicação/aprovação: exige ao
-// menos um conhecimento por área (igual à regra do app-go-api DEV-524).
-const vagaAreaAtuacaoPublishSchema = z.object({
-  id_area_atuacao: z.number().int().positive(),
-  conhecimento_ids: z.array(z.number().int().positive()).min(1, {
-    message: 'Selecione ao menos um conhecimento por área de atuação.',
-  }),
-  nome: z.string().optional(),
-  conhecimentos: z.array(catalogoHabilidadeItemSchema).optional(),
-})
-
 // Schema para validação de publicação (10 campos obrigatórios; valor_vaga opcional)
 export const publishValidationSchema = z
   .object({
@@ -256,13 +250,20 @@ export const publishValidationSchema = z
       .string()
       .min(1, { message: 'Responsabilidades são obrigatórias.' }),
     etapas: etapasValidationSchema,
-    // DEV-525: habilidades obrigatórias para publicação e aprovação
+    // DEV-525/DEV-684: habilidades obrigatórias para publicação e aprovação:
+    // ao menos uma área, e cada grupo com área e ao menos um conhecimento
+    // (igual à regra do app-go-api DEV-524).
     areas_atuacao: z
-      .array(vagaAreaAtuacaoPublishSchema)
-      .min(1, { message: 'Adicione ao menos uma área de atuação.' }),
+      .array(vagaAreaAtuacaoSchema)
+      .optional()
+      .superRefine((areas, ctx) => {
+        for (const message of getMensagensErroAreas(areas)) {
+          ctx.addIssue({ code: 'custom', message })
+        }
+      }),
     comportamento_atitudes_ids: z
       .array(z.number().int().positive())
-      .min(1, { message: 'Selecione ao menos um comportamento ou atitude.' }),
+      .min(1, { message: ERRO_COMPORTAMENTO_OBRIGATORIO }),
     ...pcdValidationFields,
   })
   .refine(temTipoPcdSeExclusiva, tipoPcdObrigatorioParams)
@@ -1232,29 +1233,28 @@ export const NewEmpregabilidadeForm = forwardRef<
                 )}
               />
 
-              {/* Habilidades e Competências (DEV-525) */}
-              <div className="space-y-3 pt-2">
-                <div>
-                  <p className="text-sm font-medium">
-                    Habilidades e Competências
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Obrigatórios para enviar para aprovação ou publicar a vaga.
-                  </p>
-                </div>
+              {/* Habilidades e Competências (DEV-525, DEV-684) */}
+              <div className="pt-2">
                 <HabilidadesCompetenciasForm
                   areasAtuacao={form.watch('areas_atuacao') ?? []}
-                  onAreasAtuacaoChange={value =>
+                  onAreasAtuacaoChange={value => {
                     form.setValue('areas_atuacao', value, { shouldDirty: true })
-                  }
+                    if (getMensagensErroAreas(value).length === 0) {
+                      form.clearErrors('areas_atuacao')
+                    }
+                  }}
                   comportamentoAtitudesIds={
                     form.watch('comportamento_atitudes_ids') ?? []
                   }
-                  onComportamentoAtitudesChange={value =>
+                  onComportamentoAtitudesChange={value => {
                     form.setValue('comportamento_atitudes_ids', value, {
                       shouldDirty: true,
                     })
-                  }
+                    if (value.length > 0) {
+                      form.clearErrors('comportamento_atitudes_ids')
+                    }
+                  }}
+                  comportamentosSalvos={form.watch('comportamentos_atitudes')}
                   isReadOnly={isReadOnly}
                   erroAreasAtuacao={
                     // RHF pode retornar FieldError ou array — lemos .message em
