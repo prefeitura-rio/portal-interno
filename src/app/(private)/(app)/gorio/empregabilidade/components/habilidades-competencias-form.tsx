@@ -81,6 +81,10 @@ import {
   trocarAreaDoGrupo,
 } from '@/lib/vaga-habilidades-bloco'
 import {
+  type ErrosApiHabilidades,
+  mesclarErroGrupo,
+} from '@/lib/vaga-habilidades-erros-api'
+import {
   CheckIcon,
   ChevronDown,
   HeartHandshake,
@@ -108,6 +112,11 @@ interface HabilidadesCompetenciasFormProps {
   erroAreasAtuacao?: string
   /** Erro da publicação nos comportamentos e atitudes. */
   erroComportamentos?: string
+  /**
+   * Erros devolvidos pela API (DEV-685), já levados a cada grupo; o erro da
+   * publicação no mesmo campo vale antes deles.
+   */
+  errosApi?: ErrosApiHabilidades
 }
 
 /**
@@ -125,6 +134,7 @@ export function HabilidadesCompetenciasForm({
   isReadOnly = false,
   erroAreasAtuacao,
   erroComportamentos,
+  errosApi,
 }: HabilidadesCompetenciasFormProps) {
   const areasQuery = useAreasAtuacaoCompleto()
   const comportamentosQuery = useComportamentosAtitudesCompleto()
@@ -137,7 +147,8 @@ export function HabilidadesCompetenciasForm({
   const erroComportamentosVisivel =
     erroComportamentos && comportamentoAtitudesIds.length === 0
       ? ERRO_COMPORTAMENTO_OBRIGATORIO
-      : undefined
+      : errosApi?.comportamentos
+  const erroBlocoAreas = errosAreas.areas ?? errosApi?.areas
 
   const triggersArea = useRef<(HTMLButtonElement | null)[]>([])
   const botaoAdicionar = useRef<HTMLButtonElement | null>(null)
@@ -220,14 +231,17 @@ export function HabilidadesCompetenciasForm({
             onRemover={() => handleRemover(indice)}
             podeRemover={!isReadOnly && podeRemoverGrupo(areasAtuacao, indice)}
             isReadOnly={isReadOnly}
-            erro={errosAreas.grupos?.[indice]}
+            erro={mesclarErroGrupo(
+              errosAreas.grupos?.[indice],
+              errosApi?.grupos?.[indice]
+            )}
             triggerRef={elemento => {
               triggersArea.current[indice] = elemento
             }}
           />
         ))}
 
-        {errosAreas.areas && <ErroCampo mensagem={errosAreas.areas} />}
+        {erroBlocoAreas && <ErroCampo mensagem={erroBlocoAreas} />}
 
         <Button
           ref={botaoAdicionar}

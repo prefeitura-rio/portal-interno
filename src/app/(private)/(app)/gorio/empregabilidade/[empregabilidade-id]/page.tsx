@@ -52,6 +52,12 @@ import {
   getVagaHabilidadesParaApi,
 } from '@/lib/vaga-habilidades'
 import {
+  type CamposErroApi,
+  getCamposErroApi,
+  getDescricaoCamposErroApi,
+  getMensagemErroApi,
+} from '@/lib/vaga-habilidades-erros-api'
+import {
   getJovemAprendizDaVaga,
   getJovemAprendizParaApi,
 } from '@/lib/vaga-jovem-aprendiz'
@@ -108,6 +114,8 @@ export default function EmpregabilidadeDetailPage({
   const [isLoading, setIsLoading] = useState(false)
   const isLoadingRef = useRef(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  // DEV-685: erros por campo do último 400 da API, mostrados no formulário
+  const [errosCamposApi, setErrosCamposApi] = useState<CamposErroApi>()
   const [showTabChangeDialog, setShowTabChangeDialog] = useState(false)
   const [pendingTab, setPendingTab] = useState<string | null>(null)
   const [showNewCandidateDialog, setShowNewCandidateDialog] = useState(false)
@@ -212,10 +220,12 @@ export default function EmpregabilidadeDetailPage({
       ) {
         setIsEditing(false)
         setHasUnsavedChanges(false)
+        setErrosCamposApi(undefined)
         refetch() // Reload original data
       }
     } else {
       setIsEditing(false)
+      setErrosCamposApi(undefined)
     }
   }, [hasUnsavedChanges, refetch])
 
@@ -291,6 +301,7 @@ export default function EmpregabilidadeDetailPage({
 
     setIsLoading(true)
     setConfirmDialog({ open: false, type: null })
+    setErrosCamposApi(undefined)
 
     try {
       const response = await fetch(
@@ -302,6 +313,16 @@ export default function EmpregabilidadeDetailPage({
 
       if (!response.ok) {
         const errorData = await response.json()
+        // DEV-685: erros por campo da Go API (habilidades) no formulário
+        const fields = getCamposErroApi(errorData)
+        setErrosCamposApi(fields)
+        const description = getDescricaoCamposErroApi(fields)
+        if (description) {
+          toast.error(errorData.error || 'Erro ao publicar vaga', {
+            description,
+          })
+          return
+        }
         throw new Error(errorData.error || 'Erro ao publicar vaga')
       }
 
@@ -420,6 +441,7 @@ export default function EmpregabilidadeDetailPage({
     if (!vaga?.id) return
 
     setIsLoading(true)
+    setErrosCamposApi(undefined)
 
     try {
       const response = await fetch(
@@ -433,12 +455,13 @@ export default function EmpregabilidadeDetailPage({
         const errorData = await response.json().catch(() => null)
         const errorMessage =
           errorData?.error || 'Erro ao enviar vaga para aprovação'
-        // Repassa os erros por campo da Go API (habilidades faltantes, etc.)
-        const fields = errorData?.fields as Record<string, string> | undefined
-        if (fields && Object.keys(fields).length > 0) {
-          toast.error(errorMessage, {
-            description: Object.values(fields).join(' '),
-          })
+        // Repassa os erros por campo da Go API (habilidades faltantes, etc.),
+        // no toast e no campo de cada um (DEV-685)
+        const fields = getCamposErroApi(errorData)
+        setErrosCamposApi(fields)
+        const description = getDescricaoCamposErroApi(fields)
+        if (description) {
+          toast.error(errorMessage, { description })
           return
         }
         throw new Error(errorMessage)
@@ -585,6 +608,7 @@ export default function EmpregabilidadeDetailPage({
 
       isLoadingRef.current = true
       setIsLoading(true)
+      setErrosCamposApi(undefined)
 
       try {
         const apiData = mapFormToApiData(data)
@@ -597,7 +621,9 @@ export default function EmpregabilidadeDetailPage({
 
         if (!response.ok) {
           const errorData = await response.json()
-          throw new Error(errorData.error || 'Erro ao salvar vaga')
+          // DEV-685: erros por campo da Go API (habilidades) no formulário
+          setErrosCamposApi(getCamposErroApi(errorData))
+          throw new Error(getMensagemErroApi(errorData, 'Erro ao salvar vaga'))
         }
 
         await saveIdiomasRequisito(vaga.id, data.idiomas_requisito ?? [])
@@ -673,6 +699,7 @@ export default function EmpregabilidadeDetailPage({
 
       isLoadingRef.current = true
       setIsLoading(true)
+      setErrosCamposApi(undefined)
 
       try {
         const apiData = mapFormToApiData(data)
@@ -685,7 +712,10 @@ export default function EmpregabilidadeDetailPage({
 
         if (!response.ok) {
           const errorData = await response.json()
-          throw new Error(errorData.error || 'Erro ao salvar rascunho')
+          setErrosCamposApi(getCamposErroApi(errorData))
+          throw new Error(
+            getMensagemErroApi(errorData, 'Erro ao salvar rascunho')
+          )
         }
 
         await saveIdiomasRequisito(vaga.id, data.idiomas_requisito ?? [])
@@ -714,6 +744,7 @@ export default function EmpregabilidadeDetailPage({
 
       isLoadingRef.current = true
       setIsLoading(true)
+      setErrosCamposApi(undefined)
 
       try {
         const apiData = mapFormToApiData(data)
@@ -730,7 +761,8 @@ export default function EmpregabilidadeDetailPage({
 
         if (!saveResponse.ok) {
           const errorData = await saveResponse.json()
-          throw new Error(errorData.error || 'Erro ao salvar vaga')
+          setErrosCamposApi(getCamposErroApi(errorData))
+          throw new Error(getMensagemErroApi(errorData, 'Erro ao salvar vaga'))
         }
 
         await saveIdiomasRequisito(vaga.id, data.idiomas_requisito ?? [])
@@ -745,7 +777,10 @@ export default function EmpregabilidadeDetailPage({
 
         if (!publishResponse.ok) {
           const errorData = await publishResponse.json()
-          throw new Error(errorData.error || 'Erro ao publicar vaga')
+          setErrosCamposApi(getCamposErroApi(errorData))
+          throw new Error(
+            getMensagemErroApi(errorData, 'Erro ao publicar vaga')
+          )
         }
 
         toast.success('Vaga salva e publicada com sucesso!')
@@ -1310,6 +1345,7 @@ export default function EmpregabilidadeDetailPage({
                 onSubmit={handleFormSubmit}
                 onSaveDraft={handleFormSaveDraft}
                 onSaveAndPublish={handleFormSaveAndPublish}
+                errosCamposApi={errosCamposApi}
               />
             </div>
 

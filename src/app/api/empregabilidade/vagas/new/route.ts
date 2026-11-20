@@ -8,6 +8,7 @@ import {
   DATA_LIMITE_FIELD_LABEL,
   validateVagaDataLimite,
 } from '@/lib/empregabilidade-vaga-dates'
+import { getErroValidacaoApi } from '@/lib/vaga-habilidades-erros-api'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -73,6 +74,15 @@ export async function POST(request: Request) {
     const createResponse = await postApiV1EmpregabilidadeVagas(body)
 
     if (createResponse.status !== 201) {
+      // DEV-685: o 400 da Go API traz o erro de cada campo (habilidades:
+      // área repetida, conhecimento de outra área...) para o formulário
+      if (createResponse.status === 400) {
+        const goError = getErroValidacaoApi(createResponse.data)
+        return NextResponse.json(
+          { ...goError, error: goError.error || 'Failed to create vaga' },
+          { status: 400 }
+        )
+      }
       return NextResponse.json(
         { error: 'Failed to create vaga' },
         { status: createResponse.status }

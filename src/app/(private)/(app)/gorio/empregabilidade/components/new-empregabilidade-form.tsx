@@ -46,6 +46,14 @@ import {
   getMensagensErroAreas,
 } from '@/lib/vaga-habilidades-bloco'
 import {
+  CAMPO_API_AREAS,
+  CAMPO_API_COMPORTAMENTOS,
+  CAMPO_API_CONHECIMENTOS,
+  type CamposErroApi,
+  getErrosApiHabilidades,
+  semCamposErroApi,
+} from '@/lib/vaga-habilidades-erros-api'
+import {
   OPCAO_PCD_PADRAO,
   OPCOES_PCD,
   TIPO_PCD_OBRIGATORIO_MENSAGEM,
@@ -365,6 +373,12 @@ interface NewEmpregabilidadeFormProps {
   /** Called when sending vaga for approval on /new page */
   onSendForApproval?: (data: FormData) => void
   onFormChangesDetected?: (hasChanges: boolean) => void
+  /**
+   * DEV-685: erros por campo (`fields`) da última resposta 400 da API. Os das
+   * habilidades aparecem no campo de cada grupo e somem quando o usuário mexe
+   * nele; um objeto novo (outra resposta) os mostra de novo.
+   */
+  errosCamposApi?: CamposErroApi
 }
 
 export interface NewEmpregabilidadeFormRef {
@@ -391,6 +405,7 @@ export const NewEmpregabilidadeForm = forwardRef<
       onSaveAndPublish,
       onSendForApproval,
       onFormChangesDetected,
+      errosCamposApi,
     },
     ref
   ) => {
@@ -545,6 +560,12 @@ export const NewEmpregabilidadeForm = forwardRef<
           },
       mode: 'onChange',
     })
+
+    // DEV-685: erros da API nas habilidades, até o usuário mexer no campo
+    const [camposErroApi, setCamposErroApi] = useState(errosCamposApi)
+    useEffect(() => {
+      setCamposErroApi(errosCamposApi)
+    }, [errosCamposApi])
 
     // Track form changes for unsaved changes guard
     const isDirty = form.formState.isDirty
@@ -1073,6 +1094,54 @@ export const NewEmpregabilidadeForm = forwardRef<
 
             {/* Coluna Direita */}
             <div className="space-y-6">
+              {/* Habilidades e Competências (DEV-525, DEV-684, DEV-685): topo
+                  da coluna direita, acima de Requisitos */}
+              <HabilidadesCompetenciasForm
+                areasAtuacao={form.watch('areas_atuacao') ?? []}
+                onAreasAtuacaoChange={value => {
+                  form.setValue('areas_atuacao', value, { shouldDirty: true })
+                  if (getMensagensErroAreas(value).length === 0) {
+                    form.clearErrors('areas_atuacao')
+                  }
+                  setCamposErroApi(atual =>
+                    semCamposErroApi(atual, [
+                      CAMPO_API_AREAS,
+                      CAMPO_API_CONHECIMENTOS,
+                    ])
+                  )
+                }}
+                comportamentoAtitudesIds={
+                  form.watch('comportamento_atitudes_ids') ?? []
+                }
+                onComportamentoAtitudesChange={value => {
+                  form.setValue('comportamento_atitudes_ids', value, {
+                    shouldDirty: true,
+                  })
+                  if (value.length > 0) {
+                    form.clearErrors('comportamento_atitudes_ids')
+                  }
+                  setCamposErroApi(atual =>
+                    semCamposErroApi(atual, [CAMPO_API_COMPORTAMENTOS])
+                  )
+                }}
+                comportamentosSalvos={form.watch('comportamentos_atitudes')}
+                isReadOnly={isReadOnly}
+                erroAreasAtuacao={
+                  // RHF pode retornar FieldError ou array — lemos .message em
+                  // ambos os casos
+                  (form.formState.errors.areas_atuacao as any)?.message ??
+                  (form.formState.errors.areas_atuacao as any)?.root?.message
+                }
+                erroComportamentos={
+                  (form.formState.errors.comportamento_atitudes_ids as any)
+                    ?.message
+                }
+                errosApi={getErrosApiHabilidades(
+                  camposErroApi,
+                  form.watch('areas_atuacao')
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="requisitos"
@@ -1236,42 +1305,6 @@ export const NewEmpregabilidadeForm = forwardRef<
                   </FormItem>
                 )}
               />
-
-              {/* Habilidades e Competências (DEV-525, DEV-684) */}
-              <div className="pt-2">
-                <HabilidadesCompetenciasForm
-                  areasAtuacao={form.watch('areas_atuacao') ?? []}
-                  onAreasAtuacaoChange={value => {
-                    form.setValue('areas_atuacao', value, { shouldDirty: true })
-                    if (getMensagensErroAreas(value).length === 0) {
-                      form.clearErrors('areas_atuacao')
-                    }
-                  }}
-                  comportamentoAtitudesIds={
-                    form.watch('comportamento_atitudes_ids') ?? []
-                  }
-                  onComportamentoAtitudesChange={value => {
-                    form.setValue('comportamento_atitudes_ids', value, {
-                      shouldDirty: true,
-                    })
-                    if (value.length > 0) {
-                      form.clearErrors('comportamento_atitudes_ids')
-                    }
-                  }}
-                  comportamentosSalvos={form.watch('comportamentos_atitudes')}
-                  isReadOnly={isReadOnly}
-                  erroAreasAtuacao={
-                    // RHF pode retornar FieldError ou array — lemos .message em
-                    // ambos os casos
-                    (form.formState.errors.areas_atuacao as any)?.message ??
-                    (form.formState.errors.areas_atuacao as any)?.root?.message
-                  }
-                  erroComportamentos={
-                    (form.formState.errors.comportamento_atitudes_ids as any)
-                      ?.message
-                  }
-                />
-              </div>
             </div>
           </div>
 
