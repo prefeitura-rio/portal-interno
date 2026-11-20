@@ -27,7 +27,11 @@ export interface CatalogoHabilidadeItem {
 
 /** Uma área de atuação da vaga, com os conhecimentos marcados nela. */
 export interface VagaAreaAtuacaoSelecionada {
-  id_area_atuacao: number
+  /**
+   * `null` no grupo aberto na tela que ainda não tem área (DEV-684): ele
+   * nunca é enviado à API e a publicação o recusa.
+   */
+  id_area_atuacao: number | null
   conhecimento_ids: number[]
   /** Só leitura (vem da API); ignorado no envio. */
   nome?: string
@@ -85,13 +89,17 @@ function catalogoItens(values: unknown): CatalogoHabilidadeItem[] {
   return itens
 }
 
+type VagaAreaAtuacaoComId = VagaAreaAtuacaoSelecionada & {
+  id_area_atuacao: number
+}
+
 /**
  * Normaliza as áreas: descarta entrada sem id válido e junta área repetida
  * (a API recusa a repetição) somando os conhecimentos, sem repetir nenhum.
  */
-function normalizarAreas(values: unknown): VagaAreaAtuacaoSelecionada[] {
+function normalizarAreas(values: unknown): VagaAreaAtuacaoComId[] {
   if (!Array.isArray(values)) return []
-  const porArea = new Map<number, VagaAreaAtuacaoSelecionada>()
+  const porArea = new Map<number, VagaAreaAtuacaoComId>()
   for (const value of values) {
     if (typeof value !== 'object' || value === null) continue
     const campos = value as {
@@ -110,7 +118,7 @@ function normalizarAreas(values: unknown): VagaAreaAtuacaoSelecionada[] {
     ])
     const atual = porArea.get(campos.id_area_atuacao)
     if (!atual) {
-      const area: VagaAreaAtuacaoSelecionada = {
+      const area: VagaAreaAtuacaoComId = {
         id_area_atuacao: campos.id_area_atuacao,
         conhecimento_ids: ids,
       }

@@ -283,6 +283,13 @@ describe('formulário de oportunidade MEI (fullFormSchema)', () => {
   })
 })
 
+// DEV-525/DEV-684: publicar exige habilidades (área com conhecimento e
+// comportamento); os dados sintéticos abaixo cumprem essa regra.
+const HABILIDADES_VALIDAS = {
+  areas_atuacao: [{ id_area_atuacao: 3, conhecimento_ids: [10] }],
+  comportamento_atitudes_ids: [1],
+}
+
 describe('formulário de vaga de empregabilidade', () => {
   test('publicar sem data limite tem a mensagem em pt-BR', () => {
     const issues = issuesOf(vagaForm.publishValidationSchema, {
@@ -295,6 +302,7 @@ describe('formulário de vaga de empregabilidade', () => {
       id_orgao_parceiro: 'orgao-teste',
       requisitos: 'Requisitos sintéticos',
       responsabilidades: 'Responsabilidades sintéticas',
+      ...HABILIDADES_VALIDAS,
     })
     assert.deepEqual(
       issues.map(issue => [issue.path, issue.message]),
@@ -332,6 +340,7 @@ describe('formulário de vaga de empregabilidade', () => {
       id_orgao_parceiro: 'orgao-teste',
       requisitos: 'Requisitos sintéticos',
       responsabilidades: 'Responsabilidades sintéticas',
+      ...HABILIDADES_VALIDAS,
     }
     const erroTipo = [
       ['tipo_pcd'],
