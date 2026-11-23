@@ -1,4 +1,8 @@
 import { denyVagaChangeForCuration } from '@/lib/empregabilidade-curation-guard'
+import {
+  type ErroValidacaoApi,
+  getErroValidacaoApi,
+} from '@/lib/vaga-habilidades-erros-api'
 import { NextResponse } from 'next/server'
 import { customFetchGoRio } from '../../../../../../../custom-fetch-gorio'
 
@@ -38,8 +42,23 @@ export async function PUT(
       return NextResponse.json({ success: true, data: response.data })
     }
 
+    // DEV-744: no 4xx, repassa o erro da Go API (só `error` e `fields`,
+    // saneados) em vez de só o texto fixo, como as outras rotas da vaga
+    // (DEV-685); o 5xx fica com o texto fixo, sem detalhe interno
+    const goError: ErroValidacaoApi =
+      response.status >= 400 && response.status < 500
+        ? getErroValidacaoApi(response.data)
+        : {}
+    if (response.status >= 500) {
+      console.error(
+        `[PUT /api/empregabilidade/vagas/[id]/idiomas-requisito] Go API status ${response.status}`
+      )
+    }
     return NextResponse.json(
-      { error: 'Erro ao atualizar requisitos de idioma' },
+      {
+        ...goError,
+        error: goError.error || 'Erro ao atualizar requisitos de idioma',
+      },
       { status: response.status }
     )
   } catch (error) {

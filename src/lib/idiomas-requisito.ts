@@ -74,6 +74,38 @@ export async function salvarIdiomasRequisito(
   }
 }
 
+/**
+ * DEV-744: na edição da vaga, o PUT dos idiomas só tem o que gravar quando o
+ * formulário traz algum idioma ou quando a vaga já tinha idiomas gravados (a
+ * lista vazia é o que os remove ao desligar o critério). Com as duas listas
+ * vazias a chamada é pulada, como na criação (`if (idiomas.length === 0)`).
+ */
+export function precisaSalvarIdiomasRequisito(
+  idiomas: readonly IdiomaRequisitoInput[] | null | undefined,
+  idiomasGravados: unknown
+): boolean {
+  const temNovos = Array.isArray(idiomas) && idiomas.length > 0
+  const temGravados =
+    Array.isArray(idiomasGravados) && idiomasGravados.length > 0
+  return temNovos || temGravados
+}
+
+/**
+ * Grava os idiomas da vaga editada quando há o que gravar ou remover
+ * (`precisaSalvarIdiomasRequisito`). Devolve se o PUT foi feito; a falha dele
+ * é `IdiomasRequisitoError`, com a mensagem que a API devolveu.
+ */
+export async function salvarIdiomasRequisitoDaEdicao(
+  vagaId: string,
+  idiomas: readonly IdiomaRequisitoInput[] | null | undefined,
+  idiomasGravados: unknown,
+  fetchImpl: FetchLike = fetch
+): Promise<boolean> {
+  if (!precisaSalvarIdiomasRequisito(idiomas, idiomasGravados)) return false
+  await salvarIdiomasRequisito(vagaId, idiomas ?? [], fetchImpl)
+  return true
+}
+
 export function isIdiomasRequisitoError(
   error: unknown
 ): error is IdiomasRequisitoError {
