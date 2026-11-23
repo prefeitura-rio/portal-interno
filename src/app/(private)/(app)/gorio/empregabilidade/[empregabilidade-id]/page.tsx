@@ -7,6 +7,7 @@ import {
   NewEmpregabilidadeForm,
   type NewEmpregabilidadeFormRef,
 } from '@/app/(private)/(app)/gorio/empregabilidade/components/new-empregabilidade-form'
+import { VagaAcoesPrimarias } from '@/app/(private)/(app)/gorio/empregabilidade/components/vaga-acoes-primarias'
 import { ContentLayout } from '@/components/admin-panel/content-layout'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -80,7 +81,6 @@ import {
   Link as LinkIcon,
   Pause,
   Play,
-  RefreshCw,
   Save,
   Square,
   Trash2,
@@ -970,52 +970,18 @@ export default function EmpregabilidadeDetailPage({
                     {!isReadOnlyForEditor && (
                       <>
                         {/* Primary (always visible) buttons by status */}
-                        {vaga.status === 'em_edicao' && (
-                          <Button
-                            onClick={handleSendToApproval}
-                            disabled={isLoading}
-                            variant="default"
-                          >
-                            <Play className="mr-2 h-4 w-4" />
-                            Enviar para aprovação
-                          </Button>
-                        )}
-
-                        {vaga.status === 'em_aprovacao' &&
-                          canPublishVagaAsAtivo && (
-                            <Button
-                              onClick={handlePublish}
-                              disabled={isLoading}
-                              variant="default"
-                            >
-                              <Play className="mr-2 h-4 w-4" />
-                              Publicar vaga
-                            </Button>
-                          )}
-
-                        {vaga.status === 'vaga_congelada' &&
-                          canFreezeOrDiscontinueVaga && (
-                            <Button
-                              onClick={handleUnfreeze}
-                              disabled={isLoading}
-                              variant="default"
-                            >
-                              <Play className="mr-2 h-4 w-4" />
-                              Descongelar vaga
-                            </Button>
-                          )}
-
-                        {vaga.status === 'vaga_descontinuada' &&
-                          canFreezeOrDiscontinueVaga && (
-                            <Button
-                              onClick={handleReactivate}
-                              disabled={isLoading}
-                              variant="default"
-                            >
-                              <RefreshCw className="mr-2 h-4 w-4" />
-                              Reativar vaga
-                            </Button>
-                          )}
+                        <VagaAcoesPrimarias
+                          status={vaga.status}
+                          canPublishVagaAsAtivo={canPublishVagaAsAtivo}
+                          canFreezeOrDiscontinueVaga={
+                            canFreezeOrDiscontinueVaga
+                          }
+                          disabled={isLoading}
+                          onSendToApproval={handleSendToApproval}
+                          onPublish={handlePublish}
+                          onUnfreeze={handleUnfreeze}
+                          onReactivate={handleReactivate}
+                        />
                       </>
                     )}
 
@@ -1051,36 +1017,23 @@ export default function EmpregabilidadeDetailPage({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {/* Vaga rascunho (em_edicao):
-                            - visíveis: Enviar para aprovação, Editar
-                            - dropdown: Publicar vaga, Excluir */}
-                            {vaga.status === 'em_edicao' && (
-                              <>
-                                {canPublishVagaAsAtivo && (
-                                  <DropdownMenuItem
-                                    onClick={handlePublish}
-                                    disabled={isLoading}
-                                    className="cursor-pointer"
-                                  >
-                                    <Play className="mr-2 h-4 w-4" />
-                                    Publicar vaga
-                                  </DropdownMenuItem>
-                                )}
-                                {canDeleteVagaWithStatus(
-                                  user?.roles,
-                                  vaga.status ?? ''
-                                ) && (
-                                  <DropdownMenuItem
-                                    onClick={handleDelete}
-                                    disabled={isLoading}
-                                    variant="destructive"
-                                    className="cursor-pointer"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Excluir
-                                  </DropdownMenuItem>
-                                )}
-                              </>
-                            )}
+                            - visíveis: Enviar para aprovação, Publicar vaga (DEV-755), Editar
+                            - dropdown: Excluir */}
+                            {vaga.status === 'em_edicao' &&
+                              canDeleteVagaWithStatus(
+                                user?.roles,
+                                vaga.status ?? ''
+                              ) && (
+                                <DropdownMenuItem
+                                  onClick={handleDelete}
+                                  disabled={isLoading}
+                                  variant="destructive"
+                                  className="cursor-pointer"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              )}
 
                             {/* Vaga aguardando aprovação (em_aprovacao):
                             - visíveis: Publicar vaga, Editar
