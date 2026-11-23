@@ -9,6 +9,11 @@ import {
   readKeycloakTokenResponse,
 } from '@/lib/keycloak-token-response'
 import {
+  LOGIN_ERROR_REASON_PARAM,
+  type LoginErrorReason,
+  loginErrorReasonForStateCheck,
+} from '@/lib/login-error-reason'
+import {
   OAUTH_STATE_COOKIE_NAME,
   clearOAuthStateCookie,
   verifyOAuthState,
@@ -47,14 +52,23 @@ function getAppBaseUrl(req: NextRequest): URL {
  * state (uso único): só depois que o state da query bateu com ele. Um callback
  * recusado não apaga o state de um login legítimo em andamento neste navegador
  * (requisição forjada, iframe do logout do gov.br).
+ *
+ * `reason: 'expired'` leva a página a dizer que o login expirou em vez de
+ * apontar falha do serviço de identidade (DEV-774); a falha genérica vai sem
+ * parâmetro, na URL de sempre.
  */
 function redirectToLoginError(
   appBaseUrl: URL,
-  { consumeState }: { consumeState: boolean }
+  {
+    consumeState,
+    reason = 'failed',
+  }: { consumeState: boolean; reason?: LoginErrorReason }
 ): NextResponse {
-  const res = NextResponse.redirect(
-    new URL(REDIRECT_WHEN_LOGIN_FAILED_ROUTE, appBaseUrl.origin)
-  )
+  const target = new URL(REDIRECT_WHEN_LOGIN_FAILED_ROUTE, appBaseUrl.origin)
+  if (reason !== 'failed') {
+    target.searchParams.set(LOGIN_ERROR_REASON_PARAM, reason)
+  }
+  const res = NextResponse.redirect(target)
   if (consumeState) {
     clearOAuthStateCookie(res)
   }
@@ -83,7 +97,13 @@ export async function GET(req: NextRequest) {
     console.warn('[KEYCLOAK_CALLBACK] Rejected callback: invalid OAuth state', {
       reason: stateCheck.reason,
     })
-    return redirectToLoginError(appBaseUrl, { consumeState: false })
+    // State ausente do cookie ou de outro login: em geral o login só demorou
+    // mais que a validade do state ou voltou em outra aba ou navegador
+    // (DEV-774). O cookie continua intocado e o code não é trocado
+    return redirectToLoginError(appBaseUrl, {
+      consumeState: false,
+      reason: loginErrorReasonForStateCheck(stateCheck.reason),
+    })
   }
 
   const tokenUrl = `${process.env.NEXT_PUBLIC_IDENTIDADE_CARIOCA_BASE_URL}/token`

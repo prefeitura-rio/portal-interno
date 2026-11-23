@@ -5,10 +5,25 @@ import { ThemeAwareVideo } from '@/components/ui/custom/theme-aware-video'
 import { LOGIN_ROUTE } from '@/constants/url'
 import { VIDEO_SOURCES } from '@/constants/videos-sources'
 import { useViewportHeight } from '@/hooks/useViewport'
+import {
+  LOGIN_ERROR_REASON_PARAM,
+  getLoginErrorMessage,
+  parseLoginErrorReason,
+} from '@/lib/login-error-reason'
 import Image from 'next/image'
+import { use } from 'react'
 
-export default function LoginError() {
+type LoginErrorProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default function LoginError({ searchParams }: LoginErrorProps) {
   const { isBelowBreakpoint } = useViewportHeight(648)
+  // Login expirado (state do OAuth vencido ou de outro navegador) tem texto
+  // próprio; qualquer outro valor mostra a falha do serviço de identidade
+  const { title, description } = getLoginErrorMessage(
+    parseLoginErrorReason(use(searchParams)[LOGIN_ERROR_REASON_PARAM])
+  )
 
   return (
     <div className="max-w-xl min-h-lvh mx-auto pt-16 md:pt-16 flex flex-col overflow-y-hidden">
@@ -18,13 +33,12 @@ export default function LoginError() {
           containerClassName="mb-4 md:mb-8 flex items-center justify-center h-[min(328px,50vh)] max-h-[328px]"
         />
         <h2 className="text-2xl text-center font-semibold text-foreground mb-1">
-          Não foi possível concluir o login
+          {title}
         </h2>
         <p
           className={`text-muted-foreground text-center text-sm md:text-base ${isBelowBreakpoint ? 'mb-6' : 'mb-10'}`}
         >
-          Houve uma falha na comunicação com o serviço de identidade. Tente
-          entrar novamente em alguns instantes.
+          {description}
         </p>
         {/* Gov.br Login Section */}
         <div className="px-4 w-full space-y-1">

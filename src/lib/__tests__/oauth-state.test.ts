@@ -46,6 +46,11 @@ const {
   isWellFormedOAuthState,
   verifyOAuthState,
 } = await import('../oauth-state.ts')
+const {
+  getLoginErrorMessage,
+  loginErrorReasonForStateCheck,
+  parseLoginErrorReason,
+} = await import('../login-error-reason.ts')
 const { GET: login } = await import('../../app/api/auth/login/route.ts')
 const { GET: callback } = await import(
   '../../app/api/auth/callback/keycloak/route.ts'
@@ -57,6 +62,9 @@ const APP_ORIGIN = 'https://admin.portal.invalid'
 const KEYCLOAK_BASE_URL = 'https://keycloak.invalid/realms/teste/openid'
 const CALLBACK_URL = `${APP_ORIGIN}/api/auth/callback/keycloak`
 const LOGIN_ERROR_URL = `${APP_ORIGIN}/login-error`
+// DEV-774: state vencido ou de outro navegador não é falha do serviço de
+// identidade; a página mostra que o login expirou
+const LOGIN_EXPIRED_URL = `${APP_ORIGIN}/login-error?reason=expired`
 
 function base64Url(value: string): string {
   return Buffer.from(value).toString('base64url')
@@ -304,9 +312,10 @@ describe('GET /api/auth/callback/keycloak valida o state (DEV-262)', () => {
       )
     )
 
-    assert.equal(response.headers.get('location'), LOGIN_ERROR_URL)
+    assert.equal(response.headers.get('location'), LOGIN_EXPIRED_URL)
     assert.equal(tokenCalls, 0)
     assert.equal(response.cookies.get('access_token'), undefined)
+    assertStateUntouched(response)
   })
 
   test('state diferente do cookie: recusa', async () => {
@@ -317,7 +326,7 @@ describe('GET /api/auth/callback/keycloak valida o state (DEV-262)', () => {
       )
     )
 
-    assert.equal(response.headers.get('location'), LOGIN_ERROR_URL)
+    assert.equal(response.headers.get('location'), LOGIN_EXPIRED_URL)
     assert.equal(tokenCalls, 0)
     assert.equal(response.cookies.get('access_token'), undefined)
     assertStateUntouched(response)
@@ -402,6 +411,102 @@ describe('GET /api/auth/callback/keycloak valida o state (DEV-262)', () => {
     assert.ok(response.cookies.get('access_token')?.value)
     assert.ok(response.cookies.get('refresh_token')?.value)
     assertStateCleared(response)
+  })
+})
+
+describe('login expirado não usa o texto de falha do serviço de identidade (DEV-774)', () => {
+  test('state vencido (cookie de 10 min já apagado) volta com reason=expired, sem trocar o code', async () => {
+    const start = login(request(`${APP_ORIGIN}/api/auth/login`))
+    const state = start.cookies.get(OAUTH_STATE_COOKIE_NAME)?.value
+    assert.ok(state)
+
+    // O navegador descartou o cookie (Max-Age) antes da volta do gov.br
+    const response = await callback(
+      request(`${CALLBACK_URL}?code=codigo-legitimo&state=${state}`)
+    )
+
+    assert.equal(response.status, 307)
+    assert.equal(response.headers.get('location'), LOGIN_EXPIRED_URL)
+    assert.equal(tokenCalls, 0)
+    assert.equal(response.cookies.get('access_token'), undefined)
+    assert.equal(response.cookies.get('refresh_token'), undefined)
+    assertStateUntouched(response)
+    assert.match(JSON.stringify(warnCalls), /missing_cookie/)
+  })
+
+  test('callback sem state (iframe do logout do gov.br) mantém a mensagem genérica', async () => {
+    const response = await callback(
+      request(`${CALLBACK_URL}?code=codigo-sem-state`, {
+        [OAUTH_STATE_COOKIE_NAME]: generateOAuthState(),
+      })
+    )
+    assert.equal(response.headers.get('location'), LOGIN_ERROR_URL)
+    assert.equal(tokenCalls, 0)
+  })
+
+  test('Keycloak sem code e falha de rede na troca seguem como falha do serviço', async () => {
+    const withoutCode = await callback(
+      request(`${CALLBACK_URL}?error=temporarily_unavailable`)
+    )
+    assert.equal(withoutCode.headers.get('location'), LOGIN_ERROR_URL)
+
+    globalThis.fetch = (async () => {
+      tokenCalls++
+      throw new TypeError('fetch failed')
+    }) as typeof fetch
+    const state = generateOAuthState()
+    const networkFailure = await callback(
+      request(`${CALLBACK_URL}?code=codigo-legitimo&state=${state}`, {
+        [OAUTH_STATE_COOKIE_NAME]: state,
+      })
+    )
+    assert.equal(networkFailure.headers.get('location'), LOGIN_ERROR_URL)
+    assert.equal(tokenCalls, 1)
+    assertStateCleared(networkFailure)
+  })
+
+  test('só cookie ausente e state de outro login viram expired', () => {
+    assert.equal(loginErrorReasonForStateCheck('missing_cookie'), 'expired')
+    assert.equal(loginErrorReasonForStateCheck('mismatch'), 'expired')
+    assert.equal(loginErrorReasonForStateCheck('missing_query_state'), 'failed')
+  })
+
+  test('a página lê o motivo por lista fechada', () => {
+    assert.equal(parseLoginErrorReason('expired'), 'expired')
+    for (const value of [
+      undefined,
+      null,
+      '',
+      'failed',
+      'EXPIRED',
+      '<script>alert(1)</script>',
+      ['expired', 'expired'],
+    ]) {
+      assert.equal(parseLoginErrorReason(value), 'failed', String(value))
+    }
+  })
+
+  test('os textos de expirado e de falha são diferentes', () => {
+    const expired = getLoginErrorMessage('expired')
+    const failed = getLoginErrorMessage('failed')
+    assert.equal(expired.title, 'Seu login expirou')
+    assert.match(expired.description, /Entre novamente/)
+    assert.doesNotMatch(expired.description, /serviço de identidade/)
+    assert.equal(failed.title, 'Não foi possível concluir o login')
+    assert.match(
+      failed.description,
+      /falha na comunicação com o serviço de identidade/
+    )
+  })
+
+  test('a página /login-error mostra o texto do motivo da query', () => {
+    const source = readFileSync(
+      new URL('../../app/(public)/login-error/page.tsx', import.meta.url),
+      'utf8'
+    )
+    assert.match(source, /parseLoginErrorReason\(/)
+    assert.match(source, /getLoginErrorMessage\(/)
+    assert.doesNotMatch(source, /Houve uma falha na comunicação/)
   })
 })
 
