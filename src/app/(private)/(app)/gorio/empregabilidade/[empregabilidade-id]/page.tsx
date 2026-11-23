@@ -38,6 +38,7 @@ import { useVaga } from '@/hooks/use-vaga'
 import { fromApiInformacaoComplementar } from '@/lib/converters/empregabilidade'
 import { getCriteriosBloqueio } from '@/lib/criterios-aceitacao'
 import { formatDateBR } from '@/lib/format'
+import { salvarIdiomasRequisitoDaEdicao } from '@/lib/idiomas-requisito'
 import { GORIO_MODULE_LABEL } from '@/lib/module-labels'
 import {
   type VagaStatus,
@@ -573,32 +574,20 @@ export default function EmpregabilidadeDetailPage({
     [vaga]
   )
 
-  // Salva idiomas-requisito em endpoint separado
+  // Salva idiomas-requisito em endpoint separado. DEV-744: sem idioma no
+  // formulário nem gravado na vaga não há o que gravar, e o PUT é pulado
   const saveIdiomasRequisito = useCallback(
     async (
       vagaId: string,
-      idiomas: { id_idioma: string; id_nivel_minimo: string }[]
+      idiomas: { id_idioma: string; id_nivel_minimo: string }[] | undefined
     ) => {
-      const res = await fetch(
-        `/api/empregabilidade/vagas/${vagaId}/idiomas-requisito`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            requisitos: idiomas.map(item => ({
-              id_vaga: vagaId,
-              id_idioma: item.id_idioma,
-              id_nivel_minimo: item.id_nivel_minimo,
-            })),
-          }),
-        }
+      await salvarIdiomasRequisitoDaEdicao(
+        vagaId,
+        idiomas,
+        vaga?.idiomas_requisito
       )
-      if (!res.ok) {
-        const err = await res.json().catch(() => null)
-        throw new Error(err?.error || 'Erro ao salvar requisitos de idioma')
-      }
     },
-    []
+    [vaga]
   )
 
   // Helper to persist form data (for published vagas - validação já feita no form)
@@ -626,7 +615,7 @@ export default function EmpregabilidadeDetailPage({
           throw new Error(getMensagemErroApi(errorData, 'Erro ao salvar vaga'))
         }
 
-        await saveIdiomasRequisito(vaga.id, data.idiomas_requisito ?? [])
+        await saveIdiomasRequisito(vaga.id, data.idiomas_requisito)
 
         toast.success('Vaga atualizada com sucesso!')
         setIsEditing(false)
@@ -718,7 +707,7 @@ export default function EmpregabilidadeDetailPage({
           )
         }
 
-        await saveIdiomasRequisito(vaga.id, data.idiomas_requisito ?? [])
+        await saveIdiomasRequisito(vaga.id, data.idiomas_requisito)
 
         toast.success('Rascunho salvo com sucesso!')
         setIsEditing(false)
@@ -765,7 +754,7 @@ export default function EmpregabilidadeDetailPage({
           throw new Error(getMensagemErroApi(errorData, 'Erro ao salvar vaga'))
         }
 
-        await saveIdiomasRequisito(vaga.id, data.idiomas_requisito ?? [])
+        await saveIdiomasRequisito(vaga.id, data.idiomas_requisito)
 
         // Then publish
         const publishResponse = await fetch(
