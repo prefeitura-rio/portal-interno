@@ -10,7 +10,8 @@ import { NextResponse } from 'next/server'
 // DEV-126: a regra por rota (route-permissions) não distingue o status da
 // vaga nem o status pedido no corpo. A UI esconde do editor com curadoria
 // (sem papel que publique) excluir e editar vaga publicada, pausada ou
-// encerrada, e dos editores aprovar candidatura; `DELETE`/`PUT vagas/[id]` e
+// encerrada, e esconde dele, sozinho, aprovar candidatura. O editor sem
+// curadoria aprova. `DELETE`/`PUT vagas/[id]` e
 // `PUT candidaturas/[id]/status`/`bulk-status` servem a essas ações e a outras
 // que eles fazem. Estas funções decidem como a UI decide.
 

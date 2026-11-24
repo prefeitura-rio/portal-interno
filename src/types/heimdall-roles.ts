@@ -221,14 +221,17 @@ export const EMPREGABILIDADE_VAGA_PUBLISH_ROLES = [
 ] as const
 
 /**
- * Roles that approve a candidatura (final hiring decision, DEV-126): the
- * module admins only, never the editors.
+ * Roles that approve a candidatura (final hiring decision).
+ * editor_sem_curadoria approves within their secretaria, one candidate or
+ * in bulk. editor_com_curadoria alone cannot; a role from this list
+ * alongside curadoria prevails.
  */
 export const EMPREGABILIDADE_APPROVE_CANDIDATURA_ROLES = [
   'admin',
   'superadmin',
   'go:admin',
   'go:empregabilidade:admin',
+  'go:empregabilidade:editor_sem_curadoria',
 ] as const
 
 /**
@@ -404,8 +407,8 @@ export function canManageEnrollments(roles: string[] | undefined): boolean {
 
 /**
  * Can approve a candidatura (final hiring decision).
- * Restricted to admin-level roles to prevent accidental mass approvals.
- * editor_com_curadoria and editor_sem_curadoria are intentionally excluded.
+ * editor_sem_curadoria approves within their secretaria.
+ * editor_com_curadoria alone cannot.
  */
 export function canApproveCandidatura(roles: string[] | undefined): boolean {
   if (!roles) return false

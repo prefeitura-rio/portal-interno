@@ -706,26 +706,22 @@ describe('Empregabilidade: publicar, pausar, retomar e encerrar vaga e aprovar c
     }
   })
 
-  test('editores recebem 403 ao aprovar candidatura', async () => {
-    for (const roles of [
-      [CURADORIA],
-      [SEM_CURADORIA],
-      [CURADORIA, SEM_CURADORIA],
-    ]) {
-      const token = userWith(roles)
-      for (const [path, method] of APPROVE_ROUTES) {
-        await assertDenied(await callApi(path, token, method), 403)
-      }
+  test('curadoria sozinha recebe 403 ao aprovar candidatura', async () => {
+    const token = userWith([CURADORIA])
+    for (const [path, method] of APPROVE_ROUTES) {
+      await assertDenied(await callApi(path, token, method), 403)
     }
   })
 
-  test('admins do módulo aprovam candidatura, inclusive com papel de editor junto', async () => {
+  test('editor sem curadoria aprova candidatura', async () => {
     for (const roles of [
       ['go:empregabilidade:admin'],
+      [SEM_CURADORIA],
       ['go:admin'],
       ['admin'],
       ['superadmin'],
       [CURADORIA, 'go:empregabilidade:admin'],
+      [CURADORIA, SEM_CURADORIA],
     ]) {
       const token = userWith(roles)
       for (const [path, method] of APPROVE_ROUTES) {

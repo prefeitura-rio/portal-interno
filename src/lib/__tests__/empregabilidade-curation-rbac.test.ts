@@ -164,10 +164,15 @@ const PUBLISHERS = [
 ]
 const APPROVERS = [
   ['go:empregabilidade:admin'],
+  ['go:empregabilidade:editor_sem_curadoria'],
   ['go:admin'],
   ['admin'],
   ['superadmin'],
   ['go:empregabilidade:editor_com_curadoria', 'go:empregabilidade:admin'],
+  [
+    'go:empregabilidade:editor_com_curadoria',
+    'go:empregabilidade:editor_sem_curadoria',
+  ],
 ]
 const OPEN_STATUSES = ['em_edicao', 'em_aprovacao']
 const CLOSED_STATUSES = [
@@ -481,8 +486,8 @@ describe('idiomas, envio para rascunho e para aprovação de vaga (DEV-126)', ()
 })
 
 describe('aprovar candidatura por status e em lote (DEV-126)', () => {
-  test('editores recebem 403 ao aprovar e nada chega à API', async () => {
-    for (const roles of [CURADORIA, SEM_CURADORIA, undefined, []]) {
+  test('curadoria sozinha ou sem papéis recebe 403 ao aprovar', async () => {
+    for (const roles of [CURADORIA, undefined, []]) {
       testGlobals.__dev126Calls = []
       const single = await setStatus(roles, 'approved')
       assert.equal(single.status, 403, String(roles))
@@ -545,11 +550,13 @@ describe('predicados da UI com mais de um papel (DEV-126)', () => {
     assert.equal(canDeleteVagaWithStatus(CURADORIA, 'em_aprovacao'), true)
   })
 
-  test('aprovar candidatura: admin do módulo prevalece sobre os editores', () => {
+  test('admin e editor sem curadoria prevalecem sobre a curadoria', () => {
     assert.equal(
       canApproveCandidatura([...CURADORIA, 'go:empregabilidade:admin']),
       true
     )
-    assert.equal(canApproveCandidatura([...CURADORIA, ...SEM_CURADORIA]), false)
+    assert.equal(canApproveCandidatura([...CURADORIA, ...SEM_CURADORIA]), true)
+    assert.equal(canApproveCandidatura(SEM_CURADORIA), true)
+    assert.equal(canApproveCandidatura(CURADORIA), false)
   })
 })
