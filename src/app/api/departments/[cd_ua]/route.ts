@@ -1,4 +1,5 @@
 import { getDepartmentsCdUa } from '@/http-rmi/departments/departments'
+import { getDepartmentCached } from '@/lib/department-server-cache'
 import { NextResponse } from 'next/server'
 
 export async function GET(
@@ -15,8 +16,8 @@ export async function GET(
       )
     }
 
-    // Call the RMI API
-    const response = await getDepartmentsCdUa(cd_ua)
+    // RMI com cache no servidor e uma só consulta em voo por cd_ua (DEV-818)
+    const response = await getDepartmentCached(cd_ua, getDepartmentsCdUa)
 
     if (response.status === 200) {
       return NextResponse.json({
