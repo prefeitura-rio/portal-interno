@@ -2,75 +2,123 @@
 
 import { loadDepartment, normalizeCdUa } from '@/lib/department-client'
 import type { Department } from '@/types/department'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { queryOptions, useQuery } from '@tanstack/react-query'
+
+/** Órgãos quase não mudam; evita refetch ao voltar para a listagem. */
+const DEPARTMENT_DETAIL_STALE_TIME_MS = 60 * 60 * 1000
+
+/** Mantém o nome na sessão mesmo depois de sair da tela. */
+const DEPARTMENT_DETAIL_GC_TIME_MS = 6 * 60 * 60 * 1000
+
+export function departmentDetailQueryKey(cdUa: string) {
+  return ['departments', 'detail', cdUa.trim()] as const
+}
+
+export class DepartmentLookupError extends Error {
+  readonly status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'DepartmentLookupError'
+    this.status = status
+  }
+}
+
+function isDefinitiveDepartmentError(error: unknown): boolean {
+  return (
+    error instanceof DepartmentLookupError &&
+    (error.status === 400 || error.status === 404)
+  )
+}
 
 /**
- * Órgão de um `cd_ua`. As linhas de uma tabela que pedem o mesmo órgão ao
- * mesmo tempo compartilham uma única requisição ao BFF, e o resultado fica
- * em cache na aba por 5 minutos (`src/lib/department-client.ts`, DEV-818).
+ * Busca um órgão pelo cd_ua via `loadDepartment` (dedupe e cache de 404 na
+ * aba). 404 e id inválido rejeitam com `DepartmentLookupError` e não devem
+ * ser tentados de novo.
  */
-export function useDepartment(cd_ua: string | null | undefined) {
-  const [department, setDepartment] = useState<Department | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  // Só a consulta mais recente atualiza o estado (cd_ua trocado no meio)
-  const requestRef = useRef(0)
+export async function fetchDepartment(cdUa: string): Promise<Department> {
+  const normalizedId = normalizeCdUa(cdUa)
 
-  const fetchDepartment = useCallback(async (id: string) => {
-    const request = ++requestRef.current
-    const isCurrent = () => requestRef.current === request
-    const normalizedId = normalizeCdUa(id)
+  if (!normalizedId) {
+    throw new DepartmentLookupError('Invalid department id', 400)
+  }
 
-    if (!normalizedId) {
-      setDepartment(null)
-      setError('Invalid department id')
-      setLoading(false)
-      return
+  try {
+    const result = await loadDepartment(normalizedId)
+    if (result.status === 'not_found') {
+      throw new DepartmentLookupError('Department not found', 404)
     }
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      const result = await loadDepartment(normalizedId)
-      if (!isCurrent()) return
-      if (result.status === 'found') {
-        setDepartment(result.data)
-      } else {
-        setDepartment(null)
-        setError('Department not found')
+    return result.data
+  } catch (error) {
+    if (error instanceof DepartmentLookupError) {
+      if (error.status !== 404) {
+        console.error('Error fetching department:', error)
       }
-    } catch (err) {
-      if (!isCurrent()) return
-      console.error('Error fetching department:', err)
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    } finally {
-      if (isCurrent()) setLoading(false)
+      throw error
     }
-  }, [])
+    console.error('Error fetching department:', error)
+    throw new DepartmentLookupError(
+      error instanceof Error ? error.message : 'Unknown error',
+      500
+    )
+  }
+}
 
-  useEffect(() => {
-    if (cd_ua) {
-      fetchDepartment(cd_ua)
-    } else {
-      requestRef.current += 1
-      setDepartment(null)
-      setLoading(false)
-      setError(null)
-    }
-  }, [cd_ua, fetchDepartment])
+export function departmentDetailQueryOptions(cdUa: string) {
+  const normalizedId = cdUa.trim()
 
-  // Desmontado, nenhuma consulta em voo atualiza o estado
-  useEffect(() => {
-    return () => {
-      requestRef.current += 1
+  return queryOptions({
+    queryKey: departmentDetailQueryKey(normalizedId),
+    queryFn: () => fetchDepartment(normalizedId),
+    staleTime: DEPARTMENT_DETAIL_STALE_TIME_MS,
+    gcTime: DEPARTMENT_DETAIL_GC_TIME_MS,
+    retry: (failureCount, error) => {
+      if (isDefinitiveDepartmentError(error)) return false
+      return failureCount < 1
+    },
+  })
+}
+
+export function useDepartment(cd_ua: string | null | undefined) {
+  const trimmed = cd_ua?.trim() ?? ''
+  const normalizedId = normalizeCdUa(trimmed)
+
+  const query = useQuery({
+    ...departmentDetailQueryOptions(trimmed),
+    enabled: normalizedId !== null,
+  })
+
+  const refetch = () => {
+    if (!normalizedId) return
+    void query.refetch()
+  }
+
+  if (!trimmed) {
+    return {
+      department: null,
+      loading: false,
+      error: null,
+      refetch,
     }
-  }, [])
+  }
+
+  if (!normalizedId) {
+    return {
+      department: null,
+      loading: false,
+      error: 'Invalid department id',
+      refetch,
+    }
+  }
 
   return {
-    department,
-    loading,
-    error,
-    refetch: () => cd_ua && fetchDepartment(cd_ua),
+    department: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : 'Unknown error'
+      : null,
+    refetch,
   }
 }

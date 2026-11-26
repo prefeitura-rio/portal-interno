@@ -1,5 +1,6 @@
 'use client'
 
+import { useQueryClient } from '@tanstack/react-query'
 import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
 import * as React from 'react'
 
@@ -17,6 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { departmentDetailQueryOptions } from '@/hooks/use-department'
 import { cn } from '@/lib/utils'
 
 interface Department {
@@ -45,6 +47,7 @@ export function DepartmentCombobox({
   clearButtonSize = 'h-9! w-9!',
   restrictToIds,
 }: DepartmentComboboxProps) {
+  const queryClient = useQueryClient()
   const isRestricted = restrictToIds && restrictToIds.length > 0
   const [open, setOpen] = React.useState(false)
   const [departments, setDepartments] = React.useState<Department[]>([])
@@ -73,12 +76,13 @@ export function DepartmentCombobox({
       try {
         const results = await Promise.all(
           restrictToIds.map(async id => {
-            const res = await fetch(`/api/departments/${id}`)
-            if (res.ok) {
-              const data = await res.json()
-              return data.data as Department | null
+            try {
+              return await queryClient.fetchQuery(
+                departmentDetailQueryOptions(id)
+              )
+            } catch {
+              return null
             }
-            return null
           })
         )
         if (isCancelled) return
@@ -105,7 +109,7 @@ export function DepartmentCombobox({
     return () => {
       isCancelled = true
     }
-  }, [isRestricted, restrictToIds, value, onValueChange])
+  }, [isRestricted, restrictToIds, value, onValueChange, queryClient])
 
   // Fetch departments
   const fetchDepartments = React.useCallback(
@@ -234,17 +238,14 @@ export function DepartmentCombobox({
       setSelectedDepartmentLoaded(false)
 
       try {
-        const response = await fetch(`/api/departments/${value}`)
+        const data = await queryClient.fetchQuery(
+          departmentDetailQueryOptions(value)
+        )
 
         // Prevent state update if effect was cancelled
         if (isCancelled) return
 
-        if (response.ok) {
-          const data = await response.json()
-          setSelectedDepartment(data.data || null)
-        } else {
-          setSelectedDepartment(null)
-        }
+        setSelectedDepartment(data)
       } catch (error) {
         if (!isCancelled) {
           console.error('Error fetching selected department:', error)
@@ -263,7 +264,7 @@ export function DepartmentCombobox({
     return () => {
       isCancelled = true
     }
-  }, [value, departments])
+  }, [value, departments, queryClient])
 
   // Display value for selected department
   const displayValue = React.useMemo(() => {
