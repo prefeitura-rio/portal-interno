@@ -1,75 +1,51 @@
 'use client'
 
+import { loadDepartment, normalizeCdUa } from '@/lib/department-client'
 import type { Department } from '@/types/department'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-// Cache for individual department lookups
-const departmentCache = new Map<
-  string,
-  { data: Department; timestamp: number }
->()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-
+/**
+ * Órgão de um `cd_ua`. As linhas de uma tabela que pedem o mesmo órgão ao
+ * mesmo tempo compartilham uma única requisição ao BFF, e o resultado fica
+ * em cache na aba por 5 minutos (`src/lib/department-client.ts`, DEV-818).
+ */
 export function useDepartment(cd_ua: string | null | undefined) {
   const [department, setDepartment] = useState<Department | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Só a consulta mais recente atualiza o estado (cd_ua trocado no meio)
+  const requestRef = useRef(0)
 
   const fetchDepartment = useCallback(async (id: string) => {
-    const normalizedId = id.trim()
+    const request = ++requestRef.current
+    const isCurrent = () => requestRef.current === request
+    const normalizedId = normalizeCdUa(id)
 
-    if (!/^\d+$/.test(normalizedId)) {
+    if (!normalizedId) {
       setDepartment(null)
       setError('Invalid department id')
       setLoading(false)
       return
     }
 
+    setLoading(true)
+    setError(null)
+
     try {
-      setLoading(true)
-      setError(null)
-
-      // Check cache first
-      const cached = departmentCache.get(normalizedId)
-      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        setDepartment(cached.data)
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch(
-        `/api/departments/${encodeURIComponent(normalizedId)}`
-      )
-
-      if (response.status === 404) {
+      const result = await loadDepartment(normalizedId)
+      if (!isCurrent()) return
+      if (result.status === 'found') {
+        setDepartment(result.data)
+      } else {
         setDepartment(null)
         setError('Department not found')
-        setLoading(false)
-        return
-      }
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch department')
-      }
-
-      const result = await response.json()
-
-      if (result.success && result.data) {
-        const deptData = result.data
-        setDepartment(deptData)
-        // Cache the result
-        departmentCache.set(normalizedId, {
-          data: deptData,
-          timestamp: Date.now(),
-        })
-      } else {
-        throw new Error('Invalid response format')
       }
     } catch (err) {
+      if (!isCurrent()) return
       console.error('Error fetching department:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
-      setLoading(false)
+      if (isCurrent()) setLoading(false)
     }
   }, [])
 
@@ -77,11 +53,19 @@ export function useDepartment(cd_ua: string | null | undefined) {
     if (cd_ua) {
       fetchDepartment(cd_ua)
     } else {
+      requestRef.current += 1
       setDepartment(null)
       setLoading(false)
       setError(null)
     }
   }, [cd_ua, fetchDepartment])
+
+  // Desmontado, nenhuma consulta em voo atualiza o estado
+  useEffect(() => {
+    return () => {
+      requestRef.current += 1
+    }
+  }, [])
 
   return {
     department,
